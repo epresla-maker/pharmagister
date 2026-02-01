@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
+import Image from 'next/image';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { useServiceFeed } from '@/hooks/useServiceFeed';
@@ -411,10 +412,13 @@ export default function ModernServiceFeed() {
                     {/* Profilkép vagy monogram */}
                     <div className="relative">
                       {post.pharmacyPhotoURL ? (
-                        <img 
+                        <Image 
                           src={post.pharmacyPhotoURL} 
-                          alt={post.pharmacyName}
+                          alt={post.pharmacyName || 'Pharmacy'}
+                          width={56}
+                          height={56}
                           className={`w-14 h-14 rounded-xl object-cover border-2 ${colorScheme.border} shadow-sm`}
+                          unoptimized={post.pharmacyPhotoURL?.includes('dicebear')}
                         />
                       ) : (
                         <div className={`w-14 h-14 ${colorScheme.bg} rounded-xl flex items-center justify-center shadow-sm`}>
@@ -591,11 +595,14 @@ export default function ModernServiceFeed() {
                 {/* Header */}
                 <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-cyan-50 to-blue-50 dark:from-cyan-900/10 dark:to-blue-900/10">
                   <div className="flex items-center gap-3">
-                    <img
+                    <Image
                       src={post.authorData?.photoURL || '/default-avatar.svg'}
-                      alt={post.authorData?.displayName}
+                      alt={post.authorData?.displayName || 'Author'}
+                      width={48}
+                      height={48}
                       className="w-12 h-12 rounded-full object-cover border-2 border-cyan-400 cursor-pointer hover:opacity-80"
                       onClick={() => post.userId && router.push(`/profile/${post.userId}`)}
+                      unoptimized={post.authorData?.photoURL?.includes('dicebear')}
                     />
                     <div className="flex-1">
                       <h3 
@@ -688,22 +695,29 @@ export default function ModernServiceFeed() {
                   {post.serviceImages && post.serviceImages.length > 0 && (
                     <div className={`grid gap-2 ${post.serviceImages.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
                       {post.serviceImages.slice(0, 4).map((img, idx) => (
-                        <img
+                        <Image
                           key={idx}
                           src={img}
                           alt={`Service image ${idx + 1}`}
+                          width={300}
+                          height={192}
                           className="w-full h-48 object-cover rounded-lg cursor-pointer hover:opacity-95 transition-opacity"
                           onClick={() => setLightboxImage(img)}
+                          sizes="(max-width: 768px) 50vw, 300px"
                         />
                       ))}
                     </div>
                   )}
                   {post.imageUrl && (
-                    <img
+                    <Image
                       src={post.imageUrl}
                       alt="Post image"
-                      className="w-full object-cover max-h-96 rounded-lg cursor-pointer hover:opacity-95 transition-opacity"
+                      width={600}
+                      height={400}
+                      className="w-full object-cover rounded-lg cursor-pointer hover:opacity-95 transition-opacity"
+                      style={{ maxHeight: '384px' }}
                       onClick={() => setLightboxImage(post.imageUrl)}
+                      sizes="(max-width: 768px) 100vw, 600px"
                     />
                   )}
                 </div>
@@ -750,11 +764,14 @@ export default function ModernServiceFeed() {
               {/* Post Header */}
               <div className="py-3 flex items-start justify-between px-3 sm:px-4">
                 <div className="flex gap-3">
-                  <img
+                  <Image
                     src={post.authorData?.photoURL || '/default-avatar.svg'}
                     alt="Author"
+                    width={40}
+                    height={40}
                     className="w-10 h-10 rounded-full object-cover cursor-pointer hover:opacity-80"
                     onClick={() => post.userId && router.push(`/profile/${post.userId}`)}
+                    unoptimized={post.authorData?.photoURL?.includes('dicebear')}
                   />
                   <div>
                     <h3 
@@ -779,20 +796,33 @@ export default function ModernServiceFeed() {
                 )}
                 {/* User uploaded image */}
                 {post.imageUrl && (
-                  <img
-                    src={post.imageUrl}
-                    alt="Post image"
-                    className="w-full object-cover max-h-96 cursor-pointer hover:opacity-95 transition-opacity"
-                    onClick={() => setLightboxImage(post.imageUrl)}
-                  />
+                  <div className="relative w-full" style={{ maxHeight: '384px' }}>
+                    <Image
+                      src={post.imageUrl}
+                      alt="Post image"
+                      width={600}
+                      height={400}
+                      className="w-full object-cover cursor-pointer hover:opacity-95 transition-opacity"
+                      style={{ maxHeight: '384px' }}
+                      onClick={() => setLightboxImage(post.imageUrl)}
+                      sizes="(max-width: 768px) 100vw, 600px"
+                    />
+                  </div>
                 )}
                 {/* RSS feed image */}
                 {post.rssImageUrl && (
-                  <img
-                    src={post.rssImageUrl}
-                    alt="Post image"
-                    className="w-full object-cover max-h-96"
-                  />
+                  <div className="relative w-full" style={{ maxHeight: '384px' }}>
+                    <Image
+                      src={post.rssImageUrl}
+                      alt="Post image"
+                      width={600}
+                      height={400}
+                      className="w-full object-cover"
+                      style={{ maxHeight: '384px' }}
+                      sizes="(max-width: 768px) 100vw, 600px"
+                      unoptimized
+                    />
+                  </div>
                 )}
               </div>
 

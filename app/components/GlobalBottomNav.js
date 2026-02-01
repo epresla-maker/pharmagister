@@ -1,38 +1,38 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import BottomNavigation from './BottomNavigation';
 
-export default function GlobalBottomNav() {
+function GlobalBottomNav() {
   const [showBottomNav, setShowBottomNav] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
+  const lastScrollY = useRef(0);
   const pathname = usePathname();
   const { user, loading } = useAuth();
 
   // Chat oldalakon (lista és room) ne jelenjen meg - a chat lista saját navbart használ
   const isChatPage = pathname?.startsWith('/chat');
 
+  // Memoized scroll handler - no state dependency to avoid re-creating
+  const handleScroll = useCallback(() => {
+    const currentScrollY = window.scrollY;
+    
+    if (currentScrollY < lastScrollY.current) {
+      setShowBottomNav(true);
+    } else if (currentScrollY > lastScrollY.current && currentScrollY > 100) {
+      setShowBottomNav(false);
+    }
+    
+    lastScrollY.current = currentScrollY;
+  }, []);
+
   useEffect(() => {
     if (!user || loading) return;
     
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      
-      if (currentScrollY < lastScrollY) {
-        setShowBottomNav(true);
-      } else if (currentScrollY > lastScrollY && currentScrollY > 100) {
-        setShowBottomNav(false);
-      }
-      
-      setLastScrollY(currentScrollY);
-    };
-
     window.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll();
     
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [lastScrollY, user, loading]);
+  }, [user, loading, handleScroll]);
 
   // Ne renderelj semmit ha nincs user vagy chat oldalon vagyunk
   if (!user || loading || isChatPage) {
@@ -41,3 +41,5 @@ export default function GlobalBottomNav() {
 
   return <BottomNavigation isVisible={showBottomNav} />;
 }
+
+export default memo(GlobalBottomNav);

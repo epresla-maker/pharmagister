@@ -1,16 +1,7 @@
 // app/layout.js
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { AuthProvider } from "@/context/AuthContext";
-import { ThemeProvider } from "@/context/ThemeContext";
-import { ToastProvider } from "@/context/ToastContext";
-import PushNotificationSetup from "@/app/components/PushNotificationSetup";
-import PushNotificationBanner from "@/app/components/PushNotificationBanner";
-import PWARegister from "@/app/components/PWARegister";
-import GlobalBottomNav from "@/app/components/GlobalBottomNav";
-import StartupRedirect from "@/app/components/StartupRedirect";
-import PWAInstallBanner from "@/app/components/PWAInstallBanner";
-import BadgeManager from "@/app/components/BadgeManager";
+import ClientProviders from "@/app/components/ClientProviders";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -42,20 +33,9 @@ export default function RootLayout({ children }) {
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
       <body className={`${inter.className}`}>
-        <AuthProvider>
-          <PWARegister />
-          <BadgeManager />
-          <StartupRedirect />
-          <PushNotificationSetup />
-          <PushNotificationBanner />
-          <ThemeProvider>
-            <ToastProvider>
-              {children}
-              <GlobalBottomNav />
-              <PWAInstallBanner />
-            </ToastProvider>
-          </ThemeProvider>
-        </AuthProvider>
+        <ClientProviders>
+          {children}
+        </ClientProviders>
       </body>
     </html>
   );
