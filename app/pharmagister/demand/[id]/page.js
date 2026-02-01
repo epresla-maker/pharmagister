@@ -438,7 +438,6 @@ export default function DemandDetailPage() {
 
               <div className={`space-y-3 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                 <div className="flex items-center gap-3 py-3 border-b border-gray-200 dark:border-gray-700">
-                  <span className="text-2xl">📅</span>
                   <div>
                     <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Dátum</p>
                     <p className="font-medium">
@@ -454,7 +453,6 @@ export default function DemandDetailPage() {
 
                 {demand.workHours && (
                   <div className="flex items-center gap-3 py-3 border-b border-gray-200 dark:border-gray-700">
-                    <span className="text-2xl">⏰</span>
                     <div>
                       <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Munkaidő</p>
                       <p className="font-medium">{demand.workHours}</p>
@@ -464,7 +462,6 @@ export default function DemandDetailPage() {
 
                 {demand.minExperience && (
                   <div className="flex items-center gap-3 py-3 border-b border-gray-200 dark:border-gray-700">
-                    <span className="text-2xl">📊</span>
                     <div>
                       <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Elvárt tapasztalat</p>
                       <p className="font-medium">{demand.minExperience}</p>
@@ -474,7 +471,6 @@ export default function DemandDetailPage() {
 
                 {demand.maxHourlyRate && (
                   <div className="flex items-center gap-3 py-3 border-b border-gray-200 dark:border-gray-700">
-                    <span className="text-2xl">💰</span>
                     <div>
                       <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Maximum órabér</p>
                       <p className="font-medium">{demand.maxHourlyRate} Ft/óra</p>

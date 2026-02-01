@@ -754,18 +754,18 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
                           </span>
                         </div>
                         <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'} mb-1`}>
-                          📅 {application.demand?.date && new Date(application.demand.date).toLocaleDateString('hu-HU', {
+                          {application.demand?.date && new Date(application.demand.date).toLocaleDateString('hu-HU', {
                             year: 'numeric', month: 'long', day: 'numeric'
                           })}
                         </p>
                         {application.demand?.pharmacyCity && (
                           <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                            📍 {application.demand.pharmacyFullAddress || `${application.demand.pharmacyZipCode || ''} ${application.demand.pharmacyCity || ''}`}
+                            {application.demand.pharmacyFullAddress || `${application.demand.pharmacyZipCode || ''} ${application.demand.pharmacyCity || ''}`}
                           </p>
                         )}
                         {application.demand?.workHours && (
                           <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                            🕐 {application.demand.workHours}
+                            {application.demand.workHours}
                           </p>
                         )}
                       </div>

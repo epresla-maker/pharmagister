@@ -351,7 +351,7 @@ function DateModal({ date, demands, pharmaRole, darkMode, onClose, onDemandDelet
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
-                              <span className="text-2xl">{demand.position === 'pharmacist' ? '�' : '💉'}</span>
+
                               <span className={`font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'}`}>
                                 {demand.position === 'pharmacist' ? 'Gyógyszerész' : 'Szakasszisztens'}
                               </span>
@@ -855,7 +855,7 @@ function DemandCard({ demand, pharmaRole, darkMode }) {
   return (
     <div className={`border ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-[#F9FAFB]'} rounded-xl p-4 hover:border-[#6B46C1] transition-colors`}>
       <div className="flex items-start gap-3">
-        <span className="text-3xl">{demand.position === 'pharmacist' ? '�' : '💉'}</span>
+
         <div className="flex-1">
           <h4 className={`font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'} mb-1 text-lg`}>{demand.pharmacyName}</h4>
           {demand.pharmacyCity && (

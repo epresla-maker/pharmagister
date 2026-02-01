@@ -387,8 +387,7 @@ export default function ModernServiceFeed() {
                   bg: 'bg-blue-500',
                   bgHover: 'hover:bg-blue-600',
                   text: 'text-blue-600',
-                  badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300',
-                  icon: '�'
+                  badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300'
                 }
               : {
                   gradient: 'from-emerald-500 to-teal-600',
@@ -398,8 +397,7 @@ export default function ModernServiceFeed() {
                   bg: 'bg-emerald-500',
                   bgHover: 'hover:bg-emerald-600',
                   text: 'text-emerald-600',
-                  badge: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300',
-                  icon: '💉'
+                  badge: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300'
                 };
 
             return (
@@ -425,19 +423,14 @@ export default function ModernServiceFeed() {
                           </span>
                         </div>
                       )}
-                      {/* Pozíció ikon */}
-                      <div className="absolute -bottom-1 -right-1 text-lg bg-white dark:bg-gray-800 rounded-full w-7 h-7 flex items-center justify-center shadow-sm">
-                        {colorScheme.icon}
-                      </div>
                     </div>
                     
                     <div className="flex-1 min-w-0">
                       <h3 className="font-bold text-gray-900 dark:text-white truncate">
                         {post.pharmacyName}
                       </h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                        <span>📍</span>
-                        <span className="truncate">{post.pharmacyFullAddress || `${post.pharmacyZipCode || ''} ${post.pharmacyCity || ''}`}</span>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                        {post.pharmacyFullAddress || `${post.pharmacyZipCode || ''} ${post.pharmacyCity || ''}`}
                       </p>
                     </div>
                     
@@ -474,7 +467,6 @@ export default function ModernServiceFeed() {
                   <div className="grid grid-cols-2 gap-3 mb-4">
                     {post.workHours && (
                       <div className="flex items-center gap-2 p-2.5 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                        <span className="text-lg">🕐</span>
                         <div>
                           <p className="text-xs text-gray-500 dark:text-gray-400">Munkaidő</p>
                           <p className="text-sm font-medium text-gray-900 dark:text-white">{post.workHours}</p>
@@ -484,7 +476,6 @@ export default function ModernServiceFeed() {
 
                     {post.minExperience && (
                       <div className="flex items-center gap-2 p-2.5 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                        <span className="text-lg">⭐</span>
                         <div>
                           <p className="text-xs text-gray-500 dark:text-gray-400">Tapasztalat</p>
                           <p className="text-sm font-medium text-gray-900 dark:text-white">{post.minExperience}</p>
@@ -494,7 +485,6 @@ export default function ModernServiceFeed() {
 
                     {post.maxHourlyRate && (
                       <div className="flex items-center gap-2 p-2.5 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                        <span className="text-lg">💰</span>
                         <div>
                           <p className="text-xs text-gray-500 dark:text-gray-400">Max. órabér</p>
                           <p className="text-sm font-medium text-gray-900 dark:text-white">{post.maxHourlyRate} Ft</p>
@@ -506,8 +496,8 @@ export default function ModernServiceFeed() {
                   {/* Szoftverek */}
                   {post.requiredSoftware && post.requiredSoftware.length > 0 && (
                     <div className="mb-4">
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-1">
-                        <span>💻</span> Elvárt szoftverismeret
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                        Elvárt szoftverismeret
                       </p>
                       <div className="flex flex-wrap gap-1.5">
                         {post.requiredSoftware.map((software, idx) => (
