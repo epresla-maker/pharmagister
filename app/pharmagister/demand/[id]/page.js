@@ -653,7 +653,7 @@ export default function DemandDetailPage() {
                 </>
               ) : (
                 <div className={`flex-1 px-4 py-3 rounded-xl text-center font-semibold ${darkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
-                  {demand.position === 'pharmacist' ? '👨‍⚕️ Csak gyógyszerészeknek' : '🧑‍⚕️ Csak szakasszisztenseknek'}
+                  {demand.position === 'pharmacist' ? 'Csak gyógyszerészeknek' : 'Csak szakasszisztenseknek'}
                 </div>
               )}
             </div>

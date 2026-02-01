@@ -485,7 +485,7 @@ export default function NotificationsSettingsPage() {
                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
                     >
-                      👨‍⚕️ Gyógyszerész
+                      Gyógyszerész
                     </button>
                     <button
                       onClick={() => handlePositionToggle('assistant')}
@@ -497,7 +497,7 @@ export default function NotificationsSettingsPage() {
                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
                     >
-                      🧑‍⚕️ Szakasszisztens
+                      Szakasszisztens
                     </button>
                   </div>
                 </div>

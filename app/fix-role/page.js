@@ -68,7 +68,7 @@ export default function FixRolePage() {
             <option value="">-- Válassz --</option>
             <option value="pharmacy">🏥 Gyógyszertár (pharmacy)</option>
             <option value="pharmacist">💊 Gyógyszerész (pharmacist)</option>
-            <option value="assistant">👨‍⚕️ Szakasszisztens (assistant)</option>
+            <option value="assistant">Szakasszisztens (assistant)</option>
           </select>
         </div>
 

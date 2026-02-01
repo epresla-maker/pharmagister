@@ -388,7 +388,7 @@ export default function ModernServiceFeed() {
                   bgHover: 'hover:bg-blue-600',
                   text: 'text-blue-600',
                   badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300',
-                  icon: '👨‍⚕️'
+                  icon: '�'
                 }
               : {
                   gradient: 'from-emerald-500 to-teal-600',
@@ -399,7 +399,7 @@ export default function ModernServiceFeed() {
                   bgHover: 'hover:bg-emerald-600',
                   text: 'text-emerald-600',
                   badge: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300',
-                  icon: '🧑‍⚕️'
+                  icon: '💉'
                 };
 
             return (
