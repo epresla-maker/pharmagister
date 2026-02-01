@@ -44,10 +44,6 @@ function BottomNavigation({ isVisible = true }) {
   const { darkMode } = useTheme();
   const { badges } = useDashboardBadges(user, userData);
 
-  // Debug log
-  console.log('[BottomNav] Badges:', badges);
-  console.log('[BottomNav] User:', user?.uid, 'Loading:', loading);
-
   // Memoize nav items to prevent recreation on every render
   const navItems = useMemo(() => [
     {
