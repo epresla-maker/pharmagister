@@ -8,6 +8,99 @@ import { db } from '@/lib/firebase';
 import { createNotificationWithPush } from '@/lib/notifications';
 import { ChevronLeft, ChevronRight, Plus, X, Loader2, Clock, MapPin, MessageCircle, Send } from 'lucide-react';
 
+// Magyar ünnepek (fix dátumok)
+const HUNGARIAN_HOLIDAYS = {
+  '01-01': 'Újév',
+  '03-15': 'Nemzeti ünnep',
+  '05-01': 'Munka ünnepe',
+  '08-20': 'Szent István ünnepe',
+  '10-23': 'Nemzeti ünnep',
+  '11-01': 'Mindenszentek',
+  '12-25': 'Karácsony',
+  '12-26': 'Karácsony'
+};
+
+// Húsvét kiszámítása (Gauss algoritmus)
+function getEasterDate(year) {
+  const a = year % 19;
+  const b = Math.floor(year / 100);
+  const c = year % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31);
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(year, month - 1, day);
+}
+
+// Mozgó ünnepek adott évre
+function getMovingHolidays(year) {
+  const easter = getEasterDate(year);
+  const holidays = {};
+  
+  // Nagypéntek (Húsvét - 2 nap)
+  const goodFriday = new Date(easter);
+  goodFriday.setDate(easter.getDate() - 2);
+  const gfKey = `${String(goodFriday.getMonth() + 1).padStart(2, '0')}-${String(goodFriday.getDate()).padStart(2, '0')}`;
+  holidays[gfKey] = 'Nagypéntek';
+  
+  // Húsvét vasárnap
+  const easterKey = `${String(easter.getMonth() + 1).padStart(2, '0')}-${String(easter.getDate()).padStart(2, '0')}`;
+  holidays[easterKey] = 'Húsvét vasárnap';
+  
+  // Húsvét hétfő
+  const easterMonday = new Date(easter);
+  easterMonday.setDate(easter.getDate() + 1);
+  const emKey = `${String(easterMonday.getMonth() + 1).padStart(2, '0')}-${String(easterMonday.getDate()).padStart(2, '0')}`;
+  holidays[emKey] = 'Húsvét hétfő';
+  
+  // Pünkösd vasárnap (Húsvét + 49 nap)
+  const pentecost = new Date(easter);
+  pentecost.setDate(easter.getDate() + 49);
+  const pKey = `${String(pentecost.getMonth() + 1).padStart(2, '0')}-${String(pentecost.getDate()).padStart(2, '0')}`;
+  holidays[pKey] = 'Pünkösd vasárnap';
+  
+  // Pünkösd hétfő
+  const pentecostMonday = new Date(pentecost);
+  pentecostMonday.setDate(pentecost.getDate() + 1);
+  const pmKey = `${String(pentecostMonday.getMonth() + 1).padStart(2, '0')}-${String(pentecostMonday.getDate()).padStart(2, '0')}`;
+  holidays[pmKey] = 'Pünkösd hétfő';
+  
+  return holidays;
+}
+
+// Ellenőrzi, hogy a dátum ünnep-e
+function isHoliday(date) {
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const key = `${month}-${day}`;
+  
+  // Fix ünnepek
+  if (HUNGARIAN_HOLIDAYS[key]) {
+    return HUNGARIAN_HOLIDAYS[key];
+  }
+  
+  // Mozgó ünnepek
+  const movingHolidays = getMovingHolidays(date.getFullYear());
+  if (movingHolidays[key]) {
+    return movingHolidays[key];
+  }
+  
+  return null;
+}
+
+// Ellenőrzi, hogy hétvége-e (szombat vagy vasárnap)
+function isWeekend(date) {
+  const dayOfWeek = date.getDay();
+  return dayOfWeek === 0 || dayOfWeek === 6; // 0 = vasárnap, 6 = szombat
+}
+
 export default function PharmaCalendar({ pharmaRole }) {
   const { user, userData } = useAuth();
   const { darkMode } = useTheme();
@@ -226,6 +319,8 @@ export default function PharmaCalendar({ pharmaRole }) {
                 const isToday = day.date.toDateString() === today;
                 const isPast = day.date < new Date(new Date().setHours(0, 0, 0, 0));
                 const hasDemands = dateDemands.length > 0;
+                const holiday = isHoliday(day.date);
+                const weekend = isWeekend(day.date);
 
                 return (
                   <div
@@ -236,7 +331,9 @@ export default function PharmaCalendar({ pharmaRole }) {
                         ? darkMode ? 'bg-gray-900' : 'bg-[#F9FAFB]' 
                         : hasDemands && !isPast
                           ? darkMode ? 'bg-purple-900/30' : 'bg-purple-50'
-                          : darkMode ? 'bg-gray-800' : 'bg-white'
+                          : weekend && !holiday
+                            ? darkMode ? 'bg-gray-700/50' : 'bg-gray-100'
+                            : darkMode ? 'bg-gray-800' : 'bg-white'
                     } ${
                       !isPast && day.isCurrentMonth 
                         ? darkMode ? 'cursor-pointer hover:bg-gray-700' : 'cursor-pointer hover:bg-[#F3F4F6]' 
@@ -247,14 +344,25 @@ export default function PharmaCalendar({ pharmaRole }) {
                       hasDemands && !isPast ? 'ring-2 ring-inset ring-purple-400' : ''
                     } transition-all duration-200`}
                   >
-                    <div className={`text-sm font-bold mb-1 ${
-                      !day.isCurrentMonth 
-                        ? darkMode ? 'text-gray-600' : 'text-[#9CA3AF]' 
-                        : darkMode ? 'text-white' : 'text-[#111827]'
-                    } ${
-                      isToday ? 'bg-[#6B46C1] text-white w-8 h-8 rounded-full flex items-center justify-center' : ''
-                    }`}>
-                      {day.date.getDate()}
+                    <div className="flex items-center gap-1">
+                      <div className={`text-sm font-bold mb-1 ${
+                        !day.isCurrentMonth 
+                          ? darkMode ? 'text-gray-600' : 'text-[#9CA3AF]' 
+                          : holiday
+                            ? 'text-red-500'
+                            : weekend
+                              ? darkMode ? 'text-gray-400' : 'text-gray-500'
+                              : darkMode ? 'text-white' : 'text-[#111827]'
+                      } ${
+                        isToday ? 'bg-[#6B46C1] text-white w-8 h-8 rounded-full flex items-center justify-center' : ''
+                      }`}>
+                        {day.date.getDate()}
+                      </div>
+                      {holiday && day.isCurrentMonth && (
+                        <div className="text-[10px] text-red-500 font-medium truncate flex-1" title={holiday}>
+                          {holiday}
+                        </div>
+                      )}
                     </div>
                     
                     {dateDemands.length > 0 && (
@@ -293,6 +401,14 @@ export default function PharmaCalendar({ pharmaRole }) {
             <div className="flex items-center gap-2">
               <div className={`w-4 h-4 ${darkMode ? 'bg-green-900/50 border-green-700' : 'bg-green-100 border-green-300'} border-2 rounded`}></div>
               <span className={`${darkMode ? 'text-white' : 'text-[#111827]'} font-medium`}>Asszisztens</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className={`w-4 h-4 ${darkMode ? 'bg-gray-700/50' : 'bg-gray-100'} border-2 ${darkMode ? 'border-gray-600' : 'border-gray-300'} rounded`}></div>
+              <span className={`${darkMode ? 'text-white' : 'text-[#111827]'} font-medium`}>Hétvége</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-red-500 rounded"></div>
+              <span className={`${darkMode ? 'text-white' : 'text-[#111827]'} font-medium`}>Ünnepnap</span>
             </div>
           </div>
         </>
