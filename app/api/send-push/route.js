@@ -1,26 +1,25 @@
 import webpush from 'web-push';
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 
-// Configure webpush lazily (only when actually sending)
-let webpushConfigured = false;
-
+// Configure webpush on each request to ensure fresh keys
 function configureWebpush() {
-  if (webpushConfigured) return;
-  
-  const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-  const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
+  let VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  let VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
   
   if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
     throw new Error('VAPID keys not configured');
   }
+  
+  // Sanitize VAPID keys - remove any padding '=' characters and trim whitespace
+  // VAPID keys must be URL-safe Base64 without padding
+  VAPID_PUBLIC_KEY = VAPID_PUBLIC_KEY.trim().replace(/=+$/, '');
+  VAPID_PRIVATE_KEY = VAPID_PRIVATE_KEY.trim().replace(/=+$/, '');
   
   webpush.setVapidDetails(
     'mailto:epresla@icloud.com',
     VAPID_PUBLIC_KEY,
     VAPID_PRIVATE_KEY
   );
-  
-  webpushConfigured = true;
 }
 
 export async function POST(request) {
@@ -28,12 +27,22 @@ export async function POST(request) {
     console.log('📨 Push notification API called');
     
     // Environment variables check
-    const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-    const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
+    let VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    let VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
+    
+    // Clean up VAPID keys - remove any padding and ensure URL-safe Base64
+    if (VAPID_PUBLIC_KEY) {
+      VAPID_PUBLIC_KEY = VAPID_PUBLIC_KEY.trim().replace(/=+$/, '');
+    }
+    if (VAPID_PRIVATE_KEY) {
+      VAPID_PRIVATE_KEY = VAPID_PRIVATE_KEY.trim().replace(/=+$/, '');
+    }
     
     console.log('🔑 VAPID keys check:', {
-      publicKey: VAPID_PUBLIC_KEY ? '✅ Present' : '❌ Missing',
-      privateKey: VAPID_PRIVATE_KEY ? '✅ Present' : '❌ Missing'
+      publicKey: VAPID_PUBLIC_KEY ? `✅ Present (length: ${VAPID_PUBLIC_KEY.length})` : '❌ Missing',
+      privateKey: VAPID_PRIVATE_KEY ? `✅ Present (length: ${VAPID_PRIVATE_KEY.length})` : '❌ Missing',
+      publicKeyContainsEquals: VAPID_PUBLIC_KEY?.includes('='),
+      privateKeyContainsEquals: VAPID_PRIVATE_KEY?.includes('=')
     });
     
     configureWebpush();
