@@ -32,9 +32,10 @@ export default function HomePage() {
         <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 z-10 shadow-sm">
           <div className="max-w-xl mx-auto px-4 py-3 flex items-center justify-between">
             {/* Logo */}
-            <h1 className="text-2xl font-bold">
+            <h1 className="text-xl font-bold flex items-baseline gap-1">
               <span className="text-green-600">Pharmagister</span>
-              <span className="text-cyan-500"> vF</span>
+              <span className="text-red-500 text-sm">by</span>
+              <span className="text-cyan-500 italic" style={{ fontFamily: 'Georgia, serif' }}>vali Friend</span>
             </h1>
 
             {/* Profile Button - navigál a saját profilra */}
