@@ -565,6 +565,16 @@ export default function DemandDetailPage() {
                   💡 <strong>Tipp:</strong> Vedd fel a kapcsolatot a gyógyszertárral mielőbb, hogy megbeszéljétek a részleteket!
                 </p>
               </div>
+
+              {/* Chat button */}
+              <button
+                onClick={handleOpenChat}
+                disabled={openingChat}
+                className="w-full mt-4 px-4 py-3 bg-[#6B46C1] hover:bg-[#5a3aa3] text-white rounded-xl transition-colors font-semibold flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              >
+                <MessageCircle className="w-5 h-5" />
+                {openingChat ? 'Megnyitás...' : 'Üzenet küldése'}
+              </button>
             </div>
           )}
 

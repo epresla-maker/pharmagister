@@ -105,6 +105,23 @@ function NewChatContent() {
         read: false
       });
 
+      // Push notification küldése a címzettnek
+      try {
+        await fetch('/api/send-push', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: recipientId,
+            title: '💬 Új üzenet',
+            body: messageText.trim().length > 100 ? messageText.trim().substring(0, 100) + '...' : messageText.trim(),
+            url: `/chat/${chatId}`,
+            tag: `chat-${chatId}`
+          })
+        });
+      } catch (pushError) {
+        console.log('Push notification failed (non-critical):', pushError);
+      }
+
       // Navigate to the new chat
       router.push(`/chat/${chatId}`);
     } catch (error) {
