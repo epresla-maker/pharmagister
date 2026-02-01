@@ -344,28 +344,21 @@ export default function PharmaCalendar({ pharmaRole }) {
                       hasDemands && !isPast ? 'ring-2 ring-inset ring-purple-400' : ''
                     } transition-all duration-200`}
                   >
-                    <div className="flex items-center gap-1">
-                      <div className={`text-sm font-bold mb-1 ${
-                        !day.isCurrentMonth 
-                          ? darkMode ? 'text-gray-600' : 'text-[#9CA3AF]' 
-                          : holiday
-                            ? 'text-red-500'
-                            : weekend
-                              ? darkMode ? 'text-gray-400' : 'text-gray-500'
-                              : darkMode ? 'text-white' : 'text-[#111827]'
-                      } ${
-                        isToday ? 'bg-[#6B46C1] text-white w-8 h-8 rounded-full flex items-center justify-center' : ''
-                      }`}>
-                        {day.date.getDate()}
-                      </div>
-                      {holiday && day.isCurrentMonth && (
-                        <div className="text-[10px] text-red-500 font-medium truncate flex-1" title={holiday}>
-                          {holiday}
-                        </div>
-                      )}
+                    <div className={`text-sm font-bold mb-1 ${
+                      !day.isCurrentMonth 
+                        ? 'invisible' 
+                        : holiday
+                          ? 'text-red-500'
+                          : weekend
+                            ? darkMode ? 'text-gray-400' : 'text-gray-500'
+                            : darkMode ? 'text-white' : 'text-[#111827]'
+                    } ${
+                      isToday ? 'bg-[#6B46C1] text-white w-8 h-8 rounded-full flex items-center justify-center' : ''
+                    }`}>
+                      {day.date.getDate()}
                     </div>
                     
-                    {dateDemands.length > 0 && (
+                    {dateDemands.length > 0 && day.isCurrentMonth && (
                       <div className="space-y-1">
                         {dateDemands.slice(0, 2).map(demand => (
                           <div
@@ -401,14 +394,6 @@ export default function PharmaCalendar({ pharmaRole }) {
             <div className="flex items-center gap-2">
               <div className={`w-4 h-4 ${darkMode ? 'bg-green-900/50 border-green-700' : 'bg-green-100 border-green-300'} border-2 rounded`}></div>
               <span className={`${darkMode ? 'text-white' : 'text-[#111827]'} font-medium`}>Asszisztens</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className={`w-4 h-4 ${darkMode ? 'bg-gray-700/50' : 'bg-gray-100'} border-2 ${darkMode ? 'border-gray-600' : 'border-gray-300'} rounded`}></div>
-              <span className={`${darkMode ? 'text-white' : 'text-[#111827]'} font-medium`}>Hétvége</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-red-500 rounded"></div>
-              <span className={`${darkMode ? 'text-white' : 'text-[#111827]'} font-medium`}>Ünnepnap</span>
             </div>
           </div>
         </>
