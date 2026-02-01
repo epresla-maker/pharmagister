@@ -35,7 +35,6 @@ export default function NotificationsSettingsPage() {
   
   const [settings, setSettings] = useState({
     pushEnabled: true,
-    emailEnabled: true,
     newMessage: true,
     newApplication: true,
     applicationStatus: true,
@@ -428,18 +427,6 @@ export default function NotificationsSettingsPage() {
                   </div>
                 </div>
                 <Toggle enabled={settings.pushEnabled} onToggle={() => handleToggle('pushEnabled')} />
-              </div>
-              <div className="flex items-center justify-between px-4 py-3">
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${darkMode ? 'bg-blue-900/30' : 'bg-blue-100'}`}>
-                    <MessageCircle className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>E-mail értesítések</p>
-                    <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Értesítések e-mailben</p>
-                  </div>
-                </div>
-                <Toggle enabled={settings.emailEnabled} onToggle={() => handleToggle('emailEnabled')} />
               </div>
             </div>
           </div>
