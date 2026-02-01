@@ -1,7 +1,7 @@
-const SW_VERSION = 'v2';
-const CACHE_NAME = 'pharmagister-v2';
-const STATIC_CACHE = 'pharmagister-static-v2';
-const DYNAMIC_CACHE = 'pharmagister-dynamic-v2';
+const SW_VERSION = 'v3';
+const CACHE_NAME = 'pharmagister-v3';
+const STATIC_CACHE = 'pharmagister-static-v3';
+const DYNAMIC_CACHE = 'pharmagister-dynamic-v3';
 
 // Statikus fájlok, amiket mindig cache-elünk
 const STATIC_ASSETS = [
@@ -112,7 +112,8 @@ self.addEventListener('push', (event) => {
     title: 'Pharmagister',
     body: 'Új értesítésed érkezett!',
     icon: '/icons/icon-192x192.png',
-    badge: '/icons/icon-72x72.png',
+    // Android requires monochrome badge icon (white silhouette on transparent)
+    badge: '/icons/badge-monochrome.png',
     tag: 'pharmagister-notification-' + Date.now(),
     data: { url: '/' },
     // Android requires these for reliable delivery

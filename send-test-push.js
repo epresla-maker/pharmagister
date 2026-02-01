@@ -52,7 +52,7 @@ async function sendTestPush() {
     title: "🧪 Teszt értesítés",
     body: "Ez egy teszt push notification! " + new Date().toLocaleTimeString(),
     icon: "/icons/icon-192x192.png",
-    badge: "/icons/icon-72x72.png",
+    badge: "/icons/badge-monochrome.png",
     tag: "test-" + Date.now(),
     url: "/notifications"
   });
