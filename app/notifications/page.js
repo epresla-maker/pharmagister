@@ -106,6 +106,8 @@ export default function NotificationsPage() {
         return 'bg-blue-50 border-blue-200';
       case 'admin_approval_request':
         return 'bg-orange-50 border-orange-200';
+      case 'new_demand':
+        return 'bg-cyan-50 border-cyan-200';
       default:
         return 'bg-blue-50 border-blue-200';
     }
@@ -115,6 +117,10 @@ export default function NotificationsPage() {
     // Új üzenet értesítés - chat megnyitása
     if (notification.type === 'new_message' && notification.chatId) {
       router.push(`/chat/${notification.chatId}`);
+    }
+    // Új helyettesítési igény értesítés - igény részletei oldal
+    else if (notification.type === 'new_demand' && notification.data?.demandId) {
+      router.push(`/pharmagister/demand/${notification.data.demandId}`);
     }
     // Pharmagister jelentkezés értesítés - vezérlőpultra navigálás a konkrét igénnyel
     else if (notification.type === 'pharma_application' && notification.demandId) {
@@ -176,7 +182,7 @@ export default function NotificationsPage() {
                   key={notification.id}
                   onClick={() => handleNotificationClick(notification)}
                   className={`rounded-xl shadow-lg p-6 border-2 ${getNotificationColor(notification.type)} ${
-                    notification.type === 'pharma_application' || notification.type === 'admin_approval_request' || notification.type === 'new_message' || notification.chatId || notification.url
+                    notification.type === 'pharma_application' || notification.type === 'admin_approval_request' || notification.type === 'new_message' || notification.type === 'new_demand' || notification.chatId || notification.url || notification.data?.demandId
                       ? 'cursor-pointer hover:shadow-xl transition-shadow'
                       : ''
                   } ${!notification.read ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}
