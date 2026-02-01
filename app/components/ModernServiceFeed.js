@@ -934,7 +934,7 @@ export default function ModernServiceFeed() {
       {/* ✅ ÚJ: End of Feed Message */}
       {!hasMore && posts.length > 0 && (
         <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-          🎉 Elérted a hírfolyam végét
+          Elérted a hírfolyam végét
         </div>
       )}
     </div>

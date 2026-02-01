@@ -80,7 +80,7 @@ export async function POST(request) {
         await db.collection('notifications').add({
           userId: userInfo.id,
           type: 'new_demand',
-          title: 'Új helyettesítési igény! 📋',
+          title: 'Új helyettesítési igény!',
           message: `${pharmacyName || 'Egy gyógyszertár'} ${positionLabel} helyettest keres ${dateStr ? `(${dateStr})` : ''}.`,
           read: false,
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
