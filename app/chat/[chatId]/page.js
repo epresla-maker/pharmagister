@@ -780,7 +780,7 @@ export default function ChatRoomPage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               userId: partnerId,
-              title: partnerData?.name === 'Betöltés...' ? 'Új üzenet' : `💬 Új üzenet`,
+              title: 'Új üzenet',
               body: text.length > 100 ? text.substring(0, 100) + '...' : text,
               url: `/chat/${chatId}`,
               tag: `chat-${chatId}`

@@ -112,7 +112,7 @@ function NewChatContent() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             userId: recipientId,
-            title: '💬 Új üzenet',
+            title: 'Új üzenet',
             body: messageText.trim().length > 100 ? messageText.trim().substring(0, 100) + '...' : messageText.trim(),
             url: `/chat/${chatId}`,
             tag: `chat-${chatId}`
