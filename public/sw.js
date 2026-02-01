@@ -1,7 +1,7 @@
-const SW_VERSION = 'v3';
-const CACHE_NAME = 'pharmagister-v3';
-const STATIC_CACHE = 'pharmagister-static-v3';
-const DYNAMIC_CACHE = 'pharmagister-dynamic-v3';
+const SW_VERSION = 'v4';
+const CACHE_NAME = 'pharmagister-v4';
+const STATIC_CACHE = 'pharmagister-static-v4';
+const DYNAMIC_CACHE = 'pharmagister-dynamic-v4';
 
 // Statikus fájlok, amiket mindig cache-elünk
 const STATIC_ASSETS = [
@@ -104,16 +104,18 @@ self.addEventListener('push', (event) => {
   console.log('[SW] Push received:', event);
   console.log('[SW] Push data:', event.data?.text());
   
-  // Detect platform for debugging
-  const isAndroid = /Android/i.test(self.navigator?.userAgent || '');
+  // Detect platform
+  const userAgent = self.navigator?.userAgent || '';
+  const isAndroid = /Android/i.test(userAgent);
   console.log('[SW] Platform:', isAndroid ? 'Android' : 'Other');
   
   let data = {
     title: 'Pharmagister',
     body: 'Új értesítésed érkezett!',
     icon: '/icons/icon-192x192.png',
-    // Android requires monochrome badge icon (white silhouette on transparent)
-    badge: '/icons/badge-monochrome.png',
+    // Android: ne használjunk badge-t, így az app ikonja jelenik meg
+    // iOS/Other: használjuk a badge ikont
+    badge: isAndroid ? undefined : '/icons/badge-monochrome.png',
     tag: 'pharmagister-notification-' + Date.now(),
     data: { url: '/' },
     // Android requires these for reliable delivery
@@ -142,10 +144,10 @@ self.addEventListener('push', (event) => {
 
   console.log('[SW] Showing notification with data:', data);
   
-  const notificationPromise = self.registration.showNotification(data.title, {
+  // Build notification options
+  const notificationOptions = {
     body: data.body,
     icon: data.icon,
-    badge: data.badge,
     tag: data.tag,
     vibrate: [200, 100, 200],
     requireInteraction: data.requireInteraction,
@@ -155,7 +157,14 @@ self.addEventListener('push', (event) => {
       { action: 'close', title: 'Bezárás' }
     ],
     data: data.data
-  });
+  };
+  
+  // Only add badge if defined (not on Android)
+  if (data.badge) {
+    notificationOptions.badge = data.badge;
+  }
+  
+  const notificationPromise = self.registration.showNotification(data.title, notificationOptions);
   
   event.waitUntil(
     notificationPromise
