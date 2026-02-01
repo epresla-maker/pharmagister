@@ -34,7 +34,7 @@ export default function HomePage() {
             {/* Logo */}
             <h1 className="text-xl font-bold flex items-baseline gap-1">
               <span className="text-green-600">Pharmagister</span>
-              <span className="text-red-500 text-sm">by</span>
+              <span className="text-gray-800 dark:text-gray-300 text-xs font-light italic" style={{ fontFamily: 'Georgia, serif' }}>by</span>
               <span className="text-cyan-500 italic" style={{ fontFamily: 'Georgia, serif' }}>vali Friend</span>
             </h1>
 
