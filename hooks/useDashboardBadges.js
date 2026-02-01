@@ -23,12 +23,15 @@ export function useDashboardBadges(user, userData) {
   useEffect(() => {
     if (!user) return;
 
+    console.log('[Badge] Starting chat listener for user:', user.uid);
+
     const chatsQuery = query(
       collection(db, 'chats'),
       where('members', 'array-contains', user.uid)
     );
     
     const unsub = onSnapshot(chatsQuery, (snapshot) => {
+      console.log('[Badge] Chat snapshot received, docs:', snapshot.docs.length);
       let unreadCount = 0;
       snapshot.docs.forEach(chatDoc => {
         const data = chatDoc.data();
@@ -41,10 +44,14 @@ export function useDashboardBadges(user, userData) {
         const readBy = data.readBy || [];
         if (!readBy.includes(user.uid) && data.lastMessageSenderId !== user.uid) {
           unreadCount++;
+          console.log('[Badge] Unread chat found:', chatDoc.id);
         }
       });
+      console.log('[Badge] Total unread messages:', unreadCount);
       setBadges(prev => ({ ...prev, messages: unreadCount }));
-    }, () => {});
+    }, (error) => {
+      console.error('[Badge] Chat listener error:', error);
+    });
 
     return () => unsub();
   }, [user]);
