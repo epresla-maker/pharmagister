@@ -521,6 +521,24 @@ function CreateDemandForm({ date, darkMode, onSuccess, onCancel }) {
         userId: user.uid
       });
       
+      // Push értesítés küldése a feliratkozott felhasználóknak
+      try {
+        await fetch('/api/notify-new-demand', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            demandId: demandRef.id,
+            pharmacyZipCode: userData.pharmacyZipCode || '',
+            position: formData.position,
+            pharmacyName: userData.pharmacyName || 'Gyógyszertár',
+            date: localDateString
+          })
+        });
+        console.log('📢 New demand notifications sent');
+      } catch (notifyError) {
+        console.log('Push notification failed (non-critical):', notifyError);
+      }
+      
       alert('Igény sikeresen feladva!');
       onSuccess();
     } catch (error) {

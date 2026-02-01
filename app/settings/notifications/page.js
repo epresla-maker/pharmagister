@@ -5,7 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { ArrowLeft, Bell, MessageCircle, Calendar, CheckCircle, Loader2, Smartphone } from 'lucide-react';
+import { ArrowLeft, Bell, MessageCircle, Calendar, CheckCircle, Loader2, Smartphone, MapPin, X, Plus } from 'lucide-react';
 import RouteGuard from '@/app/components/RouteGuard';
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
@@ -41,13 +41,30 @@ export default function NotificationsSettingsPage() {
     applicationStatus: true,
     newDemand: true,
     reminders: true,
+    // Új beállítások az igény értesítésekhez
+    demandZipCodes: [],
+    demandPositions: [], // ['pharmacist', 'assistant']
   });
+  
+  const [newZipCode, setNewZipCode] = useState('');
+  const [zipCodeError, setZipCodeError] = useState('');
 
   useEffect(() => {
     if (userData?.notificationSettings) {
       setSettings(prev => ({
         ...prev,
-        ...userData.notificationSettings
+        ...userData.notificationSettings,
+        // Alapértelmezetten a saját szerepkörünket kapcsoljuk be
+        demandPositions: userData.notificationSettings.demandPositions || 
+          (pharmaRole === 'pharmacist' ? ['pharmacist'] : 
+           pharmaRole === 'assistant' ? ['assistant'] : [])
+      }));
+    } else if (pharmaRole && pharmaRole !== 'pharmacy') {
+      // Ha nincs még beállítás, alapértelmezetten a saját szerepkört állítsuk be
+      setSettings(prev => ({
+        ...prev,
+        demandPositions: pharmaRole === 'pharmacist' ? ['pharmacist'] : 
+                         pharmaRole === 'assistant' ? ['assistant'] : []
       }));
     }
     
@@ -182,6 +199,98 @@ export default function NotificationsSettingsPage() {
     } catch (error) {
       console.error('Error saving settings:', error);
       // Revert on error
+      setSettings(settings);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handlePositionToggle = async (position) => {
+    const currentPositions = settings.demandPositions || [];
+    let newPositions;
+    
+    if (currentPositions.includes(position)) {
+      newPositions = currentPositions.filter(p => p !== position);
+    } else {
+      newPositions = [...currentPositions, position];
+    }
+    
+    const newSettings = {
+      ...settings,
+      demandPositions: newPositions
+    };
+    setSettings(newSettings);
+    
+    setSaving(true);
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        notificationSettings: newSettings
+      });
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      setSettings(settings);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAddZipCode = async () => {
+    const zip = newZipCode.trim();
+    
+    // Validáció
+    if (!zip) {
+      setZipCodeError('Adj meg egy irányítószámot');
+      return;
+    }
+    
+    if (!/^\d{4}$/.test(zip)) {
+      setZipCodeError('Az irányítószám 4 számjegyű kell legyen');
+      return;
+    }
+    
+    if (settings.demandZipCodes?.includes(zip)) {
+      setZipCodeError('Ez az irányítószám már szerepel a listában');
+      return;
+    }
+    
+    setZipCodeError('');
+    
+    const newZipCodes = [...(settings.demandZipCodes || []), zip];
+    const newSettings = {
+      ...settings,
+      demandZipCodes: newZipCodes
+    };
+    setSettings(newSettings);
+    setNewZipCode('');
+    
+    setSaving(true);
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        notificationSettings: newSettings
+      });
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      setSettings(settings);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRemoveZipCode = async (zipToRemove) => {
+    const newZipCodes = (settings.demandZipCodes || []).filter(z => z !== zipToRemove);
+    const newSettings = {
+      ...settings,
+      demandZipCodes: newZipCodes
+    };
+    setSettings(newSettings);
+    
+    setSaving(true);
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        notificationSettings: newSettings
+      });
+    } catch (error) {
+      console.error('Error saving settings:', error);
       setSettings(settings);
     } finally {
       setSaving(false);
@@ -359,6 +468,126 @@ export default function NotificationsSettingsPage() {
               ))}
             </div>
           </div>
+
+          {/* Igény értesítés szűrők - csak helyettesítőknek */}
+          {(pharmaRole === 'pharmacist' || pharmaRole === 'assistant') && settings.newDemand && (
+            <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-sm overflow-hidden`}>
+              <div className={`px-4 py-2 ${darkMode ? 'bg-gray-700/50 border-gray-700' : 'bg-gray-50 border-gray-100'} border-b`}>
+                <h3 className={`text-xs font-semibold ${darkMode ? 'text-gray-400' : 'text-gray-500'} uppercase tracking-wider`}>
+                  Igény értesítés szűrők
+                </h3>
+              </div>
+              
+              <div className="p-4 space-y-4">
+                {/* Pozíció szűrő */}
+                <div>
+                  <p className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'} mb-2`}>
+                    Milyen pozíciókról kapsz értesítést?
+                  </p>
+                  <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'} mb-3`}>
+                    Válaszd ki, milyen típusú igényekről szeretnél értesítést kapni
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handlePositionToggle('pharmacist')}
+                      className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                        settings.demandPositions?.includes('pharmacist')
+                          ? 'bg-purple-600 text-white'
+                          : darkMode 
+                            ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      👨‍⚕️ Gyógyszerész
+                    </button>
+                    <button
+                      onClick={() => handlePositionToggle('assistant')}
+                      className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                        settings.demandPositions?.includes('assistant')
+                          ? 'bg-purple-600 text-white'
+                          : darkMode 
+                            ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      🧑‍⚕️ Szakasszisztens
+                    </button>
+                  </div>
+                </div>
+
+                {/* Irányítószám szűrő */}
+                <div className={`pt-4 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <MapPin className={`w-4 h-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+                    <p className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                      Irányítószám szűrő
+                    </p>
+                  </div>
+                  <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'} mb-3`}>
+                    Add meg az irányítószámokat, amelyekről értesítést szeretnél kapni. Ha üres, minden területről kapsz értesítést.
+                  </p>
+                  
+                  {/* Irányítószám hozzáadása */}
+                  <div className="flex gap-2 mb-3">
+                    <input
+                      type="text"
+                      value={newZipCode}
+                      onChange={(e) => {
+                        setNewZipCode(e.target.value.replace(/\D/g, '').slice(0, 4));
+                        setZipCodeError('');
+                      }}
+                      placeholder="Pl. 1013"
+                      maxLength={4}
+                      className={`flex-1 px-3 py-2 rounded-lg border text-sm ${
+                        darkMode 
+                          ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                          : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
+                      } focus:outline-none focus:ring-2 focus:ring-purple-500`}
+                    />
+                    <button
+                      onClick={handleAddZipCode}
+                      className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-1"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Hozzáad
+                    </button>
+                  </div>
+                  
+                  {zipCodeError && (
+                    <p className="text-red-500 text-xs mb-2">{zipCodeError}</p>
+                  )}
+                  
+                  {/* Mentett irányítószámok */}
+                  {settings.demandZipCodes && settings.demandZipCodes.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {settings.demandZipCodes.map((zip) => (
+                        <div
+                          key={zip}
+                          className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-sm ${
+                            darkMode 
+                              ? 'bg-purple-900/30 text-purple-300' 
+                              : 'bg-purple-100 text-purple-700'
+                          }`}
+                        >
+                          <span>{zip}</span>
+                          <button
+                            onClick={() => handleRemoveZipCode(zip)}
+                            className="ml-1 hover:text-red-500 transition-colors"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className={`text-xs italic ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                      Nincs irányítószám megadva - minden területről kapsz értesítést
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Info */}
           <div className={`${darkMode ? 'bg-purple-900/30 border-purple-600' : 'bg-purple-50 border-purple-200'} border rounded-xl p-4`}>
