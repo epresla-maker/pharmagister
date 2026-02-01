@@ -1,6 +1,7 @@
-const CACHE_NAME = 'pharmagister-v1';
-const STATIC_CACHE = 'pharmagister-static-v1';
-const DYNAMIC_CACHE = 'pharmagister-dynamic-v1';
+const SW_VERSION = 'v2';
+const CACHE_NAME = 'pharmagister-v2';
+const STATIC_CACHE = 'pharmagister-static-v2';
+const DYNAMIC_CACHE = 'pharmagister-dynamic-v2';
 
 // Statikus fájlok, amiket mindig cache-elünk
 const STATIC_ASSETS = [
@@ -103,13 +104,20 @@ self.addEventListener('push', (event) => {
   console.log('[SW] Push received:', event);
   console.log('[SW] Push data:', event.data?.text());
   
+  // Detect platform for debugging
+  const isAndroid = /Android/i.test(self.navigator?.userAgent || '');
+  console.log('[SW] Platform:', isAndroid ? 'Android' : 'Other');
+  
   let data = {
     title: 'Pharmagister',
     body: 'Új értesítésed érkezett!',
     icon: '/icons/icon-192x192.png',
     badge: '/icons/icon-72x72.png',
-    tag: 'pharmagister-notification',
-    data: { url: '/' }
+    tag: 'pharmagister-notification-' + Date.now(),
+    data: { url: '/' },
+    // Android requires these for reliable delivery
+    requireInteraction: true,
+    renotify: true
   };
 
   if (event.data) {
@@ -118,7 +126,11 @@ self.addEventListener('push', (event) => {
       console.log('[SW] Parsed payload:', payload);
       data = {
         ...data,
-        ...payload,
+        title: payload.title || data.title,
+        body: payload.body || data.body,
+        icon: payload.icon || data.icon,
+        badge: payload.badge || data.badge,
+        tag: payload.tag || data.tag,
         data: { url: payload.url || '/' }
       };
     } catch (e) {
@@ -127,23 +139,32 @@ self.addEventListener('push', (event) => {
     }
   }
 
+  console.log('[SW] Showing notification with data:', data);
+  
+  const notificationPromise = self.registration.showNotification(data.title, {
+    body: data.body,
+    icon: data.icon,
+    badge: data.badge,
+    tag: data.tag,
+    vibrate: [200, 100, 200],
+    requireInteraction: data.requireInteraction,
+    renotify: data.renotify,
+    actions: [
+      { action: 'open', title: 'Megnyitás' },
+      { action: 'close', title: 'Bezárás' }
+    ],
+    data: data.data
+  });
+  
   event.waitUntil(
-    Promise.all([
-      self.registration.showNotification(data.title, {
-        body: data.body,
-        icon: data.icon,
-        badge: data.badge,
-        tag: data.tag,
-        vibrate: [200, 100, 200],
-        requireInteraction: true,
-        actions: [
-          { action: 'open', title: 'Megnyitás' },
-          { action: 'close', title: 'Bezárás' }
-        ],
-        data: data.data
-      }),
-      incrementBadge()
-    ])
+    notificationPromise
+      .then(() => {
+        console.log('[SW] Notification shown successfully');
+        return incrementBadge();
+      })
+      .catch(err => {
+        console.error('[SW] Failed to show notification:', err);
+      })
   );
 });
 
@@ -218,20 +239,21 @@ let badgeCount = 0;
 
 async function updateBadge(count) {
   badgeCount = count;
-  if ('setAppBadge' in navigator) {
+  // Service Worker-ben 'self' a globális objektum, nem 'navigator'
+  if ('setAppBadge' in self.navigator) {
     try {
       if (count > 0) {
-        await navigator.setAppBadge(count);
+        await self.navigator.setAppBadge(count);
         console.log('[SW] Badge set to:', count);
       } else {
-        await navigator.clearAppBadge();
+        await self.navigator.clearAppBadge();
         console.log('[SW] Badge cleared');
       }
     } catch (error) {
       console.error('[SW] Badge update error:', error);
     }
   } else {
-    console.log('[SW] Badge API not supported');
+    console.log('[SW] Badge API not supported in this browser');
   }
 }
 
