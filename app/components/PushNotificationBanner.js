@@ -18,6 +18,12 @@ function urlBase64ToUint8Array(base64String) {
   return outputArray;
 }
 
+// Detect if running as installed PWA
+function isPWA() {
+  return window.matchMedia('(display-mode: standalone)').matches || 
+         window.navigator.standalone === true;
+}
+
 export default function PushNotificationBanner() {
   const { user } = useAuth();
   const [showBanner, setShowBanner] = useState(false);
@@ -26,17 +32,12 @@ export default function PushNotificationBanner() {
   useEffect(() => {
     console.log('🔔 PushNotificationBanner mounted');
     console.log('🔔 User:', user?.uid);
-    console.log('🔔 VAPID_PUBLIC_KEY:', VAPID_PUBLIC_KEY?.substring(0, 20) + '...');
+    console.log('🔔 Running as PWA:', isPWA());
     
     if (!user) {
       console.log('🔔 No user, waiting...');
       return;
     }
-    
-    // Check if user dismissed the banner
-    const dismissed = localStorage.getItem('push-banner-dismissed');
-    console.log('🔔 Banner dismissed?', dismissed);
-    if (dismissed) return;
     
     // Check if notifications are supported
     if (!('Notification' in window)) {
@@ -44,16 +45,86 @@ export default function PushNotificationBanner() {
       return;
     }
     
+    // If running as PWA, always check subscription (ignore dismissed state)
+    // This ensures PWA gets its own subscription even if browser already had one
+    if (isPWA()) {
+      console.log('🔔 PWA mode - checking subscription...');
+      checkAndResubscribeIfNeeded();
+      return;
+    }
+    
+    // Browser mode - respect dismissed state
+    const dismissed = localStorage.getItem('push-banner-dismissed');
+    console.log('🔔 Banner dismissed?', dismissed);
+    if (dismissed) return;
+    
     console.log('🔔 Notification permission:', Notification.permission);
     
     if (Notification.permission === 'default') {
-      // Check if already subscribed
       checkSubscription();
     } else if (Notification.permission === 'granted') {
-      // Already granted, check subscription
       checkSubscription();
     }
   }, [user]);
+
+  // For PWA: Check if subscription exists AND is saved on server
+  const checkAndResubscribeIfNeeded = async () => {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+      
+      console.log('🔔 PWA subscription check:', subscription?.endpoint?.substring(0, 50));
+      
+      if (!subscription) {
+        // No subscription at all - show banner
+        console.log('🔔 PWA: No subscription, showing banner');
+        setShowBanner(true);
+        return;
+      }
+      
+      // Check if this subscription is saved on server
+      const response = await fetch('/api/push-subscription/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.uid,
+          endpoint: subscription.endpoint
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (!data.exists) {
+          // Subscription exists locally but not on server - save it
+          console.log('🔔 PWA: Subscription not on server, saving...');
+          await saveSubscription(subscription);
+        } else {
+          console.log('🔔 PWA: Subscription already saved on server');
+        }
+      }
+    } catch (error) {
+      console.error('🔔 PWA subscription check error:', error);
+      // On error, show banner to allow manual retry
+      setShowBanner(true);
+    }
+  };
+
+  const saveSubscription = async (subscription) => {
+    const response = await fetch('/api/push-subscription', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: user.uid,
+        subscription: subscription.toJSON()
+      })
+    });
+    
+    if (response.ok) {
+      console.log('✅ PWA subscription saved');
+    }
+  };
 
   const checkSubscription = async () => {
     console.log('🔔 Checking subscription...');
