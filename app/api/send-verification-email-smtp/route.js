@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server';
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'mail.pharmagister.hu',
   port: parseInt(process.env.SMTP_PORT || '465'),
-  secure: true,
+  secure: true, // SSL
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
@@ -79,7 +79,7 @@ export async function POST(request) {
           <body>
             <div class="container">
               <div class="header">
-                <div class="logo">Pharmagister</div>
+                <div class="logo">💊 Pharmagister</div>
                 <p style="color: #666; margin: 0;">Gyógyszertári helyettesítés platform</p>
               </div>
               
@@ -87,28 +87,26 @@ export async function POST(request) {
               
               <p>Köszönjük, hogy regisztráltál a Pharmagister platformon!</p>
               
-              <p>Kérjük, erősítsd meg az email címedet az alábbi gombra kattintva:</p>
+              <p>Az email címed megerősítéséhez kattints az alábbi gombra:</p>
               
               <div style="text-align: center;">
-                <a href="${verificationLink}" class="button">
-                  ✅ Email cím megerősítése
+                <a href="${verificationLink}" class="button" style="color: white;">
+                  ✉️ Email cím megerősítése
                 </a>
               </div>
               
-              <p style="font-size: 14px; color: #666; margin-top: 30px;">
-                Ha a gomb nem működik, másold be ezt a linket a böngésződbe:
-              </p>
-              <p style="font-size: 12px;">
+              <p style="font-size: 14px; color: #666;">
+                Ha a gomb nem működik, másold be ezt a linket a böngésződbe:<br>
                 <a href="${verificationLink}" class="link">${verificationLink}</a>
               </p>
               
-              <p style="margin-top: 30px; font-size: 14px; color: #666;">
-                Az aktiválás után már teljes mértékben használhatod a rendszert és hozzáférhetsz az összes funkcióhoz.
+              <p style="font-size: 14px; color: #666;">
+                Ez a link 24 órán belül lejár.
               </p>
               
               <div class="footer">
-                <p>Ha nem te regisztráltál, kérjük, hagyd figyelmen kívül ezt az emailt.</p>
-                <p style="margin-top: 15px; font-weight: 600;">Üdvözlettel,<br>A Pharmagister csapata</p>
+                <p>Ha nem te regisztráltál, nyugodtan hagyd figyelmen kívül ezt az emailt.</p>
+                <p>© ${new Date().getFullYear()} Pharmagister - Minden jog fenntartva</p>
               </div>
             </div>
           </body>
@@ -118,16 +116,12 @@ export async function POST(request) {
 
     await transporter.sendMail(mailOptions);
 
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Verification email sent successfully'
-    });
-
+    return NextResponse.json({ success: true, message: 'Verification email sent' });
   } catch (error) {
-    console.error('Error sending email:', error);
-    return NextResponse.json({ 
-      error: 'Failed to send email',
-      details: error.message 
-    }, { status: 500 });
+    console.error('Email sending error:', error);
+    return NextResponse.json(
+      { success: false, error: error.message },
+      { status: 500 }
+    );
   }
 }
