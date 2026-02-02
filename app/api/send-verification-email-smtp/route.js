@@ -14,7 +14,9 @@ const transporter = nodemailer.createTransport({
 
 export async function POST(request) {
   try {
-    const { email, displayName, verificationLink } = await request.json();
+    const { email, displayName, verificationToken } = await request.json();
+    
+    const verificationLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://pharmagister.vercel.app'}/verify-email?token=${verificationToken}`;
 
     const mailOptions = {
       from: `"Pharmagister" <${process.env.SMTP_USER || 'noreply@pharmagister.hu'}>`,

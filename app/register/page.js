@@ -49,8 +49,8 @@ export default function RegisterPage() {
         verificationTokenExpires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
       });
 
-      // Custom verification email küldése Resend-del
-      const response = await fetch('/api/send-custom-verification', {
+      // Custom verification email küldése SMTP-vel
+      const response = await fetch('/api/send-verification-email-smtp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

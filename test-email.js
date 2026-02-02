@@ -8,10 +8,10 @@ async function testEmail() {
   
   try {
     const { data, error } = await resend.emails.send({
-      from: 'Pharmagister VF <noreply@valifriend.com>',
-      to: ['epresl@gmail.com'], // Cseréld le a saját emailedre
-      subject: 'Test Email - Pharmagister',
-      html: '<h1>Test email</h1><p>Ha megkapod, akkor működik a Resend!</p>',
+      from: 'Pharmagister <onboarding@resend.dev>',
+      to: ['epresl@gmail.com'],
+      subject: 'Test Email - Pharmagister - ' + new Date().toLocaleTimeString(),
+      html: '<h1>Test email</h1><p>Ha megkapod, akkor működik a Resend!</p><p>Küldve: ' + new Date().toLocaleString('hu-HU') + '</p>',
     });
 
     if (error) {
