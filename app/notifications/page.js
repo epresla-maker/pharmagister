@@ -1,7 +1,7 @@
 "use client";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { collection, query, where, getDocs, doc, updateDoc, orderBy, deleteDoc, writeBatch } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import RouteGuard from "@/app/components/RouteGuard";
@@ -11,16 +11,18 @@ export default function NotificationsPage() {
   const router = useRouter();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const isLoadingRef = useRef(false); // Védi a dupla lekérdezéseket
 
   useEffect(() => {
-    if (user) {
+    if (user && !isLoadingRef.current) {
       loadNotifications();
     }
   }, [user]);
 
   const loadNotifications = async () => {
-    if (!user) return;
+    if (!user || isLoadingRef.current) return;
     
+    isLoadingRef.current = true;
     setLoading(true);
     try {
       const q = query(
@@ -61,6 +63,7 @@ export default function NotificationsPage() {
       console.error('❌ Error loading notifications:', error);
     } finally {
       setLoading(false);
+      isLoadingRef.current = false;
     }
   };
 
