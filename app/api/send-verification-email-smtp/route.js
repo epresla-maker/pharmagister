@@ -1,24 +1,27 @@
 import nodemailer from 'nodemailer';
 import { NextResponse } from 'next/server';
+import dns from 'dns';
 
-// SMTP konfiguráció tarhely.eu-hoz
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'mail.pharmagister.hu',
-  port: parseInt(process.env.SMTP_PORT || '465'),
-  secure: true, // SSL
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-  tls: {
-    rejectUnauthorized: false
-  },
-  dnsTimeout: 30000,
-});
+// Force IPv4 DNS resolution
+dns.setDefaultResultOrder('ipv4first');
 
 export async function POST(request) {
   try {
     const { email, displayName, verificationToken } = await request.json();
+    
+    // Create transporter inside the handler
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST || 'mail.pharmagister.hu',
+      port: parseInt(process.env.SMTP_PORT || '465'),
+      secure: true,
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+      tls: {
+        rejectUnauthorized: false
+      }
+    });
     
     const verificationLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://pharmagister.vercel.app'}/verify-email?token=${verificationToken}`;
 
