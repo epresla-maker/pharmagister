@@ -1,9 +1,8 @@
 import nodemailer from 'nodemailer';
 import { NextResponse } from 'next/server';
-import dns from 'dns';
 
-// Force IPv4 DNS resolution
-dns.setDefaultResultOrder('ipv4first');
+// Force Node.js runtime instead of Edge
+export const runtime = 'nodejs';
 
 export async function POST(request) {
   try {
