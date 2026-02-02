@@ -341,7 +341,7 @@ export default function PharmaCalendar({ pharmaRole }) {
                     } ${
                       isPast ? 'opacity-40 cursor-not-allowed' : ''
                     } ${
-                      hasDemands && !isPast ? 'ring-2 ring-inset ring-purple-400' : ''
+                      hasDemands && !isPast && day.isCurrentMonth ? 'ring-2 ring-inset ring-purple-400' : ''
                     } transition-all duration-200`}
                   >
                     <div className={`text-sm font-bold mb-1 ${

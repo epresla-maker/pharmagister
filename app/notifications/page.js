@@ -179,7 +179,7 @@ export default function NotificationsPage() {
               <p className="text-gray-500">Az új értesítések itt fognak megjelenni</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-4 pb-24">
               {notifications.map(notification => (
                 <div
                   key={notification.id}
