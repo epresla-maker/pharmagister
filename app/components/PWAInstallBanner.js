@@ -1,14 +1,22 @@
 "use client";
 import { useState, useEffect, useCallback } from 'react';
+import { usePathname } from 'next/navigation';
 import { X, Download, Smartphone } from 'lucide-react';
 
 export default function PWAInstallBanner() {
+  const pathname = usePathname();
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showBanner, setShowBanner] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
 
   useEffect(() => {
+    // Karbantartás oldalon ne jelenjen meg
+    if (pathname === '/maintenance') {
+      setShowBanner(false);
+      return;
+    }
+
     // Ellenőrizzük, hogy már standalone módban van-e (telepítve)
     const standalone = window.matchMedia('(display-mode: standalone)').matches 
       || window.navigator.standalone 

@@ -46,9 +46,6 @@ export default function MaintenancePage() {
             transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
             className="text-center mb-8"
           >
-            <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full shadow-lg mb-4">
-              <span className="text-5xl">💊</span>
-            </div>
             <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">
               Pharmagister
             </h1>
@@ -92,7 +89,7 @@ export default function MaintenancePage() {
                   <span className="text-4xl font-bold text-white">03</span>
                 </div>
               </div>
-              <p className="text-gray-400 text-sm mt-3">hétfő délelőtt</p>
+
             </div>
 
             <div className="space-y-3 text-gray-300">
@@ -111,7 +108,7 @@ export default function MaintenancePage() {
             </div>
 
             <p className="text-gray-400 mt-8 text-sm">
-              Köszönjük türelmét! 🙏
+              Köszönjük türelmét!
             </p>
           </motion.div>
 
