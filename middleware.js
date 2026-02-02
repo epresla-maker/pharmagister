@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
 
+// Domain konfiguráció
+const PRIMARY_DOMAIN = 'pharmagister.hu';
+const VERCEL_DOMAIN = 'pharmagister.vercel.app'; // vagy ami a Vercel subdomain
+
 // Karbantartási mód konfiguráció
 const MAINTENANCE_MODE = true;
-const MAINTENANCE_END = new Date('2026-02-03T10:00:00');
+const MAINTENANCE_END = new Date('2026-02-03T23:59:00');
 
 // Ezek az útvonalak mindig elérhetők
 const ALLOWED_PATHS = [
@@ -17,6 +21,15 @@ const ALLOWED_PATHS = [
 
 export function middleware(request) {
   const { pathname } = request.nextUrl;
+  const hostname = request.headers.get('host') || '';
+
+  // Domain átirányítások (www → non-www, vercel → fő domain)
+  if (hostname.startsWith('www.') || hostname.includes('.vercel.app')) {
+    const newUrl = new URL(request.url);
+    newUrl.hostname = PRIMARY_DOMAIN;
+    newUrl.port = '';
+    return NextResponse.redirect(newUrl, { status: 301 });
+  }
   
   // Ha nincs karbantartási mód, engedjük át
   if (!MAINTENANCE_MODE) {
