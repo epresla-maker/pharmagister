@@ -9,8 +9,9 @@ export async function POST(request) {
     const { email, displayName, verificationToken } = await request.json();
     
     // Create transporter inside the handler
+    // Use IP address directly to avoid DNS issues on Vercel
     const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || 'mail.pharmagister.hu',
+      host: '185.51.191.40', // mail.pharmagister.hu IP
       port: parseInt(process.env.SMTP_PORT || '465'),
       secure: true,
       auth: {
@@ -18,7 +19,8 @@ export async function POST(request) {
         pass: process.env.SMTP_PASS,
       },
       tls: {
-        rejectUnauthorized: false
+        rejectUnauthorized: false,
+        servername: 'mail.pharmagister.hu'
       }
     });
     
