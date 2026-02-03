@@ -3,149 +3,219 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
-import { ArrowLeft, HelpCircle, BookOpen, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, BookOpen, ChevronDown, ChevronUp, Home, Calendar, MessageCircle, Bell, Settings, User, Search, Heart, Send } from 'lucide-react';
 import RouteGuard from '@/app/components/RouteGuard';
 
 export default function HelpPage() {
   const router = useRouter();
   const { userData } = useAuth();
   const { darkMode } = useTheme();
-  const [expandedSection, setExpandedSection] = useState('about');
+  const [expandedSection, setExpandedSection] = useState('kezdooldal');
 
   const pharmaRole = userData?.pharmaRole;
 
   const sections = [
     {
-      id: 'about',
-      title: 'A Pharmagisterről',
+      id: 'kezdooldal',
+      title: '🏠 Kezdőoldal (Hírfolyam)',
+      icon: Home,
       content: (
         <div className="space-y-4">
-          <div className={`${darkMode ? 'bg-purple-900/30 border-purple-600' : 'bg-purple-50 border-[#6B46C1]'} border-l-4 p-4 rounded-r-xl`}>
-            <h4 className={`font-bold ${darkMode ? 'text-white' : 'text-[#111827]'} mb-2`}>Üdvözlünk a Pharmagister oldalán!</h4>
-            <p className={`${darkMode ? 'text-gray-300' : 'text-[#374151]'} text-sm mb-2`}>
-              Ez a platform azért jött létre, hogy egyszerűen és hatékonyan kösse össze a helyettesítőt kereső 
-              gyógyszertárakat a munkát vállaló gyógyszerészekkel és szakasszisztensekkel.
-            </p>
-            <p className={`${darkMode ? 'text-gray-300' : 'text-[#374151]'} text-sm`}>
-              Célunk, hogy megkönnyítsük a megfelelő munkaerő vagy munkaalkalom megtalálását a gyógyszerészeti szektorban.
-            </p>
-          </div>
-          
-          <h4 className={`font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'}`}>Hogyan működik?</h4>
           <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-[#374151]'}`}>
-            Az oldal két fő felhasználói csoportot szolgál ki: a <strong>Gyógyszertárakat</strong>, akik igényt adnak fel, 
-            és a <strong>Helyettesítőket</strong> (Gyógyszerészek, Szakasszisztensek), akik ezekre jelentkezhetnek.
+            A kezdőoldal a <strong>hírfolyam</strong>, ahol minden fontos információt megtalálsz:
           </p>
-        </div>
-      )
-    },
-    {
-      id: 'pharmacist',
-      title: 'Helyettesítőknek (Gyógyszerész, Szakasszisztens)',
-      showFor: ['pharmacist', 'assistant', null],
-      content: (
-        <div className="space-y-4">
-          <div>
-            <h4 className={`font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'} mb-2`}>1. Regisztráció és Profil Kitöltése</h4>
-            <ul className={`list-disc list-inside space-y-1 text-sm ${darkMode ? 'text-gray-300' : 'text-[#374151]'} ml-2`}>
-              <li><strong>Regisztráció:</strong> Hozz létre egy fiókot a megfelelő szerepkör kiválasztásával.</li>
-              <li><strong>Profil:</strong> Töltsd ki a kötelező szakmai adatokat (tapasztalat, szoftverismeret, órabér).</li>
-              <li>Tölts fel profilképet és adj meg egy rövid bemutatkozást.</li>
-            </ul>
-          </div>
-          
-          <div>
-            <h4 className={`font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'} mb-2`}>2. Igények Keresése</h4>
-            <ul className={`list-disc list-inside space-y-1 text-sm ${darkMode ? 'text-gray-300' : 'text-[#374151]'} ml-2`}>
-              <li><strong>Naptár Nézet:</strong> Vizuálisan láthatod a meghirdetett igényeket.</li>
-              <li><strong>Vezérlőpult:</strong> Szűrhetsz gyógyszertár nevére vagy irányítószámra.</li>
-            </ul>
-          </div>
-          
-          <div>
-            <h4 className={`font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'} mb-2`}>3. Jelentkezés Igényekre</h4>
-            <ul className={`list-disc list-inside space-y-1 text-sm ${darkMode ? 'text-gray-300' : 'text-[#374151]'} ml-2`}>
-              <li>Kattints a „Jelentkezem" gombra az igény mellett.</li>
-              <li>A gyógyszertár értesítést kap a jelentkezésedről.</li>
-            </ul>
-          </div>
-          
-          <div>
-            <h4 className={`font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'} mb-2`}>4. Jelentkezéseid Kezelése</h4>
-            <ul className={`list-disc list-inside space-y-1 text-sm ${darkMode ? 'text-gray-300' : 'text-[#374151]'} ml-2`}>
-              <li><strong>Függőben:</strong> A gyógyszertár még nem döntött.</li>
-              <li><strong>Elfogadva:</strong> Láthatod a gyógyszertár elérhetőségeit.</li>
-              <li><strong>Elutasítva:</strong> Sajnos nem téged választottak.</li>
-            </ul>
-          </div>
-        </div>
-      )
-    },
-    {
-      id: 'pharmacy',
-      title: 'Gyógyszertáraknak',
-      showFor: ['pharmacy', null],
-      content: (
-        <div className="space-y-4">
-          <div>
-            <h4 className={`font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'} mb-2`}>1. Regisztráció és Profil</h4>
-            <ul className={`list-disc list-inside space-y-1 text-sm ${darkMode ? 'text-gray-300' : 'text-[#374151]'} ml-2`}>
-              <li>Hozz létre egy fiókot „Gyógyszertár" szerepkörrel.</li>
-              <li>Add meg a gyógyszertár nevét és címét.</li>
-            </ul>
-          </div>
-          
-          <div>
-            <h4 className={`font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'} mb-2`}>2. Igények Feladása</h4>
-            <ul className={`list-disc list-inside space-y-1 text-sm ${darkMode ? 'text-gray-300' : 'text-[#374151]'} ml-2`}>
-              <li>Menj a „Naptár" menüpontra.</li>
-              <li>Kattints a napra, amelyikre helyettesítőt keresel.</li>
-              <li>Válaszd ki a pozíciót és a követelményeket.</li>
-            </ul>
-          </div>
-          
-          <div>
-            <h4 className={`font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'} mb-2`}>3. Jelentkezők Kezelése</h4>
-            <ul className={`list-disc list-inside space-y-1 text-sm ${darkMode ? 'text-gray-300' : 'text-[#374151]'} ml-2`}>
-              <li>Megtekintheted a jelentkezők adatlapját.</li>
-              <li>Üzenetet küldhetsz nekik.</li>
-              <li>Elfogadhatod vagy elutasíthatod a jelentkezéseket.</li>
-            </ul>
-          </div>
-        </div>
-      )
-    },
-    {
-      id: 'common',
-      title: 'Közös Funkciók',
-      content: (
-        <div className="space-y-4">
           <ul className={`list-disc list-inside space-y-2 text-sm ${darkMode ? 'text-gray-300' : 'text-[#374151]'} ml-2`}>
-            <li><strong>Üzenetek:</strong> Az „Üzeneteim" menüpontban láthatod a beszélgetéseidet.</li>
-            <li><strong>Profilok:</strong> Más felhasználók adatlapját megtekintheted.</li>
-            <li><strong>Értesítések:</strong> Push és e-mail értesítéseket kaphatsz.</li>
+            <li><strong>Helyettesítési igények:</strong> A gyógyszertárak által feladott igények kártyaként jelennek meg.</li>
+            <li><strong>Admin posztok:</strong> Fontos közlemények és hírek a rendszer üzemeltetőitől.</li>
+            <li><strong>Felhasználói posztok:</strong> Más felhasználók bejegyzései.</li>
+          </ul>
+          <div className={`${darkMode ? 'bg-cyan-900/30 border-cyan-600' : 'bg-cyan-50 border-cyan-500'} border-l-4 p-3 rounded-r-lg`}>
+            <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-[#374151]'}`}>
+              💡 <strong>Tipp:</strong> Húzd le az oldalt a frissítéshez (pull-to-refresh).
+            </p>
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 'hozzaszolas',
+      title: '💬 Hozzászólások',
+      icon: MessageCircle,
+      content: (
+        <div className="space-y-4">
+          <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-[#374151]'}`}>
+            Bármelyik poszthoz hozzászólhatsz:
+          </p>
+          <ol className={`list-decimal list-inside space-y-2 text-sm ${darkMode ? 'text-gray-300' : 'text-[#374151]'} ml-2`}>
+            <li>Kattints a <strong>"Hozzászólás"</strong> gombra a poszt alatt.</li>
+            <li>Megnyílik a poszt részletes nézete.</li>
+            <li>Az oldal alján található a beviteli mező.</li>
+            <li>Írd be a hozzászólásod és nyomd meg a küldés gombot.</li>
+          </ol>
+          <div className={`${darkMode ? 'bg-purple-900/30 border-purple-600' : 'bg-purple-50 border-purple-500'} border-l-4 p-3 rounded-r-lg`}>
+            <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-[#374151]'}`}>
+              💬 <strong>Válasz:</strong> Egy hozzászólásra válaszolni a "Válasz" gombbal tudsz.
+            </p>
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 'pharmagister',
+      title: '📅 Pharmagister (Naptár)',
+      icon: Calendar,
+      content: (
+        <div className="space-y-4">
+          <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-[#374151]'}`}>
+            A Pharmagister modul a helyettesítési rendszer központja:
+          </p>
+          
+          {pharmaRole === 'pharmacy' ? (
+            <div className="space-y-3">
+              <h4 className={`font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'}`}>Gyógyszertáraknak:</h4>
+              <ul className={`list-disc list-inside space-y-2 text-sm ${darkMode ? 'text-gray-300' : 'text-[#374151]'} ml-2`}>
+                <li><strong>Igény feladása:</strong> Kattints egy napra a naptárban, válaszd ki a pozíciót és töltsd ki az adatokat.</li>
+                <li><strong>Jelentkezők:</strong> A beérkezett jelentkezéseket az igény részleteinél látod.</li>
+                <li><strong>Elfogadás/Elutasítás:</strong> Dönts a jelentkezőkről egy kattintással.</li>
+              </ul>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <h4 className={`font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'}`}>Helyettesítőknek:</h4>
+              <ul className={`list-disc list-inside space-y-2 text-sm ${darkMode ? 'text-gray-300' : 'text-[#374151]'} ml-2`}>
+                <li><strong>Igények böngészése:</strong> A naptárban látod a meghirdetett igényeket.</li>
+                <li><strong>Jelentkezés:</strong> Kattints az igényre, majd a "Jelentkezem" gombra.</li>
+                <li><strong>Státusz:</strong> Kövesd a jelentkezéseid állapotát (függőben, elfogadva, elutasítva).</li>
+              </ul>
+            </div>
+          )}
+          
+          <div className={`${darkMode ? 'bg-green-900/30 border-green-600' : 'bg-green-50 border-green-500'} border-l-4 p-3 rounded-r-lg`}>
+            <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-[#374151]'}`}>
+              ✅ <strong>Elfogadás után:</strong> Mindkét fél megkapja a másik elérhetőségeit.
+            </p>
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 'uzenetek',
+      title: '✉️ Üzenetek',
+      icon: MessageCircle,
+      content: (
+        <div className="space-y-4">
+          <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-[#374151]'}`}>
+            Privát üzenetváltás más felhasználókkal:
+          </p>
+          <ul className={`list-disc list-inside space-y-2 text-sm ${darkMode ? 'text-gray-300' : 'text-[#374151]'} ml-2`}>
+            <li><strong>Beszélgetés indítása:</strong> Egy felhasználó profiljáról indíthatsz új beszélgetést.</li>
+            <li><strong>Üzenet küldése:</strong> Írd be az üzeneted és nyomd meg a küldés gombot.</li>
+            <li><strong>Értesítések:</strong> Push értesítést kapsz új üzenetről.</li>
+          </ul>
+          <div className={`${darkMode ? 'bg-blue-900/30 border-blue-600' : 'bg-blue-50 border-blue-500'} border-l-4 p-3 rounded-r-lg`}>
+            <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-[#374151]'}`}>
+              🔔 <strong>Badge:</strong> Az olvasatlan üzenetek száma megjelenik az alsó menüben.
+            </p>
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 'ertesitesek',
+      title: '🔔 Értesítések',
+      icon: Bell,
+      content: (
+        <div className="space-y-4">
+          <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-[#374151]'}`}>
+            Az értesítések oldalon látod az összes fontos eseményt:
+          </p>
+          <ul className={`list-disc list-inside space-y-2 text-sm ${darkMode ? 'text-gray-300' : 'text-[#374151]'} ml-2`}>
+            <li><strong>Új jelentkezés:</strong> Valaki jelentkezett az igényedre.</li>
+            <li><strong>Elfogadás:</strong> A jelentkezésedet elfogadták.</li>
+            <li><strong>Új üzenet:</strong> Privát üzenetet kaptál.</li>
+            <li><strong>Rendszer értesítések:</strong> Fontos információk.</li>
+          </ul>
+          <div className={`${darkMode ? 'bg-yellow-900/30 border-yellow-600' : 'bg-yellow-50 border-yellow-500'} border-l-4 p-3 rounded-r-lg`}>
+            <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-[#374151]'}`}>
+              📱 <strong>Push értesítések:</strong> Engedélyezd a böngészőben a valós idejű értesítésekhez!
+            </p>
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 'profil',
+      title: '👤 Profil és Beállítások',
+      icon: User,
+      content: (
+        <div className="space-y-4">
+          <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-[#374151]'}`}>
+            A profilod és beállításaid kezelése:
+          </p>
+          <ul className={`list-disc list-inside space-y-2 text-sm ${darkMode ? 'text-gray-300' : 'text-[#374151]'} ml-2`}>
+            <li><strong>Profilkép:</strong> Tölts fel egy fotót, hogy mások felismerjenek.</li>
+            <li><strong>Adatok:</strong> Tartsd naprakészen a szakmai adataidat.</li>
+            <li><strong>Bemutatkozás:</strong> Írj pár sort magadról.</li>
+            <li><strong>Sötét mód:</strong> Váltás világos/sötét téma között.</li>
           </ul>
         </div>
       )
     },
     {
-      id: 'tips',
-      title: 'Tippek a hatékony használathoz',
+      id: 'navigacio',
+      title: '🧭 Navigáció',
+      icon: Home,
       content: (
-        <div className={`${darkMode ? 'bg-yellow-900/30 border-yellow-600' : 'bg-yellow-50 border-yellow-500'} border-l-4 p-4 rounded-r-xl`}>
-          <ul className={`list-disc list-inside space-y-2 text-sm ${darkMode ? 'text-gray-300' : 'text-[#374151]'}`}>
-            <li><strong>Helyettesítőknek:</strong> Tartsd naprakészen a profilodat! Válaszolj gyorsan az üzenetekre.</li>
-            <li><strong>Gyógyszertáraknak:</strong> Adj meg egyértelmű követelményeket. Kommunikálj időben.</li>
+        <div className="space-y-4">
+          <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-[#374151]'}`}>
+            Az alsó navigációs sávon 5 fő menüpont található:
+          </p>
+          <div className="grid grid-cols-5 gap-2 mt-3">
+            <div className={`text-center p-2 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+              <Home className={`w-5 h-5 mx-auto ${darkMode ? 'text-gray-300' : 'text-gray-600'}`} />
+              <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Főoldal</p>
+            </div>
+            <div className={`text-center p-2 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+              <MessageCircle className={`w-5 h-5 mx-auto ${darkMode ? 'text-gray-300' : 'text-gray-600'}`} />
+              <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Üzenetek</p>
+            </div>
+            <div className={`text-center p-2 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+              <Bell className={`w-5 h-5 mx-auto ${darkMode ? 'text-gray-300' : 'text-gray-600'}`} />
+              <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Értesítések</p>
+            </div>
+            <div className={`text-center p-2 rounded-lg ${darkMode ? 'bg-purple-900/50' : 'bg-purple-100'}`}>
+              <Calendar className={`w-5 h-5 mx-auto text-purple-500`} />
+              <p className={`text-xs mt-1 ${darkMode ? 'text-purple-300' : 'text-purple-600'}`}>Pharmagister</p>
+            </div>
+            <div className={`text-center p-2 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+              <Settings className={`w-5 h-5 mx-auto ${darkMode ? 'text-gray-300' : 'text-gray-600'}`} />
+              <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Beállítások</p>
+            </div>
+          </div>
+          <div className={`${darkMode ? 'bg-cyan-900/30 border-cyan-600' : 'bg-cyan-50 border-cyan-500'} border-l-4 p-3 rounded-r-lg mt-3`}>
+            <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-[#374151]'}`}>
+              💡 <strong>Tipp:</strong> Görgetéskor az alsó menü eltűnik, felfelé görgetéskor visszatér.
+            </p>
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 'tippek',
+      title: '💡 Hasznos tippek',
+      icon: Heart,
+      content: (
+        <div className="space-y-4">
+          <ul className={`list-disc list-inside space-y-3 text-sm ${darkMode ? 'text-gray-300' : 'text-[#374151]'}`}>
+            <li><strong>PWA telepítés:</strong> Add hozzá az alkalmazást a kezdőképernyődhöz a jobb élményért.</li>
+            <li><strong>Push értesítések:</strong> Engedélyezd, hogy ne maradj le semmiről.</li>
+            <li><strong>Profil kitöltése:</strong> Minél részletesebb a profilod, annál nagyobb eséllyel választanak.</li>
+            <li><strong>Gyors válasz:</strong> A gyors reakció növeli az elfogadás esélyét.</li>
           </ul>
         </div>
       )
     }
   ];
-
-  const filteredSections = sections.filter(section => {
-    if (!section.showFor) return true;
-    return section.showFor.includes(pharmaRole);
-  });
 
   return (
     <RouteGuard>
@@ -171,14 +241,14 @@ export default function HelpPage() {
                 <BookOpen className="w-6 h-6 text-purple-600" />
               </div>
               <div>
-                <h2 className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Pharmagister Útmutató</h2>
-                <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Minden, amit tudnod kell</p>
+                <h2 className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Hogyan működik az oldal?</h2>
+                <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Részletes útmutató</p>
               </div>
             </div>
           </div>
 
           {/* Accordion Sections */}
-          {filteredSections.map((section) => (
+          {sections.map((section) => (
             <div 
               key={section.id}
               className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-sm overflow-hidden`}
