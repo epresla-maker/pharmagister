@@ -449,7 +449,8 @@ export default function PostDetailPage() {
                 onChange={(e) => setCommentText(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
                 placeholder={replyingTo ? `Válasz ${replyingTo.userName} számára...` : "Írj egy hozzászólást..."}
-                className="flex-1 bg-transparent focus:outline-none text-gray-900 dark:text-white text-sm"
+                className="flex-1 bg-transparent focus:outline-none text-gray-900 dark:text-white text-base"
+                style={{ fontSize: '16px' }}
               />
             </div>
             <button

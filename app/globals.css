@@ -97,6 +97,17 @@ html.dark select {
   color: #f9fafb;
 }
 
+/* iOS input zoom prevention - minimum 16px font size */
+input, textarea, select {
+  font-size: 16px !important;
+}
+
+@media screen and (max-width: 768px) {
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+}
+
 html.dark input::placeholder,
 html.dark textarea::placeholder {
   color: #9ca3af;
