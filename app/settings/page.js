@@ -10,7 +10,8 @@ import {
   Shield, 
   HelpCircle, 
   LogOut, 
-  ChevronRight
+  ChevronRight,
+  Lock
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
@@ -58,6 +59,13 @@ export default function SettingsPage() {
           onClick: () => router.push('/pharmagister/setup?edit=true'),
           color: 'text-purple-600',
           bgColor: darkMode ? 'bg-purple-900/30' : 'bg-purple-100'
+        },
+        {
+          icon: Lock,
+          label: 'Jelszó módosítása',
+          onClick: () => router.push('/settings/password'),
+          color: 'text-blue-600',
+          bgColor: darkMode ? 'bg-blue-900/30' : 'bg-blue-100'
         }
       ]
     },

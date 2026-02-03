@@ -826,8 +826,8 @@ export default function ModernServiceFeed() {
                 )}
               </div>
 
-              {/* Hozzászólások summary */}
-              {(commentsCount + totalReplies > 0) && (
+              {/* Hozzászólások summary - csak adminPost esetén */}
+              {post.postType === 'adminPost' && (commentsCount + totalReplies > 0) && (
                 <div className="pb-1.5 flex items-center text-sm text-gray-500 px-3 sm:px-4">
                   <div 
                     className="flex-1 flex justify-end gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors py-1 rounded"
@@ -845,16 +845,18 @@ export default function ModernServiceFeed() {
                 </div>
               )}
 
-              {/* Action Buttons */}
-              <div className="border-t border-gray-200 dark:border-gray-700 py-2 flex items-center justify-center">
-                <button
-                  onClick={() => router.push(`/post/${post.id}`)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors"
-                >
-                  <MessageCircle size={16} />
-                  <span className="text-sm">Hozzászólás</span>
-                </button>
-              </div>
+              {/* Action Buttons - csak adminPost esetén */}
+              {post.postType === 'adminPost' && (
+                <div className="border-t border-gray-200 dark:border-gray-700 py-2 flex items-center justify-center">
+                  <button
+                    onClick={() => router.push(`/post/${post.id}`)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors"
+                  >
+                    <MessageCircle size={16} />
+                    <span className="text-sm">Hozzászólás</span>
+                  </button>
+                </div>
+              )}
 
               {/* Comments megjelenítése eltávolítva - mostmár külön oldalon */}
             </div>

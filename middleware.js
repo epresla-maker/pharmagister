@@ -5,7 +5,7 @@ const PRIMARY_DOMAIN = 'pharmagister.hu';
 const VERCEL_DOMAIN = 'pharmagister.vercel.app'; // vagy ami a Vercel subdomain
 
 // Karbantartási mód konfiguráció
-const MAINTENANCE_MODE = true;
+const MAINTENANCE_MODE = false; // Kikapcsolva - ne töröld!
 const MAINTENANCE_END = new Date('2026-02-03T23:59:00');
 
 // Ezek az útvonalak mindig elérhetők

@@ -27,7 +27,7 @@ async function test() {
     
     const info = await transporter.sendMail({
       from: '"Pharmagister" <' + process.env.SMTP_USER + '>',
-      to: 'epresla@icloud.com',
+      to: 'epresl@gmail.com',
       subject: 'SMTP Teszt DEBUG - ' + new Date().toLocaleTimeString('hu-HU'),
       html: '<h1>SMTP Teszt</h1><p>Ha ezt latod, az SMTP mukodik!</p><p>Kuldve: ' + new Date().toLocaleString('hu-HU') + '</p>',
     });

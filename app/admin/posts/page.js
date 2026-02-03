@@ -52,7 +52,9 @@ export default function AdminPostsPage() {
         authorData: {
           displayName: userData?.displayName || 'Admin',
           photoURL: userData?.photoURL || null
-        }
+        },
+        comments: [],
+        reactions: {}
       });
 
       setPostText('');

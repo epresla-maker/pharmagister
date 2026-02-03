@@ -1,0 +1,1378 @@
+"ID","post_author","post_date","post_date_gmt","post_content","post_title","post_excerpt","post_status","comment_status","ping_status","post_password","post_name","to_ping","pinged","post_modified","post_modified_gmt","post_content_filtered","post_parent","guid","menu_order","post_type","post_mime_type","comment_count"
+"3","1","2025-10-01 16:48:36","2025-10-01 16:48:36","<!-- wp:heading -->
+<h2 class=""wp-block-heading""></h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p><strong>Hatálybalépés dátuma:</strong>&nbsp;2025. október 20.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>1. Az Adatkezelő adatai</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>• <strong>Az adatkezelő:</strong> Jékliné Epres Bettina</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Székhely/Cím:</strong>&nbsp;2723 Nyáregyháza Kossuth Lajos utca 11</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>E-mail cím:</strong>&nbsp;epresla@icloud.com</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Weboldal:</strong>&nbsp;<a href=""https://www.google.com/search?q=https://pharmagister.hu"">https://pharmagister.hu</a></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>2. A kezelt adatok köre és célja</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>A Pharmagister.hu weboldal (a továbbiakban: ""Weboldal"" vagy ""Rendszer"") célja, hogy platformot biztosítson gyógyszertárak és helyettesítést vállaló gyógyszerészek, illetve szakasszisztensek (a továbbiakban együtt: ""Felhasználók"") számára a kapcsolatfelvételhez és a helyettesítési igények kezeléséhez. A szolgáltatás nyújtásához elengedhetetlen bizonyos személyes adatok kezelése.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>2.1. Regisztráció során gyűjtött adatok</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>A Rendszer használata regisztrációhoz kötött. A regisztráció során a következő adatokat kérjük be és kezeljük:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Minden regisztráló Felhasználó esetén:</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>E-mail cím:</strong>&nbsp;Azonosítás, kapcsolattartás, rendszerüzenetek (pl. új üzenet, jelszóemlékeztető, fiók jóváhagyása/elutasítása) küldése. Az adatkezelés jogalapja a Felhasználó hozzájárulása (GDPR 6. cikk (1) a)).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Telefonszám:</strong>&nbsp;Kapcsolattartás, különösen a sikeres helyettesítés megszervezése érdekében. Az adatkezelés jogalapja a Felhasználó hozzájárulása (GDPR 6. cikk (1) a)).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Megjelenített név:</strong>&nbsp;A Felhasználó azonosítása a Rendszeren belül (pl. üzenetküldésnél, igényeknél). Az adatkezelés jogalapja a Felhasználó hozzájárulása (GDPR 6. cikk (1) a)).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Szerepkör:</strong>&nbsp;(Gyógyszertár, Gyógyszerész, Szakasszisztens) A Rendszer funkcióinak megfelelő működéséhez (pl. ki írhat ki igényt, ki jelentkezhet). Az adatkezelés jogalapja a Felhasználó hozzájárulása (GDPR 6. cikk (1) a)).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>""Gyógyszertár"" szerepkör választása esetén (a fentieken felül):</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Címadatok (Irányítószám, Város, Utca, Házszám):</strong>&nbsp;A helyettesítési igény helyszínének meghatározása, a helyettesítők tájékoztatása. Az adatkezelés jogalapja a Felhasználó hozzájárulása (GDPR 6. cikk (1) a)).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>""Gyógyszerész"" vagy ""Szakasszisztens"" szerepkör választása esetén (a fentieken felül):</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Vezetéknév és Keresztnév:</strong>&nbsp;A megjelenített név automatikus létrehozásához és a Felhasználó azonosításához. Az adatkezelés jogalapja a Felhasználó hozzájárulása (GDPR 6. cikk (1) a)).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>2.2. Profiladatok (""Profilom szerkesztése"")</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>A regisztrációt követően a Felhasználóknak lehetőségük van további adatok megadására a profiljukon:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Profilkép (Opcionális):</strong>&nbsp;A Felhasználó vizuális azonosítása a Rendszeren belül. Az adatkezelés jogalapja a Felhasználó hozzájárulása (GDPR 6. cikk (1) a)).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>""Gyógyszerész"" és ""Szakasszisztens"" szerepkör esetén (kötelező a jelentkezéshez):</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Szakmai tapasztalat (évek):</strong>&nbsp;A gyógyszertárak tájékoztatása a helyettesítő releváns tapasztalatáról. Az adatkezelés jogalapja a Felhasználó hozzájárulása (GDPR 6. cikk (1) a)) és a szerződés teljesítéséhez szükséges lépések megtétele (GDPR 6. cikk (1) b)).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Ismert szoftverek:</strong>&nbsp;A gyógyszertárak tájékoztatása a helyettesítő szoftverismeretéről. Az adatkezelés jogalapja a Felhasználó hozzájárulása (GDPR 6. cikk (1) a)) és a szerződés teljesítéséhez szükséges lépések megtétele (GDPR 6. cikk (1) b)).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Kért órabér:</strong>&nbsp;A gyógyszertárak tájékoztatása a helyettesítő díjazási igényéről. Az adatkezelés jogalapja a Felhasználó hozzájárulása (GDPR 6. cikk (1) a)) és a szerződés teljesítéséhez szükséges lépések megtétele (GDPR 6. cikk (1) b)).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>""Gyógyszerész"" és ""Szakasszisztens"" szerepkör esetén (opcionális):</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Rövid bemutatkozás:</strong>&nbsp;Lehetőség a helyettesítő számára további releváns információk közlésére. Az adatkezelés jogalapja a Felhasználó hozzájárulása (GDPR 6. cikk (1) a)).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>2.3. Helyettesítési igények adatai</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>A ""Gyógyszertár"" szerepkörű Felhasználók által létrehozott igények során kezelt adatok:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Dátum:</strong>&nbsp;A helyettesítés napja.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Keresett pozíció:</strong>&nbsp;(Gyógyszerész/Szakasszisztens)</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Minimum követelmények:</strong>&nbsp;A gyógyszertár által meghatározott elvárások.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Létrehozó gyógyszertár adatai:</strong>&nbsp;(Név, Cím - a profilból)</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Ezen adatok célja a helyettesítési lehetőség közzététele a Rendszerben. Az adatkezelés jogalapja a szerződés teljesítéséhez szükséges lépések megtétele (GDPR 6. cikk (1) b)).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>2.4. Jelentkezések adatai</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Amikor egy ""Gyógyszerész"" vagy ""Szakasszisztens"" jelentkezik egy igényre, a rendszer rögzíti a jelentkezés tényét (ki, melyik igényre jelentkezett). Ez szükséges a gyógyszertár tájékoztatásához és a jelentkezők kezeléséhez (elfogadás, elutasítás). Az adatkezelés jogalapja a szerződés teljesítéséhez szükséges lépések megtétele (GDPR 6. cikk (1) b)).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>2.5. Rendszeren belüli üzenetek</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>A Felhasználók közötti üzenetváltásokat a Rendszer adatbázisa tárolja a kommunikáció biztosítása és nyomon követhetősége érdekében. Az adatkezelés jogalapja a szerződés teljesítése (GDPR 6. cikk (1) b)) és a Felhasználók hozzájárulása (GDPR 6. cikk (1) a)).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>2.6. Sütik (Cookies)</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>A Weboldal a működéséhez elengedhetetlen sütiket használ. Amikor a Felhasználó bejelentkezik a fiókjába, több sütit (session cookie) helyezünk el az eszközén, hogy a bejelentkezési állapotát a böngészés alatt fenntartsuk. Ezek a bejelentkezési sütik általában a böngésző bezárásáig, vagy legfeljebb néhány napig érvényesek. Ha a Felhasználó kijelentkezik, ezek a sütik törlődnek.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Ezek a sütik technikailag szükségesek a bejelentkezett Felhasználók számára a szolgáltatás nyújtásához. A Weboldal jelenleg nem használ analitikai, statisztikai vagy marketing célú sütiket. Amennyiben ilyen sütiket a jövőben bevezetnénk, ahhoz a Felhasználók előzetes, aktív hozzájárulását fogjuk kérni egy süti-banner segítségével.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>2.7. Ismerős meghívása</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Amennyiben a Felhasználó az ""Ismerős meghívása"" funkciót használja, az általa megadott e-mail címre a nevében egy egyszeri meghívó e-mailt küldünk. Ezt az e-mail címet más célra nem használjuk fel és nem tároljuk tartósan, kivéve, ha a meghívott személy regisztrál a Rendszerbe. Az adatkezelés jogalapja a Felhasználó hozzájárulása (GDPR 6. cikk (1) a)).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>3. Adatmegosztás és adattovábbítás</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>A Felhasználók személyes adatait harmadik félnek (pl. marketingszolgáltatóknak) nem adjuk át értékesítési vagy egyéb célból. Az adatok megosztása kizárólag a Rendszeren belül, a szolgáltatás nyújtásához szükséges mértékben történik:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Gyógyszertárak:</strong>&nbsp;Láthatják azon helyettesítők nevét és szakmai profiladatait (tapasztalat, szoftverismeret, órabér, bemutatkozás, profilkép), akik az általuk kiírt igényre jelentkeztek. Elfogadás esetén láthatják a helyettesítő telefonszámát is.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Helyettesítők (Gyógyszerészek, Szakasszisztensek):</strong>&nbsp;Láthatják a gyógyszertárak nevét, címét és az általuk kiírt igények részleteit (dátum, pozíció, követelmények).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>Adatfeldolgozók:</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>A Weboldal működéséhez adatfeldolgozókat veszünk igénybe:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Tárhelyszolgáltató:</strong>&nbsp;[Ide írd a tárhelyszolgáltatód nevét és székhelyét/weboldalát]. A tárhelyszolgáltató biztosítja a Weboldal és az adatbázis fizikai tárolását.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Az adatokat az Európai Gazdasági Térségen (EGT) kívülre nem továbbítjuk.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>4. Az adatkezelés időtartama</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>A regisztráció során megadott személyes adatokat a Felhasználói fiók fennállásáig kezeljük.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>A Felhasználó bármikor kérheti fiókja és az ahhoz kapcsolódó összes adat végleges törlését a ""Profilom szerkesztése"" oldalon található ""Fiók végleges törlése"" funkcióval. A törlés végleges és visszaállíthatatlan.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>A rendszeren belüli üzeneteket a fiók törléséig tároljuk.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>5. Az érintettek jogai</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>A Felhasználókat (érintetteket) a GDPR alapján a következő jogok illetik meg személyes adataik kezelésével kapcsolatban:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Hozzáférési jog:</strong>&nbsp;Tájékoztatást kérhetnek adataik kezeléséről, és másolatot kaphatnak a róluk kezelt adatokról.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Helyesbítéshez való jog:</strong>&nbsp;Kérhetik pontatlan adataik helyesbítését. A legtöbb adatot a Felhasználó a ""Profilom szerkesztése"" oldalon maga is módosíthatja.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Törléshez való jog (""elfeledtetéshez való jog""):</strong>&nbsp;Kérhetik adataik törlését. Ezt a ""Profilom szerkesztése"" oldalon a ""Fiók végleges törlése"" funkcióval azonnal megtehetik.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Adatkezelés korlátozásához való jog:</strong>&nbsp;Bizonyos esetekben kérhetik az adatkezelés korlátozását.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Adathordozhatósághoz való jog:</strong>&nbsp;Kérhetik, hogy a rájuk vonatkozó, általuk rendelkezésre bocsátott adatokat tagolt, széles körben használt, géppel olvasható formátumban megkapják.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Tiltakozáshoz való jog:</strong>&nbsp;Bizonyos esetekben (pl. jogos érdeken alapuló adatkezelés) tiltakozhatnak adataik kezelése ellen.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Panasztételhez való jog:</strong>&nbsp;Jogosultak panaszt tenni a felügyeleti hatóságnál (Nemzeti Adatvédelmi és Információszabadság Hatóság - NAIH, www.naih.hu).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>A Felhasználók a fenti jogaikat az 1. pontban megadott elérhetőségeken, vagy a Rendszeren belüli funkciók (profil szerkesztése, fióktörlés) segítségével gyakorolhatják.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>6. Adatbiztonság</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Megfelelő technikai és szervezési intézkedéseket teszünk a személyes adatok védelme érdekében a véletlen vagy jogellenes megsemmisítés, elvesztés, megváltoztatás, jogosulatlan közlés vagy az azokhoz való jogosulatlan hozzáférés ellen. Ide tartozik többek között [pl. jelszavak titkosított tárolása, rendszeres biztonsági frissítések, hozzáférés-szabályozás - Írj ide néhány konkrét intézkedést, amit a tárhelyszolgáltatód vagy te megteszel].</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>7. Egyéb rendelkezések</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Fenntartjuk a jogot, hogy ezt az Adatkezelési Tájékoztatót egyoldalúan módosítsuk. A módosítások a Weboldalon való közzététellel lépnek hatályba. Jelentős módosítások esetén a regisztrált Felhasználókat e-mailben is értesíthetjük.</p>
+<!-- /wp:paragraph -->","Adatkezelési Tájékoztató",,"publish","closed","open",,"privacy-policy",,,"2025-10-24 20:27:12","2025-10-24 20:27:12",,"0","https://pharmagister.hu/?page_id=3","0","page",,"0"
+"4","0","2025-10-01 16:48:38","2025-10-01 16:48:38","<!-- wp:page-list /-->","Navigation",,"publish","closed","closed",,"navigation",,,"2025-10-01 16:48:38","2025-10-01 16:48:38",,"0","https://pharmagister.hu/2025/10/01/navigation/","0","wp_navigation",,"0"
+"6","1","2025-10-01 17:32:07","2025-10-01 17:32:07","{""version"": 3, ""isGlobalStylesUserThemeJSON"": true }","Custom Styles",,"publish","closed","closed",,"wp-global-styles-astra",,,"2025-10-01 17:32:07","2025-10-01 17:32:07",,"0","https://pharmagister.hu/2025/10/01/wp-global-styles-astra/","0","wp_global_styles",,"0"
+"38","15","2025-10-02 17:44:24","2025-10-02 17:44:24",,"Automatikus vázlat",,"trash","open","open",,"__trashed",,,"2025-10-02 17:44:24","2025-10-02 17:44:24",,"0","https://pharmagister.hu/?p=38","0","post",,"0"
+"43","1","2025-10-02 19:56:33","2025-10-02 19:56:33","<!-- wp:shortcode -->
+[pss_calendar]
+<!-- /wp:shortcode -->
+
+<!-- wp:paragraph -->
+<p></p>
+<!-- /wp:paragraph -->","Naptár",,"publish","closed","closed",,"naptar",,,"2025-10-24 20:25:57","2025-10-24 20:25:57",,"0","https://pharmagister.hu/?page_id=43","0","page",,"0"
+"82","1","2025-10-07 08:14:42","2025-10-07 08:14:42","<!-- wp:paragraph -->
+<p>[pss_edit_profile]</p>
+<!-- /wp:paragraph -->","Profilom szerkesztése",,"publish","closed","closed",,"profilom-szerkesztese",,,"2025-10-24 20:25:43","2025-10-24 20:25:43",,"0","https://pharmagister.hu/?page_id=82","0","page",,"0"
+"84","1","2025-10-07 08:15:04","0000-00-00 00:00:00"," ",,,"draft","closed","closed",,,,,"2025-10-07 08:15:04","0000-00-00 00:00:00",,"0","https://pharmagister.hu/?p=84","1","nav_menu_item",,"0"
+"86","1","2025-10-24 18:26:42","2025-10-07 11:05:28"," ",,,"publish","closed","closed",,"86",,,"2025-10-24 18:26:42","2025-10-24 18:26:42",,"0","https://pharmagister.hu/?p=86","2","nav_menu_item",,"0"
+"87","1","2025-10-24 18:26:42","2025-10-07 11:05:28"," ",,,"publish","closed","closed",,"87",,,"2025-10-24 18:26:42","2025-10-24 18:26:42",,"0","https://pharmagister.hu/?p=87","3","nav_menu_item",,"0"
+"95","1","2025-10-24 18:26:42","2025-10-07 12:18:13",,"Kilépés",,"publish","closed","closed",,"kilepes",,,"2025-10-24 18:26:42","2025-10-24 18:26:42",,"0","https://pharmagister.hu/?p=95","7","nav_menu_item",,"0"
+"97","1","2025-10-24 18:26:42","2025-10-07 12:31:29",,"Regisztráció",,"publish","closed","closed",,"regisztracio",,,"2025-10-24 18:26:42","2025-10-24 18:26:42",,"0","https://pharmagister.hu/?p=97","4","nav_menu_item",,"0"
+"101","1","2025-10-07 13:12:51","2025-10-07 13:12:51","<!-- wp:paragraph -->
+<p>[pss_applicant_viewer]</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p></p>
+<!-- /wp:paragraph -->","Jelentkező adatai",,"publish","closed","closed",,"applicant-view",,,"2025-10-24 20:26:21","2025-10-24 20:26:21",,"0","https://pharmagister.hu/?page_id=101","0","page",,"0"
+"107","1","2025-10-07 17:37:43","2025-10-07 17:37:43","<!-- wp:paragraph -->
+<p>[pss_my_messages]</p>
+<!-- /wp:paragraph -->","Üzeneteim",,"publish","closed","closed",,"uzeneteim",,,"2025-10-24 20:25:13","2025-10-24 20:25:13",,"0","https://pharmagister.hu/?page_id=107","0","page",,"0"
+"109","1","2025-10-24 18:26:42","2025-10-07 17:43:51"," ",,,"publish","closed","closed",,"109",,,"2025-10-24 18:26:42","2025-10-24 18:26:42",,"0","https://pharmagister.hu/?p=109","5","nav_menu_item",,"0"
+"155","1","2025-10-09 13:55:31","2025-10-09 13:55:31","<!-- wp:paragraph -->
+<p>[pss_pharmacy_profile]</p>
+<!-- /wp:paragraph -->","Gyógyszertár Adatlap",,"publish","closed","closed",,"gyogyszertar-adatlap",,,"2025-10-24 20:26:35","2025-10-24 20:26:35",,"0","https://pharmagister.hu/?page_id=155","0","page",,"0"
+"208","1","2025-10-12 19:08:48","2025-10-12 19:08:48","<!-- wp:paragraph -->
+<p>[pss_custom_registration_form]</p>
+<!-- /wp:paragraph -->","Regisztráció",,"publish","closed","closed",,"regisztracio-2",,,"2025-10-24 20:25:26","2025-10-24 20:25:26",,"0","https://pharmagister.hu/?page_id=208","0","page",,"0"
+"227","1","2025-10-13 18:32:31","2025-10-13 18:32:31","<!-- wp:paragraph -->
+<p>[pss_user_profile_view]</p>
+<!-- /wp:paragraph -->","Felhasználói Adatlap",,"publish","closed","closed",,"felhasznaloi-adatlap",,,"2025-10-24 20:26:46","2025-10-24 20:26:46",,"0","https://pharmagister.hu/?page_id=227","0","page",,"0"
+"302","1","2025-10-18 08:22:49","2025-10-18 08:22:49","<!-- wp:paragraph -->
+<p><strong>[pss_control_panel]</strong></p>
+<!-- /wp:paragraph -->","Vezérlőpult",,"publish","closed","closed",,"vezerlopult",,,"2025-10-24 20:24:48","2025-10-24 20:24:48",,"0","https://pharmagister.hu/?page_id=302","0","page",,"0"
+"304","1","2025-10-24 18:26:42","2025-10-18 08:23:17"," ",,,"publish","closed","closed",,"304",,,"2025-10-24 18:26:42","2025-10-24 18:26:42",,"0","https://pharmagister.hu/?p=304","6","nav_menu_item",,"0"
+"316","1","2025-10-18 20:47:01","2025-10-18 20:47:01","/* --- 1. GLOBÁLIS BEÁLLÍTÁSOK (MINDEN NÉZETRE) --- */
+
+/* A rögzített háttérkép az egész oldalra */
+body {
+    background-image: url('https://pharmagister.hu/wp-content/uploads/2025/10/IMG_5544.jpg');
+    background-size: cover; 
+    background-position: center center; 
+    background-repeat: no-repeat; 
+    background-attachment: fixed !important; 
+    background-color: #e0f2f1; /* Tartalék szín */
+}
+
+/* A fő tartalom fehér, olvasható háttere */
+.site-content { 
+   background-color: rgba(255, 255, 255, 0.95);
+   padding: 25px; 
+   margin-top: 20px; 
+   margin-bottom: 20px; 
+   box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
+   border-radius: 4px; 
+} 
+
+/* A lábléc átlátszó háttere */
+.site-footer, 
+.ast-footer-wrap {
+     background-color: transparent !important; 
+     border-top: 1px solid rgba(255, 255, 255, 0.2);
+     color: #ffffff; /* Fehér szöveg a láblécben */
+}
+.site-footer a {
+    color: #ffffff;
+    font-weight: bold;
+}
+
+/* --- 2. ASZTALI NÉZET STÍLUSAI (921px felett) --- */
+@media (min-width: 922px) {
+
+    /* Átlátszó fejléc sáv */
+    .main-header-bar,
+    .site-header {
+        background-color: transparent !important; 
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2); 
+    }
+
+    /* Fehér ""Pharmagister"" felirat és kereszt */
+    .site-title a,
+    .site-title a:hover {
+        color: #ffffff !important; 
+        font-weight: bold;
+        text-decoration: none !important; /* Aláhúzás eltávolítása */
+    }
+    .site-title a::after {
+        content: ""+"";
+        font-weight: 900;
+        color: #ffffff;
+        font-size: 1.1em;
+        margin-left: 10px;
+        vertical-align: text-top;
+        text-decoration: none !important; /* Aláhúzás eltávolítása */
+    }
+
+    /* Fehér menüpontok */
+    .main-header-menu .menu-link {
+        color: #ffffff !important; 
+        font-weight: 500;
+        background-color: transparent !important; 
+    }
+    .main-header-menu .menu-link:hover {
+        color: #000000 !important; 
+        background-color: rgba(255, 255, 255, 0.8) !important; 
+    }
+}
+
+","astra",,"publish","closed","closed",,"astra",,,"2025-10-21 17:11:45","2025-10-21 17:11:45",,"0","https://pharmagister.hu/2025/10/18/astra/","0","custom_css",,"0"
+"346","1","2025-10-19 15:16:13","2025-10-19 15:16:13","<!-- wp:paragraph -->
+<p></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>Üdvözlünk a Pharmagister oldalán!</strong> </p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Ez a platform azért jött létre, hogy <strong>egyszerűen és hatékonyan kösse össze</strong> a helyettesítőt kereső <strong>gyógyszertárakat</strong> a munkát vállaló <strong>gyógyszerészekkel és szakasszisztensekkel</strong>. Célunk, hogy megkönnyítsük a megfelelő munkaerő vagy munkaalkalom megtalálását a gyógyszerészeti szektorban.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>Hogyan Működik?</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Az oldal két fő felhasználói csoportot szolgál ki: a&nbsp;<strong>Gyógyszertárakat</strong>, akik igényt adnak fel, és a&nbsp;<strong>Helyettesítőket</strong>(Gyógyszerészek, Szakasszisztensek), akik ezekre jelentkezhetnek.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>Helyettesítőknek (Gyógyszerész, Szakasszisztens) 🧑‍⚕️</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>1. Regisztráció és Profil Kitöltése</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Regisztráció:</strong>&nbsp;Hozz létre egy fiókot a megfelelő szerepkör (Gyógyszerész vagy Szakasszisztens) kiválasztásával.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Profil:</strong>&nbsp;A sikeres regisztráció után lépj a&nbsp;<strong>""Profilom szerkesztése""</strong>&nbsp;menüpontra.&nbsp;<strong>Fontos:</strong>&nbsp;Ahhoz, hogy jelentkezni tudj igényekre, ki kell töltened a kötelező szakmai adatokat (tapasztalat, szoftverismeret, órabér). Tölts fel profilképet és adj meg egy rövid bemutatkozást, hogy a gyógyszertárak jobb képet kapjanak rólad.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>2. Igények Keresése</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Naptár Nézet:</strong>&nbsp;A&nbsp;<strong>""Naptár""</strong>&nbsp;menüpontban vizuálisan láthatod a meghirdetett igényeket. Kattints egy&nbsp;<strong>naptári napra</strong>, hogy megtekintsd az aznapi elérhető pozíciókat egy felugró ablakban.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Vezérlőpult Kereső:</strong>&nbsp;A&nbsp;<strong>""Vezérlőpult""</strong>&nbsp;menüpont alatt található az&nbsp;<strong>""Elérhető Igények Keresése""</strong>&nbsp;rész. Itt szűrhetsz gyógyszertár nevére vagy irányítószámra is. A lista azokat az igényeket mutatja, amelyek megfelelnek a profilodban beállított szerepkörnek (Gyógyszerész/Szakasszisztens), és amelyekre még nem jelentkeztél (vagy nem utasítottak el).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>3. Jelentkezés Igényekre</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>• Mind a&nbsp;<strong>Naptár</strong>&nbsp;nézetben (a napra kattintva felugró ablakban), mind a&nbsp;<strong>Vezérlőpult</strong>&nbsp;kereső listájában találsz&nbsp;<strong>""Jelentkezem""</strong>&nbsp;gombot az igények mellett.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>• Kattintás előtt a&nbsp;<strong>""Részletek""</strong>&nbsp;gombbal  vagy az igény nevére kattintva megtekintheted a gyógyszertár által megadott minimum követelményeket.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>• A ""Jelentkezem"" gombra kattintva a gyógyszertár értesítést kap.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>4. Jelentkezéseid Kezelése (Vezérlőpult)</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>• A&nbsp;<strong>""Vezérlőpult""</strong>&nbsp;tetején, a&nbsp;<strong>""Jelentkezéseim""</strong>&nbsp;részben láthatod azokat az igényeket, amelyekre jelentkeztél.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Státuszok:</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Függőben:</strong>&nbsp;A gyógyszertár még nem döntött a jelentkezésedről. Itt még visszavonhatod a jelentkezésed (<strong>""Jelentkezés visszavonása""</strong>&nbsp;gomb), vagy megtekintheted az igény részleteit (<strong>""Részletek""</strong>&nbsp;gomb).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Elfogadva:</strong>&nbsp;Gratulálunk! A gyógyszertár elfogadta a jelentkezésed. Itt láthatod a gyógyszertár elérhetőségeit. Ha a helyettesítés megtörtént, vagy már nem releváns számodra ez a sor, az&nbsp;<strong>""Eltávolítás a listából""</strong>&nbsp;gombbal elrejtheted.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Elutasítva:</strong>&nbsp;A gyógyszertár sajnos nem a te jelentkezésedet választotta. Ezt a sort is eltávolíthatod a listából az&nbsp;<strong>""Eltávolítás a listából""</strong>&nbsp;gombbal.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Üzenetek:</strong>&nbsp;Bármelyik státuszban (kivéve talán az elutasítottat) tudsz üzenetet váltani a gyógyszertárral az&nbsp;<strong>""Üzenet a gyógyszertárnak""</strong>&nbsp;gombra kattintva.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>Gyógyszertáraknak 🏢</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>1. Regisztráció és Profil</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Regisztráció:</strong>&nbsp;Hozz létre egy fiókot ""Gyógyszertár"" szerepkörrel, megadva a gyógyszertár nevét és címét.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Profil:</strong>&nbsp;A&nbsp;<strong>""Profilom szerkesztése""</strong>&nbsp;menüpontban módosíthatod az alapadataidat és feltölthetsz egy logót vagy képet.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>2. Igények Feladása</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>• Menj a&nbsp;<strong>""Naptár""</strong>&nbsp;menüpontra.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>• Kattints arra a&nbsp;<strong>naptári napra</strong>, amelyikre helyettesítőt keresel.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>• Egy felugró ablak jelenik meg:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>• Ha&nbsp;<strong>még nincs igényed</strong>&nbsp;aznapra, rögtön az új igény létrehozása űrlap jelenik meg. Válaszd ki a keresett pozíciót (Gyógyszerész/Szakasszisztens), és add meg a&nbsp;<strong>minimum követelményeket</strong>&nbsp;(pl. tapasztalat, programismeret). Kattints a ""Létrehozás"" / ""Feladás"" gombra.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>• Ha&nbsp;<strong>már van igényed</strong>&nbsp;aznapra, először egy lista jelenik meg a meglévő igénye(i)dről, ahol törölheted őket. A lista alatt található&nbsp;<strong>Új igény feladása erre a napra</strong>    gombra kattintva tudsz további igényt rögzíteni ugyanarra a napra.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>3. Jelentkezők Kezelése (Vezérlőpult)</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>• A&nbsp;<strong>""Vezérlőpult""</strong>&nbsp;menüpont alatt láthatod a&nbsp;<strong>""Meghirdetett Igényeim Kezelése""</strong>&nbsp;listát.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>• Nyisd le azt az igényt, amelyik érdekel.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>• Itt láthatod a&nbsp;<strong>függőben lévő jelentkezőket</strong>.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>• Minden jelentkezőnél lehetőséged van:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>• Megtekinteni az&nbsp;<strong>Adatlapját</strong>&nbsp;(profilját).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Üzenetet</strong>&nbsp;küldeni neki.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Elfogadni</strong>&nbsp;a jelentkezését: Ezzel az igény státusza ""Betöltve""-re változik, a többi jelentkezőt a rendszer nem értesíti automatikusan (de illik nekik írni), és az elfogadott helyettesítő kap értesítést. Az elfogadott helyettesítő elérhetőségei megjelennek az igény részleteinél.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Elutasítani</strong>&nbsp;a jelentkezését: A jelentkező értesítést kap az elutasításról. Megadhatsz indoklást is (pl. ""Betelt pozíció"" vagy egyedi szöveg), ami megjelenik a helyettesítőnek küldött értesítésben. Az elutasított jelentkező többé nem látja ezt az igényt a keresőben.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>4. Igények Törlése</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Vezérlőpult:</strong>&nbsp;A ""Meghirdetett Igényeim Kezelése"" listában minden igény mellett (legyen az nyitott vagy már betöltött) találsz egy&nbsp;<strong>""Igény Törlése""</strong>&nbsp;gombot. Ez véglegesen eltávolítja az igényt a rendszerből.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Naptár:</strong>&nbsp;A napra kattintva felugró ablakban, a meglévő igényeid listájában is van&nbsp;<strong>""Törlés""</strong>&nbsp;gomb.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>Közös Funkciók 💬👤</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Üzenetek:</strong>&nbsp;A&nbsp;<strong>""Üzeneteim""</strong>&nbsp;menüpontban láthatod a beszélgetéseidet. Új üzenetet általában egy igényhez vagy felhasználói profilhoz kapcsolódóan tudsz kezdeményezni (pl. a ""Jelentkezem"" melletti ""Üzenet"" gombbal, vagy a Vezérlőpulton a jelentkezőknél/elfogadott helyettesítőnél).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Profilok:</strong>&nbsp;Más felhasználók (gyógyszertárak vagy helyettesítők) adatlapját megtekintheted (ha a rendszer ezt lehetővé teszi, pl. a Vezérlőpulton), hogy több információt szerezz róluk.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>Tippek a Hatékony Használathoz ✨</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Helyettesítőknek:</strong>&nbsp;Tartsd naprakészen a profilodat! Egy részletes, informatív profil növeli az esélyeidet. Válaszolj gyorsan a gyógyszertárak üzeneteire.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Gyógyszertáraknak:</strong>&nbsp;Adj meg egyértelmű követelményeket az igény feladásakor. Kommunikálj időben a jelentkezőkkel, értesítsd az elutasítottakat is (az indoklás funkció segít ebben).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Reméljük, ez az útmutató segít a Pharmagister hatékony használatában! Ha további kérdésed van, vedd fel velünk a kapcsolatot.</p>
+<!-- /wp:paragraph -->","A Pharmagisterről bővebben",,"publish","closed","closed",,"a-pharmagisterrol-bovebben",,,"2025-10-24 20:27:41","2025-10-24 20:27:41",,"0","https://pharmagister.hu/?page_id=346","0","page",,"0"
+"350","1","2025-10-24 18:26:42","2025-10-19 15:29:03"," ",,,"publish","closed","closed",,"350",,,"2025-10-24 18:26:42","2025-10-24 18:26:42",,"0","https://pharmagister.hu/?p=350","1","nav_menu_item",,"0"
+"396","1","2025-10-24 18:26:42","2025-10-21 06:39:41",,"Bejelentkezés",,"publish","closed","closed",,"bejelentkezes-2",,,"2025-10-24 18:26:42","2025-10-24 18:26:42",,"0","https://pharmagister.hu/?p=396","8","nav_menu_item",,"0"
+"397","1","2025-10-24 18:27:02","2025-10-21 06:55:57",,"Bejelentkezés",,"publish","closed","closed",,"bejelentkezes",,,"2025-10-24 18:27:02","2025-10-24 18:27:02",,"0","https://pharmagister.hu/?p=397","1","nav_menu_item",,"0"
+"398","1","2025-10-24 18:27:02","2025-10-21 06:55:57"," ",,,"publish","closed","closed",,"398",,,"2025-10-24 18:27:02","2025-10-24 18:27:02",,"0","https://pharmagister.hu/?p=398","2","nav_menu_item",,"0"
+"399","1","2025-10-24 18:27:02","2025-10-21 06:55:57"," ",,,"publish","closed","closed",,"399",,,"2025-10-24 18:27:02","2025-10-24 18:27:02",,"0","https://pharmagister.hu/?p=399","3","nav_menu_item",,"0"
+"400","1","2025-10-24 18:27:02","2025-10-21 06:55:57"," ",,,"publish","closed","closed",,"400",,,"2025-10-24 18:27:02","2025-10-24 18:27:02",,"0","https://pharmagister.hu/?p=400","4","nav_menu_item",,"0"
+"401","1","2025-10-24 18:27:02","2025-10-21 06:55:57"," ",,,"publish","closed","closed",,"401",,,"2025-10-24 18:27:02","2025-10-24 18:27:02",,"0","https://pharmagister.hu/?p=401","5","nav_menu_item",,"0"
+"402","1","2025-10-24 18:27:02","2025-10-21 06:55:57"," ",,,"publish","closed","closed",,"402",,,"2025-10-24 18:27:02","2025-10-24 18:27:02",,"0","https://pharmagister.hu/?p=402","6","nav_menu_item",,"0"
+"403","1","2025-10-24 18:27:02","2025-10-21 06:55:57"," ",,,"publish","closed","closed",,"403",,,"2025-10-24 18:27:02","2025-10-24 18:27:02",,"0","https://pharmagister.hu/?p=403","7","nav_menu_item",,"0"
+"404","1","2025-10-24 18:27:02","2025-10-21 14:59:12",,"Kilépés",,"publish","closed","closed",,"kilepes-2",,,"2025-10-24 18:27:02","2025-10-24 18:27:02",,"0","https://pharmagister.hu/?p=404","8","nav_menu_item",,"0"
+"405","1","2025-10-21 16:05:54","2025-10-21 16:05:54","<!-- wp:paragraph -->
+<p>/wp-login.php</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p></p>
+<!-- /wp:paragraph -->","Bejelentkezés",,"publish","closed","closed",,"bejelentkezes",,,"2025-10-24 20:26:57","2025-10-24 20:26:57",,"0","https://pharmagister.hu/?page_id=405","0","page",,"0"
+"419","1","2025-10-22 16:35:38","2025-10-22 16:35:38","<!-- wp:paragraph -->
+<p>[pss_landing_page]</p>
+<!-- /wp:paragraph -->","Kezdőoldal",,"publish","closed","closed",,"kezdooldal",,,"2025-10-24 20:26:10","2025-10-24 20:26:10",,"0","https://pharmagister.hu/?page_id=419","0","page",,"0"
+"427","55","2025-10-23 13:15:11","2025-10-23 13:15:11","500 ezer","Üzenet: Jékliné Epres Bettina -&gt; Bettli Gyogyó",,"publish","closed","closed",,"uzenet-jekline-epres-bettina-bettli-gyogyo",,,"2025-10-23 13:15:11","2025-10-23 13:15:11",,"0","https://pharmagister.hu/pss_message/uzenet-jekline-epres-bettina-bettli-gyogyo/","0","pss_message",,"0"
+"428","55","2025-10-23 13:15:26","2025-10-23 13:15:26","De csak akkor latom az uzenetet ha belepek az uzenetekbe","Üzenet: Jékliné Epres Bettina -&gt; Bettli Gyogyó",,"publish","closed","closed",,"uzenet-jekline-epres-bettina-bettli-gyogyo-2",,,"2025-10-23 13:15:26","2025-10-23 13:15:26",,"0","https://pharmagister.hu/pss_message/uzenet-jekline-epres-bettina-bettli-gyogyo-2/","0","pss_message",,"0"
+"430","55","2025-10-23 13:15:45","2025-10-23 13:15:45","Email az jott","Üzenet: Jékliné Epres Bettina -&gt; Bettli Gyogyó",,"publish","closed","closed",,"uzenet-jekline-epres-bettina-bettli-gyogyo-3",,,"2025-10-23 13:15:45","2025-10-23 13:15:45",,"0","https://pharmagister.hu/pss_message/uzenet-jekline-epres-bettina-bettli-gyogyo-3/","0","pss_message",,"0"
+"433","55","2025-10-23 13:16:35","2025-10-23 13:16:35","De jott","Üzenet: Jékliné Epres Bettina -&gt; Bettli Gyogyó",,"publish","closed","closed",,"uzenet-jekline-epres-bettina-bettli-gyogyo-4",,,"2025-10-23 13:16:35","2025-10-23 13:16:35",,"0","https://pharmagister.hu/pss_message/uzenet-jekline-epres-bettina-bettli-gyogyo-4/","0","pss_message",,"0"
+"435","55","2025-10-23 13:16:47","2025-10-23 13:16:47","Fogadd el a jelentkezest meg fuggoben van","Üzenet: Jékliné Epres Bettina -&gt; Bettli Gyogyó",,"publish","closed","closed",,"uzenet-jekline-epres-bettina-bettli-gyogyo-5",,,"2025-10-23 13:16:47","2025-10-23 13:16:47",,"0","https://pharmagister.hu/pss_message/uzenet-jekline-epres-bettina-bettli-gyogyo-5/","0","pss_message",,"0"
+"442","55","2025-10-23 14:32:26","2025-10-23 14:32:26",,"1000008889.jpg",,"inherit","open","closed",,"1000008889-jpg",,,"2025-10-23 14:32:26","2025-10-23 14:32:26",,"0","https://pharmagister.hu/1000008889-jpg/","0","attachment","image/jpeg","0"
+"462","1","2025-10-24 18:25:37","2025-10-24 18:25:37","<div class=""container py-5"" style=""max-width: 900px"">
+    <div class=""row"">
+        <div class=""col-md-10 mx-auto"">
+            <div class=""card shadow-sm border-0"">
+                <div class=""card-body p-4 p-md-5"">
+
+                    <h2 class=""h3 text-center mb-4"">Lépj velünk kapcsolatba</h2>
+                    <p class=""lead text-center mb-4"">Kérdésed van a rendszer működésével, a regisztrációval vagy a partnerséggel kapcsolatban? Az alábbi elérhetőségeken állunk rendelkezésedre.</p>
+
+                    <hr class=""my-4"">
+
+                    <div class=""row"">
+                        <div class=""col-md-6"">
+                            <h3 class=""h4 mb-3"">Központi elérhetőségek</h3>
+                            <p>
+                                <strong>Email (Központi):</strong><br>
+                                <a href=""mailto:epresla@icloud.com"">epresla@icloud.com</a>
+                                <br>
+                                <small class=""text-muted"">Minden megkeresésre 24 órán belül válaszolunk.</small>
+                            </p>
+                            <p>
+                                <strong>Telefon (Ügyfélszolgálat):</strong><br>
+                                +36 30 611 32 77
+                                <br>
+                                <small class=""text-muted"">Elérhető hétköznap 9:00 és 17:00 között.</small>
+                            </p>
+                            
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+","Pharmagister Kapcsolat",,"publish","closed","closed",,"pharmagister-kapcsolat",,,"2025-10-24 20:23:35","2025-10-24 20:23:35",,"0","https://pharmagister.hu/?page_id=462","0","page",,"0"
+"464","1","2025-10-24 18:26:11","0000-00-00 00:00:00"," ",,,"draft","closed","closed",,,,,"2025-10-24 18:26:11","0000-00-00 00:00:00",,"0","https://pharmagister.hu/?p=464","1","nav_menu_item",,"0"
+"465","1","2025-10-24 18:26:42","2025-10-24 18:26:42"," ",,,"publish","closed","closed",,"465",,,"2025-10-24 18:26:42","2025-10-24 18:26:42",,"0","https://pharmagister.hu/?p=465","9","nav_menu_item",,"0"
+"466","1","2025-10-24 18:27:02","2025-10-24 18:27:02"," ",,,"publish","closed","closed",,"466",,,"2025-10-24 18:27:02","2025-10-24 18:27:02",,"0","https://pharmagister.hu/?p=466","9","nav_menu_item",,"0"
+"470","55","2025-10-24 18:55:45","2025-10-24 18:55:45","<!-- wp:shortcode -->
+[pss_calendar]
+<!-- /wp:shortcode -->
+
+<!-- wp:paragraph -->
+<p></p>
+<!-- /wp:paragraph -->","Naptár",,"inherit","closed","closed",,"43-revision-v1",,,"2025-10-24 18:55:45","2025-10-24 18:55:45",,"43","https://pharmagister.hu/?p=470","0","revision",,"0"
+"472","55","2025-10-24 18:55:45","2025-10-24 18:55:45","<div class=""container py-5"" style=""max-width: 900px"">
+    <div class=""row"">
+        <div class=""col-md-10 mx-auto"">
+            <div class=""card shadow-sm border-0"">
+                <div class=""card-body p-4 p-md-5"">
+
+                    <h2 class=""h3 text-center mb-4"">Lépj velünk kapcsolatba</h2>
+                    <p class=""lead text-center mb-4"">Kérdésed van a rendszer működésével, a regisztrációval vagy a partnerséggel kapcsolatban? Az alábbi elérhetőségeken állunk rendelkezésedre.</p>
+
+                    <hr class=""my-4"">
+
+                    <div class=""row"">
+                        <div class=""col-md-6"">
+                            <h3 class=""h4 mb-3"">Központi elérhetőségek</h3>
+                            <p>
+                                <strong>Email (Központi):</strong><br>
+                                <a href=""mailto:epresla@icloud.com"">epresla@icloud.com</a>
+                                <br>
+                                <small class=""text-muted"">Minden megkeresésre 24 órán belül válaszolunk.</small>
+                            </p>
+                            <p>
+                                <strong>Telefon (Ügyfélszolgálat):</strong><br>
+                                +36 30 611 32 77
+                                <br>
+                                <small class=""text-muted"">Elérhető hétköznap 9:00 és 17:00 között.</small>
+                            </p>
+                            
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+","Pharmagister Kapcsolat",,"inherit","closed","closed",,"462-revision-v1",,,"2025-10-24 18:55:45","2025-10-24 18:55:45",,"462","https://pharmagister.hu/?p=472","0","revision",,"0"
+"474","79","2025-10-24 20:18:06","2025-10-24 20:18:06","<!-- wp:paragraph -->
+<p>[pss_custom_registration_form]</p>
+<!-- /wp:paragraph -->","Regisztráció",,"inherit","closed","closed",,"208-revision-v1",,,"2025-10-24 20:18:06","2025-10-24 20:18:06",,"208","https://pharmagister.hu/?p=474","0","revision",,"0"
+"475","79","2025-10-24 20:18:15","2025-10-24 20:18:15","<!-- wp:paragraph -->
+<p></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>Üdvözlünk a Pharmagister oldalán!</strong> </p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Ez a platform azért jött létre, hogy <strong>egyszerűen és hatékonyan kösse össze</strong> a helyettesítőt kereső <strong>gyógyszertárakat</strong> a munkát vállaló <strong>gyógyszerészekkel és szakasszisztensekkel</strong>. Célunk, hogy megkönnyítsük a megfelelő munkaerő vagy munkaalkalom megtalálását a gyógyszerészeti szektorban.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>Hogyan Működik?</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Az oldal két fő felhasználói csoportot szolgál ki: a&nbsp;<strong>Gyógyszertárakat</strong>, akik igényt adnak fel, és a&nbsp;<strong>Helyettesítőket</strong>(Gyógyszerészek, Szakasszisztensek), akik ezekre jelentkezhetnek.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>Helyettesítőknek (Gyógyszerész, Szakasszisztens) 🧑‍⚕️</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>1. Regisztráció és Profil Kitöltése</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Regisztráció:</strong>&nbsp;Hozz létre egy fiókot a megfelelő szerepkör (Gyógyszerész vagy Szakasszisztens) kiválasztásával.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Profil:</strong>&nbsp;A sikeres regisztráció után lépj a&nbsp;<strong>""Profilom szerkesztése""</strong>&nbsp;menüpontra.&nbsp;<strong>Fontos:</strong>&nbsp;Ahhoz, hogy jelentkezni tudj igényekre, ki kell töltened a kötelező szakmai adatokat (tapasztalat, szoftverismeret, órabér). Tölts fel profilképet és adj meg egy rövid bemutatkozást, hogy a gyógyszertárak jobb képet kapjanak rólad.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>2. Igények Keresése</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Naptár Nézet:</strong>&nbsp;A&nbsp;<strong>""Naptár""</strong>&nbsp;menüpontban vizuálisan láthatod a meghirdetett igényeket. Kattints egy&nbsp;<strong>naptári napra</strong>, hogy megtekintsd az aznapi elérhető pozíciókat egy felugró ablakban.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Vezérlőpult Kereső:</strong>&nbsp;A&nbsp;<strong>""Vezérlőpult""</strong>&nbsp;menüpont alatt található az&nbsp;<strong>""Elérhető Igények Keresése""</strong>&nbsp;rész. Itt szűrhetsz gyógyszertár nevére vagy irányítószámra is. A lista azokat az igényeket mutatja, amelyek megfelelnek a profilodban beállított szerepkörnek (Gyógyszerész/Szakasszisztens), és amelyekre még nem jelentkeztél (vagy nem utasítottak el).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>3. Jelentkezés Igényekre</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>• Mind a&nbsp;<strong>Naptár</strong>&nbsp;nézetben (a napra kattintva felugró ablakban), mind a&nbsp;<strong>Vezérlőpult</strong>&nbsp;kereső listájában találsz&nbsp;<strong>""Jelentkezem""</strong>&nbsp;gombot az igények mellett.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>• Kattintás előtt a&nbsp;<strong>""Részletek""</strong>&nbsp;gombbal  vagy az igény nevére kattintva megtekintheted a gyógyszertár által megadott minimum követelményeket.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>• A ""Jelentkezem"" gombra kattintva a gyógyszertár értesítést kap.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>4. Jelentkezéseid Kezelése (Vezérlőpult)</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>• A&nbsp;<strong>""Vezérlőpult""</strong>&nbsp;tetején, a&nbsp;<strong>""Jelentkezéseim""</strong>&nbsp;részben láthatod azokat az igényeket, amelyekre jelentkeztél.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Státuszok:</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Függőben:</strong>&nbsp;A gyógyszertár még nem döntött a jelentkezésedről. Itt még visszavonhatod a jelentkezésed (<strong>""Jelentkezés visszavonása""</strong>&nbsp;gomb), vagy megtekintheted az igény részleteit (<strong>""Részletek""</strong>&nbsp;gomb).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Elfogadva:</strong>&nbsp;Gratulálunk! A gyógyszertár elfogadta a jelentkezésed. Itt láthatod a gyógyszertár elérhetőségeit. Ha a helyettesítés megtörtént, vagy már nem releváns számodra ez a sor, az&nbsp;<strong>""Eltávolítás a listából""</strong>&nbsp;gombbal elrejtheted.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Elutasítva:</strong>&nbsp;A gyógyszertár sajnos nem a te jelentkezésedet választotta. Ezt a sort is eltávolíthatod a listából az&nbsp;<strong>""Eltávolítás a listából""</strong>&nbsp;gombbal.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Üzenetek:</strong>&nbsp;Bármelyik státuszban (kivéve talán az elutasítottat) tudsz üzenetet váltani a gyógyszertárral az&nbsp;<strong>""Üzenet a gyógyszertárnak""</strong>&nbsp;gombra kattintva.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>Gyógyszertáraknak 🏢</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>1. Regisztráció és Profil</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Regisztráció:</strong>&nbsp;Hozz létre egy fiókot ""Gyógyszertár"" szerepkörrel, megadva a gyógyszertár nevét és címét.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Profil:</strong>&nbsp;A&nbsp;<strong>""Profilom szerkesztése""</strong>&nbsp;menüpontban módosíthatod az alapadataidat és feltölthetsz egy logót vagy képet.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>2. Igények Feladása</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>• Menj a&nbsp;<strong>""Naptár""</strong>&nbsp;menüpontra.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>• Kattints arra a&nbsp;<strong>naptári napra</strong>, amelyikre helyettesítőt keresel.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>• Egy felugró ablak jelenik meg:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>• Ha&nbsp;<strong>még nincs igényed</strong>&nbsp;aznapra, rögtön az új igény létrehozása űrlap jelenik meg. Válaszd ki a keresett pozíciót (Gyógyszerész/Szakasszisztens), és add meg a&nbsp;<strong>minimum követelményeket</strong>&nbsp;(pl. tapasztalat, programismeret). Kattints a ""Létrehozás"" / ""Feladás"" gombra.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>• Ha&nbsp;<strong>már van igényed</strong>&nbsp;aznapra, először egy lista jelenik meg a meglévő igénye(i)dről, ahol törölheted őket. A lista alatt található&nbsp;<strong>Új igény feladása erre a napra</strong>    gombra kattintva tudsz további igényt rögzíteni ugyanarra a napra.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>3. Jelentkezők Kezelése (Vezérlőpult)</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>• A&nbsp;<strong>""Vezérlőpult""</strong>&nbsp;menüpont alatt láthatod a&nbsp;<strong>""Meghirdetett Igényeim Kezelése""</strong>&nbsp;listát.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>• Nyisd le azt az igényt, amelyik érdekel.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>• Itt láthatod a&nbsp;<strong>függőben lévő jelentkezőket</strong>.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>• Minden jelentkezőnél lehetőséged van:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>• Megtekinteni az&nbsp;<strong>Adatlapját</strong>&nbsp;(profilját).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Üzenetet</strong>&nbsp;küldeni neki.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Elfogadni</strong>&nbsp;a jelentkezését: Ezzel az igény státusza ""Betöltve""-re változik, a többi jelentkezőt a rendszer nem értesíti automatikusan (de illik nekik írni), és az elfogadott helyettesítő kap értesítést. Az elfogadott helyettesítő elérhetőségei megjelennek az igény részleteinél.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Elutasítani</strong>&nbsp;a jelentkezését: A jelentkező értesítést kap az elutasításról. Megadhatsz indoklást is (pl. ""Betelt pozíció"" vagy egyedi szöveg), ami megjelenik a helyettesítőnek küldött értesítésben. Az elutasított jelentkező többé nem látja ezt az igényt a keresőben.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>4. Igények Törlése</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Vezérlőpult:</strong>&nbsp;A ""Meghirdetett Igényeim Kezelése"" listában minden igény mellett (legyen az nyitott vagy már betöltött) találsz egy&nbsp;<strong>""Igény Törlése""</strong>&nbsp;gombot. Ez véglegesen eltávolítja az igényt a rendszerből.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Naptár:</strong>&nbsp;A napra kattintva felugró ablakban, a meglévő igényeid listájában is van&nbsp;<strong>""Törlés""</strong>&nbsp;gomb.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>Közös Funkciók 💬👤</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Üzenetek:</strong>&nbsp;A&nbsp;<strong>""Üzeneteim""</strong>&nbsp;menüpontban láthatod a beszélgetéseidet. Új üzenetet általában egy igényhez vagy felhasználói profilhoz kapcsolódóan tudsz kezdeményezni (pl. a ""Jelentkezem"" melletti ""Üzenet"" gombbal, vagy a Vezérlőpulton a jelentkezőknél/elfogadott helyettesítőnél).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Profilok:</strong>&nbsp;Más felhasználók (gyógyszertárak vagy helyettesítők) adatlapját megtekintheted (ha a rendszer ezt lehetővé teszi, pl. a Vezérlőpulton), hogy több információt szerezz róluk.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>Tippek a Hatékony Használathoz ✨</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Helyettesítőknek:</strong>&nbsp;Tartsd naprakészen a profilodat! Egy részletes, informatív profil növeli az esélyeidet. Válaszolj gyorsan a gyógyszertárak üzeneteire.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Gyógyszertáraknak:</strong>&nbsp;Adj meg egyértelmű követelményeket az igény feladásakor. Kommunikálj időben a jelentkezőkkel, értesítsd az elutasítottakat is (az indoklás funkció segít ebben).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Reméljük, ez az útmutató segít a Pharmagister hatékony használatában! Ha további kérdésed van, vedd fel velünk a kapcsolatot.</p>
+<!-- /wp:paragraph -->","A Pharmagisterről bővebben",,"inherit","closed","closed",,"346-revision-v1",,,"2025-10-24 20:18:15","2025-10-24 20:18:15",,"346","https://pharmagister.hu/?p=475","0","revision",,"0"
+"476","79","2025-10-24 20:18:20","2025-10-24 20:18:20","<!-- wp:heading -->
+<h2 class=""wp-block-heading""></h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p><strong>Hatálybalépés dátuma:</strong>&nbsp;2025. október 20.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>1. Az Adatkezelő adatai</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>• <strong>Az adatkezelő:</strong> Jékliné Epres Bettina</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Székhely/Cím:</strong>&nbsp;2723 Nyáregyháza Kossuth Lajos utca 11</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>E-mail cím:</strong>&nbsp;epresla@icloud.com</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Weboldal:</strong>&nbsp;<a href=""https://www.google.com/search?q=https://pharmagister.hu"">https://pharmagister.hu</a></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>2. A kezelt adatok köre és célja</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>A Pharmagister.hu weboldal (a továbbiakban: ""Weboldal"" vagy ""Rendszer"") célja, hogy platformot biztosítson gyógyszertárak és helyettesítést vállaló gyógyszerészek, illetve szakasszisztensek (a továbbiakban együtt: ""Felhasználók"") számára a kapcsolatfelvételhez és a helyettesítési igények kezeléséhez. A szolgáltatás nyújtásához elengedhetetlen bizonyos személyes adatok kezelése.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>2.1. Regisztráció során gyűjtött adatok</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>A Rendszer használata regisztrációhoz kötött. A regisztráció során a következő adatokat kérjük be és kezeljük:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Minden regisztráló Felhasználó esetén:</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>E-mail cím:</strong>&nbsp;Azonosítás, kapcsolattartás, rendszerüzenetek (pl. új üzenet, jelszóemlékeztető, fiók jóváhagyása/elutasítása) küldése. Az adatkezelés jogalapja a Felhasználó hozzájárulása (GDPR 6. cikk (1) a)).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Telefonszám:</strong>&nbsp;Kapcsolattartás, különösen a sikeres helyettesítés megszervezése érdekében. Az adatkezelés jogalapja a Felhasználó hozzájárulása (GDPR 6. cikk (1) a)).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Megjelenített név:</strong>&nbsp;A Felhasználó azonosítása a Rendszeren belül (pl. üzenetküldésnél, igényeknél). Az adatkezelés jogalapja a Felhasználó hozzájárulása (GDPR 6. cikk (1) a)).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Szerepkör:</strong>&nbsp;(Gyógyszertár, Gyógyszerész, Szakasszisztens) A Rendszer funkcióinak megfelelő működéséhez (pl. ki írhat ki igényt, ki jelentkezhet). Az adatkezelés jogalapja a Felhasználó hozzájárulása (GDPR 6. cikk (1) a)).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>""Gyógyszertár"" szerepkör választása esetén (a fentieken felül):</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Címadatok (Irányítószám, Város, Utca, Házszám):</strong>&nbsp;A helyettesítési igény helyszínének meghatározása, a helyettesítők tájékoztatása. Az adatkezelés jogalapja a Felhasználó hozzájárulása (GDPR 6. cikk (1) a)).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>""Gyógyszerész"" vagy ""Szakasszisztens"" szerepkör választása esetén (a fentieken felül):</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Vezetéknév és Keresztnév:</strong>&nbsp;A megjelenített név automatikus létrehozásához és a Felhasználó azonosításához. Az adatkezelés jogalapja a Felhasználó hozzájárulása (GDPR 6. cikk (1) a)).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>2.2. Profiladatok (""Profilom szerkesztése"")</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>A regisztrációt követően a Felhasználóknak lehetőségük van további adatok megadására a profiljukon:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Profilkép (Opcionális):</strong>&nbsp;A Felhasználó vizuális azonosítása a Rendszeren belül. Az adatkezelés jogalapja a Felhasználó hozzájárulása (GDPR 6. cikk (1) a)).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>""Gyógyszerész"" és ""Szakasszisztens"" szerepkör esetén (kötelező a jelentkezéshez):</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Szakmai tapasztalat (évek):</strong>&nbsp;A gyógyszertárak tájékoztatása a helyettesítő releváns tapasztalatáról. Az adatkezelés jogalapja a Felhasználó hozzájárulása (GDPR 6. cikk (1) a)) és a szerződés teljesítéséhez szükséges lépések megtétele (GDPR 6. cikk (1) b)).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Ismert szoftverek:</strong>&nbsp;A gyógyszertárak tájékoztatása a helyettesítő szoftverismeretéről. Az adatkezelés jogalapja a Felhasználó hozzájárulása (GDPR 6. cikk (1) a)) és a szerződés teljesítéséhez szükséges lépések megtétele (GDPR 6. cikk (1) b)).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Kért órabér:</strong>&nbsp;A gyógyszertárak tájékoztatása a helyettesítő díjazási igényéről. Az adatkezelés jogalapja a Felhasználó hozzájárulása (GDPR 6. cikk (1) a)) és a szerződés teljesítéséhez szükséges lépések megtétele (GDPR 6. cikk (1) b)).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>""Gyógyszerész"" és ""Szakasszisztens"" szerepkör esetén (opcionális):</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Rövid bemutatkozás:</strong>&nbsp;Lehetőség a helyettesítő számára további releváns információk közlésére. Az adatkezelés jogalapja a Felhasználó hozzájárulása (GDPR 6. cikk (1) a)).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>2.3. Helyettesítési igények adatai</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>A ""Gyógyszertár"" szerepkörű Felhasználók által létrehozott igények során kezelt adatok:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Dátum:</strong>&nbsp;A helyettesítés napja.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Keresett pozíció:</strong>&nbsp;(Gyógyszerész/Szakasszisztens)</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Minimum követelmények:</strong>&nbsp;A gyógyszertár által meghatározott elvárások.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Létrehozó gyógyszertár adatai:</strong>&nbsp;(Név, Cím - a profilból)</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Ezen adatok célja a helyettesítési lehetőség közzététele a Rendszerben. Az adatkezelés jogalapja a szerződés teljesítéséhez szükséges lépések megtétele (GDPR 6. cikk (1) b)).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>2.4. Jelentkezések adatai</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Amikor egy ""Gyógyszerész"" vagy ""Szakasszisztens"" jelentkezik egy igényre, a rendszer rögzíti a jelentkezés tényét (ki, melyik igényre jelentkezett). Ez szükséges a gyógyszertár tájékoztatásához és a jelentkezők kezeléséhez (elfogadás, elutasítás). Az adatkezelés jogalapja a szerződés teljesítéséhez szükséges lépések megtétele (GDPR 6. cikk (1) b)).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>2.5. Rendszeren belüli üzenetek</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>A Felhasználók közötti üzenetváltásokat a Rendszer adatbázisa tárolja a kommunikáció biztosítása és nyomon követhetősége érdekében. Az adatkezelés jogalapja a szerződés teljesítése (GDPR 6. cikk (1) b)) és a Felhasználók hozzájárulása (GDPR 6. cikk (1) a)).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>2.6. Sütik (Cookies)</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>A Weboldal a működéséhez elengedhetetlen sütiket használ. Amikor a Felhasználó bejelentkezik a fiókjába, több sütit (session cookie) helyezünk el az eszközén, hogy a bejelentkezési állapotát a böngészés alatt fenntartsuk. Ezek a bejelentkezési sütik általában a böngésző bezárásáig, vagy legfeljebb néhány napig érvényesek. Ha a Felhasználó kijelentkezik, ezek a sütik törlődnek.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Ezek a sütik technikailag szükségesek a bejelentkezett Felhasználók számára a szolgáltatás nyújtásához. A Weboldal jelenleg nem használ analitikai, statisztikai vagy marketing célú sütiket. Amennyiben ilyen sütiket a jövőben bevezetnénk, ahhoz a Felhasználók előzetes, aktív hozzájárulását fogjuk kérni egy süti-banner segítségével.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>2.7. Ismerős meghívása</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Amennyiben a Felhasználó az ""Ismerős meghívása"" funkciót használja, az általa megadott e-mail címre a nevében egy egyszeri meghívó e-mailt küldünk. Ezt az e-mail címet más célra nem használjuk fel és nem tároljuk tartósan, kivéve, ha a meghívott személy regisztrál a Rendszerbe. Az adatkezelés jogalapja a Felhasználó hozzájárulása (GDPR 6. cikk (1) a)).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>3. Adatmegosztás és adattovábbítás</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>A Felhasználók személyes adatait harmadik félnek (pl. marketingszolgáltatóknak) nem adjuk át értékesítési vagy egyéb célból. Az adatok megosztása kizárólag a Rendszeren belül, a szolgáltatás nyújtásához szükséges mértékben történik:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Gyógyszertárak:</strong>&nbsp;Láthatják azon helyettesítők nevét és szakmai profiladatait (tapasztalat, szoftverismeret, órabér, bemutatkozás, profilkép), akik az általuk kiírt igényre jelentkeztek. Elfogadás esetén láthatják a helyettesítő telefonszámát is.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Helyettesítők (Gyógyszerészek, Szakasszisztensek):</strong>&nbsp;Láthatják a gyógyszertárak nevét, címét és az általuk kiírt igények részleteit (dátum, pozíció, követelmények).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>Adatfeldolgozók:</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>A Weboldal működéséhez adatfeldolgozókat veszünk igénybe:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Tárhelyszolgáltató:</strong>&nbsp;[Ide írd a tárhelyszolgáltatód nevét és székhelyét/weboldalát]. A tárhelyszolgáltató biztosítja a Weboldal és az adatbázis fizikai tárolását.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Az adatokat az Európai Gazdasági Térségen (EGT) kívülre nem továbbítjuk.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>4. Az adatkezelés időtartama</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>A regisztráció során megadott személyes adatokat a Felhasználói fiók fennállásáig kezeljük.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>A Felhasználó bármikor kérheti fiókja és az ahhoz kapcsolódó összes adat végleges törlését a ""Profilom szerkesztése"" oldalon található ""Fiók végleges törlése"" funkcióval. A törlés végleges és visszaállíthatatlan.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>A rendszeren belüli üzeneteket a fiók törléséig tároljuk.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>5. Az érintettek jogai</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>A Felhasználókat (érintetteket) a GDPR alapján a következő jogok illetik meg személyes adataik kezelésével kapcsolatban:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Hozzáférési jog:</strong>&nbsp;Tájékoztatást kérhetnek adataik kezeléséről, és másolatot kaphatnak a róluk kezelt adatokról.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Helyesbítéshez való jog:</strong>&nbsp;Kérhetik pontatlan adataik helyesbítését. A legtöbb adatot a Felhasználó a ""Profilom szerkesztése"" oldalon maga is módosíthatja.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Törléshez való jog (""elfeledtetéshez való jog""):</strong>&nbsp;Kérhetik adataik törlését. Ezt a ""Profilom szerkesztése"" oldalon a ""Fiók végleges törlése"" funkcióval azonnal megtehetik.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Adatkezelés korlátozásához való jog:</strong>&nbsp;Bizonyos esetekben kérhetik az adatkezelés korlátozását.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Adathordozhatósághoz való jog:</strong>&nbsp;Kérhetik, hogy a rájuk vonatkozó, általuk rendelkezésre bocsátott adatokat tagolt, széles körben használt, géppel olvasható formátumban megkapják.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Tiltakozáshoz való jog:</strong>&nbsp;Bizonyos esetekben (pl. jogos érdeken alapuló adatkezelés) tiltakozhatnak adataik kezelése ellen.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>•&nbsp;<strong>Panasztételhez való jog:</strong>&nbsp;Jogosultak panaszt tenni a felügyeleti hatóságnál (Nemzeti Adatvédelmi és Információszabadság Hatóság - NAIH, www.naih.hu).</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>A Felhasználók a fenti jogaikat az 1. pontban megadott elérhetőségeken, vagy a Rendszeren belüli funkciók (profil szerkesztése, fióktörlés) segítségével gyakorolhatják.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>6. Adatbiztonság</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Megfelelő technikai és szervezési intézkedéseket teszünk a személyes adatok védelme érdekében a véletlen vagy jogellenes megsemmisítés, elvesztés, megváltoztatás, jogosulatlan közlés vagy az azokhoz való jogosulatlan hozzáférés ellen. Ide tartozik többek között [pl. jelszavak titkosított tárolása, rendszeres biztonsági frissítések, hozzáférés-szabályozás - Írj ide néhány konkrét intézkedést, amit a tárhelyszolgáltatód vagy te megteszel].</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>7. Egyéb rendelkezések</strong></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Fenntartjuk a jogot, hogy ezt az Adatkezelési Tájékoztatót egyoldalúan módosítsuk. A módosítások a Weboldalon való közzététellel lépnek hatályba. Jelentős módosítások esetén a regisztrált Felhasználókat e-mailben is értesíthetjük.</p>
+<!-- /wp:paragraph -->","Adatkezelési Tájékoztató",,"inherit","closed","closed",,"3-revision-v1",,,"2025-10-24 20:18:20","2025-10-24 20:18:20",,"3","https://pharmagister.hu/?p=476","0","revision",,"0"
+"477","79","2025-10-24 20:18:25","2025-10-24 20:18:25","<!-- wp:paragraph -->
+<p>/wp-login.php</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p></p>
+<!-- /wp:paragraph -->","Bejelentkezés",,"inherit","closed","closed",,"405-revision-v1",,,"2025-10-24 20:18:25","2025-10-24 20:18:25",,"405","https://pharmagister.hu/?p=477","0","revision",,"0"
+"478","79","2025-10-24 20:18:42","2025-10-24 20:18:42","<!-- wp:paragraph -->
+<p>[pss_user_profile_view]</p>
+<!-- /wp:paragraph -->","Felhasználói Adatlap",,"inherit","closed","closed",,"227-revision-v1",,,"2025-10-24 20:18:42","2025-10-24 20:18:42",,"227","https://pharmagister.hu/?p=478","0","revision",,"0"
+"479","79","2025-10-24 20:18:46","2025-10-24 20:18:46","<!-- wp:paragraph -->
+<p>[pss_pharmacy_profile]</p>
+<!-- /wp:paragraph -->","Gyógyszertár Adatlap",,"inherit","closed","closed",,"155-revision-v1",,,"2025-10-24 20:18:46","2025-10-24 20:18:46",,"155","https://pharmagister.hu/?p=479","0","revision",,"0"
+"480","79","2025-10-24 20:18:50","2025-10-24 20:18:50","<!-- wp:paragraph -->
+<p>[pss_applicant_viewer]</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p></p>
+<!-- /wp:paragraph -->","Jelentkező adatai",,"inherit","closed","closed",,"101-revision-v1",,,"2025-10-24 20:18:50","2025-10-24 20:18:50",,"101","https://pharmagister.hu/?p=480","0","revision",,"0"
+"481","79","2025-10-24 20:18:55","2025-10-24 20:18:55","<!-- wp:paragraph -->
+<p>[pss_landing_page]</p>
+<!-- /wp:paragraph -->","Kezdőoldal",,"inherit","closed","closed",,"419-revision-v1",,,"2025-10-24 20:18:55","2025-10-24 20:18:55",,"419","https://pharmagister.hu/?p=481","0","revision",,"0"
+"482","79","2025-10-24 20:19:04","2025-10-24 20:19:04","<!-- wp:paragraph -->
+<p>[pss_edit_profile]</p>
+<!-- /wp:paragraph -->","Profilom szerkesztése",,"inherit","closed","closed",,"82-revision-v1",,,"2025-10-24 20:19:04","2025-10-24 20:19:04",,"82","https://pharmagister.hu/?p=482","0","revision",,"0"
+"483","79","2025-10-24 20:19:09","2025-10-24 20:19:09","<!-- wp:paragraph -->
+<p>[pss_my_messages]</p>
+<!-- /wp:paragraph -->","Üzeneteim",,"inherit","closed","closed",,"107-revision-v1",,,"2025-10-24 20:19:09","2025-10-24 20:19:09",,"107","https://pharmagister.hu/?p=483","0","revision",,"0"
+"484","79","2025-10-24 20:19:14","2025-10-24 20:19:14","<!-- wp:paragraph -->
+<p><strong>[pss_control_panel]</strong></p>
+<!-- /wp:paragraph -->","Vezérlőpult",,"inherit","closed","closed",,"302-revision-v1",,,"2025-10-24 20:19:14","2025-10-24 20:19:14",,"302","https://pharmagister.hu/?p=484","0","revision",,"0"
+"487","79","2025-10-24 21:56:34","2025-10-24 21:56:34",,"IMG_5544",,"inherit","open","closed",,"img_5544",,,"2025-10-24 21:56:34","2025-10-24 21:56:34",,"0","https://pharmagister.hu/wp-content/uploads/2025/10/IMG_5544.png","0","attachment","image/png","0"
+"488","90","2025-10-25 05:52:07","2025-10-25 05:52:07",,"1000078399.jpg",,"inherit","open","closed",,"1000078399-jpg",,,"2025-10-25 05:52:07","2025-10-25 05:52:07",,"0","https://pharmagister.hu/1000078399-jpg/","0","attachment","image/jpeg","0"
+"489","94","2025-10-25 05:52:16","2025-10-25 05:52:16",,"IMG_2783.jpeg",,"inherit","open","closed",,"img_2783-jpeg",,,"2025-10-25 05:52:16","2025-10-25 05:52:16",,"0","https://pharmagister.hu/img_2783-jpeg/","0","attachment","image/jpeg","0"
+"490","100","2025-10-25 06:57:46","2025-10-25 06:57:46",,"IMG_1153.jpeg",,"inherit","open","closed",,"img_1153-jpeg",,,"2025-10-25 06:57:46","2025-10-25 06:57:46",,"0","https://pharmagister.hu/img_1153-jpeg/","0","attachment","image/jpeg","0"
+"492","106","2025-10-25 08:18:36","2025-10-25 08:18:36","Hello","Üzenet: Jékliné Epres Bettina -&gt; Minta Patika",,"publish","closed","closed",,"uzenet-jekline-epres-bettina-minta-patika",,,"2025-10-25 08:18:36","2025-10-25 08:18:36",,"0","https://pharmagister.hu/pss_message/uzenet-jekline-epres-bettina-minta-patika/","0","pss_message",,"0"
+"494","102","2025-10-25 08:56:28","2025-10-25 08:56:28",,"4.jpg",,"inherit","open","closed",,"4-jpg",,,"2025-10-25 08:56:28","2025-10-25 08:56:28",,"0","https://pharmagister.hu/4-jpg/","0","attachment","image/jpeg","0"
+"495","132","2025-10-25 11:30:13","2025-10-25 11:30:13",,"0cb8b454-91ee-4bef-822a-e1a91b7379f1-1_all_13426.jpg",,"inherit","open","closed",,"0cb8b454-91ee-4bef-822a-e1a91b7379f1-1_all_13426-jpg",,,"2025-10-25 11:30:13","2025-10-25 11:30:13",,"0","https://pharmagister.hu/0cb8b454-91ee-4bef-822a-e1a91b7379f1-1_all_13426-jpg/","0","attachment","image/jpeg","0"
+"496","172","2025-10-25 21:36:37","2025-10-25 21:36:37",,"IMG_9749.jpeg",,"inherit","open","closed",,"img_9749-jpeg",,,"2025-10-25 21:36:37","2025-10-25 21:36:37",,"0","https://pharmagister.hu/img_9749-jpeg/","0","attachment","image/jpeg","0"
+"497","176","2025-10-26 07:10:44","2025-10-26 07:10:44",,"1000012608.jpg",,"inherit","open","closed",,"1000012608-jpg",,,"2025-10-26 07:10:44","2025-10-26 07:10:44",,"0","https://pharmagister.hu/1000012608-jpg/","0","attachment","image/jpeg","0"
+"498","179","2025-10-26 08:45:19","2025-10-26 08:45:19",,"1000028282.jpg",,"inherit","open","closed",,"1000028282-jpg",,,"2025-10-26 08:45:19","2025-10-26 08:45:19",,"0","https://pharmagister.hu/1000028282-jpg/","0","attachment","image/jpeg","0"
+"499","187","2025-10-26 16:05:47","2025-10-26 16:05:47",,"36b147f9b35e4319389c14e3eee8821c.jpeg",,"inherit","open","closed",,"36b147f9b35e4319389c14e3eee8821c-jpeg",,,"2025-10-26 16:05:47","2025-10-26 16:05:47",,"0","https://pharmagister.hu/36b147f9b35e4319389c14e3eee8821c-jpeg/","0","attachment","image/jpeg","0"
+"504","178","2025-10-27 15:31:01","2025-10-27 15:31:01",,"SM_kep.jpg",,"inherit","open","closed",,"sm_kep-jpg",,,"2025-10-27 15:31:01","2025-10-27 15:31:01",,"0","https://pharmagister.hu/sm_kep-jpg/","0","attachment","image/jpeg","0"
+"506","250","2025-10-28 04:51:25","2025-10-28 04:51:25",,"IMG_9939.jpeg",,"inherit","open","closed",,"img_9939-jpeg",,,"2025-10-28 04:51:25","2025-10-28 04:51:25",,"0","https://pharmagister.hu/img_9939-jpeg/","0","attachment","image/jpeg","0"
+"513","239","2025-10-30 13:50:19","2025-10-30 13:50:19",,"0289b90e-95f2-465e-8438-e72786bc65f0-1_all_231.jpg",,"inherit","open","closed",,"0289b90e-95f2-465e-8438-e72786bc65f0-1_all_231-jpg",,,"2025-10-30 13:50:19","2025-10-30 13:50:19",,"0","https://pharmagister.hu/0289b90e-95f2-465e-8438-e72786bc65f0-1_all_231-jpg/","0","attachment","image/jpeg","0"
+"528","304","2025-10-31 08:01:07","2025-10-31 08:01:07",,"PatikaPlus Gyógyszertár Cegléd - 2026-01-03 - Gyógyszerész",,"trash","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-23__trashed",,,"2026-01-07 08:59:12","2026-01-07 08:59:12",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-23/","0","substitution_request",,"0"
+"535","285","2025-11-04 05:18:13","2025-11-04 05:18:13",,"IMG_1143.jpeg",,"inherit","open","closed",,"img_1143-jpeg",,,"2025-11-04 05:18:13","2025-11-04 05:18:13",,"0","https://pharmagister.hu/img_1143-jpeg/","0","attachment","image/jpeg","0"
+"536","353","2025-11-06 08:33:31","2025-11-06 08:33:31",,"1000026164.jpg",,"inherit","open","closed",,"1000026164-jpg",,,"2025-11-06 08:33:31","2025-11-06 08:33:31",,"0","https://pharmagister.hu/1000026164-jpg/","0","attachment","image/jpeg","0"
+"539","358","2025-11-06 10:30:25","2025-11-06 10:30:25",,"Patika Kömlő - 2026-02-23 - Gyógyszerész",,"publish","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-19",,,"2025-12-26 15:09:39","2025-12-26 15:09:39",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-19/","0","substitution_request",,"0"
+"540","359","2025-11-06 11:28:13","2025-11-06 11:28:13",,"inbound3560871624593669052.jpg",,"inherit","open","closed",,"inbound3560871624593669052-jpg",,,"2025-11-06 11:28:13","2025-11-06 11:28:13",,"0","https://pharmagister.hu/inbound3560871624593669052-jpg/","0","attachment","image/jpeg","0"
+"541","356","2025-11-06 17:06:54","2025-11-06 17:06:54","Kedves Tünde!
+Köszönöm a jelentkezését!
+Szerintem egyszerűbb lenne telefonon egyeztetni, elkérhetném a telefonszámát?
+Üdv,
+Horváth Kata","Üzenet: Manna Gyógyszertár -&gt; Vereb Tünde",,"publish","closed","closed",,"uzenet-manna-gyogyszertar-vereb-tunde",,,"2025-11-06 17:06:54","2025-11-06 17:06:54",,"0","https://pharmagister.hu/pss_message/uzenet-manna-gyogyszertar-vereb-tunde/","0","pss_message",,"0"
+"542","359","2025-11-06 18:24:35","2025-11-06 18:24:35","Üdvözlöm! 
+Természetesen, a 0620/565-59-66 telefonszámon elér!","Üzenet: Vereb Tünde -&gt; Manna Gyógyszertár",,"publish","closed","closed",,"uzenet-vereb-tunde-manna-gyogyszertar",,,"2025-11-06 18:24:35","2025-11-06 18:24:35",,"0","https://pharmagister.hu/pss_message/uzenet-vereb-tunde-manna-gyogyszertar/","0","pss_message",,"0"
+"543","356","2025-11-06 18:40:18","2025-11-06 18:40:18","A holnapi nap folyamán keresni fogom. Szép estét!:)","Üzenet: Manna Gyógyszertár -&gt; Vereb Tünde",,"publish","closed","closed",,"uzenet-manna-gyogyszertar-vereb-tunde-2",,,"2025-11-06 18:40:18","2025-11-06 18:40:18",,"0","https://pharmagister.hu/pss_message/uzenet-manna-gyogyszertar-vereb-tunde-2/","0","pss_message",,"0"
+"544","359","2025-11-06 19:39:17","2025-11-06 19:39:17","Rendben, várom. Önnek is szép estét! 🙂","Üzenet: Vereb Tünde -&gt; Manna Gyógyszertár",,"publish","closed","closed",,"uzenet-vereb-tunde-manna-gyogyszertar-2",,,"2025-11-06 19:39:17","2025-11-06 19:39:17",,"0","https://pharmagister.hu/pss_message/uzenet-vereb-tunde-manna-gyogyszertar-2/","0","pss_message",,"0"
+"583","458","2025-12-01 13:49:23","2025-12-01 13:49:23",,"Kopaszi Non-Stop - 2026-01-06 - Gyógyszerész",,"trash","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-28__trashed",,,"2026-01-07 08:58:58","2026-01-07 08:58:58",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-28/","0","substitution_request",,"0"
+"584","458","2025-12-01 13:49:34","2025-12-01 13:49:34",,"Kopaszi Non-Stop - 2026-01-07 - Gyógyszerész",,"trash","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-29__trashed",,,"2026-01-09 07:14:32","2026-01-09 07:14:32",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-29/","0","substitution_request",,"0"
+"586","458","2025-12-01 13:50:05","2025-12-01 13:50:05",,"Kopaszi Non-Stop - 2026-01-11 - Gyógyszerész",,"trash","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-31__trashed",,,"2026-01-14 10:07:10","2026-01-14 10:07:10",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-31/","0","substitution_request",,"0"
+"592","190","2025-12-02 20:03:38","2025-12-02 20:03:38",,"IMG_2491.jpeg",,"inherit","open","closed",,"img_2491-jpeg",,,"2025-12-02 20:03:38","2025-12-02 20:03:38",,"0","https://pharmagister.hu/img_2491-jpeg/","0","attachment","image/jpeg","0"
+"593","474","2025-12-05 13:21:41","2025-12-05 13:21:41",,"2a77f1a6f93e3fd512c4868b8441105f.jpeg",,"inherit","open","closed",,"2a77f1a6f93e3fd512c4868b8441105f-jpeg",,,"2025-12-05 13:21:41","2025-12-05 13:21:41",,"0","https://pharmagister.hu/2a77f1a6f93e3fd512c4868b8441105f-jpeg/","0","attachment","image/jpeg","0"
+"595","458","2025-12-10 13:53:02","2025-12-10 13:53:02","Üdvözlöm,
+
+Kérem küldje el a telefonszámát, hogy könnyebben tudjunk egyeztetni.
+
+Köszönöm,
+Bea","Üzenet: Kopaszi Non-Stop -&gt; Rácz Levente Dávid",,"publish","closed","closed",,"uzenet-kopaszi-non-stop-racz-levente-david",,,"2025-12-10 13:53:02","2025-12-10 13:53:02",,"0","https://pharmagister.hu/pss_message/uzenet-kopaszi-non-stop-racz-levente-david/","0","pss_message",,"0"
+"596","474","2025-12-10 14:38:08","2025-12-10 14:38:08","Kedves Bea,
+A telefonszámom a következő: 06305947096
+Üdv,
+Levente","Üzenet: Rácz Levente Dávid -&gt; Kopaszi Non-Stop",,"publish","closed","closed",,"uzenet-racz-levente-david-kopaszi-non-stop",,,"2025-12-10 14:38:08","2025-12-10 14:38:08",,"0","https://pharmagister.hu/pss_message/uzenet-racz-levente-david-kopaszi-non-stop/","0","pss_message",,"0"
+"597","108","2025-12-10 22:25:51","2025-12-10 22:25:51",,"Foldvari-Csaba00137-masolat_Original.jpeg",,"inherit","open","closed",,"foldvari-csaba00137-masolat_original-jpeg",,,"2025-12-10 22:25:51","2025-12-10 22:25:51",,"0","https://pharmagister.hu/foldvari-csaba00137-masolat_original-jpeg/","0","attachment","image/jpeg","0"
+"598","338","2025-12-11 18:29:21","2025-12-11 18:29:21",,"ed71ce23-9386-4b1a-8383-8d706aca753f-1_all_3702.jpg",,"inherit","open","closed",,"ed71ce23-9386-4b1a-8383-8d706aca753f-1_all_3702-jpg",,,"2025-12-11 18:29:21","2025-12-11 18:29:21",,"0","https://pharmagister.hu/ed71ce23-9386-4b1a-8383-8d706aca753f-1_all_3702-jpg/","0","attachment","image/jpeg","0"
+"603","260","2025-12-12 11:41:12","2025-12-12 11:41:12",,"BENU Gyógyszertár Székesfehérvár Országalma - 2026-01-05 - Szakasszisztens",,"trash","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt__trashed",,,"2026-01-07 08:58:49","2026-01-07 08:58:49",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt/","0","substitution_request",,"0"
+"604","260","2025-12-12 11:41:38","2025-12-12 11:41:38",,"BENU Gyógyszertár Székesfehérvár Országalma - 2026-01-06 - Szakasszisztens",,"trash","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-5__trashed",,,"2026-01-07 08:58:37","2026-01-07 08:58:37",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-5/","0","substitution_request",,"0"
+"606","474","2025-12-13 15:14:47","2025-12-13 15:14:47","Üdvözlöm! Rácz Levente vagyok, és érdeklődnék, hogy a meghirdetett december 29-ei időpont elérhető-e még?
+
+Köszönettel,
+
+Rácz Levente","Üzenet: Rácz Levente Dávid -&gt; Újpesti Király Gyógyszertár",,"publish","closed","closed",,"uzenet-racz-levente-david-ujpesti-kiraly-gyogyszertar",,,"2025-12-13 15:14:47","2025-12-13 15:14:47",,"0","https://pharmagister.hu/pss_message/uzenet-racz-levente-david-ujpesti-kiraly-gyogyszertar/","0","pss_message",,"0"
+"607","447","2025-12-14 13:56:15","2025-12-14 13:56:15","Kedves Levente!
+Köszönöm a lehetőséget, de elvállalták már a helyettesítést az adott napra.
+
+Üdvözlettel,
+Pacorné dr Gulyás Réka","Üzenet: Újpesti Király Gyógyszertár -&gt; Rácz Levente Dávid",,"publish","closed","closed",,"uzenet-ujpesti-kiraly-gyogyszertar-racz-levente-david",,,"2025-12-14 13:56:15","2025-12-14 13:56:15",,"0","https://pharmagister.hu/pss_message/uzenet-ujpesti-kiraly-gyogyszertar-racz-levente-david/","0","pss_message",,"0"
+"610","111","2025-12-15 12:27:11","2025-12-15 12:27:11","Kedves Patikavezető!
+
+A Január 5.-ei,6.-ai napot eltudom vállalni. Nyitástól-zárásig tudnék maradni.
+Amennyiben ez a 2 nap is segítség,szívesen veszem megkeresésüket.
+
+Üdvözlettel: Németh Melinda","Üzenet: Németh Melinda -&gt; BENU Gyógyszertár Székesfehérvár Országalma",,"publish","closed","closed",,"uzenet-nemeth-melinda-benu-gyogyszertar-szekesfehervar-orszagalma",,,"2025-12-15 12:27:11","2025-12-15 12:27:11",,"0","https://pharmagister.hu/pss_message/uzenet-nemeth-melinda-benu-gyogyszertar-szekesfehervar-orszagalma/","0","pss_message",,"0"
+"616","219","2025-12-16 12:47:54","2025-12-16 12:47:54",,"IMG_8775.jpeg",,"inherit","open","closed",,"img_8775-jpeg",,,"2025-12-16 12:47:54","2025-12-16 12:47:54",,"0","https://pharmagister.hu/img_8775-jpeg/","0","attachment","image/jpeg","0"
+"618","507","2025-12-16 14:45:18","2025-12-16 14:45:18",,"Timi Gyógyszertár - 2026-12-01 - Gyógyszerész",,"publish","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-2",,,"2025-12-16 14:45:19","2025-12-16 14:45:19",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-2/","0","substitution_request",,"0"
+"619","260","2025-12-16 17:36:30","2025-12-16 17:36:30","Kedves Melinda! Moncz Judit vagyok a gyógyszertár vezetője. Köszönöm a jelentkezést! Igen, ez is nagy segítség. Szeretnék kérni egy elérhetőséget, hogy a részleteket meg tudjuk beszélni. Telefonszámom: 06-30-564-3800 email: orszagalma@benugyogyszertar.hu Szép estét kívánok! Jutka","Üzenet: BENU Gyógyszertár Székesfehérvár Országalma -&gt; Németh Melinda",,"publish","closed","closed",,"uzenet-benu-gyogyszertar-szekesfehervar-orszagalma-nemeth-melinda",,,"2025-12-16 17:36:30","2025-12-16 17:36:30",,"0","https://pharmagister.hu/pss_message/uzenet-benu-gyogyszertar-szekesfehervar-orszagalma-nemeth-melinda/","0","pss_message",,"0"
+"620","111","2025-12-17 07:55:36","2025-12-17 07:55:36","Kedves Jutka!
+
+A + 36 30 237 4887-es tel.számon elér. Ha épp nem tudom felvenni,visszahívom. Illetve e-mailen a: helyettes13@gmail.com címen is tudunk kommunikálni.
+
+Előre is köszönöm: Melinda","Üzenet: Németh Melinda -&gt; BENU Gyógyszertár Székesfehérvár Országalma",,"publish","closed","closed",,"uzenet-nemeth-melinda-benu-gyogyszertar-szekesfehervar-orszagalma-2",,,"2025-12-17 07:55:36","2025-12-17 07:55:36",,"0","https://pharmagister.hu/pss_message/uzenet-nemeth-melinda-benu-gyogyszertar-szekesfehervar-orszagalma-2/","0","pss_message",,"0"
+"621","260","2025-12-17 17:00:18","2025-12-17 17:00:18",,"BENU Gyógyszertár Székesfehérvár Országalma - 2026-01-07 - Szakasszisztens",,"trash","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-6__trashed",,,"2026-01-09 07:14:24","2026-01-09 07:14:24",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-6/","0","substitution_request",,"0"
+"622","260","2025-12-17 17:00:54","2025-12-17 17:00:54",,"BENU Gyógyszertár Székesfehérvár Országalma - 2026-01-08 - Szakasszisztens",,"trash","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-8__trashed",,,"2026-01-09 07:14:16","2026-01-09 07:14:16",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-8/","0","substitution_request",,"0"
+"623","260","2025-12-17 17:01:25","2025-12-17 17:01:25",,"BENU Gyógyszertár Székesfehérvár Országalma - 2026-01-09 - Szakasszisztens",,"trash","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-9__trashed",,,"2026-01-10 09:29:43","2026-01-10 09:29:43",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-9/","0","substitution_request",,"0"
+"625","457","2025-12-22 09:43:39","2025-12-22 09:43:39",,"Non Stop 200 Gyógyszertár - 2026-01-05 - Gyógyszerész",,"trash","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-12__trashed",,,"2026-01-06 14:05:17","2026-01-06 14:05:17",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-12/","0","substitution_request",,"0"
+"626","457","2025-12-22 09:43:47","2025-12-22 09:43:47",,"Non Stop 200 Gyógyszertár - 2026-01-06 - Gyógyszerész",,"trash","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-14__trashed-2",,,"2026-01-07 08:58:25","2026-01-07 08:58:25",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-14/","0","substitution_request",,"0"
+"627","457","2025-12-22 09:44:07","2025-12-22 09:44:07",,"Non Stop 200 Gyógyszertár - 2026-01-08 - Gyógyszerész",,"trash","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-20__trashed",,,"2026-01-09 07:14:06","2026-01-09 07:14:06",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-20/","0","substitution_request",,"0"
+"628","457","2025-12-22 09:44:19","2025-12-22 09:44:19",,"Non Stop 200 Gyógyszertár - 2026-01-09 - Gyógyszerész",,"trash","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-21__trashed",,,"2026-01-10 09:29:30","2026-01-10 09:29:30",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-21/","0","substitution_request",,"0"
+"629","457","2025-12-22 09:44:32","2025-12-22 09:44:32",,"Non Stop 200 Gyógyszertár - 2026-01-14 - Gyógyszerész",,"trash","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-22__trashed",,,"2026-01-16 06:59:32","2026-01-16 06:59:32",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-22/","0","substitution_request",,"0"
+"630","457","2025-12-22 09:44:42","2025-12-22 09:44:42",,"Non Stop 200 Gyógyszertár - 2026-01-15 - Gyógyszerész",,"trash","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-24__trashed",,,"2026-01-16 06:59:24","2026-01-16 06:59:24",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-24/","0","substitution_request",,"0"
+"631","457","2025-12-22 09:44:52","2025-12-22 09:44:52",,"Non Stop 200 Gyógyszertár - 2026-01-19 - Gyógyszerész",,"trash","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-25__trashed",,,"2026-01-21 10:03:34","2026-01-21 10:03:34",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-25/","0","substitution_request",,"0"
+"632","457","2025-12-22 09:45:05","2025-12-22 09:45:05",,"Non Stop 200 Gyógyszertár - 2026-01-27 - Gyógyszerész",,"trash","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-26__trashed",,,"2026-01-28 08:12:42","2026-01-28 08:12:42",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-26/","0","substitution_request",,"0"
+"633","456","2025-12-22 09:46:22","2025-12-22 09:46:22",,"Bartók Non Stop Gyógyszertár - 2026-01-05 - Gyógyszerész",,"trash","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-30__trashed",,,"2026-01-06 14:04:56","2026-01-06 14:04:56",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-30/","0","substitution_request",,"0"
+"634","456","2025-12-22 09:46:39","2025-12-22 09:46:39",,"Bartók Non Stop Gyógyszertár - 2026-01-06 - Gyógyszerész",,"trash","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-32__trashed",,,"2026-01-07 08:58:19","2026-01-07 08:58:19",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-32/","0","substitution_request",,"0"
+"635","456","2025-12-22 09:46:50","2025-12-22 09:46:50",,"Bartók Non Stop Gyógyszertár - 2026-01-07 - Gyógyszerész",,"trash","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-34__trashed",,,"2026-01-09 07:13:50","2026-01-09 07:13:50",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-34/","0","substitution_request",,"0"
+"636","456","2025-12-22 09:47:02","2025-12-22 09:47:02",,"Bartók Non Stop Gyógyszertár - 2026-01-09 - Gyógyszerész",,"trash","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-35__trashed",,,"2026-01-10 09:29:15","2026-01-10 09:29:15",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-35/","0","substitution_request",,"0"
+"637","456","2025-12-22 09:47:12","2025-12-22 09:47:12",,"Bartók Non Stop Gyógyszertár - 2026-01-12 - Gyógyszerész",,"trash","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-36__trashed",,,"2026-01-14 10:06:49","2026-01-14 10:06:49",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-36/","0","substitution_request",,"0"
+"638","456","2025-12-22 09:47:21","2025-12-22 09:47:21",,"Bartók Non Stop Gyógyszertár - 2026-01-13 - Gyógyszerész",,"trash","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-37__trashed",,,"2026-01-14 10:06:40","2026-01-14 10:06:40",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-37/","0","substitution_request",,"0"
+"639","456","2025-12-22 09:47:32","2025-12-22 09:47:32",,"Bartók Non Stop Gyógyszertár - 2026-01-14 - Gyógyszerész",,"trash","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-38__trashed",,,"2026-01-16 06:59:15","2026-01-16 06:59:15",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-38/","0","substitution_request",,"0"
+"640","456","2025-12-22 09:47:42","2025-12-22 09:47:42",,"Bartók Non Stop Gyógyszertár - 2026-01-19 - Gyógyszerész",,"trash","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-39__trashed",,,"2026-01-21 10:03:26","2026-01-21 10:03:26",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-39/","0","substitution_request",,"0"
+"641","456","2025-12-22 09:47:54","2025-12-22 09:47:54",,"Bartók Non Stop Gyógyszertár - 2026-01-20 - Gyógyszerész",,"trash","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-40__trashed",,,"2026-01-21 10:03:43","2026-01-21 10:03:43",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-40/","0","substitution_request",,"0"
+"642","456","2025-12-22 09:48:03","2025-12-22 09:48:03",,"Bartók Non Stop Gyógyszertár - 2026-01-21 - Gyógyszerész",,"trash","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-41__trashed",,,"2026-01-22 13:20:42","2026-01-22 13:20:42",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-41/","0","substitution_request",,"0"
+"643","456","2025-12-22 09:48:15","2025-12-22 09:48:15",,"Bartók Non Stop Gyógyszertár - 2026-01-24 - Gyógyszerész",,"trash","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-42__trashed",,,"2026-01-25 21:54:31","2026-01-25 21:54:31",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-42/","0","substitution_request",,"0"
+"644","456","2025-12-22 09:48:27","2025-12-22 09:48:27",,"Bartók Non Stop Gyógyszertár - 2026-01-26 - Gyógyszerész",,"trash","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-43__trashed",,,"2026-01-27 05:48:38","2026-01-27 05:48:38",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-43/","0","substitution_request",,"0"
+"645","456","2025-12-22 09:48:35","2025-12-22 09:48:35",,"Bartók Non Stop Gyógyszertár - 2026-01-28 - Gyógyszerész",,"trash","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-44__trashed",,,"2026-01-29 13:01:38","2026-01-29 13:01:38",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-44/","0","substitution_request",,"0"
+"652","543","2026-01-01 09:00:55","2026-01-01 09:00:55",,"Belvárosi Gyógyszertár - 2026-02-01 - Gyógyszerész",,"publish","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-3",,,"2026-01-01 09:00:55","2026-01-01 09:00:55",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-3/","0","substitution_request",,"0"
+"653","543","2026-01-01 09:01:27","2026-01-01 09:01:27",,"Belvárosi Gyógyszertár - 2026-02-22 - Gyógyszerész",,"publish","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-4",,,"2026-01-01 09:01:27","2026-01-01 09:01:27",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-4/","0","substitution_request",,"0"
+"654","543","2026-01-01 09:01:41","2026-01-01 09:01:41",,"Belvárosi Gyógyszertár - 2026-02-01 - Szakasszisztens",,"trash","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-7__trashed",,,"2026-02-02 08:04:00","2026-02-02 08:04:00",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-7/","0","substitution_request",,"0"
+"655","543","2026-01-01 09:01:53","2026-01-01 09:01:53",,"Belvárosi Gyógyszertár - 2026-02-22 - Szakasszisztens",,"publish","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-10",,,"2026-01-01 09:01:53","2026-01-01 09:01:53",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-10/","0","substitution_request",,"0"
+"657","548","2026-01-03 18:42:31","2026-01-03 18:42:31",,"20230512_121440.jpg",,"inherit","open","closed",,"20230512_121440-jpg",,,"2026-01-03 18:42:31","2026-01-03 18:42:31",,"0","https://pharmagister.hu/20230512_121440-jpg/","0","attachment","image/jpeg","0"
+"658","550","2026-01-03 21:32:55","2026-01-03 21:32:55",,"1000011919.jpg",,"inherit","open","closed",,"1000011919-jpg",,,"2026-01-03 21:32:55","2026-01-03 21:32:55",,"0","https://pharmagister.hu/1000011919-jpg/","0","attachment","image/jpeg","0"
+"659","198","2026-01-04 21:13:45","2026-01-04 21:13:45",,"IMG_7597.jpeg",,"inherit","open","closed",,"img_7597-jpeg",,,"2026-01-04 21:13:45","2026-01-04 21:13:45",,"0","https://pharmagister.hu/img_7597-jpeg/","0","attachment","image/jpeg","0"
+"660","260","2026-01-05 12:02:28","2026-01-05 12:02:28",,"BENU Gyógyszertár Székesfehérvár Országalma - 2026-01-12 - Szakasszisztens",,"trash","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-11__trashed-2",,,"2026-01-14 10:06:18","2026-01-14 10:06:18",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-11/","0","substitution_request",,"0"
+"661","260","2026-01-05 12:02:45","2026-01-05 12:02:45",,"BENU Gyógyszertár Székesfehérvár Országalma - 2026-01-13 - Szakasszisztens",,"trash","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-13__trashed-2",,,"2026-01-14 10:06:26","2026-01-14 10:06:26",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-13/","0","substitution_request",,"0"
+"662","260","2026-01-05 12:02:57","2026-01-05 12:02:57",,"BENU Gyógyszertár Székesfehérvár Országalma - 2026-01-14 - Szakasszisztens",,"trash","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-15__trashed-2",,,"2026-01-16 06:59:06","2026-01-16 06:59:06",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-15/","0","substitution_request",,"0"
+"663","260","2026-01-05 12:03:18","2026-01-05 12:03:18",,"BENU Gyógyszertár Székesfehérvár Országalma - 2026-01-15 - Szakasszisztens",,"trash","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-16__trashed-2",,,"2026-01-16 06:59:00","2026-01-16 06:59:00",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-16/","0","substitution_request",,"0"
+"664","260","2026-01-05 12:03:31","2026-01-05 12:03:31",,"BENU Gyógyszertár Székesfehérvár Országalma - 2026-01-16 - Szakasszisztens",,"trash","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-17__trashed-2",,,"2026-01-17 21:38:24","2026-01-17 21:38:24",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-17/","0","substitution_request",,"0"
+"665","199","2026-01-08 09:29:18","2026-01-08 09:29:18",,"IMG_3496.jpeg",,"inherit","open","closed",,"img_3496-jpeg",,,"2026-01-08 09:29:18","2026-01-08 09:29:18",,"0","https://pharmagister.hu/img_3496-jpeg/","0","attachment","image/jpeg","0"
+"666","569","2026-01-12 11:45:52","2026-01-12 11:45:52",,"Gyógyforrás Gyógyszertár - 2026-01-17 - Gyógyszerész",,"trash","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt__trashed-2",,,"2026-01-18 09:42:21","2026-01-18 09:42:21",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt/","0","substitution_request",,"0"
+"668","394","2026-01-18 12:02:45","2026-01-18 12:02:45",,"A4A5DAC4-25E8-4FBC-AA84-4741F990D8BE.jpeg",,"inherit","open","closed",,"a4a5dac4-25e8-4fbc-aa84-4741f990d8be-jpeg",,,"2026-01-18 12:02:45","2026-01-18 12:02:45",,"0","https://pharmagister.hu/a4a5dac4-25e8-4fbc-aa84-4741f990d8be-jpeg/","0","attachment","image/jpeg","0"
+"671","294","2026-01-22 11:51:48","2026-01-22 11:51:48",,"Janza Gyógyszertár - 2026-06-22 - Gyógyszerész",,"publish","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt",,,"2026-01-22 11:51:48","2026-01-22 11:51:48",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt/","0","substitution_request",,"0"
+"672","294","2026-01-22 11:52:37","2026-01-22 11:52:37",,"Janza Gyógyszertár - 2026-06-23 - Gyógyszerész",,"publish","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-5",,,"2026-01-22 11:52:37","2026-01-22 11:52:37",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-5/","0","substitution_request",,"0"
+"673","294","2026-01-22 11:53:14","2026-01-22 11:53:14",,"Janza Gyógyszertár - 2026-08-17 - Gyógyszerész",,"publish","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-6",,,"2026-01-22 11:53:14","2026-01-22 11:53:14",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-6/","0","substitution_request",,"0"
+"674","294","2026-01-22 11:53:36","2026-01-22 11:53:36",,"Janza Gyógyszertár - 2026-08-18 - Gyógyszerész",,"publish","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-8",,,"2026-01-22 11:53:36","2026-01-22 11:53:36",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-8/","0","substitution_request",,"0"
+"675","294","2026-01-22 11:54:07","2026-01-22 11:54:07",,"Janza Gyógyszertár - 2026-10-19 - Gyógyszerész",,"publish","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-9",,,"2026-01-22 11:54:07","2026-01-22 11:54:07",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-9/","0","substitution_request",,"0"
+"676","294","2026-01-22 11:54:32","2026-01-22 11:54:32",,"Janza Gyógyszertár - 2026-10-20 - Gyógyszerész",,"publish","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-11",,,"2026-01-22 11:54:32","2026-01-22 11:54:32",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-11/","0","substitution_request",,"0"
+"677","599","2026-01-22 16:03:22","2026-01-22 16:03:22",,"BENU gyógyszertàr Sàrvàr Szent Antal - 2026-02-07 - Gyógyszerész",,"publish","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-12",,,"2026-01-22 16:03:22","2026-01-22 16:03:22",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-12/","0","substitution_request",,"0"
+"678","602","2026-01-24 14:18:15","2026-01-24 14:18:15",,"Alba Regia Gyógyszertár - 2026-06-22 - Gyógyszerész",,"publish","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-13",,,"2026-01-24 14:18:15","2026-01-24 14:18:15",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-13/","0","substitution_request",,"0"
+"679","602","2026-01-24 14:18:59","2026-01-24 14:18:59",,"Alba Regia Gyógyszertár - 2026-06-23 - Gyógyszerész",,"publish","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-14",,,"2026-01-24 14:18:59","2026-01-24 14:18:59",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-14/","0","substitution_request",,"0"
+"680","602","2026-01-24 14:19:51","2026-01-24 14:19:51",,"Alba Regia Gyógyszertár - 2026-08-17 - Gyógyszerész",,"publish","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-15",,,"2026-01-24 14:19:51","2026-01-24 14:19:51",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-15/","0","substitution_request",,"0"
+"681","602","2026-01-24 14:20:04","2026-01-24 14:20:04",,"Alba Regia Gyógyszertár - 2026-08-18 - Gyógyszerész",,"publish","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-16",,,"2026-01-24 14:20:04","2026-01-24 14:20:04",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-16/","0","substitution_request",,"0"
+"682","274","2026-01-25 16:41:51","2026-01-25 16:41:51",,"IMG_9518.jpeg",,"inherit","open","closed",,"img_9518-jpeg",,,"2026-01-25 16:41:51","2026-01-25 16:41:51",,"0","https://pharmagister.hu/img_9518-jpeg/","0","attachment","image/jpeg","0"
+"684","617","2026-01-28 07:21:21","2026-01-28 07:21:21",,"211daed9-e2c0-4819-86af-fb975639d830.jpeg",,"inherit","open","closed",,"211daed9-e2c0-4819-86af-fb975639d830-jpeg",,,"2026-01-28 07:21:21","2026-01-28 07:21:21",,"0","https://pharmagister.hu/211daed9-e2c0-4819-86af-fb975639d830-jpeg/","0","attachment","image/jpeg","0"
+"685","117","2026-01-28 07:22:58","2026-01-28 07:22:58",,"IMG_0302.jpeg",,"inherit","open","closed",,"img_0302-jpeg",,,"2026-01-28 07:22:58","2026-01-28 07:22:58",,"0","https://pharmagister.hu/img_0302-jpeg/","0","attachment","image/jpeg","0"
+"686","620","2026-01-28 15:36:01","2026-01-28 15:36:01",,"Kamilla Patika - 2026-02-05 - Gyógyszerész",,"private","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-17",,,"2026-01-29 09:21:23","2026-01-29 09:21:23",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-17/","0","substitution_request",,"0"
+"687","620","2026-01-28 15:37:32","2026-01-28 15:37:32",,"Kamilla Patika - 2026-02-26 - Gyógyszerész",,"publish","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-18",,,"2026-01-28 15:37:32","2026-01-28 15:37:32",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-18/","0","substitution_request",,"0"
+"688","620","2026-01-28 15:38:00","2026-01-28 15:38:00",,"Kamilla Patika - 2026-03-19 - Gyógyszerész",,"publish","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-20",,,"2026-01-28 15:38:00","2026-01-28 15:38:00",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-20/","0","substitution_request",,"0"
+"689","620","2026-01-28 15:38:26","2026-01-28 15:38:26",,"Kamilla Patika - 2026-03-26 - Gyógyszerész",,"publish","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-21",,,"2026-01-28 15:38:26","2026-01-28 15:38:26",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-21/","0","substitution_request",,"0"
+"690","55","2026-01-29 09:04:37","0000-00-00 00:00:00",,"Automatikus vázlat",,"auto-draft","open","open",,,,,"2026-01-29 09:04:37","0000-00-00 00:00:00",,"0","https://pharmagister.hu/?p=690","0","post",,"0"
+"691","620","2026-01-29 09:11:56","2026-01-29 09:11:56","Kedves Mária! Örömmel láttam, hogy jelentkezett a február 5-i napra. Kérem, ezen a számon hívjon a részletek megbeszélése miatt: +36304661799","Üzenet: Kamilla Patika -&gt; Dobrik Maria",,"publish","closed","closed",,"uzenet-kamilla-patika-dobrik-maria",,,"2026-01-29 09:11:56","2026-01-29 09:11:56",,"0","https://pharmagister.hu/pss_message/uzenet-kamilla-patika-dobrik-maria/","0","pss_message",,"0"
+"693","621","2026-01-29 10:39:56","2026-01-29 10:39:56",,"Iris Gyógyszertár - 2026-07-29 - Szakasszisztens",,"publish","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-22",,,"2026-01-29 10:39:56","2026-01-29 10:39:56",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-22/","0","substitution_request",,"0"
+"694","287","2026-01-29 17:15:42","2026-01-29 17:15:42",,"Zöldkereszt Gyógyszertár - 2026-08-03 - Gyógyszerész",,"publish","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-23",,,"2026-01-29 17:15:42","2026-01-29 17:15:42",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-23/","0","substitution_request",,"0"
+"695","287","2026-01-29 17:29:17","2026-01-29 17:29:17",,"Zöldkereszt Gyógyszertár - 2026-08-03 - Gyógyszerész",,"publish","closed","closed",,"helyettesitesi-igeny-feldolgozas-alatt-24",,,"2026-01-29 17:29:17","2026-01-29 17:29:17",,"0","https://pharmagister.hu/substitution_request/helyettesitesi-igeny-feldolgozas-alatt-24/","0","substitution_request",,"0"
+"696","628","2026-01-30 09:41:16","2026-01-30 09:41:16",,"IMG_0735.jpeg",,"inherit","open","closed",,"img_0735-jpeg",,,"2026-01-30 09:41:16","2026-01-30 09:41:16",,"0","https://pharmagister.hu/img_0735-jpeg/","0","attachment","image/jpeg","0"
+"697","629","2026-01-30 10:01:05","2026-01-30 10:01:05",,"1000025509.jpg",,"inherit","open","closed",,"1000025509-jpg",,,"2026-01-30 10:01:05","2026-01-30 10:01:05",,"0","https://pharmagister.hu/1000025509-jpg/","0","attachment","image/jpeg","0"
+"698","630","2026-01-30 12:10:54","2026-01-30 12:10:54",,"profilk.jpg",,"inherit","open","closed",,"profilk-jpg",,,"2026-01-30 12:10:54","2026-01-30 12:10:54",,"0","https://pharmagister.hu/profilk-jpg/","0","attachment","image/jpeg","0"
+"699","79","2026-01-30 14:36:19","0000-00-00 00:00:00",,"Automatikus vázlat",,"auto-draft","open","open",,,,,"2026-01-30 14:36:19","0000-00-00 00:00:00",,"0","https://pharmagister.hu/?p=699","0","post",,"0"
+"700","632","2026-01-30 21:43:30","2026-01-30 21:43:30",,"IMG_3023.jpeg",,"inherit","open","closed",,"img_3023-jpeg",,,"2026-01-30 21:43:30","2026-01-30 21:43:30",,"0","https://pharmagister.hu/img_3023-jpeg/","0","attachment","image/jpeg","0"

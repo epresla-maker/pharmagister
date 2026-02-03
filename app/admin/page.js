@@ -104,6 +104,12 @@ export default function AdminPage() {
             >
               📝 Posztok kezelése
             </button>
+            <button
+              onClick={() => router.push('/admin/password-activations')}
+              className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 text-xs sm:text-sm w-full"
+            >
+              🔐 Jelszó aktiválások
+            </button>
           </div>
         </div>
 
