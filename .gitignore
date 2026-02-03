@@ -33,3 +33,15 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 serviceAccountKey.json
+
+# Sensitive migration files
+MIGRATED_PASSWORDS.csv
+MIGRATED_PASSWORDS.json
+wpk2_*.csv
+email-send-results.json
+
+# Migration scripts with sensitive data
+migrate-wp-users.js
+migrate-wp-demands.js
+send-all-passwords.js
+send-single-password.js
