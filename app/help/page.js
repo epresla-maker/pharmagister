@@ -272,18 +272,6 @@ export default function HelpPage() {
               )}
             </div>
           ))}
-
-          {/* Contact */}
-          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-4 shadow-sm mt-6`}>
-            <h3 className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'} mb-2`}>Kapcsolat</h3>
-            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-              Ha további kérdésed van, vedd fel velünk a kapcsolatot az{' '}
-              <a href="mailto:support@pharmagister.hu" className="text-[#6B46C1] underline">
-                support@pharmagister.hu
-              </a>{' '}
-              címen.
-            </p>
-          </div>
         </div>
       </div>
     </RouteGuard>
