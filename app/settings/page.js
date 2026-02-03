@@ -11,10 +11,15 @@ import {
   HelpCircle, 
   LogOut, 
   ChevronRight,
-  Lock
+  Lock,
+  Settings as SettingsIcon
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+
+// Admin és Adminka szerepkörök
+const ADMIN_EMAILS = ['epresla@icloud.com'];
+const ADMINKA_EMAILS = ['etinatina22@gmail.com'];
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -101,6 +106,38 @@ export default function SettingsPage() {
       ]
     }
   ];
+
+  // Admin menüpont hozzáadása ha admin user
+  if (user && ADMIN_EMAILS.includes(user.email)) {
+    settingsSections.push({
+      title: 'Adminisztráció',
+      items: [
+        {
+          icon: SettingsIcon,
+          label: 'Admin Panel',
+          onClick: () => router.push('/admin'),
+          color: 'text-red-600',
+          bgColor: darkMode ? 'bg-red-900/30' : 'bg-red-100'
+        }
+      ]
+    });
+  }
+
+  // Adminka menüpont hozzáadása ha adminka user
+  if (user && ADMINKA_EMAILS.includes(user.email)) {
+    settingsSections.push({
+      title: 'Adminisztráció',
+      items: [
+        {
+          icon: SettingsIcon,
+          label: 'Adminka Panel',
+          onClick: () => router.push('/adminka'),
+          color: 'text-pink-600',
+          bgColor: darkMode ? 'bg-pink-900/30' : 'bg-pink-100'
+        }
+      ]
+    });
+  }
 
   return (
     <div className={`min-h-screen pb-24 ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
