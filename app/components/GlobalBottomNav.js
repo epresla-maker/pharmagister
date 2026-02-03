@@ -10,8 +10,9 @@ function GlobalBottomNav() {
   const pathname = usePathname();
   const { user, loading } = useAuth();
 
-  // Chat oldalakon (lista és room) ne jelenjen meg - a chat lista saját navbart használ
+  // Chat oldalakon és post detail oldalakon ne jelenjen meg
   const isChatPage = pathname?.startsWith('/chat');
+  const isPostDetailPage = pathname?.startsWith('/post/');
 
   // Memoized scroll handler - no state dependency to avoid re-creating
   const handleScroll = useCallback(() => {
@@ -34,8 +35,8 @@ function GlobalBottomNav() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [user, loading, handleScroll]);
 
-  // Ne renderelj semmit ha nincs user vagy chat oldalon vagyunk
-  if (!user || loading || isChatPage) {
+  // Ne renderelj semmit ha nincs user, chat oldalon vagy post detail oldalon vagyunk
+  if (!user || loading || isChatPage || isPostDetailPage) {
     return null;
   }
 

@@ -272,9 +272,6 @@ export default function PostDetailPage() {
                 <p className="text-xs text-gray-500">{formatTime(post.createdAt)}</p>
               </div>
             </div>
-            <button className="text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded-full">
-              <MoreHorizontal size={20} />
-            </button>
           </div>
 
           {/* Post Content */}
@@ -421,7 +418,7 @@ export default function PostDetailPage() {
       </div>
 
       {/* Fixed Bottom Comment Input */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 safe-area-pb">
+      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-50" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         {/* Reply indicator */}
         {replyingTo && (
           <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
@@ -438,30 +435,44 @@ export default function PostDetailPage() {
         )}
         
         {/* Input area */}
-        <div className="px-4 py-3 flex items-center gap-3">
-          <img
-            src={userData?.photoURL || user?.photoURL || '/default-avatar.svg'}
-            alt="Your avatar"
-            className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-          />
-          <div className="flex-1 flex items-center gap-2 bg-gray-100 dark:bg-gray-700 rounded-full px-4 py-2">
-            <input
-              type="text"
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
-              placeholder={replyingTo ? `${replyingTo.userName}` : "Írj egy hozzászólást..."}
-              className="flex-1 bg-transparent focus:outline-none text-gray-900 dark:text-white text-sm"
+        {user ? (
+          <div className="px-4 py-3 flex items-center gap-3">
+            <img
+              src={userData?.photoURL || user?.photoURL || '/default-avatar.svg'}
+              alt="Your avatar"
+              className="w-8 h-8 rounded-full object-cover flex-shrink-0"
             />
+            <div className="flex-1 flex items-center gap-2 bg-gray-100 dark:bg-gray-700 rounded-full px-4 py-2">
+              <input
+                type="text"
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
+                placeholder={replyingTo ? `Válasz ${replyingTo.userName} számára...` : "Írj egy hozzászólást..."}
+                className="flex-1 bg-transparent focus:outline-none text-gray-900 dark:text-white text-sm"
+              />
+            </div>
+            <button
+              onClick={handleSubmit}
+              disabled={!commentText.trim()}
+              className="text-cyan-500 hover:text-cyan-600 disabled:text-gray-300 p-2"
+            >
+              <Send size={22} />
+            </button>
           </div>
-          <button
-            onClick={handleSubmit}
-            disabled={!commentText.trim()}
-            className="text-cyan-500 hover:text-cyan-600 disabled:text-gray-300 p-2"
-          >
-            <Send size={22} />
-          </button>
-        </div>
+        ) : (
+          <div className="px-4 py-3 text-center">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              <button 
+                onClick={() => router.push('/login')}
+                className="text-cyan-500 hover:text-cyan-600 font-medium"
+              >
+                Jelentkezz be
+              </button>
+              {' '}a hozzászóláshoz
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

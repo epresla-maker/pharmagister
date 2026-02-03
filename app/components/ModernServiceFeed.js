@@ -231,6 +231,10 @@ export default function ModernServiceFeed() {
         text: newPostText.trim(),
         imageUrl: imageUrl,
         createdAt: serverTimestamp(),
+        authorData: {
+          displayName: userData?.displayName || user?.displayName || 'Névtelen',
+          photoURL: userData?.photoURL || user?.photoURL || null
+        },
         reactions: {},
         comments: [],
         shares: 0
@@ -340,6 +344,61 @@ export default function ModernServiceFeed() {
           </div>
         </div>
       )}
+
+      {/* Poszt létrehozása mező */}
+      <div className="bg-white dark:bg-gray-800 p-3 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center gap-3">
+          {/* Profilkép */}
+          <div 
+            className="w-10 h-10 rounded-full overflow-hidden border-2 border-green-500 flex-shrink-0 cursor-pointer"
+            onClick={() => user && router.push(`/profil/${user.uid}`)}
+          >
+            {userData?.photoURL ? (
+              <img 
+                src={userData.photoURL} 
+                alt="Profile" 
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full bg-green-500 flex items-center justify-center text-white font-bold text-sm">
+                {userData?.displayName?.[0] || 'P'}
+              </div>
+            )}
+          </div>
+
+          {/* Input mező */}
+          <div className="flex-1 relative">
+            <input
+              type="text"
+              value={newPostText}
+              onChange={(e) => setNewPostText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleCreatePost();
+                }
+              }}
+              placeholder="Írj valamit..."
+              className="w-full px-4 py-2.5 bg-gray-100 dark:bg-gray-700 rounded-full text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
+            />
+          </div>
+
+          {/* Küldés gomb */}
+          {newPostText.trim() && (
+            <button
+              onClick={handleCreatePost}
+              disabled={uploading}
+              className="p-2 bg-green-500 hover:bg-green-600 text-white rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {uploading ? (
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Send size={18} />
+              )}
+            </button>
+          )}
+        </div>
+      </div>
 
       {/* Posts Feed */}
       {posts.length === 0 ? (
@@ -783,9 +842,6 @@ export default function ModernServiceFeed() {
                     <p className="text-xs text-gray-500">{formatTime(post.createdAt)}</p>
                   </div>
                 </div>
-                <button className="text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded-full">
-                  <MoreHorizontal size={20} />
-                </button>
               </div>
 
               {/* Post Content */}
@@ -826,8 +882,8 @@ export default function ModernServiceFeed() {
                 )}
               </div>
 
-              {/* Hozzászólások summary - csak adminPost esetén */}
-              {post.postType === 'adminPost' && (commentsCount + totalReplies > 0) && (
+              {/* Hozzászólások summary */}
+              {(commentsCount + totalReplies > 0) && (
                 <div className="pb-1.5 flex items-center text-sm text-gray-500 px-3 sm:px-4">
                   <div 
                     className="flex-1 flex justify-end gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors py-1 rounded"
@@ -845,18 +901,16 @@ export default function ModernServiceFeed() {
                 </div>
               )}
 
-              {/* Action Buttons - csak adminPost esetén */}
-              {post.postType === 'adminPost' && (
-                <div className="border-t border-gray-200 dark:border-gray-700 py-2 flex items-center justify-center">
-                  <button
-                    onClick={() => router.push(`/post/${post.id}`)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors"
-                  >
-                    <MessageCircle size={16} />
-                    <span className="text-sm">Hozzászólás</span>
-                  </button>
-                </div>
-              )}
+              {/* Action Buttons */}
+              <div className="border-t border-gray-200 dark:border-gray-700 py-2 flex items-center justify-center">
+                <button
+                  onClick={() => router.push(`/post/${post.id}`)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors"
+                >
+                  <MessageCircle size={16} />
+                  <span className="text-sm">Hozzászólás</span>
+                </button>
+              </div>
 
               {/* Comments megjelenítése eltávolítva - mostmár külön oldalon */}
             </div>
