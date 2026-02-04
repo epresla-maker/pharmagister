@@ -37,9 +37,9 @@ export async function POST(request) {
     const userData = userDoc.data();
     const userId = userDoc.id;
 
-    // Check token expiry (24 hours)
-    const tokenExpiry = userData.passwordResetTokenExpiry?.toDate();
-    if (!tokenExpiry || new Date() > tokenExpiry) {
+    // Check token expiry - null means never expires (visszavonásig érvényes)
+    const tokenExpiry = userData.passwordResetTokenExpiry?.toDate?.() || userData.passwordResetTokenExpiry;
+    if (tokenExpiry && new Date() > new Date(tokenExpiry)) {
       return NextResponse.json({ error: 'A token lejárt. Kérj új jelszó-visszaállító linket!' }, { status: 400 });
     }
 
