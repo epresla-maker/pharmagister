@@ -72,7 +72,7 @@ export async function POST(request) {
             <div class="container">
               <div class="logo">Pharmagister</div>
               
-              <h2 style="color: #333; margin-bottom: 20px;">Üdv a Pharmagister-nél! 👋</h2>
+              <h2 style="color: #333; margin-bottom: 20px;">Üdvözlünk!</h2>
               
               <p>Köszönjük a regisztrációt! Már csak egy lépés van hátra.</p>
               

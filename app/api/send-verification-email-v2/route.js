@@ -66,7 +66,7 @@ export async function POST(request) {
           </head>
           <body>
             <div class="container">
-              <h2>Szia ${displayName}! 👋</h2>
+              <h2>Üdvözlünk!</h2>
               <p>Köszönjük, hogy regisztráltál a Pharmagister platformon!</p>
               <p>Kérjük, erősítsd meg az email címedet:</p>
               <div style="text-align: center;">

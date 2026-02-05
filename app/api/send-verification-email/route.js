@@ -83,7 +83,7 @@ export async function POST(request) {
                 <p style="color: #666; margin: 0;">Gyógyszertári helyettesítés platform</p>
               </div>
               
-              <h2 style="color: #333; margin-bottom: 20px;">Szia ${displayName || 'Felhasználó'}! 👋</h2>
+              <h2 style="color: #333; margin-bottom: 20px;">Üdvözlünk!</h2>
               
               <p>Köszönjük, hogy regisztráltál a Pharmagister platformon!</p>
               
