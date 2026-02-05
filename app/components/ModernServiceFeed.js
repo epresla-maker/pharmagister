@@ -114,6 +114,24 @@ export default function ModernServiceFeed() {
     return () => document.removeEventListener('click', handleClickOutside);
   }, [openMenuPostId]);
 
+  // Scroll letiltása amikor a poszt szerkesztő nyitva van
+  useEffect(() => {
+    if (showPostEditor) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+    };
+  }, [showPostEditor]);
+
   // Scroll letiltása amikor reakció picker látható
   useEffect(() => {
     const hasActiveReactions = Object.values(showReactions).some(val => val === true);
@@ -462,8 +480,11 @@ export default function ModernServiceFeed() {
 
       {/* Poszt szerkesztő modal */}
       {showPostEditor && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center">
-          <div className="bg-white dark:bg-gray-800 w-full sm:max-w-lg sm:rounded-xl rounded-t-xl max-h-[90vh] overflow-hidden flex flex-col">
+        <div 
+          className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-4 overflow-hidden"
+          style={{ touchAction: 'none' }}
+        >
+          <div className="bg-white dark:bg-gray-800 w-full sm:max-w-lg sm:rounded-xl rounded-xl mx-2 max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
               <button 
@@ -495,7 +516,7 @@ export default function ModernServiceFeed() {
             <div className="flex-1 overflow-y-auto p-4">
               {/* Szöveg előnézet */}
               <div 
-                className="min-h-[150px] p-4 rounded-xl mb-4 transition-all"
+                className="min-h-[120px] p-4 rounded-xl mb-4 transition-all"
                 style={{
                   backgroundColor: postStyle.backgroundColor,
                   color: postStyle.textColor,
@@ -511,7 +532,7 @@ export default function ModernServiceFeed() {
                   value={newPostText}
                   onChange={(e) => setNewPostText(e.target.value)}
                   placeholder="Mire gondolsz?"
-                  className="w-full h-full min-h-[120px] bg-transparent resize-none focus:outline-none placeholder-current opacity-50"
+                  className="w-full h-full min-h-[100px] bg-transparent resize-none focus:outline-none placeholder-current opacity-50"
                   style={{
                     color: postStyle.textColor,
                     fontSize: `${postStyle.fontSize}px`,
@@ -565,19 +586,25 @@ export default function ModernServiceFeed() {
                   </div>
                 </div>
 
-                {/* Betűméret */}
+                {/* Betűméret - egyszerűsített: Normál és Nagy */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Betűméret: {postStyle.fontSize}px
+                    Betűméret
                   </label>
-                  <input
-                    type="range"
-                    min="12"
-                    max="32"
-                    value={postStyle.fontSize}
-                    onChange={(e) => setPostStyle(prev => ({ ...prev, fontSize: parseInt(e.target.value) }))}
-                    className="w-full accent-green-500"
-                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setPostStyle(prev => ({ ...prev, fontSize: 16 }))}
+                      className={`flex-1 py-2 px-4 rounded-lg border-2 transition-all ${postStyle.fontSize === 16 ? 'border-green-500 bg-green-50 dark:bg-green-900/20' : 'border-gray-300 dark:border-gray-600'}`}
+                    >
+                      <span className="text-base">Normál</span>
+                    </button>
+                    <button
+                      onClick={() => setPostStyle(prev => ({ ...prev, fontSize: 32 }))}
+                      className={`flex-1 py-2 px-4 rounded-lg border-2 transition-all ${postStyle.fontSize === 32 ? 'border-green-500 bg-green-50 dark:bg-green-900/20' : 'border-gray-300 dark:border-gray-600'}`}
+                    >
+                      <span className="text-2xl">Nagy</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Betűtípus */}
