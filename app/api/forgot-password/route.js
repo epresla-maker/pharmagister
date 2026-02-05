@@ -2,10 +2,6 @@ import { NextResponse } from 'next/server';
 import admin from 'firebase-admin';
 import nodemailer from 'nodemailer';
 import { randomBytes } from 'crypto';
-import dns from 'dns';
-import { promisify } from 'util';
-
-const resolve4 = promisify(dns.resolve4);
 
 // Initialize Firebase Admin
 if (!admin.apps.length) {
@@ -123,21 +119,13 @@ export async function POST(request) {
     const resetLink = `${baseUrl}/set-password?token=${resetToken}`;
     const userName = userData.name || userData.displayName || 'Felhasználó';
 
-    // Resolve hostname to IP to avoid DNS issues on Vercel
-    let smtpHost = process.env.SMTP_HOST;
-    try {
-      const addresses = await resolve4(smtpHost);
-      if (addresses && addresses.length > 0) {
-        smtpHost = addresses[0];
-        console.log(`Resolved ${process.env.SMTP_HOST} to ${smtpHost}`);
-      }
-    } catch (dnsErr) {
-      console.log('DNS resolve failed, using original host:', dnsErr.message);
-    }
+    // Use direct IP connection to avoid DNS issues on Vercel serverless
+    const SMTP_IP = '185.51.191.40';
+    const SMTP_DOMAIN = 'mail.pharmagister.hu';
 
-    // Setup email transporter
+    // Setup email transporter with direct IP
     const transporter = nodemailer.createTransport({
-      host: smtpHost,
+      host: SMTP_IP,
       port: parseInt(process.env.SMTP_PORT || '465'),
       secure: true,
       auth: {
@@ -146,7 +134,7 @@ export async function POST(request) {
       },
       tls: {
         rejectUnauthorized: false,
-        servername: process.env.SMTP_HOST
+        servername: SMTP_DOMAIN
       },
       name: 'pharmagister.hu'
     });
