@@ -20,7 +20,7 @@ import {
   where,
   deleteField
 } from 'firebase/firestore';
-import { Star, MessageCircle, Share2, Send, MoreHorizontal, X, Heart, Laugh, Frown, Angry, Zap, Image as ImageIcon, ImagePlus, RefreshCw } from 'lucide-react';
+import { Star, MessageCircle, Share2, Send, MoreHorizontal, X, Heart, Laugh, Frown, Angry, Zap, Image as ImageIcon, ImagePlus, RefreshCw, Trash2, Edit3 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 const REACTIONS = [
@@ -58,6 +58,10 @@ export default function ModernServiceFeed() {
   const [lightboxImage, setLightboxImage] = useState(null); // Kép modal
   const [showReactionModal, setShowReactionModal] = useState(false);
   const [selectedPostReactions, setSelectedPostReactions] = useState(null);
+  const [openMenuPostId, setOpenMenuPostId] = useState(null);
+  const [editingPost, setEditingPost] = useState(null);
+  const [editText, setEditText] = useState('');
+  const [deleting, setDeleting] = useState(null);
   
   // Pull to refresh - most már a hook refresh()-ét hívja
   const [pullStartY, setPullStartY] = useState(0);
@@ -91,6 +95,17 @@ export default function ModernServiceFeed() {
     
     return () => observer.disconnect();
   }, [hasMore, loadingMore, loadMore]);
+
+  // Menü bezárása kattintáskor
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (openMenuPostId && !e.target.closest('.relative')) {
+        setOpenMenuPostId(null);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [openMenuPostId]);
 
   // Scroll letiltása amikor reakció picker látható
   useEffect(() => {
@@ -248,6 +263,56 @@ export default function ModernServiceFeed() {
     } finally {
       setUploading(false);
     }
+  };
+
+  // Poszt törlése
+  const handleDeletePost = async (postId) => {
+    if (!user || !window.confirm('Biztosan törölni szeretnéd ezt a posztot?')) return;
+    
+    setDeleting(postId);
+    try {
+      const { deleteDoc } = await import('firebase/firestore');
+      await deleteDoc(doc(db, 'serviceFeedPosts', postId));
+      setOpenMenuPostId(null);
+      // A lista automatikusan frissül a következő refresh-nél
+      refresh();
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      alert('Hiba történt a poszt törlése során.');
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  // Poszt szerkesztése - mentés
+  const handleSaveEdit = async () => {
+    if (!editingPost || !editText.trim()) return;
+    
+    try {
+      await updateDoc(doc(db, 'serviceFeedPosts', editingPost), {
+        text: editText.trim(),
+        editedAt: serverTimestamp()
+      });
+      setEditingPost(null);
+      setEditText('');
+      refresh();
+    } catch (error) {
+      console.error('Error editing post:', error);
+      alert('Hiba történt a poszt szerkesztése során.');
+    }
+  };
+
+  // Szerkesztés indítása
+  const startEditing = (post) => {
+    setEditingPost(post.id);
+    setEditText(post.text || '');
+    setOpenMenuPostId(null);
+  };
+
+  // Szerkesztés megszakítása
+  const cancelEditing = () => {
+    setEditingPost(null);
+    setEditText('');
   };
 
   const handleReaction = async (postId, reactionType) => {
@@ -839,16 +904,87 @@ export default function ModernServiceFeed() {
                     >
                       {post.authorData?.displayName || 'Névtelen'}
                     </h3>
-                    <p className="text-xs text-gray-500">{formatTime(post.createdAt)}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs text-gray-500">{formatTime(post.createdAt)}</p>
+                      {post.editedAt && (
+                        <span className="text-xs text-gray-400">(szerkesztve)</span>
+                      )}
+                    </div>
                   </div>
                 </div>
+                
+                {/* Három pont menü - csak saját posztokhoz */}
+                {user && post.userId === user.uid && post.postType === 'userPost' && (
+                  <div className="relative">
+                    <button
+                      onClick={() => setOpenMenuPostId(openMenuPostId === post.id ? null : post.id)}
+                      className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      <MoreHorizontal size={20} className="text-gray-500" />
+                    </button>
+                    
+                    {/* Dropdown menü */}
+                    {openMenuPostId === post.id && (
+                      <div className="absolute right-0 top-10 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50 min-w-[150px]">
+                        <button
+                          onClick={() => startEditing(post)}
+                          className="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+                        >
+                          <Edit3 size={16} />
+                          <span>Szerkesztés</span>
+                        </button>
+                        <button
+                          onClick={() => handleDeletePost(post.id)}
+                          disabled={deleting === post.id}
+                          className="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600"
+                        >
+                          {deleting === post.id ? (
+                            <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <Trash2 size={16} />
+                          )}
+                          <span>Törlés</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
-              {/* Post Content */}
+              {/* Post Content - szerkesztés módban vagy normál nézet */}
               <div className="pb-2">
-                <p className="text-gray-900 dark:text-white whitespace-pre-wrap px-3 sm:px-4">{post.text || post.rssTitle}</p>
-                {post.rssDescription && (
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 px-3 sm:px-4">{post.rssDescription}</p>
+                {editingPost === post.id ? (
+                  <div className="px-3 sm:px-4">
+                    <textarea
+                      value={editText}
+                      onChange={(e) => setEditText(e.target.value)}
+                      className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none focus:ring-2 focus:ring-green-500 outline-none"
+                      rows={4}
+                      autoFocus
+                    />
+                    <div className="flex justify-end gap-2 mt-2">
+                      <button
+                        onClick={cancelEditing}
+                        className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                      >
+                        Mégse
+                      </button>
+                      <button
+                        onClick={handleSaveEdit}
+                        disabled={!editText.trim()}
+                        className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg disabled:opacity-50"
+                      >
+                        Mentés
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-gray-900 dark:text-white whitespace-pre-wrap px-3 sm:px-4">{post.text || post.rssTitle}</p>
+                    {post.rssDescription && (
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 px-3 sm:px-4">{post.rssDescription}</p>
+                    )}
+                  </>
                 )}
                 {/* User uploaded image */}
                 {post.imageUrl && (
