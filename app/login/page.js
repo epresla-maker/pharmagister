@@ -88,6 +88,16 @@ export default function LoginPage() {
           >
             {loading ? 'Betöltés...' : 'Belépés'}
           </button>
+
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => router.push('/forgot-password')}
+              className="text-sm text-purple-600 hover:underline"
+            >
+              Elfelejtett jelszó?
+            </button>
+          </div>
         </form>
 
         <p className="text-center mt-4 text-sm">

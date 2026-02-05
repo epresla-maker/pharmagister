@@ -15,10 +15,12 @@ function SetPasswordContent() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [tokenExpired, setTokenExpired] = useState(false);
 
   useEffect(() => {
     if (!token) {
       setError('Hiányzó token! Kérj új jelszó-visszaállító linket.');
+      setTokenExpired(true);
     }
   }, [token]);
 
@@ -82,7 +84,12 @@ function SetPasswordContent() {
 
     } catch (err) {
       console.error('Password set error:', err);
-      setError(err.message || 'Hiba történt a jelszó beállítása során.');
+      const errorMessage = err.message || 'Hiba történt a jelszó beállítása során.';
+      setError(errorMessage);
+      // Check if token expired or invalid
+      if (errorMessage.includes('lejárt') || errorMessage.includes('Érvénytelen')) {
+        setTokenExpired(true);
+      }
     } finally {
       setSaving(false);
     }
@@ -118,16 +125,34 @@ function SetPasswordContent() {
         <div className="bg-white rounded-xl shadow-lg p-6">
           {/* Error Message */}
           {error && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
-              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-              <p className="text-red-800 text-sm">{error}</p>
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-center gap-3">
+                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+                <p className="text-red-800 text-sm">{error}</p>
+              </div>
+              {tokenExpired && (
+                <div className="mt-3 text-center">
+                  <button
+                    onClick={() => router.push('/forgot-password')}
+                    className="text-purple-600 hover:underline text-sm font-medium"
+                  >
+                    Új jelszó igénylése →
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
           {!token ? (
             <div className="text-center py-8">
               <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-              <p className="text-gray-600">Érvénytelen link. Kérj új jelszó-visszaállító emailt!</p>
+              <p className="text-gray-600 mb-4">Érvénytelen link. Kérj új jelszó-visszaállító emailt!</p>
+              <button
+                onClick={() => router.push('/forgot-password')}
+                className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 font-medium"
+              >
+                Új jelszó igénylése
+              </button>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
