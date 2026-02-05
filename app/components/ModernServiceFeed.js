@@ -62,6 +62,13 @@ export default function ModernServiceFeed() {
   const [editingPost, setEditingPost] = useState(null);
   const [editText, setEditText] = useState('');
   const [deleting, setDeleting] = useState(null);
+  const [showPostEditor, setShowPostEditor] = useState(false);
+  const [postStyle, setPostStyle] = useState({
+    backgroundColor: '#ffffff',
+    textColor: '#000000',
+    fontSize: 16,
+    fontFamily: 'default'
+  });
   
   // Pull to refresh - most már a hook refresh()-ét hívja
   const [pullStartY, setPullStartY] = useState(0);
@@ -250,6 +257,9 @@ export default function ModernServiceFeed() {
           displayName: userData?.displayName || user?.displayName || 'Névtelen',
           photoURL: userData?.photoURL || user?.photoURL || null
         },
+        style: postStyle.backgroundColor !== '#ffffff' || postStyle.textColor !== '#000000' || postStyle.fontSize !== 16 || postStyle.fontFamily !== 'default' 
+          ? postStyle 
+          : null,
         reactions: {},
         comments: [],
         shares: 0
@@ -257,6 +267,13 @@ export default function ModernServiceFeed() {
       
       setNewPostText('');
       removeImage();
+      setShowPostEditor(false);
+      setPostStyle({
+        backgroundColor: '#ffffff',
+        textColor: '#000000',
+        fontSize: 16,
+        fontFamily: 'default'
+      });
     } catch (error) {
       console.error('Error creating post:', error);
       alert('Hiba történt a poszt létrehozása során: ' + error.message);
@@ -431,39 +448,171 @@ export default function ModernServiceFeed() {
             )}
           </div>
 
-          {/* Input mező */}
-          <div className="flex-1 relative">
-            <input
-              type="text"
-              value={newPostText}
-              onChange={(e) => setNewPostText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleCreatePost();
-                }
-              }}
-              placeholder="Írj valamit..."
-              className="w-full px-4 py-2.5 bg-gray-100 dark:bg-gray-700 rounded-full text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
-            />
+          {/* Input mező - kattintásra megnyitja a szerkesztőt */}
+          <div 
+            className="flex-1 relative cursor-pointer"
+            onClick={() => setShowPostEditor(true)}
+          >
+            <div className="w-full px-4 py-2.5 bg-gray-100 dark:bg-gray-700 rounded-full text-sm text-gray-500 dark:text-gray-400">
+              Írj valamit...
+            </div>
           </div>
-
-          {/* Küldés gomb */}
-          {newPostText.trim() && (
-            <button
-              onClick={handleCreatePost}
-              disabled={uploading}
-              className="p-2 bg-green-500 hover:bg-green-600 text-white rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {uploading ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <Send size={18} />
-              )}
-            </button>
-          )}
         </div>
       </div>
+
+      {/* Poszt szerkesztő modal */}
+      {showPostEditor && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center">
+          <div className="bg-white dark:bg-gray-800 w-full sm:max-w-lg sm:rounded-xl rounded-t-xl max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+              <button 
+                onClick={() => {
+                  setShowPostEditor(false);
+                  setNewPostText('');
+                  setPostStyle({
+                    backgroundColor: '#ffffff',
+                    textColor: '#000000',
+                    fontSize: 16,
+                    fontFamily: 'default'
+                  });
+                }}
+                className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+              >
+                <X size={24} />
+              </button>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Új bejegyzés</h2>
+              <button
+                onClick={handleCreatePost}
+                disabled={!newPostText.trim() || uploading}
+                className="px-4 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-full font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {uploading ? 'Küldés...' : 'Közzététel'}
+              </button>
+            </div>
+
+            {/* Előnézet és szerkesztés */}
+            <div className="flex-1 overflow-y-auto p-4">
+              {/* Szöveg előnézet */}
+              <div 
+                className="min-h-[150px] p-4 rounded-xl mb-4 transition-all"
+                style={{
+                  backgroundColor: postStyle.backgroundColor,
+                  color: postStyle.textColor,
+                  fontSize: `${postStyle.fontSize}px`,
+                  fontFamily: postStyle.fontFamily === 'default' ? 'inherit' 
+                    : postStyle.fontFamily === 'serif' ? 'Georgia, serif'
+                    : postStyle.fontFamily === 'mono' ? 'monospace'
+                    : postStyle.fontFamily === 'cursive' ? 'cursive'
+                    : 'inherit'
+                }}
+              >
+                <textarea
+                  value={newPostText}
+                  onChange={(e) => setNewPostText(e.target.value)}
+                  placeholder="Mire gondolsz?"
+                  className="w-full h-full min-h-[120px] bg-transparent resize-none focus:outline-none placeholder-current opacity-50"
+                  style={{
+                    color: postStyle.textColor,
+                    fontSize: `${postStyle.fontSize}px`,
+                    fontFamily: postStyle.fontFamily === 'default' ? 'inherit' 
+                      : postStyle.fontFamily === 'serif' ? 'Georgia, serif'
+                      : postStyle.fontFamily === 'mono' ? 'monospace'
+                      : postStyle.fontFamily === 'cursive' ? 'cursive'
+                      : 'inherit'
+                  }}
+                  autoFocus
+                />
+              </div>
+
+              {/* Stílus beállítások */}
+              <div className="space-y-4">
+                {/* Háttérszín */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Háttérszín
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {['#ffffff', '#fef3c7', '#dcfce7', '#dbeafe', '#fce7f3', '#f3e8ff', '#fee2e2', '#1f2937', '#7c3aed', '#059669'].map(color => (
+                      <button
+                        key={color}
+                        onClick={() => setPostStyle(prev => ({ 
+                          ...prev, 
+                          backgroundColor: color,
+                          textColor: color === '#1f2937' ? '#ffffff' : prev.textColor === '#ffffff' && color !== '#1f2937' ? '#000000' : prev.textColor
+                        }))}
+                        className={`w-8 h-8 rounded-full border-2 transition-all ${postStyle.backgroundColor === color ? 'border-green-500 scale-110' : 'border-gray-300'}`}
+                        style={{ backgroundColor: color }}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Szövegszín */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Szövegszín
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {['#000000', '#374151', '#dc2626', '#059669', '#2563eb', '#7c3aed', '#db2777', '#ea580c', '#ffffff'].map(color => (
+                      <button
+                        key={color}
+                        onClick={() => setPostStyle(prev => ({ ...prev, textColor: color }))}
+                        className={`w-8 h-8 rounded-full border-2 transition-all ${postStyle.textColor === color ? 'border-green-500 scale-110' : 'border-gray-300'}`}
+                        style={{ backgroundColor: color }}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Betűméret */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Betűméret: {postStyle.fontSize}px
+                  </label>
+                  <input
+                    type="range"
+                    min="12"
+                    max="32"
+                    value={postStyle.fontSize}
+                    onChange={(e) => setPostStyle(prev => ({ ...prev, fontSize: parseInt(e.target.value) }))}
+                    className="w-full accent-green-500"
+                  />
+                </div>
+
+                {/* Betűtípus */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Betűtípus
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { value: 'default', label: 'Alap' },
+                      { value: 'serif', label: 'Serif' },
+                      { value: 'mono', label: 'Mono' },
+                      { value: 'cursive', label: 'Kézírásos' }
+                    ].map(font => (
+                      <button
+                        key={font.value}
+                        onClick={() => setPostStyle(prev => ({ ...prev, fontFamily: font.value }))}
+                        className={`px-3 py-1.5 rounded-lg border transition-all ${postStyle.fontFamily === font.value ? 'border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300' : 'border-gray-300 dark:border-gray-600'}`}
+                        style={{
+                          fontFamily: font.value === 'default' ? 'inherit' 
+                            : font.value === 'serif' ? 'Georgia, serif'
+                            : font.value === 'mono' ? 'monospace'
+                            : 'cursive'
+                        }}
+                      >
+                        {font.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Posts Feed */}
       {posts.length === 0 ? (
@@ -980,7 +1129,24 @@ export default function ModernServiceFeed() {
                   </div>
                 ) : (
                   <>
-                    <p className="text-gray-900 dark:text-white whitespace-pre-wrap px-3 sm:px-4">{post.text || post.rssTitle}</p>
+                    {post.style ? (
+                      <div 
+                        className="mx-3 sm:mx-4 p-4 rounded-xl whitespace-pre-wrap"
+                        style={{
+                          backgroundColor: post.style.backgroundColor || '#ffffff',
+                          color: post.style.textColor || '#000000',
+                          fontSize: `${post.style.fontSize || 16}px`,
+                          fontFamily: post.style.fontFamily === 'serif' ? 'Georgia, serif'
+                            : post.style.fontFamily === 'mono' ? 'monospace'
+                            : post.style.fontFamily === 'cursive' ? 'cursive'
+                            : 'inherit'
+                        }}
+                      >
+                        {post.text}
+                      </div>
+                    ) : (
+                      <p className="text-gray-900 dark:text-white whitespace-pre-wrap px-3 sm:px-4">{post.text || post.rssTitle}</p>
+                    )}
                     {post.rssDescription && (
                       <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 px-3 sm:px-4">{post.rssDescription}</p>
                     )}
