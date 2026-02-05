@@ -25,7 +25,7 @@ export default function StartupRedirect() {
     }
 
     // Ne irányítsuk át ha login/register oldalon van (még nem lépett be)
-    const publicRoutes = ['/login', '/register', '/verify-email', '/privacy'];
+    const publicRoutes = ['/login', '/register', '/verify-email', '/privacy', '/forgot-password', '/set-password'];
     if (publicRoutes.some(route => pathname?.startsWith(route))) {
       return;
     }
