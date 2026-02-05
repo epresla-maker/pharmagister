@@ -25,7 +25,7 @@ export default function ForgotPasswordPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Hiba történt');
+        throw new Error(data.details || data.error || 'Hiba történt');
       }
 
       setSuccess(true);
