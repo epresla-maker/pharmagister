@@ -119,15 +119,19 @@ export async function POST(request) {
     const resetLink = `${baseUrl}/set-password?token=${resetToken}`;
     const userName = userData.name || userData.displayName || 'Felhasználó';
 
-    // Setup email transporter
+    // Setup email transporter - using IP for Edge runtime DNS compatibility
     const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || 'mail.pharmagister.hu',
-      port: parseInt(process.env.SMTP_PORT || '465'),
+      host: '185.51.191.40',
+      port: 465,
       secure: true,
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
+      tls: {
+        servername: 'mail.pharmagister.hu',
+        rejectUnauthorized: false
+      }
     });
 
     // Send email
