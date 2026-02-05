@@ -151,6 +151,10 @@ export async function POST(request) {
 
   } catch (error) {
     console.error('Forgot password error:', error);
-    return NextResponse.json({ error: 'Hiba történt. Kérlek próbáld újra később.' }, { status: 500 });
+    console.error('Error details:', error.message, error.stack);
+    return NextResponse.json({ 
+      error: 'Hiba történt. Kérlek próbáld újra később.',
+      details: error.message 
+    }, { status: 500 });
   }
 }
