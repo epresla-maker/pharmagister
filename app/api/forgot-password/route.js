@@ -108,10 +108,10 @@ export async function POST(request) {
     const tokenExpiry = new Date();
     tokenExpiry.setHours(tokenExpiry.getHours() + 24);
 
-    // Save token to Firestore
+    // Save token to Firestore (use Firestore Timestamp)
     await db.collection('users').doc(userId).update({
       passwordResetToken: resetToken,
-      passwordResetTokenExpiry: tokenExpiry
+      passwordResetTokenExpiry: admin.firestore.Timestamp.fromDate(tokenExpiry)
     });
 
     // Create reset link
