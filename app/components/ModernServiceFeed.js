@@ -117,18 +117,29 @@ export default function ModernServiceFeed() {
   // Scroll letiltása amikor a poszt szerkesztő nyitva van
   useEffect(() => {
     if (showPostEditor) {
+      const scrollY = window.scrollY;
       document.body.style.overflow = 'hidden';
       document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
       document.body.style.width = '100%';
+      document.documentElement.style.overflow = 'hidden';
     } else {
+      const scrollY = document.body.style.top;
       document.body.style.overflow = '';
       document.body.style.position = '';
+      document.body.style.top = '';
       document.body.style.width = '';
+      document.documentElement.style.overflow = '';
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || '0') * -1);
+      }
     }
     return () => {
       document.body.style.overflow = '';
       document.body.style.position = '';
+      document.body.style.top = '';
       document.body.style.width = '';
+      document.documentElement.style.overflow = '';
     };
   }, [showPostEditor]);
 
@@ -583,27 +594,6 @@ export default function ModernServiceFeed() {
                         style={{ backgroundColor: color }}
                       />
                     ))}
-                  </div>
-                </div>
-
-                {/* Betűméret - egyszerűsített: Normál és Nagy */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Betűméret
-                  </label>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setPostStyle(prev => ({ ...prev, fontSize: 16 }))}
-                      className={`flex-1 py-2 px-4 rounded-lg border-2 transition-all ${postStyle.fontSize === 16 ? 'border-green-500 bg-green-50 dark:bg-green-900/20' : 'border-gray-300 dark:border-gray-600'}`}
-                    >
-                      <span className="text-base">Normál</span>
-                    </button>
-                    <button
-                      onClick={() => setPostStyle(prev => ({ ...prev, fontSize: 32 }))}
-                      className={`flex-1 py-2 px-4 rounded-lg border-2 transition-all ${postStyle.fontSize === 32 ? 'border-green-500 bg-green-50 dark:bg-green-900/20' : 'border-gray-300 dark:border-gray-600'}`}
-                    >
-                      <span className="text-2xl">Nagy</span>
-                    </button>
                   </div>
                 </div>
 
