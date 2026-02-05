@@ -3,10 +3,6 @@ import admin from 'firebase-admin';
 import nodemailer from 'nodemailer';
 import { randomBytes } from 'crypto';
 
-// Force Node.js runtime (not Edge)
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
-
 // Initialize Firebase Admin
 if (!admin.apps.length) {
   admin.initializeApp({
