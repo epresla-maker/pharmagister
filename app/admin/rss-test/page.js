@@ -4,7 +4,8 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import RouteGuard from '@/app/components/RouteGuard';
 import RSSFeedDisplay from '@/app/components/RSSFeedDisplay';
-import { ArrowLeft, TestTube } from 'lucide-react';
+import ModernServiceFeed from '@/app/components/ModernServiceFeed';
+import { ArrowLeft, TestTube, Rss, FileText } from 'lucide-react';
 
 // Admin e-mail címek
 const ADMIN_EMAILS = ['epresla@icloud.com'];
@@ -94,12 +95,12 @@ export default function RSSTestPage() {
                   Tesztelési oldal
                 </h3>
                 <p className="text-sm text-yellow-700 dark:text-yellow-400 mt-1">
-                  Itt láthatod az RSS feed-ből érkező híreket a Semmelweis Egyetemről.
-                  Jelenleg csak gyógyszerészet és egészségügy témájú hírek.
+                  Itt látod együtt az RSS híreket ÉS a saját posztjaidat is.
+                  Később ezek keveredhetnek időrend szerint a fő hírfolyamban.
                 </p>
                 <p className="text-xs text-yellow-600 dark:text-yellow-500 mt-2">
                   ✓ Csak admin és adminka látja<br />
-                  ✓ Automatikus frissítés 5 percenként<br />
+                  ✓ RSS hírek + Saját posztok együtt<br />
                   ✓ Biztonságos tesztelési környezet
                 </p>
               </div>
@@ -107,9 +108,26 @@ export default function RSSTestPage() {
           </div>
         </div>
 
-        {/* RSS Feed */}
-        <div className="max-w-xl mx-auto px-4">
+        {/* RSS Feed szekció */}
+        <div className="max-w-xl mx-auto px-4 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Rss className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+              RSS Hírek (Semmelweis Egyetem)
+            </h2>
+          </div>
           <RSSFeedDisplay />
+        </div>
+
+        {/* Saját posztok szekció */}
+        <div className="max-w-xl mx-auto px-4">
+          <div className="flex items-center gap-2 mb-4">
+            <FileText className="w-5 h-5 text-green-600 dark:text-green-400" />
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+              Saját Posztok
+            </h2>
+          </div>
+          <ModernServiceFeed />
         </div>
       </div>
     </RouteGuard>
