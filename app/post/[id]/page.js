@@ -12,34 +12,38 @@ function CommentItem({ comment, postId, depth = 0, onReply, replyingTo, setReply
   const isHighlighted = replyingTo?.commentId === comment.id;
 
   return (
-    <div className={`${depth > 0 ? 'ml-10 border-l-2 border-gray-300 dark:border-gray-600 pl-4' : ''}`}>
+    <div className={`${depth > 0 ? 'ml-10 border-l-2 border-gray-200 dark:border-gray-600 pl-4' : ''}`}>
       {/* Komment */}
-      <div className={`flex gap-2 p-2 rounded-lg transition-colors ${isHighlighted ? 'bg-gray-200 dark:bg-gray-700' : ''}`}>
+      <div className="flex gap-2">
         <img
           src={comment.userPhoto || '/default-avatar.svg'}
           alt="Commenter"
           className="w-8 h-8 rounded-full object-cover flex-shrink-0"
         />
         <div className="flex-1 min-w-0">
-          <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-2">
-            <p className="font-semibold text-sm text-gray-900 dark:text-white">
-              {comment.userName}
-            </p>
-            <p className="text-sm text-gray-900 dark:text-white break-words">
+          <div className={`bg-gray-50 dark:bg-gray-700 rounded-lg p-3 ${isHighlighted ? 'ring-2 ring-purple-500' : ''}`}>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="font-semibold text-sm text-gray-900 dark:text-gray-100">
+                {comment.userName}
+              </span>
+              {comment.createdAt && (
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  {formatTime(comment.createdAt)}
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-gray-700 dark:text-gray-300 break-words">
               {comment.text}
             </p>
           </div>
-          <div className="flex items-center gap-4 mt-1 px-2 text-xs text-gray-500">
-            <span>{formatTime(comment.createdAt)}</span>
-            {depth < maxDepth && (
-              <button 
-                onClick={() => setReplyingTo({ commentId: comment.id, userName: comment.userName })}
-                className="hover:underline font-semibold text-cyan-600 dark:text-cyan-400"
-              >
-                Válasz
-              </button>
-            )}
-          </div>
+          {depth < maxDepth && (
+            <button 
+              onClick={() => setReplyingTo({ commentId: comment.id, userName: comment.userName })}
+              className="text-xs text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 font-semibold mt-1 px-2"
+            >
+              Válasz
+            </button>
+          )}
         </div>
       </div>
 
@@ -76,6 +80,7 @@ export default function PostDetailPage() {
   const [replyingTo, setReplyingTo] = useState(null); // { commentId, userName }
   const [replyTo, setReplyTo] = useState({});
   const [replyText, setReplyText] = useState({});
+  const [showComments, setShowComments] = useState(false); // Hozzászólások összecsukva/kinyitva
 
   const formatTime = (timestamp) => {
     if (!timestamp) return '';
@@ -379,102 +384,110 @@ export default function PostDetailPage() {
             </div>
           )}
 
-          {/* Reaction Summary */}
-          <div className="px-4 py-2 border-t border-gray-200 dark:border-gray-700">
-            <div className="flex items-center text-sm text-gray-500">
-              <MessageCircle size={16} className="mr-1" />
-              <span>{commentsCount + totalReplies} hozzászólás</span>
+          {/* Hozzászólások gomb */}
+          <div className="border-t border-gray-200 dark:border-gray-700">
+            <div className="px-4 py-2">
+              <button
+                onClick={() => setShowComments(!showComments)}
+                className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>{commentsCount + totalReplies} hozzászólás</span>
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Comments Section */}
-        <div className="bg-white dark:bg-gray-800 py-4 px-4 pb-32">
-          {/* Comments List */}
-          <div className="space-y-4">
-            {(post.comments || []).map((comment) => (
-              <CommentItem
-                key={comment.id}
-                comment={comment}
-                postId={post.id}
-                depth={0}
-                onReply={handleReply}
-                replyingTo={replyingTo}
-                setReplyingTo={setReplyingTo}
-                userData={userData}
-                user={user}
-                formatTime={formatTime}
-              />
-            ))}
-          </div>
+        {/* Comments Section - csak ha showComments true */}
+        {showComments && (
+          <div className="bg-white dark:bg-gray-800 border-b-8 border-gray-200 dark:border-gray-700 py-4 px-4 pb-32">
+            {/* Comments List */}
+            <div className="space-y-4">
+              {(post.comments || []).map((comment) => (
+                <CommentItem
+                  key={comment.id}
+                  comment={comment}
+                  postId={post.id}
+                  depth={0}
+                  onReply={handleReply}
+                  replyingTo={replyingTo}
+                  setReplyingTo={setReplyingTo}
+                  userData={userData}
+                  user={user}
+                  formatTime={formatTime}
+                />
+              ))}
+            </div>
 
-          {commentsCount === 0 && (
-            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-              <MessageCircle size={48} className="mx-auto mb-2 opacity-50" />
-              <p>Még nincs hozzászólás</p>
+            {commentsCount === 0 && (
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                <MessageCircle size={48} className="mx-auto mb-2 opacity-50" />
+                <p>Még nincs hozzászólás</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Fixed Bottom Comment Input - csak ha showComments true */}
+      {showComments && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-50" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+          {/* Reply indicator */}
+          {replyingTo && (
+            <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                Válasz <span className="font-semibold text-gray-900 dark:text-white">{replyingTo.userName}</span> számára
+              </span>
+              <button 
+                onClick={() => setReplyingTo(null)}
+                className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+              >
+                Mégsem
+              </button>
+            </div>
+          )}
+          
+          {/* Input area */}
+          {user ? (
+            <div className="px-4 py-3 flex items-center gap-2">
+              <img
+                src={userData?.photoURL || user?.photoURL || '/default-avatar.svg'}
+                alt="Your avatar"
+                className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+              />
+              <div className="flex-1 flex gap-2">
+                <input
+                  type="text"
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
+                  placeholder={replyingTo ? `Válasz ${replyingTo.userName} számára...` : "Írj hozzászólást..."}
+                  className="flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+                <button
+                  onClick={handleSubmit}
+                  disabled={!commentText.trim()}
+                  className="p-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 text-white rounded-lg transition-colors"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="px-4 py-3 text-center">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                <button 
+                  onClick={() => router.push('/login')}
+                  className="text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium"
+                >
+                  Jelentkezz be
+                </button>
+                {' '}a hozzászóláshoz
+              </p>
             </div>
           )}
         </div>
-      </div>
-
-      {/* Fixed Bottom Comment Input */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-50" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
-        {/* Reply indicator */}
-        {replyingTo && (
-          <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-            <span className="text-sm text-gray-600 dark:text-gray-400">
-              Válasz <span className="font-semibold text-gray-900 dark:text-white">{replyingTo.userName}</span> számára
-            </span>
-            <button 
-              onClick={() => setReplyingTo(null)}
-              className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-            >
-              Mégsem
-            </button>
-          </div>
-        )}
-        
-        {/* Input area */}
-        {user ? (
-          <div className="px-4 py-3 flex items-center gap-3">
-            <img
-              src={userData?.photoURL || user?.photoURL || '/default-avatar.svg'}
-              alt="Your avatar"
-              className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-            />
-            <div className="flex-1 flex items-center gap-2 bg-gray-100 dark:bg-gray-700 rounded-full px-4 py-2">
-              <input
-                type="text"
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
-                placeholder={replyingTo ? `Válasz ${replyingTo.userName} számára...` : "Írj egy hozzászólást..."}
-                className="flex-1 bg-transparent focus:outline-none text-gray-900 dark:text-white text-base"
-                style={{ fontSize: '16px' }}
-              />
-            </div>
-            <button
-              onClick={handleSubmit}
-              disabled={!commentText.trim()}
-              className="text-cyan-500 hover:text-cyan-600 disabled:text-gray-300 p-2"
-            >
-              <Send size={22} />
-            </button>
-          </div>
-        ) : (
-          <div className="px-4 py-3 text-center">
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              <button 
-                onClick={() => router.push('/login')}
-                className="text-cyan-500 hover:text-cyan-600 font-medium"
-              >
-                Jelentkezz be
-              </button>
-              {' '}a hozzászóláshoz
-            </p>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }
