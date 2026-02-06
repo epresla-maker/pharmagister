@@ -7,11 +7,29 @@ const parser = new Parser({
       ['content:encoded', 'contentEncoded'],
       ['media:content', 'mediaContent'],
     ]
+  },
+  timeout: 10000, // 10 másodperces timeout
+  headers: {
+    'User-Agent': 'Pharmagister RSS Reader',
   }
 });
 
+// Cache változók
+let cachedFeed = null;
+let lastFetchTime = null;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 perc
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 300; // 5 perc
+
 export async function GET() {
   try {
+    // Cache ellenőrzés
+    const now = Date.now();
+    if (cachedFeed && lastFetchTime && (now - lastFetchTime) < CACHE_DURATION) {
+      return NextResponse.json(cachedFeed);
+    }
+
     // Semmelweis Egyetem RSS feed URL
     const feedUrl = 'https://semmelweis.hu/hirek/feed';
     
@@ -74,20 +92,37 @@ export async function GET() {
       };
     });
     
-    return NextResponse.json({
+    const responseData = {
       success: true,
       feedTitle: feed.title,
       feedDescription: feed.description,
       feedLink: feed.link,
       posts: posts,
       totalItems: posts.length,
-    });
+    };
+    
+    // Cache mentése
+    cachedFeed = responseData;
+    lastFetchTime = now;
+    
+    return NextResponse.json(responseData);
     
   } catch (error) {
     console.error('RSS fetch error:', error);
+    
+    // Ha van cache, azt adjuk vissza hiba esetén is
+    if (cachedFeed) {
+      return NextResponse.json({
+        ...cachedFeed,
+        fromCache: true,
+        cacheAge: lastFetchTime ? Math.floor((Date.now() - lastFetchTime) / 1000) : 0,
+      });
+    }
+    
     return NextResponse.json({
       success: false,
-      error: error.message,
+      error: error.message || 'RSS betöltési hiba',
+      details: error.toString(),
     }, { status: 500 });
   }
 }
