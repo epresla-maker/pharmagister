@@ -64,6 +64,17 @@ service cloud.firestore {
       allow read, write: if isAdmin() || isAuthenticated();
     }
     
+    // RSS Comments
+    match /rssComments/{postId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+      
+      match /comments/{commentId} {
+        allow read: if true;
+        allow write: if isAuthenticated();
+      }
+    }
+    
     // Minden más collection - auth required VAGY admin
     match /{document=**} {
       allow read, write: if isAdmin() || isAuthenticated();
