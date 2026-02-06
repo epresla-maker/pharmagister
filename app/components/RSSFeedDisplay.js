@@ -1,9 +1,152 @@
 'use client';
 
+import { useState } from 'react';
 import { useRSSFeed } from '@/hooks/useRSSFeed';
-import { ExternalLink, Calendar, User, RefreshCw, AlertCircle } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { ExternalLink, Calendar, User, RefreshCw, AlertCircle, MessageCircle, Send } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { hu } from 'date-fns/locale';
+import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { useEffect } from 'react';
+
+function RSSComments({ postId }) {
+  const { user, userData } = useAuth();
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+
+  useEffect(() => {
+    if (!postId) return;
+
+    const q = query(
+      collection(db, 'rssComments', postId, 'comments'),
+      orderBy('createdAt', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const commentsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setComments(commentsData);
+    });
+
+    return () => unsubscribe();
+  }, [postId]);
+
+  const handleSubmitComment = async (e) => {
+    e.preventDefault();
+    if (!newComment.trim() || !user) return;
+
+    setSubmitting(true);
+    try {
+      await addDoc(collection(db, 'rssComments', postId, 'comments'), {
+        text: newComment.trim(),
+        userId: user.uid,
+        userName: userData?.displayName || 'Névtelen',
+        userPhoto: userData?.photoURL || null,
+        createdAt: serverTimestamp(),
+      });
+      setNewComment('');
+    } catch (error) {
+      console.error('Comment error:', error);
+      alert('Hiba történt a komment küldésekor');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="border-t border-gray-200 dark:border-gray-700">
+      {/* Comment gomb */}
+      <div className="px-4 py-2">
+        <button
+          onClick={() => setShowComments(!showComments)}
+          className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+        >
+          <MessageCircle className="w-4 h-4" />
+          <span>{comments.length} hozzászólás</span>
+        </button>
+      </div>
+
+      {/* Comment szekció */}
+      {showComments && (
+        <div className="px-4 pb-4 space-y-4">
+          {/* Új komment */}
+          {user ? (
+            <form onSubmit={handleSubmitComment} className="flex gap-2">
+              <img
+                src={userData?.photoURL || '/default-avatar.svg'}
+                alt="You"
+                className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+              />
+              <div className="flex-1 flex gap-2">
+                <input
+                  type="text"
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder="Írj hozzászólást..."
+                  className="flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  disabled={submitting}
+                />
+                <button
+                  type="submit"
+                  disabled={!newComment.trim() || submitting}
+                  className="p-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 text-white rounded-lg transition-colors"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              </div>
+            </form>
+          ) : (
+            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
+              Jelentkezz be a hozzászóláshoz
+            </p>
+          )}
+
+          {/* Kommentek listája */}
+          {comments.length > 0 ? (
+            <div className="space-y-3">
+              {comments.map((comment) => (
+                <div key={comment.id} className="flex gap-2">
+                  <img
+                    src={comment.userPhoto || '/default-avatar.svg'}
+                    alt={comment.userName}
+                    className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                  />
+                  <div className="flex-1 bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-semibold text-sm text-gray-900 dark:text-gray-100">
+                        {comment.userName}
+                      </span>
+                      {comment.createdAt && (
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          {formatDistanceToNow(comment.createdAt.toDate(), {
+                            addSuffix: true,
+                            locale: hu
+                          })}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-700 dark:text-gray-300">
+                      {comment.text}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
+              Még nincs hozzászólás
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function RSSFeedDisplay() {
   const { rssPosts, loading, error, refetch } = useRSSFeed();
@@ -179,6 +322,9 @@ export default function RSSFeedDisplay() {
               <ExternalLink className="w-4 h-4" />
             </a>
           </div>
+
+          {/* Hozzászólások */}
+          <RSSComments postId={post.id} />
         </div>
       ))}
     </div>
