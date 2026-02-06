@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import RouteGuard from '@/app/components/RouteGuard';
-import ModernServiceFeed from '@/app/components/ModernServiceFeed';
+import RSSFeedDisplay from '@/app/components/RSSFeedDisplay';
 import { ArrowLeft, TestTube } from 'lucide-react';
 
 // Admin e-mail címek
@@ -94,13 +94,12 @@ export default function RSSTestPage() {
                   Tesztelési oldal
                 </h3>
                 <p className="text-sm text-yellow-700 dark:text-yellow-400 mt-1">
-                  Ez az oldal jelenleg ugyanazt a hírfolyamot mutatja. 
-                  Itt fogod majd látni az RSS feed-ből importált híreket, 
-                  amikor elkészül az integráció.
+                  Itt láthatod az RSS feed-ből érkező híreket a Semmelweis Egyetemről.
+                  Jelenleg csak gyógyszerészet és egészségügy témájú hírek.
                 </p>
                 <p className="text-xs text-yellow-600 dark:text-yellow-500 mt-2">
                   ✓ Csak admin és adminka látja<br />
-                  ✓ Sima felhasználók nem férnek hozzá<br />
+                  ✓ Automatikus frissítés 5 percenként<br />
                   ✓ Biztonságos tesztelési környezet
                 </p>
               </div>
@@ -108,9 +107,9 @@ export default function RSSTestPage() {
           </div>
         </div>
 
-        {/* Feed */}
+        {/* RSS Feed */}
         <div className="max-w-xl mx-auto px-4">
-          <ModernServiceFeed />
+          <RSSFeedDisplay />
         </div>
       </div>
     </RouteGuard>
