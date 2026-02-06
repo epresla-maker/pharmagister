@@ -28,6 +28,13 @@ export async function GET() {
         const imgMatch = content.match(/<img[^>]+src="([^">]+)"/);
         if (imgMatch && imgMatch[1]) {
           imageUrl = imgMatch[1];
+          
+          // Ha miniatűr kép, cseréljük nagyobbra
+          // -175x120.jpg -> eredeti méret (eltávolítjuk a méret részt)
+          imageUrl = imageUrl
+            .replace(/-\d+x\d+\.jpg$/, '.jpg')
+            .replace(/-\d+x\d+\.png$/, '.png')
+            .replace(/-\d+x\d+\.jpeg$/, '.jpeg');
         }
       }
       

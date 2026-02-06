@@ -128,11 +128,16 @@ export default function RSSFeedDisplay() {
 
           {/* Kép ha van */}
           {post.imageUrl && (
-            <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+            <div className="relative w-full bg-gray-100 dark:bg-gray-800" style={{ paddingBottom: '56.25%' }}>
               <img
                 src={post.imageUrl}
                 alt={post.title}
                 className="absolute inset-0 w-full h-full object-cover"
+                loading="lazy"
+                onError={(e) => {
+                  // Ha a kép nem tölt be, elrejtjük
+                  e.target.style.display = 'none';
+                }}
               />
             </div>
           )}
