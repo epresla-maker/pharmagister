@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 // Cache az RSS hírekhez
 let rssCache = null;
 let lastFetchTime = null;
-const CACHE_DURATION = 5 * 60 * 1000; // 5 perc cache
+const CACHE_DURATION = 60 * 60 * 1000; // 1 óra cache
 
 export function useRSSFeed() {
   const [rssPosts, setRssPosts] = useState([]);
