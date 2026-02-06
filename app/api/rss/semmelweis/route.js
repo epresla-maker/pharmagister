@@ -76,8 +76,27 @@ export async function GET() {
           .substring(0, 200) + '...';
       }
       
+      // Firestore-safe ID generálása
+      // Próbáljuk kinyerni a post ID-t az URL-ből (?p=164600)
+      let postId = null;
+      if (item.guid) {
+        const match = item.guid.match(/[?&]p=(\d+)/);
+        if (match) {
+          postId = `rss-semmelweis-${match[1]}`;
+        }
+      }
+      // Ha nem sikerült, hash-eljük a guid-ot vagy használjuk az indexet
+      if (!postId) {
+        // Egyszerű hash a guid-ból vagy link-ből
+        const hashSource = item.guid || item.link || `${index}`;
+        const simpleHash = hashSource.split('').reduce((acc, char) => {
+          return ((acc << 5) - acc) + char.charCodeAt(0);
+        }, 0);
+        postId = `rss-semmelweis-${Math.abs(simpleHash)}`;
+      }
+      
       return {
-        id: `rss-semmelweis-${item.guid || index}`,
+        id: postId,
         type: 'rss',
         source: 'semmelweis',
         title: item.title,
