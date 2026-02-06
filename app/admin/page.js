@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { collection, getDocs, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { Users, Building2, Pill, UserCog } from "lucide-react";
 
 const ADMIN_EMAILS = ['epresla@icloud.com'];
 
@@ -12,6 +13,7 @@ export default function AdminPage() {
   const router = useRouter();
   const [users, setUsers] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
+  const [roleStats, setRoleStats] = useState({ gyogyszeresz: 0, gyogyszertar: 0, szakasszisztens: 0 });
 
   useEffect(() => {
     if (!loading) {
@@ -36,6 +38,16 @@ export default function AdminPage() {
         ...doc.data()
       }));
       setUsers(usersData);
+      
+      // Calculate role stats
+      let gyogyszeresz = 0, gyogyszertar = 0, szakasszisztens = 0;
+      usersData.forEach(u => {
+        const role = u.pharmagisterRole;
+        if (role === 'pharmacist' || role === 'gyógyszerész') gyogyszeresz++;
+        else if (role === 'pharmacy' || role === 'gyógyszertár') gyogyszertar++;
+        else if (role === 'assistant' || role === 'szakasszisztens') szakasszisztens++;
+      });
+      setRoleStats({ gyogyszeresz, gyogyszertar, szakasszisztens });
     } catch (error) {
       console.error('Error loading users:', error);
     } finally {
@@ -110,6 +122,31 @@ export default function AdminPage() {
             >
               🔐 Jelszó aktiválások
             </button>
+            <button
+              onClick={() => router.push('/admin/stats')}
+              className="bg-indigo-600 text-white px-3 py-2 rounded-lg hover:bg-indigo-700 text-xs sm:text-sm w-full"
+            >
+              📊 Statisztikák
+            </button>
+          </div>
+          
+          {/* Role Statistics Cards */}
+          <div className="grid grid-cols-3 gap-2 sm:gap-4 mt-4">
+            <div className="bg-blue-50 rounded-lg p-3 text-center border border-blue-200">
+              <Pill className="mx-auto text-blue-500 mb-1" size={24} />
+              <p className="text-xl sm:text-2xl font-bold text-blue-600">{roleStats.gyogyszeresz}</p>
+              <p className="text-xs text-gray-600">Gyógyszerész</p>
+            </div>
+            <div className="bg-green-50 rounded-lg p-3 text-center border border-green-200">
+              <Building2 className="mx-auto text-green-500 mb-1" size={24} />
+              <p className="text-xl sm:text-2xl font-bold text-green-600">{roleStats.gyogyszertar}</p>
+              <p className="text-xs text-gray-600">Gyógyszertár</p>
+            </div>
+            <div className="bg-orange-50 rounded-lg p-3 text-center border border-orange-200">
+              <UserCog className="mx-auto text-orange-500 mb-1" size={24} />
+              <p className="text-xl sm:text-2xl font-bold text-orange-600">{roleStats.szakasszisztens}</p>
+              <p className="text-xs text-gray-600">Szakasszisztens</p>
+            </div>
           </div>
         </div>
 
