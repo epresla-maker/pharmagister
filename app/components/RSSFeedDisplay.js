@@ -100,13 +100,13 @@ export default function RSSFeedDisplay() {
             <div className="flex items-start gap-3">
               {/* Semmelweis logo/avatar */}
               <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="text-white font-bold text-lg">S</span>
+                <span className="text-white font-bold text-xs">SE</span>
               </div>
               
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-semibold text-gray-900 dark:text-gray-100">
-                    {post.creator}
+                    semmelweis.hu
                   </span>
                   <span className="text-xs text-gray-500 dark:text-gray-400 bg-purple-100 dark:bg-purple-900/30 px-2 py-0.5 rounded-full">
                     RSS Hír
