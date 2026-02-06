@@ -2,7 +2,7 @@
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { ArrowLeft, Key, BarChart3 } from "lucide-react";
+import { ArrowLeft, Key, BarChart3, TestTube } from "lucide-react";
 
 // Adminka szerepkörű felhasználók
 const ADMINKA_EMAILS = ['etinatina22@gmail.com'];
@@ -74,6 +74,21 @@ export default function AdminkaPage() {
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">📊 Statisztikák</h2>
                 <p className="text-sm text-gray-500">Felhasználói aktivitás és regisztrációs statisztikák</p>
+              </div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => router.push('/admin/rss-test')}
+            className="w-full bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow text-left"
+          >
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-yellow-100 rounded-xl">
+                <TestTube className="w-8 h-8 text-yellow-600" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">🧪 RSS Feed Teszt</h2>
+                <p className="text-sm text-gray-500">Tesztelési környezet az RSS hírek integrációjához</p>
               </div>
             </div>
           </button>

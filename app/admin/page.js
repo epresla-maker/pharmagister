@@ -132,6 +132,12 @@ export default function AdminPage() {
             >
               📊 Statisztikák
             </button>
+            <button
+              onClick={() => router.push('/admin/rss-test')}
+              className="bg-yellow-600 text-white px-3 py-2 rounded-lg hover:bg-yellow-700 text-xs sm:text-sm w-full"
+            >
+              🧪 RSS Feed Teszt
+            </button>
           </div>
           
           {/* Role Statistics Cards - Active users only */}
