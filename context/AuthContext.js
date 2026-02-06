@@ -54,17 +54,19 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
-  // LastSeen frissítés 10 percenként
+  // LastSeen és lastLogin frissítés
   // FONTOS: Csak user.uid-tól függ, NEM userData-tól (különben végtelen ciklus!)
   useEffect(() => {
     if (!user?.uid) return;
 
-    // Első frissítés bejelentkezéskor
+    // Első frissítés amikor megnyitja az oldalt (lastLogin is!)
     const userDocRef = doc(db, "users", user.uid);
     updateDoc(userDocRef, {
-      lastSeen: serverTimestamp()
+      lastSeen: serverTimestamp(),
+      lastLogin: serverTimestamp() // Ez növeli a belépés statisztikát
     }).catch(() => {});
 
+    // LastSeen frissítés 10 percenként (de lastLogin csak egyszer, oldal megnyitáskor)
     const interval = setInterval(() => {
       updateDoc(userDocRef, {
         lastSeen: serverTimestamp()

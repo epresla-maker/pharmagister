@@ -39,9 +39,13 @@ export default function AdminPage() {
       }));
       setUsers(usersData);
       
-      // Calculate role stats
+      // Calculate role stats - only count ACTIVE users (email + password verified)
       let gyogyszeresz = 0, gyogyszertar = 0, szakasszisztens = 0;
       usersData.forEach(u => {
+        // Aktív felhasználó: email megerősítve ÉS jelszó aktiválva
+        const isActive = u.emailVerified && u.passwordActivated;
+        if (!isActive) return;
+        
         const role = u.pharmagisterRole;
         if (role === 'pharmacist' || role === 'gyógyszerész') gyogyszeresz++;
         else if (role === 'pharmacy' || role === 'gyógyszertár') gyogyszertar++;
@@ -130,8 +134,9 @@ export default function AdminPage() {
             </button>
           </div>
           
-          {/* Role Statistics Cards */}
-          <div className="grid grid-cols-3 gap-2 sm:gap-4 mt-4">
+          {/* Role Statistics Cards - Active users only */}
+          <p className="text-xs text-gray-500 mt-4 mb-2">✅ Aktív felhasználók (email + jelszó megerősítve):</p>
+          <div className="grid grid-cols-3 gap-2 sm:gap-4">
             <div className="bg-blue-50 rounded-lg p-3 text-center border border-blue-200">
               <Pill className="mx-auto text-blue-500 mb-1" size={24} />
               <p className="text-xl sm:text-2xl font-bold text-blue-600">{roleStats.gyogyszeresz}</p>

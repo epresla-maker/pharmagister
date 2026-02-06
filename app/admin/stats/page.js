@@ -12,6 +12,7 @@ export default function StatsPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [stats, setStats] = useState({
+    totalAll: 0,
     total: 0,
     gyogyszeresz: 0,
     gyogyszertar: 0,
@@ -52,9 +53,11 @@ export default function StatsPage() {
       const now = new Date();
       const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
+      let totalAll = usersData.length;
       let gyogyszeresz = 0;
       let gyogyszertar = 0;
       let szakasszisztens = 0;
+      let activeTotal = 0;
       let last24hGyogyszeresz = 0;
       let last24hGyogyszertar = 0;
       let last24hSzakasszisztens = 0;
@@ -63,41 +66,50 @@ export default function StatsPage() {
       usersData.forEach(u => {
         const role = u.pharmagisterRole;
         
-        // Count by role
-        if (role === 'pharmacist' || role === 'gyógyszerész') {
-          gyogyszeresz++;
-        } else if (role === 'pharmacy' || role === 'gyógyszertár') {
-          gyogyszertar++;
-        } else if (role === 'assistant' || role === 'szakasszisztens') {
-          szakasszisztens++;
-        }
-
-        // Check last login in 24h
-        let lastLogin = null;
-        if (u.lastLogin) {
-          if (u.lastLogin.toDate) {
-            lastLogin = u.lastLogin.toDate();
-          } else if (u.lastLogin.seconds) {
-            lastLogin = new Date(u.lastLogin.seconds * 1000);
-          } else if (typeof u.lastLogin === 'string') {
-            lastLogin = new Date(u.lastLogin);
+        // Aktív felhasználó: email megerősítve ÉS jelszó aktiválva
+        const isActive = u.emailVerified && u.passwordActivated;
+        
+        // Count active users by role
+        if (isActive) {
+          activeTotal++;
+          if (role === 'pharmacist' || role === 'gyógyszerész') {
+            gyogyszeresz++;
+          } else if (role === 'pharmacy' || role === 'gyógyszertár') {
+            gyogyszertar++;
+          } else if (role === 'assistant' || role === 'szakasszisztens') {
+            szakasszisztens++;
           }
         }
 
-        if (lastLogin && lastLogin > last24h) {
-          last24hTotal++;
-          if (role === 'pharmacist' || role === 'gyógyszerész') {
-            last24hGyogyszeresz++;
-          } else if (role === 'pharmacy' || role === 'gyógyszertár') {
-            last24hGyogyszertar++;
-          } else if (role === 'assistant' || role === 'szakasszisztens') {
-            last24hSzakasszisztens++;
+        // Check last login in 24h (only for active users)
+        if (isActive) {
+          let lastLogin = null;
+          if (u.lastLogin) {
+            if (u.lastLogin.toDate) {
+              lastLogin = u.lastLogin.toDate();
+            } else if (u.lastLogin.seconds) {
+              lastLogin = new Date(u.lastLogin.seconds * 1000);
+            } else if (typeof u.lastLogin === 'string') {
+              lastLogin = new Date(u.lastLogin);
+            }
+          }
+
+          if (lastLogin && lastLogin > last24h) {
+            last24hTotal++;
+            if (role === 'pharmacist' || role === 'gyógyszerész') {
+              last24hGyogyszeresz++;
+            } else if (role === 'pharmacy' || role === 'gyógyszertár') {
+              last24hGyogyszertar++;
+            } else if (role === 'assistant' || role === 'szakasszisztens') {
+              last24hSzakasszisztens++;
+            }
           }
         }
       });
 
       setStats({
-        total: usersData.length,
+        totalAll,
+        total: activeTotal,
         gyogyszeresz,
         gyogyszertar,
         szakasszisztens,
@@ -168,16 +180,25 @@ export default function StatsPage() {
           </div>
         ) : (
           <>
+            {/* Summary info */}
+            <div className="bg-white rounded-xl shadow-lg p-4 mb-6">
+              <p className="text-gray-600 text-sm">
+                📊 Összes regisztráció: <span className="font-bold">{stats.totalAll}</span> | 
+                ✅ Aktív (email + jelszó megerősítve): <span className="font-bold text-green-600">{stats.total}</span>
+              </p>
+            </div>
+
             {/* Active registrations by role */}
             <div className="mb-8">
               <h2 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
                 <Users size={20} />
-                Aktív regisztrációk szerepkör szerint
+                Aktív felhasználók szerepkör szerint
+                <span className="text-sm font-normal text-gray-500">(email + jelszó megerősítve)</span>
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard
                   icon={Users}
-                  title="Összes felhasználó"
+                  title="Aktív összesen"
                   value={stats.total}
                   color="border-purple-500"
                   subValue={stats.last24h.total}
