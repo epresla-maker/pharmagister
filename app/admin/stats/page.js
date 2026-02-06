@@ -7,6 +7,7 @@ import { db } from "@/lib/firebase";
 import { Users, Building2, Pill, UserCog, TrendingUp, Clock, ArrowLeft } from "lucide-react";
 
 const ADMIN_EMAILS = ['epresla@icloud.com'];
+const ADMINKA_EMAILS = ['etinatina22@gmail.com'];
 
 export default function StatsPage() {
   const { user, loading } = useAuth();
@@ -28,14 +29,14 @@ export default function StatsPage() {
 
   useEffect(() => {
     if (!loading) {
-      if (!user || !ADMIN_EMAILS.includes(user.email)) {
+      if (!user || (!ADMIN_EMAILS.includes(user.email) && !ADMINKA_EMAILS.includes(user.email))) {
         router.push('/login');
       }
     }
   }, [user, loading, router]);
 
   useEffect(() => {
-    if (user && ADMIN_EMAILS.includes(user.email)) {
+    if (user && (ADMIN_EMAILS.includes(user.email) || ADMINKA_EMAILS.includes(user.email))) {
       loadStats();
     }
   }, [user]);
@@ -127,13 +128,16 @@ export default function StatsPage() {
     }
   };
 
-  if (loading || !user || !ADMIN_EMAILS.includes(user.email)) {
+  if (loading || !user || (!ADMIN_EMAILS.includes(user.email) && !ADMINKA_EMAILS.includes(user.email))) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-xl">Betöltés...</div>
       </div>
     );
   }
+
+  // Visszagomb céloldala attól függ, hogy admin vagy adminka
+  const backUrl = ADMINKA_EMAILS.includes(user.email) ? '/adminka' : '/admin';
 
   const StatCard = ({ icon: Icon, title, value, color, subValue }) => (
     <div className={`bg-white rounded-xl shadow-lg p-6 border-l-4 ${color}`}>
@@ -165,7 +169,7 @@ export default function StatsPage() {
             <p className="text-gray-500 mt-1">Felhasználói aktivitás áttekintés</p>
           </div>
           <button
-            onClick={() => router.push('/admin')}
+            onClick={() => router.push(backUrl)}
             className="flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
           >
             <ArrowLeft size={18} />

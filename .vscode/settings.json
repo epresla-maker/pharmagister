@@ -1,0 +1,43 @@
+{
+  // Teljesítmény optimalizálás - projekt működését NEM érinti
+  
+  // Fájlok kizárása a VS Code megfigyelésből (gyorsabb)
+  "files.watcherExclude": {
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true,
+    "**/node_modules/**": true,
+    "**/.next/**": true,
+    "**/.cache/**": true,
+    "**/dist/**": true,
+    "**/build/**": true
+  },
+  
+  // Keresésből kizárva (gyorsabb keresés)
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/.next": true,
+    "**/package-lock.json": true,
+    "**/*.csv": true,
+    "**/*.json": false
+  },
+  
+  // Fájlok elrejtése az explorerből (tisztább nézet, gyorsabb)
+  "files.exclude": {
+    "**/.git": true,
+    "**/.DS_Store": true,
+    "**/.next": true
+  },
+  
+  // TypeScript/JavaScript optimalizálás
+  "typescript.tsserver.maxTsServerMemory": 4096,
+  "javascript.suggest.names": false,
+  "typescript.suggest.names": false,
+  
+  // Git optimalizálás
+  "git.ignoreLimitWarning": true,
+  "git.untrackedChanges": "hidden",
+  
+  // Automatikus mentés (nem veszíted el a munkát)
+  "files.autoSave": "afterDelay",
+  "files.autoSaveDelay": 1000
+}
