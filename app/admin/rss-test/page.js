@@ -5,7 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import RouteGuard from '@/app/components/RouteGuard';
 import RSSFeedDisplay from '@/app/components/RSSFeedDisplay';
 import ModernServiceFeed from '@/app/components/ModernServiceFeed';
-import { ArrowLeft, TestTube, Rss, FileText } from 'lucide-react';
+import { ArrowLeft, TestTube, FileText } from 'lucide-react';
 
 // Admin e-mail címek
 const ADMIN_EMAILS = ['epresla@icloud.com'];
@@ -110,12 +110,6 @@ export default function RSSTestPage() {
 
         {/* RSS Feed szekció */}
         <div className="max-w-xl mx-auto px-4 mb-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Rss className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
-              RSS Hírek (Semmelweis Egyetem)
-            </h2>
-          </div>
           <RSSFeedDisplay />
         </div>
 
