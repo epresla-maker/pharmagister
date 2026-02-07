@@ -96,7 +96,6 @@ export default function RSSTestPage() {
                 </h3>
                 <p className="text-sm text-yellow-700 dark:text-yellow-400 mt-1">
                   Itt látod együtt az RSS híreket ÉS a saját posztjaidat is.
-                  Később ezek keveredhetnek időrend szerint a fő hírfolyamban.
                 </p>
                 <p className="text-xs text-yellow-600 dark:text-yellow-500 mt-2">
                   ✓ Csak admin és adminka látja<br />
