@@ -327,7 +327,8 @@ export default function AdminPostsPage() {
                 </div>
               ))
             )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
