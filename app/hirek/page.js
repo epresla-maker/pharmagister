@@ -27,12 +27,9 @@ export default function HirekPage() {
             {/* Cím és vissza a hírfolyam gomb */}
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-xl font-bold text-white flex items-center gap-2">
-                  📰 Hírek
+                <h1 className="text-xl font-bold text-white">
+                  Hírek
                 </h1>
-                <p className="text-purple-200 text-sm mt-1">
-                  Semmelweis Egyetem RSS hírek
-                </p>
               </div>
               
               {/* Profile pic */}

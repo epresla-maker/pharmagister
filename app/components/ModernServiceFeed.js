@@ -495,7 +495,7 @@ export default function ModernServiceFeed() {
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors"
           >
             <Newspaper className="w-5 h-5" />
-            <span>Hírek (Semmelweis Egyetem)</span>
+            <span>Hírek</span>
           </button>
         </div>
       </div>
