@@ -6,7 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { ExternalLink, Calendar, User, AlertCircle, MessageCircle, Send } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { hu } from 'date-fns/locale';
-import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useEffect } from 'react';
 
@@ -150,8 +150,30 @@ function RSSComments({ postId }) {
 
 export default function RSSFeedDisplay() {
   const { rssPosts, loading, error, refetch } = useRSSFeed();
+  const [hiddenRssIds, setHiddenRssIds] = useState(new Set());
+  const [loadingHidden, setLoadingHidden] = useState(true);
 
-  if (loading) {
+  // Rejtett RSS hírek betöltése
+  useEffect(() => {
+    const fetchHiddenIds = async () => {
+      try {
+        const hiddenSnapshot = await getDocs(collection(db, 'hiddenRssPosts'));
+        const hiddenIds = new Set(hiddenSnapshot.docs.map(doc => doc.id));
+        setHiddenRssIds(hiddenIds);
+      } catch (error) {
+        console.error('Error fetching hidden RSS IDs:', error);
+      } finally {
+        setLoadingHidden(false);
+      }
+    };
+
+    fetchHiddenIds();
+  }, []);
+
+  // Szűrt RSS hírek (rejtettek kiszűrése)
+  const filteredRssPosts = rssPosts.filter(post => !hiddenRssIds.has(post.id));
+
+  if (loading || loadingHidden) {
     return (
       <div className="space-y-4">
         {[1, 2, 3].map(i => (
@@ -192,7 +214,7 @@ export default function RSSFeedDisplay() {
     );
   }
 
-  if (!rssPosts || rssPosts.length === 0) {
+  if (!filteredRssPosts || filteredRssPosts.length === 0) {
     return (
       <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 text-center">
         <p className="text-gray-600 dark:text-gray-400">
@@ -205,7 +227,7 @@ export default function RSSFeedDisplay() {
   return (
     <div className="space-y-4">
       {/* RSS hírek */}
-      {rssPosts.map((post) => (
+      {filteredRssPosts.map((post) => (
         <div
           key={post.id}
           className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow"

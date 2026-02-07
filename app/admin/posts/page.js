@@ -3,8 +3,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
-import { Trash2, Send } from 'lucide-react';
+import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, deleteDoc, doc, setDoc, getDocs } from 'firebase/firestore';
+import { Trash2, Send, EyeOff } from 'lucide-react';
 
 export default function AdminPostsPage() {
   const { user, userData } = useAuth();
@@ -12,6 +12,9 @@ export default function AdminPostsPage() {
   const [postText, setPostText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [posts, setPosts] = useState([]);
+  const [rssPosts, setRssPosts] = useState([]);
+  const [hiddenRssIds, setHiddenRssIds] = useState(new Set());
+  const [loading, setLoading] = useState(true);
 
   // Ellenőrizzük hogy admin-e
   useEffect(() => {
@@ -36,6 +39,32 @@ export default function AdminPostsPage() {
     });
 
     return () => unsubscribe();
+  }, []);
+
+  // RSS hírek és rejtett RSS ID-k betöltése
+  useEffect(() => {
+    const fetchRSSData = async () => {
+      try {
+        // Rejtett RSS ID-k betöltése
+        const hiddenSnapshot = await getDocs(collection(db, 'hiddenRssPosts'));
+        const hiddenIds = new Set(hiddenSnapshot.docs.map(doc => doc.id));
+        setHiddenRssIds(hiddenIds);
+
+        // RSS hírek betöltése az API-ból
+        const response = await fetch('/api/rss/semmelweis');
+        const data = await response.json();
+        
+        if (data.success) {
+          setRssPosts(data.posts || []);
+        }
+      } catch (error) {
+        console.error('Error fetching RSS data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRSSData();
   }, []);
 
   const handleSubmit = async (e) => {
@@ -85,6 +114,42 @@ export default function AdminPostsPage() {
       alert('❌ Hiba történt a törlés során: ' + error.message);
     }
   };
+
+  const handleHideRssPost = async (rssPostId) => {
+    if (!confirm('Biztosan elrejted ezt az RSS hírt? Többé nem fog megjelenni senkinek.')) return;
+
+    try {
+      // RSS poszt ID hozzáadása a rejtett listához
+      await setDoc(doc(db, 'hiddenRssPosts', rssPostId), {
+        hiddenAt: serverTimestamp(),
+        hiddenBy: user.uid
+      });
+      
+      // Frissítjük a local state-et
+      setHiddenRssIds(prev => new Set([...prev, rssPostId]));
+      
+      alert('✅ RSS hír elrejtve!');
+    } catch (error) {
+      console.error('Error hiding RSS post:', error);
+      alert('❌ Hiba történt az elrejtés során: ' + error.message);
+    }
+  };
+
+  // Kombináljuk a posztokat és RSS híreket
+  const allPosts = [
+    ...posts.map(p => ({ ...p, source: 'user' })),
+    ...rssPosts
+      .filter(rss => !hiddenRssIds.has(rss.id))
+      .map(rss => ({ 
+        ...rss, 
+        source: 'rss',
+        createdAt: rss.pubDate ? { toDate: () => new Date(rss.pubDate) } : null
+      }))
+  ].sort((a, b) => {
+    const dateA = a.createdAt?.toDate?.() || new Date(0);
+    const dateB = b.createdAt?.toDate?.() || new Date(0);
+    return dateB - dateA;
+  });
 
   if (!user || user.email !== 'epresla@icloud.com') {
     return (
@@ -140,66 +205,125 @@ export default function AdminPostsPage() {
         {/* Létező posztok listája */}
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h2 className="text-xl font-bold text-gray-900 mb-4">
-            Összes poszt ({posts.length})
+            Összes poszt ({allPosts.length}) - User posztok: {posts.length}, RSS hírek: {rssPosts.filter(rss => !hiddenRssIds.has(rss.id)).length}
           </h2>
 
-          <div className="space-y-4">
-            {posts.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">Még nincs poszt</p>
-            ) : (
-              posts.map((post) => (
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+              <p className="text-gray-500 mt-2">Betöltés...</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {allPosts.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">Még nincs poszt</p>
+              ) : (
+                allPosts.map((post) => (
                 <div
                   key={post.id}
                   className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-3">
-                      <img
-                        src={post.authorData?.photoURL || '/default-avatar.svg'}
-                        alt={post.authorData?.displayName}
-                        className="w-10 h-10 rounded-full"
-                      />
+                      {post.source === 'rss' ? (
+                        <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                          <span className="text-white font-bold text-xs">SE</span>
+                        </div>
+                      ) : (
+                        <img
+                          src={post.authorData?.photoURL || '/default-avatar.svg'}
+                          alt={post.authorData?.displayName}
+                          className="w-10 h-10 rounded-full"
+                        />
+                      )}
                       <div>
                         <p className="font-semibold text-gray-900">
-                          {post.authorData?.displayName || 'Névtelen'}
+                          {post.source === 'rss' ? 'semmelweis.hu' : (post.authorData?.displayName || 'Névtelen')}
                         </p>
                         <p className="text-xs text-gray-500">
                           {post.createdAt?.toDate().toLocaleString('hu-HU') || 'Most'}
                         </p>
                       </div>
                     </div>
-                    <span className="px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
-                      {post.postType === 'pharmaDemand' ? '💊 Gyógyszertári igény' : 
-                       post.postType === 'adminPost' ? '👑 Admin poszt' : post.postType}
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                      post.source === 'rss' 
+                        ? 'bg-purple-100 text-purple-700' 
+                        : post.postType === 'pharmaDemand' 
+                          ? 'bg-green-100 text-green-700' 
+                          : 'bg-blue-100 text-blue-700'
+                    }`}>
+                      {post.source === 'rss' 
+                        ? '📰 RSS Hír' 
+                        : post.postType === 'pharmaDemand' 
+                          ? '💊 Gyógyszertári igény' 
+                          : '👑 Admin poszt'}
                     </span>
                   </div>
 
-                  {post.text && (
-                    <p className="text-gray-900 mb-3 whitespace-pre-wrap">{post.text}</p>
+                  {post.source === 'rss' ? (
+                    <>
+                      <h3 className="font-bold text-lg text-gray-900 mb-2">{post.title}</h3>
+                      {post.description && (
+                        <p className="text-gray-700 mb-3 text-sm">{post.description}</p>
+                      )}
+                      {post.imageUrl && (
+                        <img
+                          src={post.imageUrl}
+                          alt={post.title}
+                          className="w-full h-48 object-cover rounded-lg mb-3"
+                        />
+                      )}
+                      {post.link && (
+                        <a
+                          href={post.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-purple-600 hover:text-purple-700 text-sm"
+                        >
+                          Teljes cikk →
+                        </a>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      {post.text && (
+                        <p className="text-gray-900 mb-3 whitespace-pre-wrap">{post.text}</p>
+                      )}
+
+                      {post.postType === 'pharmaDemand' && (
+                        <div className="bg-green-50 rounded-lg p-3 mb-3">
+                          <p className="text-sm text-gray-700">
+                            <strong>Gyógyszertár:</strong> {post.pharmacyName} - {post.pharmacyCity}
+                          </p>
+                          <p className="text-sm text-gray-700">
+                            <strong>Pozíció:</strong> {post.positionLabel}
+                          </p>
+                          <p className="text-sm text-gray-700">
+                            <strong>Dátum:</strong> {new Date(post.date).toLocaleDateString('hu-HU')}
+                          </p>
+                        </div>
+                      )}
+                    </>
                   )}
 
-                  {post.postType === 'pharmaDemand' && (
-                    <div className="bg-green-50 rounded-lg p-3 mb-3">
-                      <p className="text-sm text-gray-700">
-                        <strong>Gyógyszertár:</strong> {post.pharmacyName} - {post.pharmacyCity}
-                      </p>
-                      <p className="text-sm text-gray-700">
-                        <strong>Pozíció:</strong> {post.positionLabel}
-                      </p>
-                      <p className="text-sm text-gray-700">
-                        <strong>Dátum:</strong> {new Date(post.date).toLocaleDateString('hu-HU')}
-                      </p>
-                    </div>
+                  {/* Törlés/Elrejtés gomb */}
+                  {post.source === 'rss' ? (
+                    <button
+                      onClick={() => handleHideRssPost(post.id)}
+                      className="flex items-center gap-2 text-orange-600 hover:text-orange-700 text-sm mt-2"
+                    >
+                      <EyeOff size={16} />
+                      RSS hír elrejtése (nem jelenik meg tovább)
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleDelete(post.id, post.postType, post.pharmaDemandId)}
+                      className="flex items-center gap-2 text-red-600 hover:text-red-700 text-sm mt-2"
+                    >
+                      <Trash2 size={16} />
+                      Poszt törlése
+                    </button>
                   )}
-
-                  {/* Törlés gomb - minden poszt típusnál megjelenik */}
-                  <button
-                    onClick={() => handleDelete(post.id, post.postType, post.pharmaDemandId)}
-                    className="flex items-center gap-2 text-red-600 hover:text-red-700 text-sm mt-2"
-                  >
-                    <Trash2 size={16} />
-                    Poszt törlése
-                  </button>
                 </div>
               ))
             )}
