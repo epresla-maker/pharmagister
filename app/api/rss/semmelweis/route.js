@@ -17,10 +17,10 @@ const parser = new Parser({
 // Cache változók
 let cachedFeed = null;
 let lastFetchTime = null;
-const CACHE_DURATION = 60 * 60 * 1000; // 1 óra
+const CACHE_DURATION = 5 * 60 * 1000; // 5 perc (gyakoribb frissítés)
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 3600; // 1 óra
+export const revalidate = 300; // 5 perc
 
 export async function GET() {
   try {

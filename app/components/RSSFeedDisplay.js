@@ -243,7 +243,10 @@ export default function RSSFeedDisplay() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-semibold text-gray-900 dark:text-gray-100">
-                    semmelweis.hu
+                    Semmelweis Egyetem
+                  </span>
+                  <span className="px-2 py-0.5 text-xs rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300">
+                    Egészségügy
                   </span>
                 </div>
                 
