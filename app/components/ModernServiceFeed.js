@@ -20,7 +20,7 @@ import {
   where,
   deleteField
 } from 'firebase/firestore';
-import { Star, MessageCircle, Share2, Send, MoreHorizontal, X, Heart, Laugh, Frown, Angry, Zap, Image as ImageIcon, ImagePlus, RefreshCw, Trash2, Edit3 } from 'lucide-react';
+import { Star, MessageCircle, Share2, Send, MoreHorizontal, X, Heart, Laugh, Frown, Angry, Zap, Image as ImageIcon, ImagePlus, RefreshCw, Trash2, Edit3, Newspaper } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 const REACTIONS = [
@@ -486,6 +486,17 @@ export default function ModernServiceFeed() {
               Írj valamit...
             </div>
           </div>
+        </div>
+        
+        {/* Hírek gomb */}
+        <div className="mt-3">
+          <button
+            onClick={() => router.push('/hirek')}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors"
+          >
+            <Newspaper className="w-5 h-5" />
+            <span>Hírek (Semmelweis Egyetem)</span>
+          </button>
         </div>
       </div>
 
