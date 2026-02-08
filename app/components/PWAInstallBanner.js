@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { X, Download, Smartphone } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
 
 export default function PWAInstallBanner() {
   const pathname = usePathname();
@@ -11,9 +12,14 @@ export default function PWAInstallBanner() {
   const [isStandalone, setIsStandalone] = useState(false);
 
   useEffect(() => {
+    // Ha Capacitor natív app-ban fut, ne mutassuk a bannert
+    const platform = Capacitor.getPlatform();
+    if (platform === 'ios' || platform === 'android') {
+      return;
+    }
+
     // Karbantartás oldalon ne jelenjen meg
     if (pathname === '/maintenance') {
-      setShowBanner(false);
       return;
     }
 
@@ -65,7 +71,7 @@ export default function PWAInstallBanner() {
     }
 
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-  }, []);
+  }, [pathname]);
 
   const handleInstall = useCallback(async () => {
     if (deferredPrompt) {
