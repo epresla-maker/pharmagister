@@ -14,7 +14,10 @@ export default function PWAInstallBanner() {
   useEffect(() => {
     // Ha Capacitor natív app-ban fut, ne mutassuk a bannert
     const platform = Capacitor.getPlatform();
-    if (platform === 'ios' || platform === 'android') {
+    const isNativeApp = platform === 'ios' || platform === 'android';
+    
+    if (isNativeApp) {
+      console.log('🚀 Natív Capacitor app - PWA banner elrejtve');
       return;
     }
 
@@ -58,8 +61,8 @@ export default function PWAInstallBanner() {
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
-    // iOS-en nincs beforeinstallprompt, de mutassuk a bannert
-    if (iOS) {
+    // iOS-en nincs beforeinstallprompt, de mutassuk a bannert (csak ha NEM natív app!)
+    if (iOS && !isNativeApp) {
       // Kis késleltetéssel jelenjen meg
       const timer = setTimeout(() => {
         setShowBanner(true);
