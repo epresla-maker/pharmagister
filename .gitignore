@@ -45,3 +45,10 @@ migrate-wp-users.js
 migrate-wp-demands.js
 send-all-passwords.js
 send-single-password.js
+
+# Capacitor
+ios/
+android/
+*.xcodeproj
+*.xcworkspace
+.gradle

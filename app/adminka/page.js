@@ -2,7 +2,7 @@
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { ArrowLeft, Key, BarChart3, TestTube } from "lucide-react";
+import { ArrowLeft, Key, BarChart3, TestTube, Smartphone } from "lucide-react";
 
 // Adminka szerepkörű felhasználók
 const ADMINKA_EMAILS = ['etinatina22@gmail.com'];
@@ -89,6 +89,21 @@ export default function AdminkaPage() {
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">🧪 RSS Feed Teszt</h2>
                 <p className="text-sm text-gray-500">Tesztelési környezet az RSS hírek integrációjához</p>
+              </div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => router.push('/adminka/apps')}
+            className="w-full bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow text-left"
+          >
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-cyan-100 rounded-xl">
+                <Smartphone className="w-8 h-8 text-cyan-600" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">📱 Mobil alkalmazások</h2>
+                <p className="text-sm text-gray-500">Letölthető iOS és Android verziók</p>
               </div>
             </div>
           </button>

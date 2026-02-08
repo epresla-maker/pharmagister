@@ -138,6 +138,12 @@ export default function AdminPage() {
             >
               🧪 RSS Feed Teszt
             </button>
+            <button
+              onClick={() => router.push('/admin/apps')}
+              className="bg-cyan-600 text-white px-3 py-2 rounded-lg hover:bg-cyan-700 text-xs sm:text-sm w-full"
+            >
+              📱 Mobil alkalmazások
+            </button>
           </div>
           
           {/* Role Statistics Cards - Active users only */}
