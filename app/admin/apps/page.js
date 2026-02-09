@@ -14,7 +14,7 @@ const APP_DOWNLOADS = {
     name: "Pharmagister Android",
     version: "1.0", 
     size: "~4 MB",
-    url: "https://storage.googleapis.com/pharmacare-dfa3c.firebasestorage.app/apps/pharmagister-android.apk",
+    url: null, // Régi verzió törölve - új ikonos verzió készül
     notes: "APK fájl. Telepítéshez engedélyezd az 'Ismeretlen források' opciót az Android beállításokban.",
     icon: Bot
   }
