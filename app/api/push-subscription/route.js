@@ -1,5 +1,39 @@
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 
+export async function GET(request) {
+  try {
+    const admin = getFirebaseAdmin();
+    const db = admin.firestore();
+    
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
+
+    if (!userId) {
+      return Response.json({ error: 'userId is required' }, { status: 400 });
+    }
+
+    const snapshot = await db.collection('pushSubscriptions')
+      .where('userId', '==', userId)
+      .get();
+
+    const hasSubscription = !snapshot.empty;
+    const subscriptions = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    return Response.json({ 
+      hasSubscription, 
+      count: subscriptions.length,
+      subscriptions 
+    });
+
+  } catch (error) {
+    console.error('Get subscription error:', error);
+    return Response.json({ error: error.message }, { status: 500 });
+  }
+}
+
 export async function POST(request) {
   try {
     const admin = getFirebaseAdmin();
