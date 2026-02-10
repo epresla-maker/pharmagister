@@ -6,8 +6,6 @@ const config: CapacitorConfig = {
   webDir: 'out',
   bundledWebRuntime: false,
   server: {
-    // Production URL - amikor az app telepítve van
-    // Ha lokálisan tesztelsz, használd: 'http://localhost:3000'
     url: 'https://pharmagister.hu',
     cleartext: true
   },

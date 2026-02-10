@@ -23,9 +23,30 @@ export default function PushNotificationSetup() {
   const { user } = useAuth();
   const [permission, setPermission] = useState('default');
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isNativePlatform, setIsNativePlatform] = useState(false);
+  const [platformChecked, setPlatformChecked] = useState(false);
+
+  // Platform detektálás
+  useEffect(() => {
+    const checkPlatform = async () => {
+      try {
+        const CapacitorCore = await import('@capacitor/core');
+        const isNative = CapacitorCore.Capacitor.isNativePlatform();
+        setIsNativePlatform(isNative);
+        console.log('[PushSetup] Platform:', isNative ? 'Native' : 'Web');
+      } catch (e) {
+        // Capacitor nem elérhető, web platform
+        setIsNativePlatform(false);
+        console.log('[PushSetup] Platform: Web (Capacitor not available)');
+      }
+      setPlatformChecked(true);
+    };
+    
+    checkPlatform();
+  }, []);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !platformChecked || isNativePlatform) return;
     
     // Check current permission status
     if ('Notification' in window) {
@@ -34,7 +55,7 @@ export default function PushNotificationSetup() {
 
     // Check if already subscribed
     checkSubscription();
-  }, [user]);
+  }, [user, platformChecked, isNativePlatform]);
 
   const checkSubscription = async () => {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
@@ -125,15 +146,17 @@ export default function PushNotificationSetup() {
     }
   };
 
-  // Export functions for use in other components
+  // Export functions for use in other components (csak web platformon)
   useEffect(() => {
+    if (isNativePlatform) return;
+    
     window.pushNotificationUtils = {
       subscribe: subscribeUser,
       unsubscribe: unsubscribeUser,
       isSubscribed,
       permission
     };
-  }, [isSubscribed, permission]);
+  }, [isSubscribed, permission, isNativePlatform]);
 
   return null;
 }

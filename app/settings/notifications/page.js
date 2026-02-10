@@ -30,6 +30,11 @@ export default function NotificationsSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [pushPermission, setPushPermission] = useState('default');
   const [isPushSubscribed, setIsPushSubscribed] = useState(false);
+  const [isNativeApp, setIsNativeApp] = useState(false);
+  const [platformInfo, setPlatformInfo] = useState('');
+  const [capacitorLoaded, setCapacitorLoaded] = useState(false);
+  const [Capacitor, setCapacitor] = useState(null);
+  const [PushNotifications, setPushNotifications] = useState(null);
   
   const pharmaRole = userData?.pharmagisterRole;
   
@@ -48,7 +53,37 @@ export default function NotificationsSettingsPage() {
   const [newZipCode, setNewZipCode] = useState('');
   const [zipCodeError, setZipCodeError] = useState('');
 
+  // Capacitor modulok betöltése
   useEffect(() => {
+    const loadCapacitor = async () => {
+      try {
+        const CapacitorCore = await import('@capacitor/core');
+        const CapacitorPush = await import('@capacitor/push-notifications');
+        
+        setCapacitor(CapacitorCore.Capacitor);
+        setPushNotifications(CapacitorPush.PushNotifications);
+        setCapacitorLoaded(true);
+        
+        const isNative = CapacitorCore.Capacitor.isNativePlatform();
+        setIsNativeApp(isNative);
+        const platform = CapacitorCore.Capacitor.getPlatform();
+        setPlatformInfo(isNative ? `Natív ${platform}` : 'Web PWA');
+        
+        console.log('🔔 Capacitor loaded:', { isNative, platform });
+      } catch (error) {
+        console.log('🔔 Capacitor not available - running in web mode', error);
+        setIsNativeApp(false);
+        setPlatformInfo('Web PWA');
+        setCapacitorLoaded(true);
+      }
+    };
+    
+    loadCapacitor();
+  }, []);
+
+  useEffect(() => {
+    if (!capacitorLoaded) return;
+    
     if (userData?.notificationSettings) {
       setSettings(prev => ({
         ...prev,
@@ -67,118 +102,242 @@ export default function NotificationsSettingsPage() {
       }));
     }
     
-    // Check push permission status
-    if ('Notification' in window) {
-      setPushPermission(Notification.permission);
-    }
-    
     // Check push subscription status
     checkPushSubscription();
-  }, [userData]);
+  }, [userData, capacitorLoaded]);
   
   const checkPushSubscription = async () => {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      return;
-    }
-    try {
-      const registration = await navigator.serviceWorker.ready;
-      const subscription = await registration.pushManager.getSubscription();
-      setIsPushSubscribed(!!subscription);
-    } catch (error) {
-      console.error('Error checking push subscription:', error);
+    if (isNativeApp && PushNotifications) {
+      // Natív app - kérdezd le a szerverről a tényleges subscription státuszt
+      try {
+        const permStatus = await PushNotifications.checkPermissions();
+        setPushPermission(permStatus.receive);
+        
+        // Kérdezd le a szervertől hogy van-e aktív subscription
+        console.log('🔔 [CHECK] Querying server for userId:', user.uid);
+        const response = await fetch(`/api/push-subscription?userId=${user.uid}`);
+        console.log('🔔 [CHECK] Server response status:', response.status);
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('🔔 [CHECK] Server data:', JSON.stringify(data));
+          console.log('🔔 [CHECK] hasSubscription value:', data.hasSubscription);
+          console.log('🔔 [CHECK] Setting isPushSubscribed to:', data.hasSubscription || false);
+          setIsPushSubscribed(data.hasSubscription || false);
+        } else {
+          console.log('🔔 [CHECK] Server response not OK, setting to false');
+          setIsPushSubscribed(false);
+        }
+      } catch (error) {
+        console.error('🔔 [CHECK] Error checking native push permission:', error);
+        setIsPushSubscribed(false);
+      }
+    } else {
+      // Web app - használj Web Push API-t
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        return;
+      }
+      try {
+        if ('Notification' in window) {
+          setPushPermission(Notification.permission);
+        }
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.getSubscription();
+        setIsPushSubscribed(!!subscription);
+      } catch (error) {
+        console.error('Error checking web push subscription:', error);
+      }
     }
   };
   
   const handleEnablePush = async () => {
-    try {
-      console.log('🔔 Starting push subscription...');
-      
-      // 1. Check if supported
-      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-        alert('A böngésződ nem támogatja a push értesítéseket.');
-        return;
+    if (isNativeApp && PushNotifications) {
+      // ============= NATÍV APP =============
+      try {
+        console.log('🔔 [NATIVE] Starting push subscription...');
+        
+        // 1. Kérj engedélyt
+        let permStatus = await PushNotifications.checkPermissions();
+        
+        if (permStatus.receive === 'prompt' || permStatus.receive === 'prompt-with-rationale') {
+          permStatus = await PushNotifications.requestPermissions();
+        }
+        
+        if (permStatus.receive !== 'granted') {
+          alert('Az értesítések engedélyezése szükséges a push értesítésekhez.');
+          return;
+        }
+        
+        setPushPermission('granted');
+        
+        // 2. Regisztráld az eszközt
+        await PushNotifications.register();
+        
+        // 3. Listener a token fogadására
+        await PushNotifications.addListener('registration', async (token) => {
+          console.log('🔔 [NATIVE] Push token:', token.value);
+          
+          // 4. Mentsd el a token-t a szerveren
+          try {
+            const response = await fetch('/api/push-subscription', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                userId: user.uid,
+                subscription: {
+                  endpoint: `native-${Capacitor.getPlatform()}-${token.value}`,
+                  platform: Capacitor.getPlatform(),
+                  token: token.value
+                }
+              })
+            });
+            
+            const result = await response.json();
+            console.log('🔔 [NATIVE] Server response:', result);
+            
+            if (response.ok) {
+              await checkPushSubscription(); // Újra lekérdezés
+              alert('✅ Push értesítések sikeresen bekapcsolva!');
+            } else {
+              throw new Error(result.error || 'Server error');
+            }
+          } catch (error) {
+            console.error('🔔 [NATIVE] Error saving token:', error);
+            alert('Hiba történt a token mentésekor: ' + error.message);
+          }
+        });
+        
+        // Hiba kezelés
+        await PushNotifications.addListener('registrationError', (error) => {
+          console.error('🔔 [NATIVE] Registration error:', error);
+          alert('Hiba történt a regisztráció során: ' + error.error);
+        });
+        
+      } catch (error) {
+        console.error('🔔 [NATIVE] Push subscription error:', error);
+        alert('Hiba történt a push értesítések bekapcsolásakor: ' + error.message);
       }
-      
-      // 2. Request notification permission
-      console.log('🔔 Requesting permission...');
-      const permission = await Notification.requestPermission();
-      console.log('🔔 Permission result:', permission);
-      setPushPermission(permission);
-      
-      if (permission !== 'granted') {
-        alert('Az értesítések engedélyezése szükséges a push értesítésekhez.');
-        return;
+    } else {
+      // ============= WEB APP =============
+      try {
+        console.log('🔔 [WEB] Starting push subscription...');
+        
+        // 1. Check if supported
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+          alert('A böngésződ nem támogatja a push értesítéseket.');
+          return;
+        }
+        
+        // 2. Request notification permission
+        console.log('🔔 [WEB] Requesting permission...');
+        const permission = await Notification.requestPermission();
+        console.log('🔔 [WEB] Permission result:', permission);
+        setPushPermission(permission);
+        
+        if (permission !== 'granted') {
+          alert('Az értesítések engedélyezése szükséges a push értesítésekhez.');
+          return;
+        }
+        
+        // 3. Get service worker registration
+        console.log('🔔 [WEB] Getting service worker...');
+        const registration = await navigator.serviceWorker.ready;
+        console.log('🔔 [WEB] Service worker ready:', registration);
+        
+        // 4. Subscribe to push
+        console.log('🔔 [WEB] Subscribing to push with VAPID key:', VAPID_PUBLIC_KEY?.substring(0, 20) + '...');
+        const subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        });
+        console.log('🔔 [WEB] Subscription created:', subscription);
+        
+        // 5. Save to server
+        console.log('🔔 [WEB] Saving subscription to server...');
+        const response = await fetch('/api/push-subscription', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user.uid,
+            subscription: subscription.toJSON()
+          })
+        });
+        
+        const result = await response.json();
+        console.log('🔔 [WEB] Server response:', result);
+        
+        if (response.ok) {
+          await checkPushSubscription(); // Újra lekérdezés
+          alert('✅ Push értesítések sikeresen bekapcsolva!');
+        } else {
+          throw new Error(result.error || 'Server error');
+        }
+      } catch (error) {
+        console.error('🔔 [WEB] Push subscription error:', error);
+        alert('Hiba történt a push értesítések bekapcsolásakor: ' + error.message);
       }
-      
-      // 3. Get service worker registration
-      console.log('🔔 Getting service worker...');
-      const registration = await navigator.serviceWorker.ready;
-      console.log('🔔 Service worker ready:', registration);
-      
-      // 4. Subscribe to push
-      console.log('🔔 Subscribing to push with VAPID key:', VAPID_PUBLIC_KEY?.substring(0, 20) + '...');
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-      });
-      console.log('🔔 Subscription created:', subscription);
-      
-      // 5. Save to server
-      console.log('🔔 Saving subscription to server...');
-      const response = await fetch('/api/push-subscription', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user.uid,
-          subscription: subscription.toJSON()
-        })
-      });
-      
-      const result = await response.json();
-      console.log('🔔 Server response:', result);
-      
-      if (response.ok) {
-        setIsPushSubscribed(true);
-        alert('✅ Push értesítések sikeresen bekapcsolva!');
-      } else {
-        throw new Error(result.error || 'Server error');
-      }
-    } catch (error) {
-      console.error('🔔 Push subscription error:', error);
-      alert('Hiba történt a push értesítések bekapcsolásakor: ' + error.message);
     }
   };
 
   const handleDisablePush = async () => {
-    try {
-      console.log('🔔 Disabling push subscription...');
-      
-      const registration = await navigator.serviceWorker.ready;
-      const subscription = await registration.pushManager.getSubscription();
-      
-      if (subscription) {
-        // Unsubscribe from push
-        await subscription.unsubscribe();
-        console.log('🔔 Unsubscribed from push');
+    if (isNativeApp && PushNotifications) {
+      // ============= NATÍV APP =============
+      try {
+        console.log('🔔 [NATIVE] Disabling push subscription...');
         
-        // Remove from server
+        // Remove all listeners
+        await PushNotifications.removeAllListeners();
+        
+        // Remove from server (user specifikus endpoint-tal)
         const response = await fetch('/api/push-subscription', {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             userId: user.uid,
-            endpoint: subscription.endpoint
+            platform: 'native'
           })
         });
         
-        console.log('🔔 Server delete response:', await response.json());
+        console.log('🔔 [NATIVE] Server delete response:', await response.json());
+        
+        await checkPushSubscription(); // Újra lekérdezés
+        alert('Push értesítések kikapcsolva.');
+      } catch (error) {
+        console.error('🔔 [NATIVE] Error disabling push:', error);
+        alert('Hiba történt: ' + error.message);
       }
-      
-      setIsPushSubscribed(false);
-      alert('Push értesítések kikapcsolva.');
-    } catch (error) {
-      console.error('🔔 Error disabling push:', error);
-      alert('Hiba történt: ' + error.message);
+    } else {
+      // ============= WEB APP =============
+      try {
+        console.log('🔔 [WEB] Disabling push subscription...');
+        
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.getSubscription();
+        
+        if (subscription) {
+          // Unsubscribe from push
+          await subscription.unsubscribe();
+          console.log('🔔 [WEB] Unsubscribed from push');
+          
+          // Remove from server
+          const response = await fetch('/api/push-subscription', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: user.uid,
+              endpoint: subscription.endpoint
+            })
+          });
+          
+          console.log('🔔 [WEB] Server delete response:', await response.json());
+        }
+        
+        await checkPushSubscription(); // Újra lekérdezés
+        alert('Push értesítések kikapcsolva.');
+      } catch (error) {
+        console.error('🔔 [WEB] Error disabling push:', error);
+        alert('Hiba történt: ' + error.message);
+      }
     }
   };
 
@@ -394,7 +553,12 @@ export default function NotificationsSettingsPage() {
                   <div>
                     <p className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>Push értesítések</p>
                     <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                      {isPushSubscribed ? 'Bekapcsolva ✓' : pushPermission === 'denied' ? 'Letiltva a böngészőben' : 'Nincs bekapcsolva'}
+                      {isPushSubscribed 
+                        ? `Bekapcsolva ✓ (${platformInfo})` 
+                        : pushPermission === 'denied' 
+                          ? 'Letiltva a rendszerben' 
+                          : `Nincs bekapcsolva (${platformInfo})`
+                      }
                     </p>
                   </div>
                 </div>
@@ -413,7 +577,7 @@ export default function NotificationsSettingsPage() {
                     Kikapcsolás
                   </button>
                 ) : (
-                  <span className="text-red-500 text-xs">Böngésző tiltja</span>
+                  <span className="text-red-500 text-xs">Rendszer tiltja</span>
                 )}
               </div>
               <div className="flex items-center justify-between px-4 py-3">
@@ -579,7 +743,10 @@ export default function NotificationsSettingsPage() {
           {/* Info */}
           <div className={`${darkMode ? 'bg-purple-900/30 border-purple-600' : 'bg-purple-50 border-purple-200'} border rounded-xl p-4`}>
             <p className={`text-sm ${darkMode ? 'text-purple-300' : 'text-purple-700'}`}>
-              💡 A push értesítések működéséhez engedélyezd az értesítéseket a böngésző beállításaiban is.
+              💡 {isNativeApp 
+                ? 'A push értesítések működéséhez engedélyezd az értesítéseket az eszköz beállításaiban is.' 
+                : 'A push értesítések működéséhez engedélyezd az értesítéseket a böngésző beállításaiban is.'
+              }
             </p>
           </div>
         </div>
