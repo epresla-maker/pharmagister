@@ -102,7 +102,12 @@ export default function PrivacyPolicyPage() {
             </p>
             <ul className="list-disc pl-6 space-y-2">
               <li><strong>Más felhasználókkal:</strong> jelentkezéskor a gyógyszertár láthatja az Ön által megosztott adatokat (beállítható)</li>
-              <li><strong>Szolgáltatók:</strong> Firebase (Google) - adattárolás, autentikáció, push értesítések</li>
+              <li><strong>Szolgáltatók:</strong>
+                <ul className="list-disc pl-6 mt-1 space-y-1">
+                  <li>Firebase (Google) - adattárolás, autentikáció, push értesítések</li>
+                  <li>Cloudinary - képek és médiafájlok tárolása, feldolgozása</li>
+                </ul>
+              </li>
               <li><strong>Jogi kötelezettség:</strong> hatósági megkeresés esetén</li>
             </ul>
             <p className="leading-relaxed mt-3">
