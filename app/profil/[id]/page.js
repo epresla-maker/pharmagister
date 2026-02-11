@@ -6,7 +6,9 @@ import { useTheme } from '@/context/ThemeContext';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import RouteGuard from '@/app/components/RouteGuard';
-import { ArrowLeft, User, Phone, Mail, MapPin, Clock, Code, DollarSign, FileText, Shield, Loader2, Pencil } from 'lucide-react';
+import { ArrowLeft, User, Phone, Mail, MapPin, Clock, Code, DollarSign, FileText, Shield, Loader2, Pencil, Flag, Ban } from 'lucide-react';
+import ReportModal from '@/app/components/ReportModal';
+import BlockUserModal from '@/app/components/BlockUserModal';
 
 export default function ProfilePage() {
   const params = useParams();
@@ -17,6 +19,9 @@ export default function ProfilePage() {
   
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [showBlockModal, setShowBlockModal] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
 
   useEffect(() => {
     loadProfile();
@@ -87,7 +92,7 @@ export default function ProfilePage() {
             </div>
             
             {/* Szerkesztés gomb - csak saját profilnál */}
-            {isOwnProfile && (
+            {isOwnProfile ? (
               <button
                 onClick={() => router.push('/pharmagister/setup?edit=true')}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
@@ -99,6 +104,31 @@ export default function ProfilePage() {
                 <Pencil className="w-4 h-4" />
                 Szerkesztés
               </button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowBlockModal(true)}
+                  className={`p-2 rounded-lg transition-colors ${
+                    darkMode 
+                      ? 'hover:bg-gray-700 text-orange-400' 
+                      : 'hover:bg-gray-100 text-orange-600'
+                  }`}
+                  title="Felhasználó letiltása"
+                >
+                  <Ban className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setShowReportModal(true)}
+                  className={`p-2 rounded-lg transition-colors ${
+                    darkMode 
+                      ? 'hover:bg-gray-700 text-red-400' 
+                      : 'hover:bg-gray-100 text-red-600'
+                  }`}
+                  title="Jelentés"
+                >
+                  <Flag className="w-5 h-5" />
+                </button>
+              </div>
             )}
           </div>
 
@@ -316,6 +346,25 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
+
+        {/* Report Modal */}
+        <ReportModal
+          isOpen={showReportModal}
+          onClose={() => setShowReportModal(false)}
+          reportType="user"
+          reportedUserId={userId}
+          reportedUserName={profileData?.displayName || profileData?.name}
+        />
+
+        {/* Block Modal */}
+        <BlockUserModal
+          isOpen={showBlockModal}
+          onClose={() => setShowBlockModal(false)}
+          targetUserId={userId}
+          targetUserName={profileData?.displayName || profileData?.name}
+          isCurrentlyBlocked={isBlocked}
+          onBlockChange={setIsBlocked}
+        />
       </div>
     </RouteGuard>
   );
