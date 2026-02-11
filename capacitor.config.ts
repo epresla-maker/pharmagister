@@ -4,7 +4,6 @@ const config: CapacitorConfig = {
   appId: 'com.pharmagister.app',
   appName: 'Pharmagister',
   webDir: 'out',
-  bundledWebRuntime: false,
   server: {
     url: 'https://pharmagister.hu',
     cleartext: true
