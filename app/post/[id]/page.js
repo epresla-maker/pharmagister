@@ -265,12 +265,12 @@ export default function PostDetailPage() {
                 src={post.authorData?.photoURL || '/default-avatar.svg'}
                 alt="Author"
                 className="w-10 h-10 rounded-full object-cover cursor-pointer hover:opacity-80"
-                onClick={() => post.userId && router.push(`/profile/${post.userId}`)}
+                onClick={() => post.userId && router.push(`/profil/${post.userId}`)}
               />
               <div>
                 <h3 
                   className="font-semibold text-gray-900 dark:text-white hover:underline cursor-pointer"
-                  onClick={() => post.userId && router.push(`/profile/${post.userId}`)}
+                  onClick={() => post.userId && router.push(`/profil/${post.userId}`)}
                 >
                   {post.authorData?.displayName || 'Névtelen'}
                 </h3>

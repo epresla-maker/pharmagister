@@ -607,7 +607,7 @@ export default function DemandDetailPage() {
                       </p>
                     </div>
                     <button
-                      onClick={() => router.push(`/profile/${applicant.userId}`)}
+                      onClick={() => router.push(`/profil/${applicant.userId}`)}
                       className="text-green-600 hover:text-green-700 text-sm font-medium"
                     >
                       Profil →
