@@ -849,13 +849,13 @@ export default function ModernServiceFeed() {
                     src={post.authorData?.photoURL || '/default-avatar.svg'}
                     alt="Author"
                     className="w-10 h-10 rounded-full object-cover cursor-pointer hover:opacity-80"
-                    onClick={() => post.userId && router.push(`/profile/${post.userId}`)}
+                    onClick={() => post.userId && router.push(`/profil/${post.userId}`)}
                   />
                   <div className="flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span 
                         className="font-semibold text-gray-900 dark:text-white hover:underline cursor-pointer"
-                        onClick={() => post.userId && router.push(`/profile/${post.userId}`)}
+                        onClick={() => post.userId && router.push(`/profil/${post.userId}`)}
                       >
                         {post.authorData?.displayName || 'Névtelen'}
                       </span>
@@ -902,13 +902,13 @@ export default function ModernServiceFeed() {
                       width={48}
                       height={48}
                       className="w-12 h-12 rounded-full object-cover border-2 border-cyan-400 cursor-pointer hover:opacity-80"
-                      onClick={() => post.userId && router.push(`/profile/${post.userId}`)}
+                      onClick={() => post.userId && router.push(`/profil/${post.userId}`)}
                       unoptimized={post.authorData?.photoURL?.includes('dicebear')}
                     />
                     <div className="flex-1">
                       <h3 
                         className="font-semibold text-gray-900 dark:text-white hover:underline cursor-pointer"
-                        onClick={() => post.userId && router.push(`/profile/${post.userId}`)}
+                        onClick={() => post.userId && router.push(`/profil/${post.userId}`)}
                       >
                         {post.authorData?.displayName || 'Névtelen'}
                       </h3>
@@ -1071,13 +1071,13 @@ export default function ModernServiceFeed() {
                     width={40}
                     height={40}
                     className="w-10 h-10 rounded-full object-cover cursor-pointer hover:opacity-80"
-                    onClick={() => post.userId && router.push(`/profile/${post.userId}`)}
+                    onClick={() => post.userId && router.push(`/profil/${post.userId}`)}
                     unoptimized={post.authorData?.photoURL?.includes('dicebear')}
                   />
                   <div>
                     <h3 
                       className="font-semibold text-gray-900 dark:text-white hover:underline cursor-pointer"
-                      onClick={() => post.userId && router.push(`/profile/${post.userId}`)}
+                      onClick={() => post.userId && router.push(`/profil/${post.userId}`)}
                     >
                       {post.authorData?.displayName || 'Névtelen'}
                     </h3>
@@ -1306,7 +1306,7 @@ export default function ModernServiceFeed() {
                   <div
                     key={userId}
                     onClick={() => {
-                      router.push(`/profile/${userId}`);
+                      router.push(`/profil/${userId}`);
                       setShowReactionModal(false);
                       setSelectedPostReactions(null);
                     }}
