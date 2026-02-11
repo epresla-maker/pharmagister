@@ -102,6 +102,13 @@ export default function SettingsPage() {
           onClick: () => router.push('/privacy'),
           color: 'text-gray-600',
           bgColor: darkMode ? 'bg-gray-700' : 'bg-gray-100'
+        },
+        {
+          icon: Shield,
+          label: 'Privacy Policy',
+          onClick: () => router.push('/privacy-policy'),
+          color: 'text-blue-600',
+          bgColor: darkMode ? 'bg-blue-900/30' : 'bg-blue-100'
         }
       ]
     }
