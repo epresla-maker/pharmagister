@@ -10,6 +10,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -20,6 +21,11 @@ export default function RegisterPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    if (!acceptedPrivacy) {
+      setError('Az adatvédelmi tájékoztató elfogadása kötelező');
+      return;
+    }
 
     if (password !== confirmPassword) {
       setError('A jelszavak nem egyeznek');
@@ -45,6 +51,7 @@ export default function RegisterPage() {
         pharmagisterRole: null,
         pharmaProfileComplete: false,
         emailVerified: false,
+        privacyAcceptedAt: new Date().toISOString(),
         verificationToken: verificationToken,
         verificationTokenExpires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
       });
@@ -198,9 +205,29 @@ export default function RegisterPage() {
             </div>
           </div>
 
+          <div className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              id="privacy-accept"
+              checked={acceptedPrivacy}
+              onChange={(e) => setAcceptedPrivacy(e.target.checked)}
+              className="mt-1 w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+            />
+            <label htmlFor="privacy-accept" className="text-sm text-gray-700">
+              Elolvastam és elfogadom az{' '}
+              <a 
+                href="/privacy-policy" 
+                target="_blank" 
+                className="text-purple-600 hover:underline font-medium"
+              >
+                Adatvédelmi Tájékoztatót
+              </a>
+            </label>
+          </div>
+
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !acceptedPrivacy}
             className="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50"
           >
             {loading ? 'Betöltés...' : 'Regisztrálok'}
