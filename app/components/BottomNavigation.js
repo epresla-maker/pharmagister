@@ -94,6 +94,9 @@ function BottomNavigation({ isVisible = true }) {
       className={`fixed bottom-0 left-0 right-0 border-t transition-transform duration-300 z-50 ${
         darkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-[#E5E7EB]'
       } ${isVisible ? 'translate-y-0' : 'translate-y-full'}`}
+      style={{
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)'
+      }}
     >
       <div className="grid grid-cols-5 gap-1 px-2 py-2">
         {navItems.map((item) => (

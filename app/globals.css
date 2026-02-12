@@ -6,6 +6,12 @@
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 249, 250, 251;
   --background-end-rgb: 255, 255, 255;
+  
+  /* Safe area insets - support for notches and gesture bars */
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
+  --safe-area-inset-right: env(safe-area-inset-right, 0px);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-inset-left: env(safe-area-inset-left, 0px);
 }
 
 /* Dark mode colors */
@@ -19,6 +25,9 @@ body {
   color: rgb(var(--foreground-rgb));
   background-color: rgb(var(--background-start-rgb));
   transition: background-color 0.3s ease, color 0.3s ease;
+  /* Support edge-to-edge layout with safe areas */
+  padding: 0;
+  margin: 0;
 }
 
 /* Dark mode base styles */
@@ -124,6 +133,23 @@ html.dark .shadow {
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+  
+  /* Safe area utilities for consistent padding across the app */
+  .pb-safe {
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+  }
+  
+  .pb-safe-small {
+    padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+  }
+  
+  .mb-safe {
+    margin-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  
+  .h-safe-navbar {
+    height: calc(73px + env(safe-area-inset-bottom, 0px));
   }
 }
 

@@ -43,8 +43,9 @@ export default function PharmaNavbar({ isVisible = true }) {
     <div 
       className={`fixed left-0 right-0 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-[#E5E7EB]'} border-t transition-all duration-300 z-40`}
       style={{ 
-        bottom: '73px',
-        transform: isVisible ? 'translateY(0)' : 'translateY(calc(100% + 73px))'
+        bottom: 'calc(73px + env(safe-area-inset-bottom, 0px))',
+        transform: isVisible ? 'translateY(0)' : 'translateY(calc(100% + 73px))',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)'
       }}
     >
       <div className="grid grid-cols-3 gap-1 px-2 py-2">

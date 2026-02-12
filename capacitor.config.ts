@@ -16,7 +16,9 @@ const config: CapacitorConfig = {
     buildOptions: {
       keystorePath: undefined,
       keystoreAlias: undefined,
-    }
+    },
+    // Enable edge-to-edge layout for proper safe area insets
+    allowMixedContent: true
   },
   plugins: {
     SplashScreen: {
@@ -26,6 +28,17 @@ const config: CapacitorConfig = {
     },
     PushNotifications: {
       presentationOptions: ["badge", "sound", "alert"]
+    },
+    StatusBar: {
+      // Enable edge-to-edge layout with proper overlays
+      style: 'DEFAULT',
+      backgroundColor: '#6B46C1',
+      overlaysWebView: false
+    },
+    Keyboard: {
+      // Proper keyboard handling for Android
+      resize: 'native',
+      style: 'DARK'
     }
   }
 };

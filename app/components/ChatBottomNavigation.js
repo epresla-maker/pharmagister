@@ -61,6 +61,9 @@ export default function ChatBottomNavigation({ isVisible = true, onMenuOpen }) {
       } ${
         isVisible ? 'translate-y-0' : 'translate-y-full'
       }`}
+      style={{
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)'
+      }}
     >
       <div className="grid grid-cols-3 gap-1 px-2 py-2">
         {navItems.map((item, index) => {
