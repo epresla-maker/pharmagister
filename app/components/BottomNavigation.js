@@ -32,7 +32,7 @@ const NavItem = memo(function NavItem({ item, isActive, darkMode, onClick }) {
         strokeWidth={2}
       />
       
-      <span className={`mt-1 font-medium ${item.isLarge ? 'text-[0.65rem]' : 'text-[0.5625rem]'}`}>{item.label}</span>
+      <span className={`mt-1 font-medium truncate w-full text-center ${item.isLarge ? 'text-[0.6rem]' : 'text-[0.55rem]'}`}>{item.label}</span>
     </button>
   );
 });
