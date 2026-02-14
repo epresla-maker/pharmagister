@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -84,24 +84,32 @@ function PharmagisterContent() {
 
   // --- SCROLL FIGYELÉS A NAVBAR ELREJTÉSÉHEZ ---
   const [showNavbar, setShowNavbar] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
+  const lastScrollY = useRef(0);
+  const ticking = useRef(false);
 
   useEffect(() => {
     const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      
-      if (currentScrollY < lastScrollY) {
-        setShowNavbar(true);
-      } else if (currentScrollY > lastScrollY && currentScrollY > 100) {
-        setShowNavbar(false);
+      if (!ticking.current) {
+        window.requestAnimationFrame(() => {
+          const currentScrollY = window.scrollY;
+          
+          if (currentScrollY < lastScrollY.current) {
+            setShowNavbar(true);
+          } else if (currentScrollY > lastScrollY.current && currentScrollY > 100) {
+            setShowNavbar(false);
+          }
+          
+          lastScrollY.current = currentScrollY;
+          ticking.current = false;
+        });
+        
+        ticking.current = true;
       }
-      
-      setLastScrollY(currentScrollY);
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [lastScrollY]);
+  }, []);
 
   return (
     <RouteGuard>

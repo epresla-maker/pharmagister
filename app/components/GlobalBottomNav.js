@@ -7,6 +7,7 @@ import BottomNavigation from './BottomNavigation';
 function GlobalBottomNav() {
   const [showBottomNav, setShowBottomNav] = useState(true);
   const lastScrollY = useRef(0);
+  const ticking = useRef(false);
   const pathname = usePathname();
   const { user, loading } = useAuth();
 
@@ -14,17 +15,24 @@ function GlobalBottomNav() {
   const isChatPage = pathname?.startsWith('/chat');
   const isPostDetailPage = pathname?.startsWith('/post/');
 
-  // Memoized scroll handler - no state dependency to avoid re-creating
+  // Throttled scroll handler with RAF
   const handleScroll = useCallback(() => {
-    const currentScrollY = window.scrollY;
-    
-    if (currentScrollY < lastScrollY.current) {
-      setShowBottomNav(true);
-    } else if (currentScrollY > lastScrollY.current && currentScrollY > 100) {
-      setShowBottomNav(false);
+    if (!ticking.current) {
+      window.requestAnimationFrame(() => {
+        const currentScrollY = window.scrollY;
+        
+        if (currentScrollY < lastScrollY.current) {
+          setShowBottomNav(true);
+        } else if (currentScrollY > lastScrollY.current && currentScrollY > 100) {
+          setShowBottomNav(false);
+        }
+        
+        lastScrollY.current = currentScrollY;
+        ticking.current = false;
+      });
+      
+      ticking.current = true;
     }
-    
-    lastScrollY.current = currentScrollY;
   }, []);
 
   useEffect(() => {

@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import RouteGuard from './components/RouteGuard';
@@ -11,17 +11,24 @@ export default function HomePage() {
   const router = useRouter();
   const [showMiClyps, setShowMiClyps] = useState(true);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const ticking = useRef(false);
 
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY < 50) {
-        setShowMiClyps(true);
-      } else {
-        setShowMiClyps(false);
+      if (!ticking.current) {
+        window.requestAnimationFrame(() => {
+          if (window.scrollY < 50) {
+            setShowMiClyps(true);
+          } else {
+            setShowMiClyps(false);
+          }
+          ticking.current = false;
+        });
+        ticking.current = true;
       }
     };
 
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 

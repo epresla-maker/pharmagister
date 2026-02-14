@@ -95,7 +95,9 @@ function BottomNavigation({ isVisible = true }) {
         darkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-[#E5E7EB]'
       } ${isVisible ? 'translate-y-0' : 'translate-y-full'}`}
       style={{
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)'
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        willChange: 'transform',
+        transform: 'translateZ(0)'
       }}
     >
       <div className="grid grid-cols-5 gap-1 px-2 py-2">
