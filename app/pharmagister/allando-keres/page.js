@@ -569,8 +569,7 @@ function AllandoKeresContent() {
             {posts.length === 0 ? (
               <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} p-12 text-center`}>
                 <div className="text-4xl mb-4">📋</div>
-                <p className={`${darkMode ? 'text-gray-400' : 'text-gray-500'} mb-2`}>Még nincsenek bejegyzések.</p>
-                <p className={`text-sm ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Légy az első, aki állandó munkatársat keres!</p>
+                <p className={`${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Még nincsenek bejegyzések.</p>
               </div>
             ) : (
               posts.map((post) => {
