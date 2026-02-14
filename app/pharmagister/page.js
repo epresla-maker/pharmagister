@@ -118,17 +118,17 @@ function PharmagisterContent() {
           
           {/* Header */}
           <div className="mb-8">
-            <div className="flex items-center justify-between mb-4 min-h-[48px]">
+            <div className="flex items-center justify-between mb-4 min-h-[48px] relative">
               <button
                 onClick={() => router.push('/')}
-                className="text-[#6B46C1] font-medium flex items-center gap-1 text-base"
+                className="text-[#6B46C1] font-medium flex items-center gap-1 text-base z-10"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
                 főoldal
               </button>
-              <h1 className="text-lg sm:text-xl font-bold flex items-center gap-1 flex-shrink-0">
+              <h1 className="absolute left-1/2 -translate-x-1/2 text-lg sm:text-xl font-bold flex items-center gap-1 flex-shrink-0">
                 <span className="text-green-600 text-lg sm:text-xl">Pharmagister</span>
               </h1>
               <div className="w-10"></div>
