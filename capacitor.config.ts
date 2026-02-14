@@ -1,4 +1,5 @@
 import { CapacitorConfig } from '@capacitor/cli';
+import { KeyboardResize, KeyboardStyle } from '@capacitor/keyboard';
 
 const config: CapacitorConfig = {
   appId: 'com.pharmagister.app',
@@ -37,8 +38,8 @@ const config: CapacitorConfig = {
     },
     Keyboard: {
       // Proper keyboard handling for Android
-      resize: 'body',
-      style: 'dark'
+      resize: KeyboardResize.Body,
+      style: KeyboardStyle.Dark
     }
   }
 };
