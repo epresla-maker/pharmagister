@@ -114,24 +114,22 @@ function PharmagisterContent() {
   return (
     <RouteGuard>
       <div className={`min-h-screen ${darkMode ? 'bg-gray-900 text-white' : 'bg-[#F9FAFB] text-[#111827]'} ${pharmaRole ? 'pb-[146px]' : 'pb-40'}`}>
-        <div className="max-w-[420px] sm:max-w-2xl lg:max-w-5xl xl:max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="max-w-[420px] sm:max-w-2xl lg:max-w-5xl xl:max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pt-safe">
           
           {/* Header */}
           <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-4 min-h-[48px]">
               <button
                 onClick={() => router.push('/')}
-                className="text-[#6B46C1] font-medium flex items-center gap-1"
+                className="text-[#6B46C1] font-medium flex items-center gap-1 text-base"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
                 főoldal
               </button>
-              <h1 className="text-xl font-bold flex items-baseline gap-1">
-                <span className="text-green-600">Pharmagister</span>
-                <span className={`${darkMode ? 'text-gray-400' : 'text-gray-800'} text-xs font-light italic`} style={{ fontFamily: 'Georgia, serif' }}>by</span>
-                <span className="text-cyan-500 italic" style={{ fontFamily: 'Georgia, serif' }}>vali Friend</span>
+              <h1 className="text-lg sm:text-xl font-bold flex items-center gap-1 flex-shrink-0">
+                <span className="text-green-600 text-lg sm:text-xl">Pharmagister</span>
               </h1>
               <div className="w-10"></div>
             </div>

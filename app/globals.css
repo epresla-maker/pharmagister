@@ -151,6 +151,19 @@ html.dark .shadow {
   .h-safe-navbar {
     height: calc(73px + env(safe-area-inset-bottom, 0px));
   }
+  
+  /* Safe area utilities for top (notch/status bar) */
+  .pt-safe {
+    padding-top: calc(1.5rem + env(safe-area-inset-top, 0px));
+  }
+  
+  .pt-safe-small {
+    padding-top: calc(0.5rem + env(safe-area-inset-top, 0px));
+  }
+  
+  .mt-safe {
+    margin-top: env(safe-area-inset-top, 0px);
+  }
 }
 
 @keyframes float {

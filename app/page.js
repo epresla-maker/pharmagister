@@ -36,13 +36,11 @@ export default function HomePage() {
     <RouteGuard>
       <div className="min-h-screen bg-gray-100 dark:bg-gray-900 pb-[40px]">
         {/* Sticky Header */}
-        <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 z-10 shadow-sm">
-          <div className="max-w-xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 z-10 shadow-sm pt-safe-small">
+          <div className="max-w-xl mx-auto px-4 py-3 flex items-center justify-between min-h-[56px]">
             {/* Logo */}
-            <h1 className="text-xl font-bold flex items-baseline gap-1">
-              <span className="text-green-600">Pharmagister</span>
-              <span className="text-gray-800 dark:text-gray-300 text-xs font-light italic" style={{ fontFamily: 'Georgia, serif' }}>by</span>
-              <span className="text-cyan-500 italic" style={{ fontFamily: 'Georgia, serif' }}>vali Friend</span>
+            <h1 className="text-lg sm:text-xl font-bold flex items-center gap-1 flex-shrink-0">
+              <span className="text-green-600 text-lg sm:text-xl">Pharmagister</span>
             </h1>
 
             {/* Profile Button - navigál a saját profilra */}
