@@ -456,40 +456,21 @@ export default function ModernServiceFeed() {
         </div>
       )}
 
-      {/* Poszt létrehozása mező */}
+      {/* Gombok: Állandóra keres + Hírek */}
       <div className="bg-white dark:bg-gray-800 p-3 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center gap-3">
-          {/* Profilkép */}
-          <div 
-            className="w-10 h-10 rounded-full overflow-hidden border-2 border-green-500 flex-shrink-0 cursor-pointer"
-            onClick={() => user && router.push(`/profil/${user.uid}`)}
+        <div className="space-y-3">
+          {/* Állandóra keres gomb */}
+          <button
+            onClick={() => router.push('/pharmagister/allando-keres')}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg font-medium transition-colors"
           >
-            {userData?.photoURL ? (
-              <img 
-                src={userData.photoURL} 
-                alt="Profile" 
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full bg-green-500 flex items-center justify-center text-white font-bold text-sm">
-                {userData?.displayName?.[0] || 'P'}
-              </div>
-            )}
-          </div>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <span>Állandóra keres</span>
+          </button>
 
-          {/* Input mező - kattintásra megnyitja a szerkesztőt */}
-          <div 
-            className="flex-1 relative cursor-pointer"
-            onClick={() => setShowPostEditor(true)}
-          >
-            <div className="w-full px-4 py-2.5 bg-gray-100 dark:bg-gray-700 rounded-full text-sm text-gray-500 dark:text-gray-400">
-              Írj valamit...
-            </div>
-          </div>
-        </div>
-        
-        {/* Hírek gomb */}
-        <div className="mt-3">
+          {/* Hírek gomb */}
           <button
             onClick={() => router.push('/hirek')}
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors"
@@ -499,148 +480,6 @@ export default function ModernServiceFeed() {
           </button>
         </div>
       </div>
-
-      {/* Poszt szerkesztő modal */}
-      {showPostEditor && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-4 overflow-hidden"
-          style={{ touchAction: 'none' }}
-        >
-          <div className="bg-white dark:bg-gray-800 w-full sm:max-w-lg sm:rounded-xl rounded-xl mx-2 max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-              <button 
-                onClick={() => {
-                  setShowPostEditor(false);
-                  setNewPostText('');
-                  setPostStyle({
-                    backgroundColor: '#ffffff',
-                    textColor: '#000000',
-                    fontSize: 16,
-                    fontFamily: 'default'
-                  });
-                }}
-                className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-              >
-                <X size={24} />
-              </button>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Új bejegyzés</h2>
-              <button
-                onClick={handleCreatePost}
-                disabled={!newPostText.trim() || uploading}
-                className="px-4 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-full font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {uploading ? 'Küldés...' : 'Közzététel'}
-              </button>
-            </div>
-
-            {/* Előnézet és szerkesztés */}
-            <div className="flex-1 overflow-y-auto p-4">
-              {/* Szöveg előnézet */}
-              <div 
-                className="min-h-[120px] p-4 rounded-xl mb-4 transition-all"
-                style={{
-                  backgroundColor: postStyle.backgroundColor,
-                  color: postStyle.textColor,
-                  fontSize: `${postStyle.fontSize}px`,
-                  fontFamily: postStyle.fontFamily === 'default' ? 'inherit' 
-                    : postStyle.fontFamily === 'serif' ? 'Georgia, serif'
-                    : postStyle.fontFamily === 'mono' ? 'monospace'
-                    : postStyle.fontFamily === 'cursive' ? 'cursive'
-                    : 'inherit'
-                }}
-              >
-                <textarea
-                  value={newPostText}
-                  onChange={(e) => setNewPostText(e.target.value)}
-                  placeholder="Mire gondolsz?"
-                  className="w-full h-full min-h-[100px] bg-transparent resize-none focus:outline-none placeholder-current opacity-50"
-                  style={{
-                    color: postStyle.textColor,
-                    fontSize: `${postStyle.fontSize}px`,
-                    fontFamily: postStyle.fontFamily === 'default' ? 'inherit' 
-                      : postStyle.fontFamily === 'serif' ? 'Georgia, serif'
-                      : postStyle.fontFamily === 'mono' ? 'monospace'
-                      : postStyle.fontFamily === 'cursive' ? 'cursive'
-                      : 'inherit'
-                  }}
-                  autoFocus
-                />
-              </div>
-
-              {/* Stílus beállítások */}
-              <div className="space-y-4">
-                {/* Háttérszín */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Háttérszín
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {['#ffffff', '#fef3c7', '#dcfce7', '#dbeafe', '#fce7f3', '#f3e8ff', '#fee2e2', '#1f2937', '#7c3aed', '#059669'].map(color => (
-                      <button
-                        key={color}
-                        onClick={() => setPostStyle(prev => ({ 
-                          ...prev, 
-                          backgroundColor: color,
-                          textColor: color === '#1f2937' ? '#ffffff' : prev.textColor === '#ffffff' && color !== '#1f2937' ? '#000000' : prev.textColor
-                        }))}
-                        className={`w-8 h-8 rounded-full border-2 transition-all ${postStyle.backgroundColor === color ? 'border-green-500 scale-110' : 'border-gray-300'}`}
-                        style={{ backgroundColor: color }}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                {/* Szövegszín */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Szövegszín
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {['#000000', '#374151', '#dc2626', '#059669', '#2563eb', '#7c3aed', '#db2777', '#ea580c', '#ffffff'].map(color => (
-                      <button
-                        key={color}
-                        onClick={() => setPostStyle(prev => ({ ...prev, textColor: color }))}
-                        className={`w-8 h-8 rounded-full border-2 transition-all ${postStyle.textColor === color ? 'border-green-500 scale-110' : 'border-gray-300'}`}
-                        style={{ backgroundColor: color }}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                {/* Betűtípus */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Betűtípus
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {[
-                      { value: 'default', label: 'Alap' },
-                      { value: 'serif', label: 'Serif' },
-                      { value: 'mono', label: 'Mono' },
-                      { value: 'cursive', label: 'Kézírásos' }
-                    ].map(font => (
-                      <button
-                        key={font.value}
-                        onClick={() => setPostStyle(prev => ({ ...prev, fontFamily: font.value }))}
-                        className={`px-3 py-1.5 rounded-lg border transition-all ${postStyle.fontFamily === font.value ? 'border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300' : 'border-gray-300 dark:border-gray-600'}`}
-                        style={{
-                          fontFamily: font.value === 'default' ? 'inherit' 
-                            : font.value === 'serif' ? 'Georgia, serif'
-                            : font.value === 'mono' ? 'monospace'
-                            : 'cursive'
-                        }}
-                      >
-                        {font.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Posts Feed */}
       {posts.length === 0 ? (
