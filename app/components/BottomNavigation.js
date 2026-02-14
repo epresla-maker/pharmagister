@@ -28,11 +28,11 @@ const NavItem = memo(function NavItem({ item, isActive, darkMode, onClick }) {
       )}
       
       <Icon 
-        className={item.isLarge ? "w-8 h-8" : "w-6 h-6"} 
+        className="w-6 h-6"
         strokeWidth={2}
       />
       
-      <span className={`mt-1 font-medium truncate w-full text-center ${item.isLarge ? 'text-[0.6rem]' : 'text-[0.55rem]'}`}>{item.label}</span>
+      <span className="mt-1 font-medium text-[0.55rem] leading-tight truncate w-full text-center">{item.label}</span>
     </button>
   );
 });
