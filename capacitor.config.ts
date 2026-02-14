@@ -37,8 +37,8 @@ const config: CapacitorConfig = {
     },
     Keyboard: {
       // Proper keyboard handling for Android
-      resize: 'native',
-      style: 'DARK'
+      resize: 'body',
+      style: 'dark'
     }
   }
 };
