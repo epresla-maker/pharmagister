@@ -178,25 +178,33 @@ export default function AdminPage() {
             <>
               {/* Mobil nézet - Kártyák */}
               <div className="sm:hidden space-y-3">
-                {users.map(user => (
-                  <div key={user.id} className="bg-gray-50 rounded-lg p-3 border">
+                {[...users].sort((a, b) => (a.displayName || a.email || '').localeCompare(b.displayName || b.email || '', 'hu')).map(u => (
+                  <div key={u.id} className="bg-gray-50 rounded-lg p-3 border">
                     <div className="flex justify-between items-start mb-2">
-                      <div className="text-xs font-medium break-all pr-2">{user.email}</div>
+                      <div className="pr-2">
+                        <button
+                          onClick={() => router.push(`/profil/${u.id}`)}
+                          className="text-sm font-semibold text-purple-700 hover:text-purple-900 hover:underline text-left break-all"
+                        >
+                          {u.displayName || 'Névtelen'}
+                        </button>
+                        <div className="text-xs text-gray-500 break-all mt-0.5">{u.email}</div>
+                      </div>
                       <button
-                        onClick={() => deleteUser(user.id)}
+                        onClick={() => deleteUser(u.id)}
                         className="text-red-600 hover:text-red-800 text-lg flex-shrink-0"
                       >
                         🗑
                       </button>
                     </div>
                     <div className="flex gap-2 flex-wrap">
-                      {user.pharmagisterRole && (
+                      {u.pharmagisterRole && (
                         <span className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded text-xs">
-                          {user.pharmagisterRole}
+                          {u.pharmagisterRole}
                         </span>
                       )}
-                      <span className={user.pharmaProfileComplete ? "text-green-600 text-xs" : "text-orange-600 text-xs"}>
-                        {user.pharmaProfileComplete ? "✓ Kész" : "⚠ Hiányos"}
+                      <span className={u.pharmaProfileComplete ? "text-green-600 text-xs" : "text-orange-600 text-xs"}>
+                        {u.pharmaProfileComplete ? "✓ Kész" : "⚠ Hiányos"}
                       </span>
                     </div>
                   </div>
@@ -208,6 +216,7 @@ export default function AdminPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b">
+                      <th className="text-left py-3 px-4 text-sm">Név</th>
                       <th className="text-left py-3 px-4 text-sm">Email</th>
                       <th className="text-left py-3 px-4 text-sm">Szerep</th>
                       <th className="text-left py-3 px-4 text-sm">Profil</th>
@@ -216,31 +225,39 @@ export default function AdminPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {users.map(user => (
-                      <tr key={user.id} className="border-b hover:bg-gray-50">
-                        <td className="py-3 px-4 text-sm">{user.email}</td>
+                    {[...users].sort((a, b) => (a.displayName || a.email || '').localeCompare(b.displayName || b.email || '', 'hu')).map(u => (
+                      <tr key={u.id} className="border-b hover:bg-gray-50">
+                        <td className="py-3 px-4 text-sm">
+                          <button
+                            onClick={() => router.push(`/profil/${u.id}`)}
+                            className="text-purple-700 hover:text-purple-900 hover:underline font-medium text-left"
+                          >
+                            {u.displayName || 'Névtelen'}
+                          </button>
+                        </td>
+                        <td className="py-3 px-4 text-sm text-gray-600">{u.email}</td>
                         <td className="py-3 px-4">
-                          {user.pharmagisterRole ? (
+                          {u.pharmagisterRole ? (
                             <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs">
-                              {user.pharmagisterRole}
+                              {u.pharmagisterRole}
                             </span>
                           ) : (
                             <span className="text-gray-400 text-xs">-</span>
                           )}
                         </td>
                         <td className="py-3 px-4 text-sm">
-                          {user.pharmaProfileComplete ? (
+                          {u.pharmaProfileComplete ? (
                             <span className="text-green-600">✓ Kész</span>
                           ) : (
                             <span className="text-orange-600">⚠ Hiányos</span>
                           )}
                         </td>
                         <td className="py-3 px-4 text-sm text-gray-600">
-                          {user.createdAt ? new Date(user.createdAt).toLocaleDateString('hu-HU') : '-'}
+                          {u.createdAt ? new Date(u.createdAt).toLocaleDateString('hu-HU') : '-'}
                         </td>
                         <td className="py-3 px-4">
                           <button
-                            onClick={() => deleteUser(user.id)}
+                            onClick={() => deleteUser(u.id)}
                             className="text-red-600 hover:text-red-800 text-sm"
                           >
                             Törlés
