@@ -133,16 +133,7 @@ function PharmagisterContent() {
                 <span className={`${darkMode ? 'text-gray-400' : 'text-gray-800'} text-xs font-light italic`} style={{ fontFamily: 'Georgia, serif' }}>by</span>
                 <span className="text-cyan-500 italic" style={{ fontFamily: 'Georgia, serif' }}>vali Friend</span>
               </h1>
-              <div className="flex items-center gap-2">
-                {user?.email === 'epresla@icloud.com' && (
-                  <button
-                    onClick={() => router.push('/admin')}
-                    className="text-red-600 font-bold text-sm"
-                  >
-                    Admin
-                  </button>
-                )}
-              </div>
+              <div className="w-10"></div>
             </div>
           </div>
 
