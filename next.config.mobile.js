@@ -4,6 +4,9 @@
 
 /** @type {import('next').NextConfig} */
 const nextConfigMobile = {
+  // Turbopack config - üres, hogy ne legyen konfliktus
+  turbopack: {},
+  
   // Static export Capacitorhoz
   output: 'export',
   
@@ -26,23 +29,7 @@ const nextConfigMobile = {
     removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
   },
   
-  // Webpack config - hasonló az eredetihez, de statikusra optimalizálva
-  webpack: (config, { dev, isServer }) => {
-    if (dev) {
-      config.watchOptions = {
-        poll: 1000,
-        aggregateTimeout: 300,
-        ignored: ['**/node_modules', '**/.next', '**/.git'],
-      };
-    }
-    
-    config.optimization = {
-      ...config.optimization,
-      moduleIds: 'deterministic',
-    };
-    
-    return config;
-  },
+  // Webpack config eltávolítva - Turbopack-et használunk
 };
 
 module.exports = nextConfigMobile;

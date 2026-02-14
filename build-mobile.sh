@@ -7,15 +7,27 @@ set -e
 echo "🔨 Mobil app build indítása..."
 echo ""
 
-# 1. Next.js static export a mobil konfigurációval
+# 1. Backup az eredeti config
+echo "💾 Config fájl mentése..."
+cp next.config.js next.config.js.backup
+
+# 2. Mobil config használata
+echo "🔄 Mobil konfiguráció alkalmazása..."
+cp next.config.mobile.js next.config.js
+
+# 3. Next.js static export
 echo "📦 Next.js static export generálása..."
-NEXT_CONFIG_FILE=next.config.mobile.js npx next build
+npx next build
+
+# 4. Config visszaállítása
+echo "🔙 Eredeti konfiguráció visszaállítása..."
+mv next.config.js.backup next.config.js
 
 echo ""
 echo "✅ Static export kész: ./out könyvtár"
 echo ""
 
-# 2. Capacitor sync (assets másolása a platformokra)
+# 5. Capacitor sync (assets másolása a platformokra)
 echo "🔄 Capacitor sync futtatása..."
 npx cap sync
 
