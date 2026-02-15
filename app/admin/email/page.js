@@ -83,11 +83,18 @@ export default function AdminEmailPage() {
         (u.displayName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
         (u.email || '').toLowerCase().includes(searchQuery.toLowerCase());
       
-      const matchesRole = filterRole === 'all' || 
-        u.pharmagisterRole === filterRole ||
-        (filterRole === 'pharmacist' && u.pharmagisterRole === 'gyógyszerész') ||
-        (filterRole === 'pharmacy' && u.pharmagisterRole === 'gyógyszertár') ||
-        (filterRole === 'assistant' && u.pharmagisterRole === 'szakasszisztens');
+      let matchesRole = true;
+      if (filterRole === 'inactive') {
+        // Inaktív: soha nem lépett be ÉS nem aktiválta a jelszót
+        const hasNeverLoggedIn = !u.lastLogin && !u.lastSeen;
+        const hasNotActivated = !u.passwordActivated;
+        matchesRole = hasNeverLoggedIn && hasNotActivated;
+      } else if (filterRole !== 'all') {
+        matchesRole = u.pharmagisterRole === filterRole ||
+          (filterRole === 'pharmacist' && u.pharmagisterRole === 'gyógyszerész') ||
+          (filterRole === 'pharmacy' && u.pharmagisterRole === 'gyógyszertár') ||
+          (filterRole === 'assistant' && u.pharmagisterRole === 'szakasszisztens');
+      }
       
       return matchesSearch && matchesRole;
     });
@@ -118,7 +125,17 @@ export default function AdminEmailPage() {
   const removeRecipient = (email) => {
     setSelectedRecipients(prev => prev.filter(r => r.email !== email));
   };
-
+  const selectInactiveUsers = () => {
+    const inactiveUsers = users.filter(u => {
+      const hasNeverLoggedIn = !u.lastLogin && !u.lastSeen;
+      const hasNotActivated = !u.passwordActivated;
+      return hasNeverLoggedIn && hasNotActivated && u.email;
+    });
+    const newRecipients = inactiveUsers
+      .filter(u => !isSelected(u.email))
+      .map(u => ({ email: u.email, displayName: u.displayName || u.email }));
+    setSelectedRecipients(prev => [...prev, ...newRecipients]);
+  };
   const sendEmail = async () => {
     if (selectedRecipients.length === 0) return alert('Válassz legalább egy címzettet!');
     if (!subject.trim()) return alert('Add meg a tárgyat!');
@@ -279,11 +296,12 @@ export default function AdminEmailPage() {
                   <option value="pharmacist">Gyógyszerész</option>
                   <option value="pharmacy">Gyógyszertár</option>
                   <option value="assistant">Szakasszisztens</option>
+                  <option value="inactive" className="text-red-600">🚫 Inaktív (soha nem lépett be)</option>
                 </select>
               </div>
 
               {/* Select all / deselect */}
-              <div className="flex gap-2 mb-2">
+              <div className="flex flex-wrap gap-2 mb-2">
                 <button
                   onClick={selectAll}
                   className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded hover:bg-green-200"
@@ -295,6 +313,12 @@ export default function AdminEmailPage() {
                   className="text-xs bg-red-100 text-red-700 px-3 py-1 rounded hover:bg-red-200"
                 >
                   Mind törlés
+                </button>
+                <button
+                  onClick={selectInactiveUsers}
+                  className="text-xs bg-orange-100 text-orange-700 px-3 py-1 rounded hover:bg-orange-200 font-medium"
+                >
+                  🚫 Inaktív felhasználók ({users.filter(u => !u.lastLogin && !u.lastSeen && !u.passwordActivated).length})
                 </button>
               </div>
 
