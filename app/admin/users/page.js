@@ -102,7 +102,7 @@ export default function AdminUsersPage() {
   }, [users]);
 
   const activeNonPharmacyUsers = useMemo(() => {
-    return nonPharmacyUsers.filter(u => u.emailVerified && u.passwordActivated);
+    return nonPharmacyUsers.filter(u => u.passwordActivated);
   }, [nonPharmacyUsers]);
 
   const filteredUsers = useMemo(() => {
@@ -225,7 +225,7 @@ export default function AdminUsersPage() {
                     const RoleIcon = getRoleIcon(u.pharmagisterRole);
                     const roleColor = getRoleColor(u.pharmagisterRole);
                     const hasPush = pushUserIds.has(u.id);
-                    const isActivated = u.emailVerified && u.passwordActivated;
+                    const isActivated = !!(u.lastLogin || u.lastSeen);
                     return (
                       <tr key={u.id} className="border-b last:border-0 hover:bg-gray-50 transition-colors">
                         <td className="py-3 px-4 text-center text-gray-400 text-xs font-mono">{index + 1}</td>
@@ -293,7 +293,7 @@ export default function AdminUsersPage() {
                 const RoleIcon = getRoleIcon(u.pharmagisterRole);
                 const roleColor = getRoleColor(u.pharmagisterRole);
                 const hasPush = pushUserIds.has(u.id);
-                const isActivated = u.emailVerified && u.passwordActivated;
+                const isActivated = !!(u.lastLogin || u.lastSeen);
                 return (
                   <div key={u.id} className="p-4">
                     <div className="flex items-start justify-between mb-2">

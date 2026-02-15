@@ -70,7 +70,7 @@ export default function StatsPage() {
       const last30d = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
       // ===== FELHASZNÁLÓK =====
-      const activeUsers = users.filter(u => u.emailVerified && u.passwordActivated);
+      const activeUsers = users.filter(u => u.lastLogin || u.lastSeen);
       const pharmacists = activeUsers.filter(u => u.pharmagisterRole === 'pharmacist' || u.pharmagisterRole === 'gyógyszerész');
       const pharmaciesArr = activeUsers.filter(u => u.pharmagisterRole === 'pharmacy' || u.pharmagisterRole === 'gyógyszertár');
       const assistants = activeUsers.filter(u => u.pharmagisterRole === 'assistant' || u.pharmagisterRole === 'szakasszisztens');
