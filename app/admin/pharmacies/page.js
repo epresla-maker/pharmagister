@@ -5,13 +5,13 @@ import { useEffect, useState, useMemo } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { 
-  Users, ArrowLeft, Search, Bell, BellOff, Mail,
-  Pill, Building2, UserCog, AlertCircle, Clock, UserCheck
+  Building2, ArrowLeft, Search, Bell, BellOff, Mail,
+  MapPin, Clock, UserCheck, User, Phone
 } from "lucide-react";
 
 const ADMIN_EMAILS = ['epresla@icloud.com'];
 
-export default function AdminUsersPage() {
+export default function AdminPharmaciesPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [users, setUsers] = useState([]);
@@ -59,10 +59,16 @@ export default function AdminUsersPage() {
       const usersData = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       const pushData = pushSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-      setUsers(usersData);
+      // Filter only pharmacies
+      const pharmacies = usersData.filter(u => {
+        const role = u.pharmagisterRole;
+        return role === 'pharmacy' || role === 'gyógyszertár';
+      });
+
+      setUsers(pharmacies);
       setPushSubs(pushData);
     } catch (error) {
-      console.error('Error loading users:', error);
+      console.error('Error loading pharmacies:', error);
     } finally {
       setLoadingData(false);
     }
@@ -72,44 +78,26 @@ export default function AdminUsersPage() {
     return new Set(pushSubs.map(s => s.userId));
   }, [pushSubs]);
 
-  const getRoleLabel = (role) => {
-    if (role === 'pharmacist' || role === 'gyógyszerész') return 'Gyógyszerész';
-    if (role === 'pharmacy' || role === 'gyógyszertár') return 'Gyógyszertár';
-    if (role === 'assistant' || role === 'szakasszisztens') return 'Szakasszisztens';
-    return 'Nincs';
+  const getAddress = (u) => {
+    const parts = [
+      u.pharmacyZipCode,
+      u.pharmacyCity,
+      u.pharmacyStreet ? `${u.pharmacyStreet} ${u.pharmacyHouseNumber || ''}`.trim() : null
+    ].filter(Boolean);
+    return parts.length > 0 ? parts.join(' ') : '-';
   };
-
-  const getRoleIcon = (role) => {
-    if (role === 'pharmacist' || role === 'gyógyszerész') return Pill;
-    if (role === 'pharmacy' || role === 'gyógyszertár') return Building2;
-    if (role === 'assistant' || role === 'szakasszisztens') return UserCog;
-    return AlertCircle;
-  };
-
-  const getRoleColor = (role) => {
-    if (role === 'pharmacist' || role === 'gyógyszerész') return 'text-blue-600 bg-blue-50';
-    if (role === 'pharmacy' || role === 'gyógyszertár') return 'text-green-600 bg-green-50';
-    if (role === 'assistant' || role === 'szakasszisztens') return 'text-orange-600 bg-orange-50';
-    return 'text-gray-500 bg-gray-100';
-  };
-
-  // Filter out pharmacies - they have their own page
-  const nonPharmacyUsers = useMemo(() => {
-    return users.filter(u => {
-      const role = u.pharmagisterRole;
-      return role !== 'pharmacy' && role !== 'gyógyszertár';
-    });
-  }, [users]);
 
   const filteredUsers = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
-    if (!q) return nonPharmacyUsers;
-    return nonPharmacyUsers.filter(u => {
-      const name = (u.displayName || u.name || '').toLowerCase();
+    if (!q) return users;
+    return users.filter(u => {
+      const name = (u.pharmacyName || u.displayName || '').toLowerCase();
       const email = (u.email || '').toLowerCase();
-      return name.includes(q) || email.includes(q);
+      const city = (u.pharmacyCity || '').toLowerCase();
+      const contact = (u.contactName || u.displayName || '').toLowerCase();
+      return name.includes(q) || email.includes(q) || city.includes(q) || contact.includes(q);
     });
-  }, [nonPharmacyUsers, searchQuery]);
+  }, [users, searchQuery]);
 
   const sortedUsers = useMemo(() => {
     return [...filteredUsers].sort((a, b) => {
@@ -136,9 +124,9 @@ export default function AdminUsersPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">👥 Felhasználók</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">🏥 Gyógyszertárak</h1>
             <p className="text-gray-500 mt-1">
-              Összes: <strong>{nonPharmacyUsers.length}</strong> | Találat: <strong>{sortedUsers.length}</strong>
+              Összes: <strong>{users.length}</strong> | Találat: <strong>{sortedUsers.length}</strong>
             </p>
           </div>
           <button 
@@ -155,18 +143,18 @@ export default function AdminUsersPage() {
             <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Keresés név vagy email alapján..."
+              placeholder="Keresés név, város, kapcsolattartó vagy email alapján..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+              className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
             />
           </div>
         </div>
 
         {loadingData ? (
           <div className="text-center py-16">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
-            <p className="mt-4 text-gray-500">Felhasználók betöltése...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
+            <p className="mt-4 text-gray-500">Gyógyszertárak betöltése...</p>
           </div>
         ) : (
           <div className="bg-white rounded-xl shadow-lg overflow-hidden">
@@ -176,9 +164,10 @@ export default function AdminUsersPage() {
                 <thead>
                   <tr className="bg-gray-50 text-left text-gray-500 border-b">
                     <th className="py-3 px-4 w-12 text-center">#</th>
-                    <th className="py-3 px-4">Név</th>
+                    <th className="py-3 px-4">Gyógyszertár neve</th>
+                    <th className="py-3 px-4">Kapcsolattartó</th>
+                    <th className="py-3 px-4">Cím</th>
                     <th className="py-3 px-4">Email</th>
-                    <th className="py-3 px-4">Szerepkör</th>
                     <th className="py-3 px-4">Utolsó belépés</th>
                     <th className="py-3 px-4 text-center">Push</th>
                     <th className="py-3 px-4 text-center">Státusz</th>
@@ -186,29 +175,36 @@ export default function AdminUsersPage() {
                 </thead>
                 <tbody>
                   {sortedUsers.map((u, index) => {
-                    const RoleIcon = getRoleIcon(u.pharmagisterRole);
-                    const roleColor = getRoleColor(u.pharmagisterRole);
                     const hasPush = pushUserIds.has(u.id);
                     const isActive = u.emailVerified && u.passwordActivated;
                     return (
                       <tr key={u.id} className="border-b last:border-0 hover:bg-gray-50 transition-colors">
                         <td className="py-3 px-4 text-center text-gray-400 text-xs font-mono">{index + 1}</td>
                         <td className="py-3 px-4">
-                          <p className="font-medium text-gray-800">
-                            {u.displayName || u.name || u.pharmacyName || 'Nincs név'}
-                          </p>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-1.5 text-gray-600">
-                            <Mail size={14} className="text-gray-400 flex-shrink-0" />
-                            <span className="text-xs">{u.email || '-'}</span>
+                          <div className="flex items-center gap-2">
+                            <Building2 size={16} className="text-green-600 flex-shrink-0" />
+                            <p className="font-medium text-gray-800">
+                              {u.pharmacyName || u.displayName || 'Nincs név'}
+                            </p>
                           </div>
                         </td>
                         <td className="py-3 px-4">
-                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${roleColor}`}>
-                            <RoleIcon size={12} />
-                            {getRoleLabel(u.pharmagisterRole)}
-                          </span>
+                          <div className="flex items-center gap-1.5 text-gray-600">
+                            <User size={13} className="text-gray-400 flex-shrink-0" />
+                            <span className="text-xs">{u.contactName || u.displayName || '-'}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-1.5 text-gray-600">
+                            <MapPin size={13} className="text-gray-400 flex-shrink-0" />
+                            <span className="text-xs">{getAddress(u)}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-1.5 text-gray-600">
+                            <Mail size={13} className="text-gray-400 flex-shrink-0" />
+                            <span className="text-xs">{u.email || '-'}</span>
+                          </div>
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-1.5 text-xs">
@@ -216,7 +212,7 @@ export default function AdminUsersPage() {
                             {u.lastLogin ? (
                               <span className="text-gray-500">{formatDate(u.lastLogin)}</span>
                             ) : u.lastSeen ? (
-                              <span className="text-gray-400" title="Utoljára aktív (nem lépett be újra)">{formatDate(u.lastSeen)} <span className="text-orange-400">(aktív)</span></span>
+                              <span className="text-gray-400" title="Utoljára aktív">{formatDate(u.lastSeen)} <span className="text-orange-400">(aktív)</span></span>
                             ) : (
                               <span className="text-red-400">Soha nem lépett be</span>
                             )}
@@ -254,8 +250,6 @@ export default function AdminUsersPage() {
             {/* Mobile cards */}
             <div className="md:hidden divide-y">
               {sortedUsers.map((u, index) => {
-                const RoleIcon = getRoleIcon(u.pharmagisterRole);
-                const roleColor = getRoleColor(u.pharmagisterRole);
                 const hasPush = pushUserIds.has(u.id);
                 const isActive = u.emailVerified && u.passwordActivated;
                 return (
@@ -264,11 +258,14 @@ export default function AdminUsersPage() {
                       <div className="flex items-start gap-2">
                         <span className="text-xs text-gray-400 font-mono mt-0.5">{index + 1}.</span>
                         <div>
-                        <p className="font-semibold text-gray-800">
-                          {u.displayName || u.name || u.pharmacyName || 'Nincs név'}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-0.5">{u.email || '-'}</p>
-                      </div>
+                          <div className="flex items-center gap-1.5">
+                            <Building2 size={14} className="text-green-600" />
+                            <p className="font-semibold text-gray-800">
+                              {u.pharmacyName || u.displayName || 'Nincs név'}
+                            </p>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-0.5">{u.email || '-'}</p>
+                        </div>
                       </div>
                       <div className="flex items-center gap-2">
                         {hasPush ? (
@@ -283,11 +280,17 @@ export default function AdminUsersPage() {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full font-medium ${roleColor}`}>
-                        <RoleIcon size={12} />
-                        {getRoleLabel(u.pharmagisterRole)}
-                      </span>
+                    <div className="space-y-1 text-xs text-gray-500 ml-6 mb-2">
+                      <div className="flex items-center gap-1.5">
+                        <User size={11} className="text-gray-400" />
+                        <span>{u.contactName || u.displayName || '-'}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <MapPin size={11} className="text-gray-400" />
+                        <span>{getAddress(u)}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-end text-xs">
                       <span className="text-gray-400 flex items-center gap-1">
                         <Clock size={12} />
                         {u.lastLogin ? (
@@ -306,7 +309,7 @@ export default function AdminUsersPage() {
 
             {sortedUsers.length === 0 && (
               <div className="text-center py-12 text-gray-500">
-                <Users size={48} className="mx-auto mb-3 text-gray-300" />
+                <Building2 size={48} className="mx-auto mb-3 text-gray-300" />
                 <p>Nincs találat a keresésre.</p>
               </div>
             )}

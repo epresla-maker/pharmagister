@@ -150,6 +150,12 @@ export default function AdminPage() {
             >
               👥 Felhasználók kezelése
             </button>
+            <button
+              onClick={() => router.push('/admin/pharmacies')}
+              className="bg-emerald-600 text-white px-3 py-2 rounded-lg hover:bg-emerald-700 text-xs sm:text-sm w-full"
+            >
+              🏥 Gyógyszertárak kezelése
+            </button>
           </div>
           
           {/* Role Statistics Cards - Active users only */}
