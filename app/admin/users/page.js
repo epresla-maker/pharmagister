@@ -167,6 +167,7 @@ export default function AdminUsersPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-gray-50 text-left text-gray-500 border-b">
+                    <th className="py-3 px-4 w-12 text-center">#</th>
                     <th className="py-3 px-4">Név</th>
                     <th className="py-3 px-4">Email</th>
                     <th className="py-3 px-4">Szerepkör</th>
@@ -176,13 +177,14 @@ export default function AdminUsersPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sortedUsers.map(u => {
+                  {sortedUsers.map((u, index) => {
                     const RoleIcon = getRoleIcon(u.pharmagisterRole);
                     const roleColor = getRoleColor(u.pharmagisterRole);
                     const hasPush = pushUserIds.has(u.id);
                     const isActive = u.emailVerified && u.passwordActivated;
                     return (
                       <tr key={u.id} className="border-b last:border-0 hover:bg-gray-50 transition-colors">
+                        <td className="py-3 px-4 text-center text-gray-400 text-xs font-mono">{index + 1}</td>
                         <td className="py-3 px-4">
                           <p className="font-medium text-gray-800">
                             {u.displayName || u.name || u.pharmacyName || 'Nincs név'}
@@ -243,7 +245,7 @@ export default function AdminUsersPage() {
 
             {/* Mobile cards */}
             <div className="md:hidden divide-y">
-              {sortedUsers.map(u => {
+              {sortedUsers.map((u, index) => {
                 const RoleIcon = getRoleIcon(u.pharmagisterRole);
                 const roleColor = getRoleColor(u.pharmagisterRole);
                 const hasPush = pushUserIds.has(u.id);
@@ -251,11 +253,14 @@ export default function AdminUsersPage() {
                 return (
                   <div key={u.id} className="p-4">
                     <div className="flex items-start justify-between mb-2">
-                      <div>
+                      <div className="flex items-start gap-2">
+                        <span className="text-xs text-gray-400 font-mono mt-0.5">{index + 1}.</span>
+                        <div>
                         <p className="font-semibold text-gray-800">
                           {u.displayName || u.name || u.pharmacyName || 'Nincs név'}
                         </p>
                         <p className="text-xs text-gray-500 mt-0.5">{u.email || '-'}</p>
+                      </div>
                       </div>
                       <div className="flex items-center gap-2">
                         {hasPush ? (
