@@ -2,9 +2,14 @@
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { collection, getDocs, query, where, Timestamp } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Users, Building2, Pill, UserCog, TrendingUp, Clock, ArrowLeft, CheckCircle, XCircle, FileCheck, Calendar, AlertCircle, FileText } from "lucide-react";
+import { 
+  Users, Building2, Pill, UserCog, TrendingUp, Clock, ArrowLeft, 
+  CheckCircle, XCircle, FileCheck, Calendar, AlertCircle, FileText,
+  MessageSquare, Bell, ShieldCheck, BarChart3,
+  Activity, Inbox, Send, UserCheck, UserX
+} from "lucide-react";
 
 const ADMIN_EMAILS = ['epresla@icloud.com'];
 const ADMINKA_EMAILS = ['etinatina22@gmail.com'];
@@ -12,38 +17,7 @@ const ADMINKA_EMAILS = ['etinatina22@gmail.com'];
 export default function StatsPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const [stats, setStats] = useState({
-    totalAll: 0,
-    total: 0,
-    gyogyszeresz: 0,
-    gyogyszertar: 0,
-    szakasszisztens: 0,
-    last24h: {
-      total: 0,
-      gyogyszeresz: 0,
-      gyogyszertar: 0,
-      szakasszisztens: 0
-    },
-    last7d: {
-      total: 0,
-      gyogyszeresz: 0,
-      gyogyszertar: 0,
-      szakasszisztens: 0
-    },
-    last30d: {
-      total: 0,
-      gyogyszeresz: 0,
-      gyogyszertar: 0,
-      szakasszisztens: 0
-    },
-    demands: {
-      active: 0,
-      accepted: 0,
-      rejected: 0,
-      activeWithApplications: 0,
-      activeWithNoResponse: 0
-    }
-  });
+  const [stats, setStats] = useState(null);
   const [loadingStats, setLoadingStats] = useState(true);
 
   useEffect(() => {
@@ -60,178 +34,101 @@ export default function StatsPage() {
     }
   }, [user]);
 
+  const parseDate = (val) => {
+    if (!val) return null;
+    if (val.toDate) return val.toDate();
+    if (val.seconds) return new Date(val.seconds * 1000);
+    if (typeof val === 'string') return new Date(val);
+    return null;
+  };
+
   const loadStats = async () => {
     setLoadingStats(true);
     try {
-      const usersSnapshot = await getDocs(collection(db, 'users'));
-      const usersData = usersSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      const [usersSnap, demandsSnap, applicationsSnap, chatsSnap, notifsSnap, pushSnap, approvalsSnap] = await Promise.all([
+        getDocs(collection(db, 'users')),
+        getDocs(collection(db, 'pharmaDemands')),
+        getDocs(collection(db, 'pharmaApplications')),
+        getDocs(collection(db, 'chats')),
+        getDocs(collection(db, 'notifications')),
+        getDocs(collection(db, 'pushSubscriptions')),
+        getDocs(collection(db, 'pharmagisterApprovals')),
+      ]);
 
-      // Load pharma applications
-      const applicationsSnapshot = await getDocs(collection(db, 'pharmaApplications'));
-      const applicationsData = applicationsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      const users = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const demands = demandsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const applications = applicationsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const chats = chatsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const notifications = notifsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const pushSubs = pushSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const approvals = approvalsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-      // Load pharma demands
-      const demandsSnapshot = await getDocs(collection(db, 'pharmaDemands'));
-      const demandsData = demandsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-
-      // Calculate demand stats
-      const activeDemands = demandsData.filter(d => d.status === 'open');
-      const acceptedDemands = demandsData.filter(d => d.status === 'filled');
-      
-      // Rejected demands: ahol MINDEN jelentkezést elutasítottak ÉS nincs open status
-      const rejectedDemands = demandsData.filter(d => {
-        const apps = applicationsData.filter(app => app.demandId === d.id);
-        return apps.length > 0 && 
-               apps.every(app => app.status === 'rejected') && 
-               d.status !== 'open' && 
-               d.status !== 'filled';
-      });
-      
-      // Aktív igények, amikre van jelentkezés
-      const activeWithApplications = activeDemands.filter(d => {
-        const apps = applicationsData.filter(app => app.demandId === d.id);
-        return apps.length > 0;
-      });
-      
-      // Aktív igények, amikre van jelentkezés ÉS egyikre sem reagáltak
-      const activeWithNoResponse = activeDemands.filter(d => {
-        const apps = applicationsData.filter(app => app.demandId === d.id);
-        return apps.length > 0 && apps.every(app => app.status === 'pending');
-      });
-
-      // Calculate stats
       const now = new Date();
       const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
       const last7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       const last30d = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-      let totalAll = usersData.length;
-      let gyogyszeresz = 0;
-      let gyogyszertar = 0;
-      let szakasszisztens = 0;
-      let activeTotal = 0;
-      let last24hGyogyszeresz = 0;
-      let last24hGyogyszertar = 0;
-      let last24hSzakasszisztens = 0;
-      let last24hTotal = 0;
-      let last7dGyogyszeresz = 0;
-      let last7dGyogyszertar = 0;
-      let last7dSzakasszisztens = 0;
-      let last7dTotal = 0;
-      let last30dGyogyszeresz = 0;
-      let last30dGyogyszertar = 0;
-      let last30dSzakasszisztens = 0;
-      let last30dTotal = 0;
+      // ===== FELHASZNÁLÓK =====
+      const activeUsers = users.filter(u => u.emailVerified && u.passwordActivated);
+      const pharmacists = activeUsers.filter(u => u.pharmagisterRole === 'pharmacist' || u.pharmagisterRole === 'gyógyszerész');
+      const pharmaciesArr = activeUsers.filter(u => u.pharmagisterRole === 'pharmacy' || u.pharmagisterRole === 'gyógyszertár');
+      const assistants = activeUsers.filter(u => u.pharmagisterRole === 'assistant' || u.pharmagisterRole === 'szakasszisztens');
+      const profileComplete = activeUsers.filter(u => u.pharmaProfileComplete);
+      const profileIncomplete = activeUsers.filter(u => !u.pharmaProfileComplete);
+      const noRole = activeUsers.filter(u => !u.pharmagisterRole);
 
-      usersData.forEach(u => {
-        const role = u.pharmagisterRole;
-        
-        // Aktív felhasználó: email megerősítve ÉS jelszó aktiválva
-        const isActive = u.emailVerified && u.passwordActivated;
-        
-        // Count active users by role
-        if (isActive) {
-          activeTotal++;
-          if (role === 'pharmacist' || role === 'gyógyszerész') {
-            gyogyszeresz++;
-          } else if (role === 'pharmacy' || role === 'gyógyszertár') {
-            gyogyszertar++;
-          } else if (role === 'assistant' || role === 'szakasszisztens') {
-            szakasszisztens++;
-          }
-        }
+      // ===== AKTIVITÁS =====
+      const getActiveInPeriod = (since) => activeUsers.filter(u => {
+        const ll = parseDate(u.lastLogin);
+        return ll && ll > since;
+      });
+      const dau = getActiveInPeriod(last24h);
+      const wau = getActiveInPeriod(last7d);
+      const mau = getActiveInPeriod(last30d);
 
-        // Check last login in 24h, 7d, 30d (only for active users)
-        if (isActive) {
-          let lastLogin = null;
-          if (u.lastLogin) {
-            if (u.lastLogin.toDate) {
-              lastLogin = u.lastLogin.toDate();
-            } else if (u.lastLogin.seconds) {
-              lastLogin = new Date(u.lastLogin.seconds * 1000);
-            } else if (typeof u.lastLogin === 'string') {
-              lastLogin = new Date(u.lastLogin);
-            }
-          }
-
-          if (lastLogin) {
-            // Last 24h
-            if (lastLogin > last24h) {
-              last24hTotal++;
-              if (role === 'pharmacist' || role === 'gyógyszerész') {
-                last24hGyogyszeresz++;
-              } else if (role === 'pharmacy' || role === 'gyógyszertár') {
-                last24hGyogyszertar++;
-              } else if (role === 'assistant' || role === 'szakasszisztens') {
-                last24hSzakasszisztens++;
-              }
-            }
-            // Last 7 days
-            if (lastLogin > last7d) {
-              last7dTotal++;
-              if (role === 'pharmacist' || role === 'gyógyszerész') {
-                last7dGyogyszeresz++;
-              } else if (role === 'pharmacy' || role === 'gyógyszertár') {
-                last7dGyogyszertar++;
-              } else if (role === 'assistant' || role === 'szakasszisztens') {
-                last7dSzakasszisztens++;
-              }
-            }
-            // Last 30 days
-            if (lastLogin > last30d) {
-              last30dTotal++;
-              if (role === 'pharmacist' || role === 'gyógyszerész') {
-                last30dGyogyszeresz++;
-              } else if (role === 'pharmacy' || role === 'gyógyszertár') {
-                last30dGyogyszertar++;
-              } else if (role === 'assistant' || role === 'szakasszisztens') {
-                last30dSzakasszisztens++;
-              }
-            }
-          }
-        }
+      const countRoles = (list) => ({
+        pharmacist: list.filter(u => u.pharmagisterRole === 'pharmacist' || u.pharmagisterRole === 'gyógyszerész').length,
+        pharmacy: list.filter(u => u.pharmagisterRole === 'pharmacy' || u.pharmagisterRole === 'gyógyszertár').length,
+        assistant: list.filter(u => u.pharmagisterRole === 'assistant' || u.pharmagisterRole === 'szakasszisztens').length,
       });
 
+      // ===== IGÉNYEK =====
+      const openDemands = demands.filter(d => d.status === 'open');
+      const filledDemands = demands.filter(d => d.status === 'filled');
+      const openWithoutApps = openDemands.filter(d => !applications.some(app => app.demandId === d.id));
+      const openWithApps = openDemands.filter(d => applications.some(app => app.demandId === d.id));
+      const openNoResponse = openDemands.filter(d => {
+        const apps = applications.filter(app => app.demandId === d.id);
+        return apps.length > 0 && apps.every(app => app.status === 'pending');
+      });
+
+      // ===== JELENTKEZÉSEK =====
+      const pendingApps = applications.filter(a => a.status === 'pending');
+      const acceptedApps = applications.filter(a => a.status === 'accepted');
+      const rejectedApps = applications.filter(a => a.status === 'rejected');
+      const demandsWithApps = demands.filter(d => applications.some(a => a.demandId === d.id));
+      const avgAppsPerDemand = demandsWithApps.length > 0 ? (applications.length / demandsWithApps.length).toFixed(1) : '0';
+      const decidedApps = acceptedApps.length + rejectedApps.length;
+      const acceptRate = decidedApps > 0 ? Math.round((acceptedApps.length / decidedApps) * 100) : 0;
+
+      // ===== CHAT & PUSH =====
+      const activeChats = chats.filter(c => c.lastMessage);
+      const uniquePushUsers = new Set(pushSubs.map(s => s.userId)).size;
+      const unreadNotifs = notifications.filter(n => !n.read).length;
+
+      // ===== NNK =====
+      const pendingApprovals = approvals.filter(a => a.status === 'pending');
+      const approvedApprovals = approvals.filter(a => a.status === 'approved');
+      const rejectedApprovals = approvals.filter(a => a.status === 'rejected');
+
       setStats({
-        totalAll,
-        total: activeTotal,
-        gyogyszeresz,
-        gyogyszertar,
-        szakasszisztens,
-        last24h: {
-          total: last24hTotal,
-          gyogyszeresz: last24hGyogyszeresz,
-          gyogyszertar: last24hGyogyszertar,
-          szakasszisztens: last24hSzakasszisztens
-        },
-        last7d: {
-          total: last7dTotal,
-          gyogyszeresz: last7dGyogyszeresz,
-          gyogyszertar: last7dGyogyszertar,
-          szakasszisztens: last7dSzakasszisztens
-        },
-        last30d: {
-          total: last30dTotal,
-          gyogyszeresz: last30dGyogyszeresz,
-          gyogyszertar: last30dGyogyszertar,
-          szakasszisztens: last30dSzakasszisztens
-        },
-        demands: {
-          active: activeDemands.length,
-          accepted: acceptedDemands.length,
-          rejected: rejectedDemands.length,
-          activeWithApplications: activeWithApplications.length,
-          activeWithNoResponse: activeWithNoResponse.length
-        }
+        users: { totalAll: users.length, active: activeUsers.length, pharmacists: pharmacists.length, pharmacies: pharmaciesArr.length, assistants: assistants.length, profileComplete: profileComplete.length, profileIncomplete: profileIncomplete.length, noRole: noRole.length },
+        activity: { dau: { total: dau.length, ...countRoles(dau) }, wau: { total: wau.length, ...countRoles(wau) }, mau: { total: mau.length, ...countRoles(mau) } },
+        demands: { total: demands.length, open: openDemands.length, filled: filledDemands.length, openWithoutApps: openWithoutApps.length, openWithApps: openWithApps.length, openNoResponse: openNoResponse.length },
+        applications: { total: applications.length, pending: pendingApps.length, accepted: acceptedApps.length, rejected: rejectedApps.length, avgPerDemand: avgAppsPerDemand, acceptRate },
+        chat: { total: chats.length, active: activeChats.length },
+        push: { subscribers: uniquePushUsers, unreadNotifs },
+        approvals: { pending: pendingApprovals.length, approved: approvedApprovals.length, rejected: rejectedApprovals.length },
       });
     } catch (error) {
       console.error('Error loading stats:', error);
@@ -248,262 +145,179 @@ export default function StatsPage() {
     );
   }
 
-  // Visszagomb céloldala attól függ, hogy admin vagy adminka
   const backUrl = ADMINKA_EMAILS.includes(user.email) ? '/adminka' : '/admin';
 
-  const StatCard = ({ icon: Icon, title, value, color, subValue }) => (
-    <div className={`bg-white rounded-xl shadow-lg p-6 border-l-4 ${color}`}>
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-gray-500 text-sm font-medium">{title}</p>
-          <p className="text-3xl font-bold mt-1">{value}</p>
-          {subValue !== undefined && (
-            <p className="text-sm text-gray-400 mt-1">
-              <Clock size={12} className="inline mr-1" />
-              Elmúlt 24 óra: <span className="font-semibold text-gray-600">{subValue}</span>
-            </p>
-          )}
-        </div>
-        <div className={`p-3 rounded-full ${color.replace('border-', 'bg-').replace('-500', '-100')}`}>
-          <Icon className={color.replace('border-', 'text-')} size={28} />
-        </div>
-      </div>
+  const MiniCard = ({ icon: Icon, label, value, color = 'text-gray-700', bg = 'bg-gray-50' }) => (
+    <div className={`${bg} rounded-xl p-4 text-center`}>
+      <Icon className={`mx-auto mb-2 ${color}`} size={24} />
+      <p className={`text-2xl font-bold ${color}`}>{value}</p>
+      <p className="text-xs text-gray-600 mt-1">{label}</p>
+    </div>
+  );
+
+  const BigCard = ({ icon: Icon, label, value, sub, color, bg }) => (
+    <div className={`${bg} rounded-xl p-6 text-center border-2 ${color.replace('text-', 'border-')}`}>
+      <Icon className={`mx-auto mb-3 ${color}`} size={36} />
+      <p className={`text-4xl font-bold ${color} mb-1`}>{value}</p>
+      <p className="text-sm font-semibold text-gray-700">{label}</p>
+      {sub && <p className="text-xs text-gray-500 mt-1">{sub}</p>}
     </div>
   );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 sm:p-6">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">📊 Statisztikák</h1>
-            <p className="text-gray-500 mt-1">Felhasználói aktivitás áttekintés</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">📊 Admin Statisztikák</h1>
+            <p className="text-gray-500 mt-1">Teljes platform áttekintés</p>
           </div>
-          <button
-            onClick={() => router.push(backUrl)}
-            className="flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
-          >
-            <ArrowLeft size={18} />
-            Vissza
+          <button onClick={() => router.push(backUrl)} className="flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">
+            <ArrowLeft size={18} /> Vissza
           </button>
         </div>
 
-        {loadingStats ? (
+        {loadingStats || !stats ? (
           <div className="text-center py-16">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
             <p className="mt-4 text-gray-500">Statisztikák betöltése...</p>
           </div>
         ) : (
-          <>
-            {/* Summary info */}
-            <div className="bg-white rounded-xl shadow-lg p-4 mb-6">
-              <p className="text-gray-600 text-sm">
-                📊 Összes regisztráció: <span className="font-bold">{stats.totalAll}</span> | 
-                ✅ Aktív (email + jelszó megerősítve): <span className="font-bold text-green-600">{stats.total}</span>
-              </p>
-            </div>
+          <div className="space-y-8">
 
-            {/* Active registrations by role */}
-            <div className="mb-8">
-              <h2 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
-                <Users size={20} />
-                Aktív felhasználók szerepkör szerint
-                <span className="text-sm font-normal text-gray-500">(email + jelszó megerősítve)</span>
+            {/* 1. FELHASZNÁLÓK */}
+            <section className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <Users size={22} /> Felhasználók
               </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard
-                  icon={Users}
-                  title="Aktív összesen"
-                  value={stats.total}
-                  color="border-purple-500"
-                  subValue={stats.last24h.total}
-                />
-                <StatCard
-                  icon={Pill}
-                  title="Gyógyszerész"
-                  value={stats.gyogyszeresz}
-                  color="border-blue-500"
-                  subValue={stats.last24h.gyogyszeresz}
-                />
-                <StatCard
-                  icon={Building2}
-                  title="Gyógyszertár"
-                  value={stats.gyogyszertar}
-                  color="border-green-500"
-                  subValue={stats.last24h.gyogyszertar}
-                />
-                <StatCard
-                  icon={UserCog}
-                  title="Szakasszisztens"
-                  value={stats.szakasszisztens}
-                  color="border-orange-500"
-                  subValue={stats.last24h.szakasszisztens}
-                />
+              <div className="bg-gray-50 rounded-lg p-3 mb-4">
+                <p className="text-sm text-gray-600">
+                  Összes regisztráció: <span className="font-bold">{stats.users.totalAll}</span> &nbsp;|&nbsp;
+                  Aktív: <span className="font-bold text-green-600">{stats.users.active}</span>
+                </p>
               </div>
-            </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                <MiniCard icon={Pill} label="Gyógyszerész" value={stats.users.pharmacists} color="text-blue-600" bg="bg-blue-50" />
+                <MiniCard icon={Building2} label="Gyógyszertár" value={stats.users.pharmacies} color="text-green-600" bg="bg-green-50" />
+                <MiniCard icon={UserCog} label="Szakasszisztens" value={stats.users.assistants} color="text-orange-600" bg="bg-orange-50" />
+                <MiniCard icon={UserCheck} label="Profil kész" value={stats.users.profileComplete} color="text-emerald-600" bg="bg-emerald-50" />
+                <MiniCard icon={UserX} label="Profil hiányos" value={stats.users.profileIncomplete} color="text-red-500" bg="bg-red-50" />
+                <MiniCard icon={AlertCircle} label="Nincs szerepkör" value={stats.users.noRole} color="text-gray-500" bg="bg-gray-100" />
+              </div>
+            </section>
 
-            {/* DAU, WAU, MAU Summary */}
-            <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-              <h2 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
-                <TrendingUp size={20} />
-                Aktív felhasználók időszakok szerint
+            {/* 2. AKTIVITÁS */}
+            <section className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <Activity size={22} /> Aktivitás (DAU / WAU / MAU)
               </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl">
-                  <p className="text-sm font-semibold text-blue-700 mb-2">DAU (Daily Active Users)</p>
-                  <p className="text-4xl font-bold text-blue-600 mb-2">{stats.last24h.total}</p>
-                  <p className="text-xs text-gray-600">Elmúlt 24 óra</p>
-                </div>
-                <div className="text-center p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-xl">
-                  <p className="text-sm font-semibold text-green-700 mb-2">WAU (Weekly Active Users)</p>
-                  <p className="text-4xl font-bold text-green-600 mb-2">{stats.last7d.total}</p>
-                  <p className="text-xs text-gray-600">Elmúlt 7 nap</p>
-                </div>
-                <div className="text-center p-6 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl">
-                  <p className="text-sm font-semibold text-purple-700 mb-2">MAU (Monthly Active Users)</p>
-                  <p className="text-4xl font-bold text-purple-600 mb-2">{stats.last30d.total}</p>
-                  <p className="text-xs text-gray-600">Elmúlt 30 nap</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
+                <BigCard icon={TrendingUp} label="DAU" value={stats.activity.dau.total} sub="Elmúlt 24 óra" color="text-blue-600" bg="bg-blue-50" />
+                <BigCard icon={TrendingUp} label="WAU" value={stats.activity.wau.total} sub="Elmúlt 7 nap" color="text-green-600" bg="bg-green-50" />
+                <BigCard icon={TrendingUp} label="MAU" value={stats.activity.mau.total} sub="Elmúlt 30 nap" color="text-purple-600" bg="bg-purple-50" />
+              </div>
+              <div className="border-t pt-4">
+                <p className="text-xs font-semibold text-gray-500 mb-3 uppercase tracking-wider">Bontás szerepkörönként</p>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-gray-500 border-b">
+                        <th className="py-2 pr-4">Időszak</th>
+                        <th className="py-2 px-4 text-center">Gyógyszerész</th>
+                        <th className="py-2 px-4 text-center">Gyógyszertár</th>
+                        <th className="py-2 px-4 text-center">Szakasszisztens</th>
+                        <th className="py-2 px-4 text-center font-bold">Összesen</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        { label: '24 óra (DAU)', data: stats.activity.dau },
+                        { label: '7 nap (WAU)', data: stats.activity.wau },
+                        { label: '30 nap (MAU)', data: stats.activity.mau },
+                      ].map((row, i) => (
+                        <tr key={i} className={i < 2 ? 'border-b' : ''}>
+                          <td className="py-2 pr-4 font-medium">{row.label}</td>
+                          <td className="py-2 px-4 text-center text-blue-600 font-semibold">{row.data.pharmacist}</td>
+                          <td className="py-2 px-4 text-center text-green-600 font-semibold">{row.data.pharmacy}</td>
+                          <td className="py-2 px-4 text-center text-orange-600 font-semibold">{row.data.assistant}</td>
+                          <td className="py-2 px-4 text-center font-bold">{row.data.total}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
-            </div>
+            </section>
 
-            {/* Last 24h activity */}
-            <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-              <h2 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
-                <Clock size={20} />
-                DAU - Aktivitás az elmúlt 24 órában
+            {/* 3. IGÉNYEK */}
+            <section className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <Calendar size={22} /> Helyettesítési igények
               </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                <div className="text-center p-4 bg-blue-50 rounded-xl">
-                  <Pill className="mx-auto text-blue-500 mb-2" size={32} />
-                  <p className="text-3xl font-bold text-blue-600">{stats.last24h.gyogyszeresz}</p>
-                  <p className="text-gray-600 text-sm">Gyógyszerész belépés</p>
-                </div>
-                <div className="text-center p-4 bg-green-50 rounded-xl">
-                  <Building2 className="mx-auto text-green-500 mb-2" size={32} />
-                  <p className="text-3xl font-bold text-green-600">{stats.last24h.gyogyszertar}</p>
-                  <p className="text-gray-600 text-sm">Gyógyszertár belépés</p>
-                </div>
-                <div className="text-center p-4 bg-orange-50 rounded-xl">
-                  <UserCog className="mx-auto text-orange-500 mb-2" size={32} />
-                  <p className="text-3xl font-bold text-orange-600">{stats.last24h.szakasszisztens}</p>
-                  <p className="text-gray-600 text-sm">Szakasszisztens belépés</p>
-                </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
+                <BigCard icon={BarChart3} label="Összes igény" value={stats.demands.total} sub="Valaha létrehozott" color="text-purple-600" bg="bg-purple-50" />
+                <BigCard icon={FileText} label="Nyitott" value={stats.demands.open} sub="Jelenleg aktív" color="text-blue-600" bg="bg-blue-50" />
+                <BigCard icon={CheckCircle} label="Betöltött" value={stats.demands.filled} sub="Sikeresen párosítva" color="text-green-600" bg="bg-green-50" />
               </div>
-            </div>
-
-            {/* Last 7 days activity */}
-            <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-              <h2 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
-                <Clock size={20} />
-                WAU - Aktivitás az elmúlt 7 napban
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                <div className="text-center p-4 bg-blue-50 rounded-xl">
-                  <Pill className="mx-auto text-blue-500 mb-2" size={32} />
-                  <p className="text-3xl font-bold text-blue-600">{stats.last7d.gyogyszeresz}</p>
-                  <p className="text-gray-600 text-sm">Gyógyszerész belépés</p>
-                </div>
-                <div className="text-center p-4 bg-green-50 rounded-xl">
-                  <Building2 className="mx-auto text-green-500 mb-2" size={32} />
-                  <p className="text-3xl font-bold text-green-600">{stats.last7d.gyogyszertar}</p>
-                  <p className="text-gray-600 text-sm">Gyógyszertár belépés</p>
-                </div>
-                <div className="text-center p-4 bg-orange-50 rounded-xl">
-                  <UserCog className="mx-auto text-orange-500 mb-2" size={32} />
-                  <p className="text-3xl font-bold text-orange-600">{stats.last7d.szakasszisztens}</p>
-                  <p className="text-gray-600 text-sm">Szakasszisztens belépés</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Last 30 days activity */}
-            <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-              <h2 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
-                <Clock size={20} />
-                MAU - Aktivitás az elmúlt 30 napban
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                <div className="text-center p-4 bg-blue-50 rounded-xl">
-                  <Pill className="mx-auto text-blue-500 mb-2" size={32} />
-                  <p className="text-3xl font-bold text-blue-600">{stats.last30d.gyogyszeresz}</p>
-                  <p className="text-gray-600 text-sm">Gyógyszerész belépés</p>
-                </div>
-                <div className="text-center p-4 bg-green-50 rounded-xl">
-                  <Building2 className="mx-auto text-green-500 mb-2" size={32} />
-                  <p className="text-3xl font-bold text-green-600">{stats.last30d.gyogyszertar}</p>
-                  <p className="text-gray-600 text-sm">Gyógyszertár belépés</p>
-                </div>
-                <div className="text-center p-4 bg-orange-50 rounded-xl">
-                  <UserCog className="mx-auto text-orange-500 mb-2" size={32} />
-                  <p className="text-3xl font-bold text-orange-600">{stats.last30d.szakasszisztens}</p>
-                  <p className="text-gray-600 text-sm">Szakasszisztens belépés</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Demands Statistics */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h2 className="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
-                <Calendar size={24} />
-                Helyettesítési igények áttekintés
-              </h2>
-              
-              {/* Main stats */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
-                <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border-2 border-blue-200">
-                  <FileText className="mx-auto text-blue-600 mb-3" size={40} />
-                  <p className="text-5xl font-bold text-blue-600 mb-2">{stats.demands.active}</p>
-                  <p className="text-sm font-semibold text-gray-700">Összes aktív igény</p>
-                  <p className="text-xs text-gray-500 mt-1">Jelenlegi nyitott pozíciók</p>
-                </div>
-                <div className="text-center p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border-2 border-green-200">
-                  <CheckCircle className="mx-auto text-green-600 mb-3" size={40} />
-                  <p className="text-5xl font-bold text-green-600 mb-2">{stats.demands.accepted}</p>
-                  <p className="text-sm font-semibold text-gray-700">Elfogadott igény</p>
-                  <p className="text-xs text-gray-500 mt-1">Betöltött pozíciók</p>
-                </div>
-                <div className="text-center p-6 bg-gradient-to-br from-red-50 to-red-100 rounded-xl border-2 border-red-200">
-                  <XCircle className="mx-auto text-red-600 mb-3" size={40} />
-                  <p className="text-5xl font-bold text-red-600 mb-2">{stats.demands.rejected}</p>
-                  <p className="text-sm font-semibold text-gray-700">Visszautasított igény</p>
-                  <p className="text-xs text-gray-500 mt-1">Minden jelentkezés elutasítva</p>
-                </div>
-              </div>
-
-              {/* Active demands breakdown */}
-              <div className="border-t pt-6">
-                <h3 className="text-base font-semibold text-gray-700 mb-4 flex items-center gap-2">
-                  <FileCheck size={18} />
-                  Aktív igények részletei
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div className="p-5 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border border-purple-200">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <FileCheck className="text-purple-600" size={24} />
-                        <span className="text-sm font-medium text-gray-700">Jelentkezéssel rendelkezik</span>
-                      </div>
-                      <p className="text-3xl font-bold text-purple-600">{stats.demands.activeWithApplications}</p>
-                    </div>
-                    <p className="text-xs text-gray-600">Aktív igényekből ennyin van legalább 1 jelentkező</p>
+              <div className="border-t pt-4">
+                <p className="text-xs font-semibold text-gray-500 mb-3 uppercase tracking-wider">Nyitott igények részletezése</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="bg-gray-50 rounded-xl p-4 border-l-4 border-gray-400">
+                    <p className="text-xl font-bold text-gray-700">{stats.demands.openWithoutApps}</p>
+                    <p className="text-sm text-gray-600">Jelentkezés nélkül</p>
+                    <p className="text-xs text-gray-400 mt-1">Senki nem jelentkezett rá</p>
                   </div>
-                  
-                  <div className="p-5 bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl border border-orange-200">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <AlertCircle className="text-orange-600" size={24} />
-                        <span className="text-sm font-medium text-gray-700">Gyógyszertár nem reagált</span>
-                      </div>
-                      <p className="text-3xl font-bold text-orange-600">{stats.demands.activeWithNoResponse}</p>
-                    </div>
-                    <p className="text-xs text-gray-600">Aktív igényekből ennyin van jelentkező, de nincs reakció</p>
+                  <div className="bg-purple-50 rounded-xl p-4 border-l-4 border-purple-500">
+                    <p className="text-xl font-bold text-purple-600">{stats.demands.openWithApps}</p>
+                    <p className="text-sm text-gray-600">Van jelentkező</p>
+                    <p className="text-xs text-gray-400 mt-1">Legalább 1 jelentkezés érkezett</p>
+                  </div>
+                  <div className="bg-orange-50 rounded-xl p-4 border-l-4 border-orange-500">
+                    <p className="text-xl font-bold text-orange-600">{stats.demands.openNoResponse}</p>
+                    <p className="text-sm text-gray-600">Nincs reakció</p>
+                    <p className="text-xs text-gray-400 mt-1">Van jelentkező, gyógyszertár nem reagált</p>
                   </div>
                 </div>
               </div>
-            </div>
-          </>
+            </section>
+
+            {/* 4. JELENTKEZÉSEK */}
+            <section className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <FileCheck size={22} /> Jelentkezések
+              </h2>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+                <MiniCard icon={Inbox} label="Összes" value={stats.applications.total} color="text-blue-600" bg="bg-blue-50" />
+                <MiniCard icon={Clock} label="Függőben" value={stats.applications.pending} color="text-yellow-600" bg="bg-yellow-50" />
+                <MiniCard icon={CheckCircle} label="Elfogadott" value={stats.applications.accepted} color="text-green-600" bg="bg-green-50" />
+                <MiniCard icon={XCircle} label="Elutasított" value={stats.applications.rejected} color="text-red-600" bg="bg-red-50" />
+              </div>
+              <div className="bg-gray-50 rounded-lg p-3 flex flex-wrap gap-6 text-sm">
+                <span>Átlag jelentkezés/igény: <strong>{stats.applications.avgPerDemand}</strong></span>
+                <span>Elfogadási arány: <strong className="text-green-600">{stats.applications.acceptRate}%</strong></span>
+              </div>
+            </section>
+
+            {/* 5. PLATFORM EGÉSZSÉG */}
+            <section className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <ShieldCheck size={22} /> Platform egészség
+              </h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                <MiniCard icon={MessageSquare} label="Chat beszélgetés" value={stats.chat.total} color="text-indigo-600" bg="bg-indigo-50" />
+                <MiniCard icon={Send} label="Aktív chat" value={stats.chat.active} color="text-indigo-500" bg="bg-indigo-50" />
+                <MiniCard icon={Bell} label="Push feliratkozó" value={stats.push.subscribers} color="text-pink-600" bg="bg-pink-50" />
+                <MiniCard icon={AlertCircle} label="Olvasatlan értesítés" value={stats.push.unreadNotifs} color="text-orange-500" bg="bg-orange-50" />
+                <MiniCard icon={ShieldCheck} label="NNK várakozó" value={stats.approvals.pending} color="text-amber-600" bg="bg-amber-50" />
+              </div>
+              <div className="bg-gray-50 rounded-lg p-3 mt-4 text-sm text-gray-600">
+                NNK státusz: <span className="text-green-600 font-semibold">{stats.approvals.approved} jóváhagyva</span> &nbsp;|&nbsp;
+                <span className="text-red-500 font-semibold">{stats.approvals.rejected} elutasítva</span> &nbsp;|&nbsp;
+                <span className="text-amber-600 font-semibold">{stats.approvals.pending} függőben</span>
+              </div>
+            </section>
+
+          </div>
         )}
       </div>
     </div>
