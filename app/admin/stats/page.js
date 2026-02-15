@@ -36,20 +36,12 @@ export default function StatsPage() {
       gyogyszertar: 0,
       szakasszisztens: 0
     },
-    applications: {
-      total: 0,
+    demands: {
+      active: 0,
       accepted: 0,
       rejected: 0,
-      pending: 0
-    },
-    demands: {
-      total: 0,
-      open: 0,
-      filled: 0,
-      withApplications: 0,
-      withoutApplications: 0,
-      withResponse: 0,
-      onlyPending: 0
+      activeWithApplications: 0,
+      activeWithNoResponse: 0
     }
   });
   const [loadingStats, setLoadingStats] = useState(true);
@@ -84,12 +76,6 @@ export default function StatsPage() {
         ...doc.data()
       }));
 
-      // Calculate application stats
-      const totalApplications = applicationsData.length;
-      const acceptedApplications = applicationsData.filter(app => app.status === 'accepted').length;
-      const rejectedApplications = applicationsData.filter(app => app.status === 'rejected').length;
-      const pendingApplications = applicationsData.filter(app => app.status === 'pending').length;
-
       // Load pharma demands
       const demandsSnapshot = await getDocs(collection(db, 'pharmaDemands'));
       const demandsData = demandsSnapshot.docs.map(doc => ({
@@ -98,28 +84,29 @@ export default function StatsPage() {
       }));
 
       // Calculate demand stats
-      const totalDemands = demandsData.length;
-      const openDemands = demandsData.filter(d => d.status === 'open').length;
-      const filledDemands = demandsData.filter(d => d.status === 'filled').length;
+      const activeDemands = demandsData.filter(d => d.status === 'open');
+      const acceptedDemands = demandsData.filter(d => d.status === 'filled');
       
-      // Demands with/without applications
-      const demandsWithApplications = demandsData.filter(d => {
+      // Rejected demands: ahol MINDEN jelentkezést elutasítottak ÉS nincs open status
+      const rejectedDemands = demandsData.filter(d => {
+        const apps = applicationsData.filter(app => app.demandId === d.id);
+        return apps.length > 0 && 
+               apps.every(app => app.status === 'rejected') && 
+               d.status !== 'open' && 
+               d.status !== 'filled';
+      });
+      
+      // Aktív igények, amikre van jelentkezés
+      const activeWithApplications = activeDemands.filter(d => {
         const apps = applicationsData.filter(app => app.demandId === d.id);
         return apps.length > 0;
-      }).length;
-      const demandsWithoutApplications = totalDemands - demandsWithApplications;
+      });
       
-      // Demands with response (accepted or rejected)
-      const demandsWithResponse = demandsData.filter(d => {
-        const apps = applicationsData.filter(app => app.demandId === d.id);
-        return apps.some(app => app.status === 'accepted' || app.status === 'rejected');
-      }).length;
-      
-      // Demands with only pending applications
-      const demandsOnlyPending = demandsData.filter(d => {
+      // Aktív igények, amikre van jelentkezés ÉS egyikre sem reagáltak
+      const activeWithNoResponse = activeDemands.filter(d => {
         const apps = applicationsData.filter(app => app.demandId === d.id);
         return apps.length > 0 && apps.every(app => app.status === 'pending');
-      }).length;
+      });
 
       // Calculate stats
       const now = new Date();
@@ -238,20 +225,12 @@ export default function StatsPage() {
           gyogyszertar: last30dGyogyszertar,
           szakasszisztens: last30dSzakasszisztens
         },
-        applications: {
-          total: totalApplications,
-          accepted: acceptedApplications,
-          rejected: rejectedApplications,
-          pending: pendingApplications
-        },
         demands: {
-          total: totalDemands,
-          open: openDemands,
-          filled: filledDemands,
-          withApplications: demandsWithApplications,
-          withoutApplications: demandsWithoutApplications,
-          withResponse: demandsWithResponse,
-          onlyPending: demandsOnlyPending
+          active: activeDemands.length,
+          accepted: acceptedDemands.length,
+          rejected: rejectedDemands.length,
+          activeWithApplications: activeWithApplications.length,
+          activeWithNoResponse: activeWithNoResponse.length
         }
       });
     } catch (error) {
@@ -464,91 +443,62 @@ export default function StatsPage() {
               </div>
             </div>
 
-            {/* Applications Statistics */}
-            <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-              <h2 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
-                <FileCheck size={20} />
-                Helyettesítési jelentkezések statisztikája
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl">
-                  <FileCheck className="mx-auto text-blue-500 mb-2" size={32} />
-                  <p className="text-4xl font-bold text-blue-600 mb-2">{stats.applications.total}</p>
-                  <p className="text-sm font-medium text-gray-600">Összes jelentkezés</p>
-                </div>
-                <div className="text-center p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-xl">
-                  <CheckCircle className="mx-auto text-green-500 mb-2" size={32} />
-                  <p className="text-4xl font-bold text-green-600 mb-2">{stats.applications.accepted}</p>
-                  <p className="text-sm font-medium text-gray-600">Elfogadott</p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {stats.applications.total > 0 ? `${Math.round((stats.applications.accepted / stats.applications.total) * 100)}%` : '0%'}
-                  </p>
-                </div>
-                <div className="text-center p-6 bg-gradient-to-br from-red-50 to-red-100 rounded-xl">
-                  <XCircle className="mx-auto text-red-500 mb-2" size={32} />
-                  <p className="text-4xl font-bold text-red-600 mb-2">{stats.applications.rejected}</p>
-                  <p className="text-sm font-medium text-gray-600">Visszautasított</p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {stats.applications.total > 0 ? `${Math.round((stats.applications.rejected / stats.applications.total) * 100)}%` : '0%'}
-                  </p>
-                </div>
-                <div className="text-center p-6 bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl">
-                  <Clock className="mx-auto text-yellow-500 mb-2" size={32} />
-                  <p className="text-4xl font-bold text-yellow-600 mb-2">{stats.applications.pending}</p>
-                  <p className="text-sm font-medium text-gray-600">Függőben</p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {stats.applications.total > 0 ? `${Math.round((stats.applications.pending / stats.applications.total) * 100)}%` : '0%'}
-                  </p>
-                </div>
-              </div>
-            </div>
-
             {/* Demands Statistics */}
             <div className="bg-white rounded-xl shadow-lg p-6">
-              <h2 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
-                <Calendar size={20} />
-                Helyettesítési igények statisztikája
+              <h2 className="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
+                <Calendar size={24} />
+                Helyettesítési igények áttekintés
               </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl">
-                  <Calendar className="mx-auto text-purple-500 mb-2" size={28} />
-                  <p className="text-3xl font-bold text-purple-600 mb-1">{stats.demands.total}</p>
-                  <p className="text-xs font-medium text-gray-600">Összes igény</p>
+              
+              {/* Main stats */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+                <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border-2 border-blue-200">
+                  <FileText className="mx-auto text-blue-600 mb-3" size={40} />
+                  <p className="text-5xl font-bold text-blue-600 mb-2">{stats.demands.active}</p>
+                  <p className="text-sm font-semibold text-gray-700">Összes aktív igény</p>
+                  <p className="text-xs text-gray-500 mt-1">Jelenlegi nyitott pozíciók</p>
                 </div>
-                <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-xl">
-                  <FileText className="mx-auto text-green-500 mb-2" size={28} />
-                  <p className="text-3xl font-bold text-green-600 mb-1">{stats.demands.open}</p>
-                  <p className="text-xs font-medium text-gray-600">Nyitott igény</p>
+                <div className="text-center p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border-2 border-green-200">
+                  <CheckCircle className="mx-auto text-green-600 mb-3" size={40} />
+                  <p className="text-5xl font-bold text-green-600 mb-2">{stats.demands.accepted}</p>
+                  <p className="text-sm font-semibold text-gray-700">Elfogadott igény</p>
+                  <p className="text-xs text-gray-500 mt-1">Betöltött pozíciók</p>
                 </div>
-                <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl">
-                  <CheckCircle className="mx-auto text-blue-500 mb-2" size={28} />
-                  <p className="text-3xl font-bold text-blue-600 mb-1">{stats.demands.filled}</p>
-                  <p className="text-xs font-medium text-gray-600">Betöltött igény</p>
-                </div>
-                <div className="text-center p-4 bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl">
-                  <AlertCircle className="mx-auto text-orange-500 mb-2" size={28} />
-                  <p className="text-3xl font-bold text-orange-600 mb-1">{stats.demands.withoutApplications}</p>
-                  <p className="text-xs font-medium text-gray-600">Jelentkezés nélküli</p>
+                <div className="text-center p-6 bg-gradient-to-br from-red-50 to-red-100 rounded-xl border-2 border-red-200">
+                  <XCircle className="mx-auto text-red-600 mb-3" size={40} />
+                  <p className="text-5xl font-bold text-red-600 mb-2">{stats.demands.rejected}</p>
+                  <p className="text-sm font-semibold text-gray-700">Visszautasított igény</p>
+                  <p className="text-xs text-gray-500 mt-1">Minden jelentkezés elutasítva</p>
                 </div>
               </div>
-              
-              <div className="border-t pt-4">
-                <h3 className="text-sm font-semibold text-gray-600 mb-3 flex items-center gap-2">
-                  <FileCheck size={16} />
-                  Gyógyszertári reakció
+
+              {/* Active demands breakdown */}
+              <div className="border-t pt-6">
+                <h3 className="text-base font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                  <FileCheck size={18} />
+                  Aktív igények részletei
                 </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="text-center p-4 bg-gray-50 rounded-lg">
-                    <p className="text-2xl font-bold text-gray-700">{stats.demands.withResponse}</p>
-                    <p className="text-xs text-gray-600 mt-1">Reakcióval (elfogadás/visszautasítás)</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="p-5 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border border-purple-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <FileCheck className="text-purple-600" size={24} />
+                        <span className="text-sm font-medium text-gray-700">Jelentkezéssel rendelkezik</span>
+                      </div>
+                      <p className="text-3xl font-bold text-purple-600">{stats.demands.activeWithApplications}</p>
+                    </div>
+                    <p className="text-xs text-gray-600">Aktív igényekből ennyin van legalább 1 jelentkező</p>
                   </div>
-                  <div className="text-center p-4 bg-yellow-50 rounded-lg">
-                    <p className="text-2xl font-bold text-yellow-600">{stats.demands.onlyPending}</p>
-                    <p className="text-xs text-gray-600 mt-1">Csak függőben lévő jelentkezések</p>
-                  </div>
-                  <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <p className="text-2xl font-bold text-green-600">{stats.demands.withApplications}</p>
-                    <p className="text-xs text-gray-600 mt-1">Legalább 1 jelentkezéssel</p>
+                  
+                  <div className="p-5 bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl border border-orange-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="text-orange-600" size={24} />
+                        <span className="text-sm font-medium text-gray-700">Gyógyszertár nem reagált</span>
+                      </div>
+                      <p className="text-3xl font-bold text-orange-600">{stats.demands.activeWithNoResponse}</p>
+                    </div>
+                    <p className="text-xs text-gray-600">Aktív igényekből ennyin van jelentkező, de nincs reakció</p>
                   </div>
                 </div>
               </div>
