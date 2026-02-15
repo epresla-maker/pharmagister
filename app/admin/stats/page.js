@@ -7,7 +7,7 @@ import { db } from "@/lib/firebase";
 import { 
   Users, Building2, Pill, UserCog, TrendingUp, ArrowLeft, 
   AlertCircle, Calendar, FileText, CheckCircle, XCircle, Clock,
-  MessageSquare, Bell, ShieldCheck, BarChart3,
+  MessageSquare, Bell, ShieldCheck, BarChart3, ChevronDown, ChevronUp,
   Activity, Send, UserCheck, UserX
 } from "lucide-react";
 
@@ -19,6 +19,7 @@ export default function StatsPage() {
   const router = useRouter();
   const [stats, setStats] = useState(null);
   const [loadingStats, setLoadingStats] = useState(true);
+  const [expandedPharmacy, setExpandedPharmacy] = useState(null);
 
   useEffect(() => {
     if (!loading) {
@@ -143,6 +144,42 @@ export default function StatsPage() {
         chat: { total: chats.length, active: activeChats.length },
         push: { subscribers: uniquePushUsers, unreadNotifs },
         approvals: { pending: pendingApprovals.length, approved: approvedApprovals.length, rejected: rejectedApprovals.length },
+        // Gyógyszertár részletes bontás (csak admin)
+        pharmacyDetails: (() => {
+          const pharmacyMap = {};
+          demands.forEach(d => {
+            const pId = d.pharmacyId || d.createdBy || 'unknown';
+            if (!pharmacyMap[pId]) {
+              pharmacyMap[pId] = {
+                pharmacyId: pId,
+                pharmacyName: d.pharmacyName || 'Ismeretlen',
+                pharmacyCity: d.pharmacyCity || '',
+                demands: [],
+              };
+            }
+            const demandApps = applications.filter(a => a.demandId === d.id);
+            const hasApplicants = demandApps.length > 0;
+            const hasAccepted = demandApps.some(a => a.status === 'accepted');
+            const allRejected = hasApplicants && demandApps.every(a => a.status === 'rejected');
+            const hasPending = demandApps.some(a => a.status === 'pending');
+            
+            let demandStatus = 'Nincs jelentkező';
+            if (d.status === 'filled' || hasAccepted) demandStatus = 'Betöltve';
+            else if (allRejected) demandStatus = 'Mindenkit elutasították';
+            else if (hasPending) demandStatus = 'Vár válaszra';
+            
+            pharmacyMap[pId].demands.push({
+              id: d.id,
+              date: d.date || '-',
+              position: d.position === 'pharmacist' ? 'Gyógyszerész' : d.position === 'assistant' ? 'Szakasszisztens' : d.position || '-',
+              status: d.status,
+              demandStatus,
+              applicantCount: demandApps.length,
+              createdAt: d.createdAt,
+            });
+          });
+          return Object.values(pharmacyMap).sort((a, b) => b.demands.length - a.demands.length);
+        })(),
       });
     } catch (error) {
       console.error('Error loading stats:', error);
@@ -303,7 +340,103 @@ export default function StatsPage() {
               </div>
             </section>
 
-            {/* 4. PLATFORM EGÉSZSÉG */}
+            {/* 4. GYÓGYSZERTÁRAK RÉSZLETES BONTÁS - CSAK ADMIN */}
+            {ADMIN_EMAILS.includes(user.email) && stats.pharmacyDetails && (
+              <section className="bg-white rounded-xl shadow-lg p-6">
+                <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                  <Building2 size={22} /> Gyógyszertárak igényei részletesen
+                </h2>
+                <div className="space-y-3">
+                  {stats.pharmacyDetails.map((pharmacy) => (
+                    <div key={pharmacy.pharmacyId} className="border rounded-xl overflow-hidden">
+                      <button
+                        onClick={() => setExpandedPharmacy(expandedPharmacy === pharmacy.pharmacyId ? null : pharmacy.pharmacyId)}
+                        className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Building2 size={20} className="text-green-600" />
+                          <div>
+                            <p className="font-semibold text-gray-800">{pharmacy.pharmacyName}</p>
+                            <p className="text-xs text-gray-500">{pharmacy.pharmacyCity}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="text-right">
+                            <p className="text-lg font-bold text-purple-600">{pharmacy.demands.length}</p>
+                            <p className="text-xs text-gray-500">igény</p>
+                          </div>
+                          {expandedPharmacy === pharmacy.pharmacyId 
+                            ? <ChevronUp size={20} className="text-gray-400" />
+                            : <ChevronDown size={20} className="text-gray-400" />}
+                        </div>
+                      </button>
+                      {expandedPharmacy === pharmacy.pharmacyId && (
+                        <div className="p-4 border-t">
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="text-left text-gray-500 border-b">
+                                  <th className="py-2 pr-3">Dátum</th>
+                                  <th className="py-2 px-3">Pozíció</th>
+                                  <th className="py-2 px-3 text-center">Jelentkezők</th>
+                                  <th className="py-2 px-3">Állapot</th>
+                                  <th className="py-2 pl-3">Létrehozva</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {pharmacy.demands
+                                  .sort((a, b) => (a.date > b.date ? -1 : 1))
+                                  .map((d) => (
+                                  <tr key={d.id} className="border-b last:border-0">
+                                    <td className="py-2 pr-3 font-medium">{d.date}</td>
+                                    <td className="py-2 px-3">{d.position}</td>
+                                    <td className="py-2 px-3 text-center">
+                                      <span className={`font-semibold ${d.applicantCount > 0 ? 'text-blue-600' : 'text-gray-400'}`}>
+                                        {d.applicantCount}
+                                      </span>
+                                    </td>
+                                    <td className="py-2 px-3">
+                                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                                        d.demandStatus === 'Betöltve' ? 'bg-green-100 text-green-700' :
+                                        d.demandStatus === 'Mindenkit elutasították' ? 'bg-red-100 text-red-700' :
+                                        d.demandStatus === 'Vár válaszra' ? 'bg-yellow-100 text-yellow-700' :
+                                        'bg-gray-100 text-gray-600'
+                                      }`}>
+                                        {d.demandStatus === 'Betöltve' && <CheckCircle size={12} />}
+                                        {d.demandStatus === 'Mindenkit elutasították' && <XCircle size={12} />}
+                                        {d.demandStatus === 'Vár válaszra' && <Clock size={12} />}
+                                        {d.demandStatus}
+                                      </span>
+                                    </td>
+                                    <td className="py-2 pl-3 text-xs text-gray-400">
+                                      {d.createdAt 
+                                        ? (typeof d.createdAt === 'string' 
+                                            ? new Date(d.createdAt).toLocaleDateString('hu-HU') 
+                                            : d.createdAt.seconds 
+                                              ? new Date(d.createdAt.seconds * 1000).toLocaleDateString('hu-HU')
+                                              : '-')
+                                        : '-'}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                          <div className="mt-3 flex gap-4 text-xs text-gray-500 bg-gray-50 rounded-lg p-2">
+                            <span>Betöltve: <strong className="text-green-600">{pharmacy.demands.filter(d => d.demandStatus === 'Betöltve').length}</strong></span>
+                            <span>Elutasítva: <strong className="text-red-600">{pharmacy.demands.filter(d => d.demandStatus === 'Mindenkit elutasították').length}</strong></span>
+                            <span>Függőben: <strong className="text-yellow-600">{pharmacy.demands.filter(d => d.demandStatus === 'Vár válaszra').length}</strong></span>
+                            <span>Nincs jelentkező: <strong className="text-gray-500">{pharmacy.demands.filter(d => d.demandStatus === 'Nincs jelentkező').length}</strong></span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* 5. PLATFORM EGÉSZSÉG */}
             <section className="bg-white rounded-xl shadow-lg p-6">
               <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
                 <ShieldCheck size={22} /> Platform egészség
