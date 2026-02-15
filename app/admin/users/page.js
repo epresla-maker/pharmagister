@@ -101,6 +101,10 @@ export default function AdminUsersPage() {
     });
   }, [users]);
 
+  const activeNonPharmacyUsers = useMemo(() => {
+    return nonPharmacyUsers.filter(u => u.emailVerified && u.passwordActivated);
+  }, [nonPharmacyUsers]);
+
   const filteredUsers = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
     if (!q) return nonPharmacyUsers;
@@ -138,7 +142,9 @@ export default function AdminUsersPage() {
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">👥 Felhasználók</h1>
             <p className="text-gray-500 mt-1">
-              Összes: <strong>{nonPharmacyUsers.length}</strong> | Találat: <strong>{sortedUsers.length}</strong>
+              Összes regisztráció: <strong>{nonPharmacyUsers.length}</strong> | 
+              Aktív: <strong className="text-green-600">{activeNonPharmacyUsers.length}</strong> |
+              Találat: <strong>{sortedUsers.length}</strong>
             </p>
           </div>
           <button 
@@ -160,6 +166,36 @@ export default function AdminUsersPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
             />
+          </div>
+        </div>
+
+        {/* Active users breakdown by role */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-3 text-center">
+            <Pill className="mx-auto text-blue-600 mb-2" size={24} />
+            <p className="text-2xl font-bold text-blue-600">
+              {activeNonPharmacyUsers.filter(u => u.pharmagisterRole === 'pharmacist' || u.pharmagisterRole === 'gyógyszerész').length}
+            </p>
+            <p className="text-xs text-gray-600 font-medium">Gyógyszerész</p>
+          </div>
+          <div className="bg-orange-50 border-2 border-orange-200 rounded-lg p-3 text-center">
+            <UserCog className="mx-auto text-orange-600 mb-2" size={24} />
+            <p className="text-2xl font-bold text-orange-600">
+              {activeNonPharmacyUsers.filter(u => u.pharmagisterRole === 'assistant' || u.pharmagisterRole === 'szakasszisztens').length}
+            </p>
+            <p className="text-xs text-gray-600 font-medium">Szakasszisztens</p>
+          </div>
+          <div className="bg-gray-50 border-2 border-gray-300 rounded-lg p-3 text-center">
+            <AlertCircle className="mx-auto text-gray-500 mb-2" size={24} />
+            <p className="text-2xl font-bold text-gray-600">
+              {activeNonPharmacyUsers.filter(u => !u.pharmagisterRole).length}
+            </p>
+            <p className="text-xs text-gray-600 font-medium">Nincs szerepkör</p>
+          </div>
+          <div className="bg-green-50 border-2 border-green-200 rounded-lg p-3 text-center">
+            <UserCheck className="mx-auto text-green-600 mb-2" size={24} />
+            <p className="text-2xl font-bold text-green-600">{activeNonPharmacyUsers.length}</p>
+            <p className="text-xs text-gray-600 font-medium">Összes aktív</p>
           </div>
         </div>
 
