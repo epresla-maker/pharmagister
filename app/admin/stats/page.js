@@ -5,10 +5,10 @@ import { useEffect, useState } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { 
-  Users, Building2, Pill, UserCog, TrendingUp, Clock, ArrowLeft, 
-  CheckCircle, XCircle, FileCheck, Calendar, AlertCircle, FileText,
-  MessageSquare, Bell, ShieldCheck, BarChart3,
-  Activity, Inbox, Send, UserCheck, UserX
+  Users, Building2, Pill, UserCog, TrendingUp, ArrowLeft, 
+  AlertCircle,
+  MessageSquare, Bell, ShieldCheck,
+  Activity, Send, UserCheck, UserX
 } from "lucide-react";
 
 const ADMIN_EMAILS = ['epresla@icloud.com'];
@@ -45,10 +45,8 @@ export default function StatsPage() {
   const loadStats = async () => {
     setLoadingStats(true);
     try {
-      const [usersSnap, demandsSnap, applicationsSnap, chatsSnap, notifsSnap, pushSnap, approvalsSnap] = await Promise.all([
+      const [usersSnap, chatsSnap, notifsSnap, pushSnap, approvalsSnap] = await Promise.all([
         getDocs(collection(db, 'users')),
-        getDocs(collection(db, 'pharmaDemands')),
-        getDocs(collection(db, 'pharmaApplications')),
         getDocs(collection(db, 'chats')),
         getDocs(collection(db, 'notifications')),
         getDocs(collection(db, 'pushSubscriptions')),
@@ -56,8 +54,6 @@ export default function StatsPage() {
       ]);
 
       const users = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-      const demands = demandsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-      const applications = applicationsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       const chats = chatsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       const notifications = notifsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       const pushSubs = pushSnap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -92,25 +88,6 @@ export default function StatsPage() {
         assistant: list.filter(u => u.pharmagisterRole === 'assistant' || u.pharmagisterRole === 'szakasszisztens').length,
       });
 
-      // ===== IGÉNYEK =====
-      const openDemands = demands.filter(d => d.status === 'open');
-      const filledDemands = demands.filter(d => d.status === 'filled');
-      const openWithoutApps = openDemands.filter(d => !applications.some(app => app.demandId === d.id));
-      const openWithApps = openDemands.filter(d => applications.some(app => app.demandId === d.id));
-      const openNoResponse = openDemands.filter(d => {
-        const apps = applications.filter(app => app.demandId === d.id);
-        return apps.length > 0 && apps.every(app => app.status === 'pending');
-      });
-
-      // ===== JELENTKEZÉSEK =====
-      const pendingApps = applications.filter(a => a.status === 'pending');
-      const acceptedApps = applications.filter(a => a.status === 'accepted');
-      const rejectedApps = applications.filter(a => a.status === 'rejected');
-      const demandsWithApps = demands.filter(d => applications.some(a => a.demandId === d.id));
-      const avgAppsPerDemand = demandsWithApps.length > 0 ? (applications.length / demandsWithApps.length).toFixed(1) : '0';
-      const decidedApps = acceptedApps.length + rejectedApps.length;
-      const acceptRate = decidedApps > 0 ? Math.round((acceptedApps.length / decidedApps) * 100) : 0;
-
       // ===== CHAT & PUSH =====
       const activeChats = chats.filter(c => c.lastMessage);
       const uniquePushUsers = new Set(pushSubs.map(s => s.userId)).size;
@@ -124,8 +101,6 @@ export default function StatsPage() {
       setStats({
         users: { totalAll: users.length, active: activeUsers.length, pharmacists: pharmacists.length, pharmacies: pharmaciesArr.length, assistants: assistants.length, profileComplete: profileComplete.length, profileIncomplete: profileIncomplete.length, noRole: noRole.length },
         activity: { dau: { total: dau.length, ...countRoles(dau) }, wau: { total: wau.length, ...countRoles(wau) }, mau: { total: mau.length, ...countRoles(mau) } },
-        demands: { total: demands.length, open: openDemands.length, filled: filledDemands.length, openWithoutApps: openWithoutApps.length, openWithApps: openWithApps.length, openNoResponse: openNoResponse.length },
-        applications: { total: applications.length, pending: pendingApps.length, accepted: acceptedApps.length, rejected: rejectedApps.length, avgPerDemand: avgAppsPerDemand, acceptRate },
         chat: { total: chats.length, active: activeChats.length },
         push: { subscribers: uniquePushUsers, unreadNotifs },
         approvals: { pending: pendingApprovals.length, approved: approvedApprovals.length, rejected: rejectedApprovals.length },
@@ -249,56 +224,7 @@ export default function StatsPage() {
               </div>
             </section>
 
-            {/* 3. IGÉNYEK */}
-            <section className="bg-white rounded-xl shadow-lg p-6">
-              <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                <Calendar size={22} /> Helyettesítési igények
-              </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
-                <BigCard icon={BarChart3} label="Összes igény" value={stats.demands.total} sub="Valaha létrehozott" color="text-purple-600" bg="bg-purple-50" />
-                <BigCard icon={FileText} label="Nyitott" value={stats.demands.open} sub="Jelenleg aktív" color="text-blue-600" bg="bg-blue-50" />
-                <BigCard icon={CheckCircle} label="Betöltött" value={stats.demands.filled} sub="Sikeresen párosítva" color="text-green-600" bg="bg-green-50" />
-              </div>
-              <div className="border-t pt-4">
-                <p className="text-xs font-semibold text-gray-500 mb-3 uppercase tracking-wider">Nyitott igények részletezése</p>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="bg-gray-50 rounded-xl p-4 border-l-4 border-gray-400">
-                    <p className="text-xl font-bold text-gray-700">{stats.demands.openWithoutApps}</p>
-                    <p className="text-sm text-gray-600">Jelentkezés nélkül</p>
-                    <p className="text-xs text-gray-400 mt-1">Senki nem jelentkezett rá</p>
-                  </div>
-                  <div className="bg-purple-50 rounded-xl p-4 border-l-4 border-purple-500">
-                    <p className="text-xl font-bold text-purple-600">{stats.demands.openWithApps}</p>
-                    <p className="text-sm text-gray-600">Van jelentkező</p>
-                    <p className="text-xs text-gray-400 mt-1">Legalább 1 jelentkezés érkezett</p>
-                  </div>
-                  <div className="bg-orange-50 rounded-xl p-4 border-l-4 border-orange-500">
-                    <p className="text-xl font-bold text-orange-600">{stats.demands.openNoResponse}</p>
-                    <p className="text-sm text-gray-600">Nincs reakció</p>
-                    <p className="text-xs text-gray-400 mt-1">Van jelentkező, gyógyszertár nem reagált</p>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* 4. JELENTKEZÉSEK */}
-            <section className="bg-white rounded-xl shadow-lg p-6">
-              <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                <FileCheck size={22} /> Jelentkezések
-              </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
-                <MiniCard icon={Inbox} label="Összes" value={stats.applications.total} color="text-blue-600" bg="bg-blue-50" />
-                <MiniCard icon={Clock} label="Függőben" value={stats.applications.pending} color="text-yellow-600" bg="bg-yellow-50" />
-                <MiniCard icon={CheckCircle} label="Elfogadott" value={stats.applications.accepted} color="text-green-600" bg="bg-green-50" />
-                <MiniCard icon={XCircle} label="Elutasított" value={stats.applications.rejected} color="text-red-600" bg="bg-red-50" />
-              </div>
-              <div className="bg-gray-50 rounded-lg p-3 flex flex-wrap gap-6 text-sm">
-                <span>Átlag jelentkezés/igény: <strong>{stats.applications.avgPerDemand}</strong></span>
-                <span>Elfogadási arány: <strong className="text-green-600">{stats.applications.acceptRate}%</strong></span>
-              </div>
-            </section>
-
-            {/* 5. PLATFORM EGÉSZSÉG */}
+            {/* 3. PLATFORM EGÉSZSÉG */}
             <section className="bg-white rounded-xl shadow-lg p-6">
               <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
                 <ShieldCheck size={22} /> Platform egészség
