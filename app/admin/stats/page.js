@@ -6,8 +6,8 @@ import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { 
   Users, Building2, Pill, UserCog, TrendingUp, ArrowLeft, 
-  AlertCircle,
-  MessageSquare, Bell, ShieldCheck,
+  AlertCircle, Calendar, FileText,
+  MessageSquare, Bell, ShieldCheck, BarChart3,
   Activity, Send, UserCheck, UserX
 } from "lucide-react";
 
@@ -45,8 +45,9 @@ export default function StatsPage() {
   const loadStats = async () => {
     setLoadingStats(true);
     try {
-      const [usersSnap, chatsSnap, notifsSnap, pushSnap, approvalsSnap] = await Promise.all([
+      const [usersSnap, demandsSnap, chatsSnap, notifsSnap, pushSnap, approvalsSnap] = await Promise.all([
         getDocs(collection(db, 'users')),
+        getDocs(collection(db, 'pharmaDemands')),
         getDocs(collection(db, 'chats')),
         getDocs(collection(db, 'notifications')),
         getDocs(collection(db, 'pushSubscriptions')),
@@ -54,6 +55,7 @@ export default function StatsPage() {
       ]);
 
       const users = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const demands = demandsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       const chats = chatsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       const notifications = notifsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       const pushSubs = pushSnap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -88,6 +90,15 @@ export default function StatsPage() {
         assistant: list.filter(u => u.pharmagisterRole === 'assistant' || u.pharmagisterRole === 'szakasszisztens').length,
       });
 
+      // ===== IGÉNYEK =====
+      const todayStr = now.toISOString().split('T')[0];
+      const activeDemands = demands.filter(d => {
+        if (d.status !== 'open') return false;
+        if (!d.date) return true;
+        const dateStr = typeof d.date === 'string' ? d.date : (d.date.toDate ? d.date.toDate().toISOString().split('T')[0] : '');
+        return dateStr >= todayStr;
+      });
+
       // ===== CHAT & PUSH =====
       const activeChats = chats.filter(c => c.lastMessage);
       const uniquePushUsers = new Set(pushSubs.map(s => s.userId)).size;
@@ -101,6 +112,7 @@ export default function StatsPage() {
       setStats({
         users: { totalAll: users.length, active: activeUsers.length, pharmacists: pharmacists.length, pharmacies: pharmaciesArr.length, assistants: assistants.length, profileComplete: profileComplete.length, profileIncomplete: profileIncomplete.length, noRole: noRole.length },
         activity: { dau: { total: dau.length, ...countRoles(dau) }, wau: { total: wau.length, ...countRoles(wau) }, mau: { total: mau.length, ...countRoles(mau) } },
+        demands: { total: demands.length, active: activeDemands.length },
         chat: { total: chats.length, active: activeChats.length },
         push: { subscribers: uniquePushUsers, unreadNotifs },
         approvals: { pending: pendingApprovals.length, approved: approvedApprovals.length, rejected: rejectedApprovals.length },
@@ -224,7 +236,18 @@ export default function StatsPage() {
               </div>
             </section>
 
-            {/* 3. PLATFORM EGÉSZSÉG */}
+            {/* 3. IGÉNYEK */}
+            <section className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <Calendar size={22} /> Helyettesítési igények
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <BigCard icon={BarChart3} label="Összes feladott igény" value={stats.demands.total} sub="Valaha létrehozott" color="text-purple-600" bg="bg-purple-50" />
+                <BigCard icon={FileText} label="Jelenleg aktív" value={stats.demands.active} sub="Nyitott, jövőbeli dátummal" color="text-blue-600" bg="bg-blue-50" />
+              </div>
+            </section>
+
+            {/* 4. PLATFORM EGÉSZSÉG */}
             <section className="bg-white rounded-xl shadow-lg p-6">
               <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
                 <ShieldCheck size={22} /> Platform egészség
