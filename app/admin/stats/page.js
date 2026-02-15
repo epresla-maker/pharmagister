@@ -87,11 +87,13 @@ export default function StatsPage() {
       const wau = getActiveInPeriod(last7d);
       const mau = getActiveInPeriod(last30d);
 
-      const countRoles = (list) => ({
-        pharmacist: list.filter(u => u.pharmagisterRole === 'pharmacist' || u.pharmagisterRole === 'gyógyszerész').length,
-        pharmacy: list.filter(u => u.pharmagisterRole === 'pharmacy' || u.pharmagisterRole === 'gyógyszertár').length,
-        assistant: list.filter(u => u.pharmagisterRole === 'assistant' || u.pharmagisterRole === 'szakasszisztens').length,
-      });
+      const countRoles = (list) => {
+        const pharmacist = list.filter(u => u.pharmagisterRole === 'pharmacist' || u.pharmagisterRole === 'gyógyszerész').length;
+        const pharmacy = list.filter(u => u.pharmagisterRole === 'pharmacy' || u.pharmagisterRole === 'gyógyszertár').length;
+        const assistant = list.filter(u => u.pharmagisterRole === 'assistant' || u.pharmagisterRole === 'szakasszisztens').length;
+        const noRole = list.length - pharmacist - pharmacy - assistant;
+        return { pharmacist, pharmacy, assistant, noRole };
+      };
 
       // ===== IGÉNYEK =====
       const todayStr = now.toISOString().split('T')[0];
@@ -288,6 +290,7 @@ export default function StatsPage() {
                         <th className="py-2 px-4 text-center">Gyógyszerész</th>
                         <th className="py-2 px-4 text-center">Gyógyszertár</th>
                         <th className="py-2 px-4 text-center">Szakasszisztens</th>
+                        <th className="py-2 px-4 text-center">Nincs szerep</th>
                         <th className="py-2 px-4 text-center font-bold">Összesen</th>
                       </tr>
                     </thead>
@@ -302,6 +305,7 @@ export default function StatsPage() {
                           <td className="py-2 px-4 text-center text-blue-600 font-semibold">{row.data.pharmacist}</td>
                           <td className="py-2 px-4 text-center text-green-600 font-semibold">{row.data.pharmacy}</td>
                           <td className="py-2 px-4 text-center text-orange-600 font-semibold">{row.data.assistant}</td>
+                          <td className="py-2 px-4 text-center text-gray-400 font-semibold">{row.data.noRole > 0 ? row.data.noRole : '-'}</td>
                           <td className="py-2 px-4 text-center font-bold">{row.data.total}</td>
                         </tr>
                       ))}
