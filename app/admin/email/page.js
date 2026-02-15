@@ -8,6 +8,33 @@ import { Mail, Users, Search, X, ChevronDown, ChevronUp, Send, ArrowLeft, CheckC
 
 const ADMIN_EMAILS = ['epresla@icloud.com'];
 
+// Email vázlat sablon - ITT TUDOD MÓDOSÍTANI AZ EMAIL SZÖVEGÉT
+const generateInactiveUserEmail = (name, keepLink, deleteLink) => {
+  const subject = 'Pharmagister fiók - Döntés szükséges';
+  const body = `Kedves ${name}!
+
+Észrevettük, hogy regisztráltál a Pharmagister oldalunkon, de még nem aktiváltad a fiókodat és nem is léptél be.
+
+Kérjük, válaszd ki az alábbi opciók egyikét:
+
+✅ FIÓK MEGTARTÁSA
+Ha szeretnéd megtartani a fiókodat, kattints erre a linkre:
+${keepLink}
+
+❌ FIÓK TÖRLÉSE
+Ha törölni szeretnéd a fiókodat és minden adatodat, kattints erre a linkre:
+${deleteLink}
+
+Ha 30 napon belül nem választasz, a fiókod továbbra is aktív marad, de emlékeztetőket küldhetsz neki.
+
+A linkek 30 napig érvényesek és csak egyszer használhatók fel.
+
+Üdvözlettel,
+Pharmagister csapat`;
+
+  return { subject, body };
+};
+
 export default function AdminEmailPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
@@ -537,43 +564,25 @@ export default function AdminEmailPage() {
                         </button>
                       </div>
 
-                      {showTokenEmail === idx && (
+                      {showTokenEmail === idx && (() => {
+                        const emailTemplate = generateInactiveUserEmail(tokenData.name, tokenData.keepLink, tokenData.deleteLink);
+                        return (
                         <div className="bg-gray-50 rounded-lg p-3 text-sm">
                           <p className="font-medium mb-2">Email vázlat (másold be az Új email tabon):</p>
                           <div className="bg-white border rounded p-3 mb-3">
                             <p className="text-xs text-gray-500 mb-1"><strong>Tárgy:</strong></p>
-                            <p className="text-sm mb-3">Pharmagister fiók - Döntés szükséges</p>
+                            <p className="text-sm mb-3">{emailTemplate.subject}</p>
                             
                             <p className="text-xs text-gray-500 mb-1"><strong>Üzenet:</strong></p>
                             <div className="text-sm whitespace-pre-wrap text-gray-700">
-{`Kedves ${tokenData.name}!
-
-Észrevettük, hogy regisztráltál a Pharmagister oldalunkon, de még nem aktiváltad a fiókodat és nem is léptél be.
-
-Kérjük, válaszd ki az alábbi opciók egyikét:
-
-✅ FIÓK MEGTARTÁSA
-Ha szeretnéd megtartani a fiókodat, kattints erre a linkre:
-${tokenData.keepLink}
-
-❌ FIÓK TÖRLÉSE
-Ha törölni szeretnéd a fiókodat és minden adatodat, kattints erre a linkre:
-${tokenData.deleteLink}
-
-Ha 30 napon belül nem választasz, a fiókod továbbra is aktív marad, de emlékeztetőket küldhetsz neki.
-
-A linkek 30 napig érvényesek és csak egyszer használhatók fel.
-
-Üdvözlettel,
-Pharmagister csapat`}
+                              {emailTemplate.body}
                             </div>
                           </div>
                           
                           <div className="flex gap-2">
                             <button
                               onClick={() => {
-                                const emailText = `Kedves ${tokenData.name}!\n\nÉszrevettük, hogy regisztráltál a Pharmagister oldalunkon, de még nem aktiváltad a fiókodat és nem is léptél be.\n\nKérjük, válaszd ki az alábbi opciók egyikét:\n\n✅ FIÓK MEGTARTÁSA\nHa szeretnéd megtartani a fiókodat, kattints erre a linkre:\n${tokenData.keepLink}\n\n❌ FIÓK TÖRLÉSE\nHa törölni szeretnéd a fiókodat és minden adatodat, kattints erre a linkre:\n${tokenData.deleteLink}\n\nHa 30 napon belül nem választasz, a fiókod továbbra is aktív marad, de emlékeztetőket küldhetsz neki.\n\nA linkek 30 napig érvényesek és csak egyszer használhatók fel.\n\nÜdvözlettel,\nPharmagister csapat`;
-                                navigator.clipboard.writeText(emailText);
+                                navigator.clipboard.writeText(emailTemplate.body);
                                 alert('📋 Email szöveg vágólapra másolva!');
                               }}
                               className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700"
@@ -582,10 +591,11 @@ Pharmagister csapat`}
                             </button>
                             <button
                               onClick={() => {
+                                const template = generateInactiveUserEmail(tokenData.name, tokenData.keepLink, tokenData.deleteLink);
                                 setActiveTab('compose');
                                 setSelectedRecipients([{ email: tokenData.email, displayName: tokenData.name }]);
-                                setSubject('Pharmagister fiók - Döntés szükséges');
-                                setBody(`Kedves ${tokenData.name}!\n\nÉszrevettük, hogy regisztráltál a Pharmagister oldalunkon, de még nem aktiváltad a fiókodat és nem is léptél be.\n\nKérjük, válaszd ki az alábbi opciók egyikét:\n\n✅ FIÓK MEGTARTÁSA\nHa szeretnéd megtartani a fiókodat, kattints erre a linkre:\n${tokenData.keepLink}\n\n❌ FIÓK TÖRLÉSE\nHa törölni szeretnéd a fiókodat és minden adatodat, kattints erre a linkre:\n${tokenData.deleteLink}\n\nHa 30 napon belül nem választasz, a fiókod továbbra is aktív marad, de emlékeztetőket küldhetsz neki.\n\nA linkek 30 napig érvényesek és csak egyszer használhatók fel.\n\nÜdvözlettel,\nPharmagister csapat`);
+                                setSubject(template.subject);
+                                setBody(template.body);
                               }}
                               className="text-xs bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700"
                             >
@@ -593,7 +603,8 @@ Pharmagister csapat`}
                             </button>
                           </div>
                         </div>
-                      )}
+                        );
+                      })()}
                     </div>
                   ))}
                 </div>
