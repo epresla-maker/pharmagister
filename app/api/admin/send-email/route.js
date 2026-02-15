@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import { NextResponse } from 'next/server';
+import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 
 export const runtime = 'nodejs';
 
@@ -56,6 +57,24 @@ export async function POST(request) {
         console.error(`Failed to send to ${recipient}:`, err);
         errors.push({ email: recipient, error: err.message });
       }
+    }
+
+    // Save to Firestore
+    try {
+      const admin = getFirebaseAdmin();
+      const db = admin.firestore();
+      await db.collection('sentEmails').add({
+        to: results.map(r => r.email),
+        failedTo: errors.map(e => e.email),
+        subject,
+        body,
+        sentAt: admin.firestore.FieldValue.serverTimestamp(),
+        sentCount: results.length,
+        failedCount: errors.length,
+        from: 'info@pharmagister.hu',
+      });
+    } catch (saveErr) {
+      console.error('Failed to save sent email log:', saveErr);
     }
 
     return NextResponse.json({

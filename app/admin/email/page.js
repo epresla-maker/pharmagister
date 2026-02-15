@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useMemo } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Mail, Users, Search, X, ChevronDown, ChevronUp, Send, ArrowLeft, CheckCircle, AlertCircle } from "lucide-react";
+import { Mail, Users, Search, X, ChevronDown, ChevronUp, Send, ArrowLeft, CheckCircle, AlertCircle, Clock, Eye, EyeOff } from "lucide-react";
 
 const ADMIN_EMAILS = ['epresla@icloud.com'];
 
@@ -26,6 +26,13 @@ export default function AdminEmailPage() {
   const [sending, setSending] = useState(false);
   const [sendResult, setSendResult] = useState(null);
 
+  // Sent emails state
+  const [sentEmails, setSentEmails] = useState([]);
+  const [loadingSent, setLoadingSent] = useState(false);
+  const [showSentEmails, setShowSentEmails] = useState(false);
+  const [expandedEmail, setExpandedEmail] = useState(null);
+  const [activeTab, setActiveTab] = useState('compose'); // 'compose' | 'sent'
+
   useEffect(() => {
     if (!loading) {
       if (!user || !ADMIN_EMAILS.includes(user.email)) {
@@ -37,6 +44,7 @@ export default function AdminEmailPage() {
   useEffect(() => {
     if (user && ADMIN_EMAILS.includes(user.email)) {
       loadUsers();
+      loadSentEmails();
     }
   }, [user]);
 
@@ -53,6 +61,19 @@ export default function AdminEmailPage() {
       console.error('Error loading users:', error);
     } finally {
       setLoadingUsers(false);
+    }
+  };
+
+  const loadSentEmails = async () => {
+    setLoadingSent(true);
+    try {
+      const response = await fetch('/api/admin/sent-emails');
+      const data = await response.json();
+      if (data.emails) setSentEmails(data.emails);
+    } catch (error) {
+      console.error('Error loading sent emails:', error);
+    } finally {
+      setLoadingSent(false);
     }
   };
 
@@ -133,6 +154,8 @@ export default function AdminEmailPage() {
           setBody('');
           setSelectedRecipients([]);
         }
+        // Reload sent emails list
+        loadSentEmails();
       } else {
         setSendResult({ type: 'error', message: result.error || 'Ismeretlen hiba történt' });
       }
@@ -170,8 +193,32 @@ export default function AdminEmailPage() {
             </button>
           </div>
           <p className="text-sm text-gray-500">Feladó: info@pharmagister.hu</p>
+
+          {/* Tabs */}
+          <div className="flex gap-2 mt-4">
+            <button
+              onClick={() => setActiveTab('compose')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                activeTab === 'compose' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <Send size={16} />
+              Új email
+            </button>
+            <button
+              onClick={() => setActiveTab('sent')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                activeTab === 'sent' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <Clock size={16} />
+              Elküldött ({sentEmails.length})
+            </button>
+          </div>
         </div>
 
+        {/* COMPOSE TAB */}
+        {activeTab === 'compose' && (<>
         {/* Recipients section */}
         <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 mb-4">
           <div className="flex items-center justify-between mb-3">
@@ -365,6 +412,98 @@ export default function AdminEmailPage() {
             )}
           </button>
         </div>
+        </>)}
+
+        {/* SENT EMAILS TAB */}
+        {activeTab === 'sent' && (
+          <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <Clock size={20} />
+                Elküldött emailek
+              </h2>
+              <button
+                onClick={loadSentEmails}
+                className="text-xs bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-200"
+              >
+                Frissítés
+              </button>
+            </div>
+
+            {loadingSent ? (
+              <div className="text-center py-8 text-gray-500">Betöltés...</div>
+            ) : sentEmails.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">Még nincs elküldött email</div>
+            ) : (
+              <div className="space-y-3">
+                {sentEmails.map(email => (
+                  <div key={email.id} className="border rounded-lg overflow-hidden">
+                    <button
+                      onClick={() => setExpandedEmail(expandedEmail === email.id ? null : email.id)}
+                      className="w-full text-left p-3 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{email.subject}</p>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {email.sentAt ? new Date(email.sentAt).toLocaleString('hu-HU', {
+                              year: 'numeric', month: '2-digit', day: '2-digit',
+                              hour: '2-digit', minute: '2-digit'
+                            }) : 'Ismeretlen dátum'}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
+                            {email.sentCount} elküldve
+                          </span>
+                          {email.failedCount > 0 && (
+                            <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded">
+                              {email.failedCount} sikertelen
+                            </span>
+                          )}
+                          {expandedEmail === email.id ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+                        </div>
+                      </div>
+                    </button>
+
+                    {expandedEmail === email.id && (
+                      <div className="border-t p-3 bg-gray-50">
+                        <div className="mb-3">
+                          <p className="text-xs font-medium text-gray-500 mb-1">Címzettek ({email.to.length}):</p>
+                          <div className="flex flex-wrap gap-1">
+                            {email.to.map((addr, i) => (
+                              <span key={i} className="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full">
+                                {addr}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        {email.failedTo?.length > 0 && (
+                          <div className="mb-3">
+                            <p className="text-xs font-medium text-red-500 mb-1">Sikertelen címzettek:</p>
+                            <div className="flex flex-wrap gap-1">
+                              {email.failedTo.map((addr, i) => (
+                                <span key={i} className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded-full">
+                                  {addr}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-xs font-medium text-gray-500 mb-1">Üzenet:</p>
+                          <div className="bg-white border rounded p-3 text-sm text-gray-700 whitespace-pre-wrap">
+                            {email.body}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
