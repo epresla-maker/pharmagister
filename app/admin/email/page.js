@@ -31,7 +31,12 @@ export default function AdminEmailPage() {
   const [loadingSent, setLoadingSent] = useState(false);
   const [showSentEmails, setShowSentEmails] = useState(false);
   const [expandedEmail, setExpandedEmail] = useState(null);
-  const [activeTab, setActiveTab] = useState('compose'); // 'compose' | 'sent'
+  const [activeTab, setActiveTab] = useState('compose'); // 'compose' | 'sent' | 'tokens'
+
+  // Token generation state
+  const [generatingTokens, setGeneratingTokens] = useState(false);
+  const [generatedTokens, setGeneratedTokens] = useState([]);
+  const [showTokenEmail, setShowTokenEmail] = useState(null);
 
   useEffect(() => {
     if (!loading) {
@@ -74,6 +79,27 @@ export default function AdminEmailPage() {
       console.error('Error loading sent emails:', error);
     } finally {
       setLoadingSent(false);
+    }
+  };
+
+  const generateTokens = async () => {
+    if (!confirm('Biztosan generálod a tokeneket az összes inaktív felhasználónak?')) return;
+    
+    setGeneratingTokens(true);
+    try {
+      const response = await fetch('/api/admin/generate-inactive-tokens', { method: 'POST' });
+      const data = await response.json();
+      
+      if (response.ok) {
+        setGeneratedTokens(data.tokens);
+        alert(`✅ Sikeresen generálva ${data.count} felhasználónak!`);
+      } else {
+        alert('❌ Hiba: ' + data.error);
+      }
+    } catch (error) {
+      alert('❌ Hiba a token generálás során: ' + error.message);
+    } finally {
+      setGeneratingTokens(false);
     }
   };
 
@@ -221,6 +247,15 @@ export default function AdminEmailPage() {
             >
               <Send size={16} />
               Új email
+            </button>
+            <button
+              onClick={() => setActiveTab('tokens')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                activeTab === 'tokens' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <Users size={16} />
+              Token generálás
             </button>
             <button
               onClick={() => setActiveTab('sent')}
@@ -437,6 +472,141 @@ export default function AdminEmailPage() {
           </button>
         </div>
         </>)}
+
+        {/* TOKEN GENERATION TAB */}
+        {activeTab === 'tokens' && (
+          <div className="space-y-4">
+            {/* Info box */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h3 className="font-medium text-blue-900 mb-2">Token generálás inaktív felhasználóknak</h3>
+              <p className="text-sm text-blue-800">
+                Ez a funkció egyedi linkeket generál minden inaktív felhasználónak (akik még sosem léptek be és nem aktiválták a jelszavukat).
+                Minden felhasználó kap 2 linket:
+              </p>
+              <ul className="text-sm text-blue-800 mt-2 space-y-1 ml-4 list-disc">
+                <li><strong>Megtartás link:</strong> A felhasználó megtarthatja a fiókját</li>
+                <li><strong>Törlés link:</strong> A felhasználó törölheti a fiókját és minden adatát</li>
+              </ul>
+              <p className="text-sm text-blue-800 mt-2">
+                A tokenek 30 napig érvényesek és csak egyszer használhatók fel.
+              </p>
+            </div>
+
+            {/* Generate button */}
+            <div className="bg-white rounded-lg shadow-lg p-6">
+              <button
+                onClick={generateTokens}
+                disabled={generatingTokens}
+                className="w-full flex items-center justify-center gap-2 bg-purple-600 text-white px-6 py-4 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-base font-medium shadow-lg"
+              >
+                {generatingTokens ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Tokenek generálása...
+                  </>
+                ) : (
+                  <>
+                    <Users size={20} />
+                    Tokenek generálása inaktív felhasználóknak
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Generated tokens list */}
+            {generatedTokens.length > 0 && (
+              <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
+                <h2 className="text-lg font-semibold mb-4">
+                  Generált tokenek ({generatedTokens.length} felhasználó)
+                </h2>
+                
+                <div className="space-y-3">
+                  {generatedTokens.map((tokenData, idx) => (
+                    <div key={tokenData.userId} className="border rounded-lg p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <p className="font-medium text-sm">{tokenData.name}</p>
+                          <p className="text-xs text-gray-500">{tokenData.email}</p>
+                        </div>
+                        <button
+                          onClick={() => setShowTokenEmail(showTokenEmail === idx ? null : idx)}
+                          className="text-xs bg-purple-100 text-purple-700 px-3 py-1.5 rounded-lg hover:bg-purple-200 flex items-center gap-1"
+                        >
+                          {showTokenEmail === idx ? <EyeOff size={14} /> : <Eye size={14} />}
+                          {showTokenEmail === idx ? 'Email elrejtése' : 'Email vázlat'}
+                        </button>
+                      </div>
+
+                      {showTokenEmail === idx && (
+                        <div className="bg-gray-50 rounded-lg p-3 text-sm">
+                          <p className="font-medium mb-2">Email vázlat (másold be az Új email tabon):</p>
+                          <div className="bg-white border rounded p-3 mb-3">
+                            <p className="text-xs text-gray-500 mb-1"><strong>Tárgy:</strong></p>
+                            <p className="text-sm mb-3">Pharmagister fiók - Döntés szükséges</p>
+                            
+                            <p className="text-xs text-gray-500 mb-1"><strong>Üzenet:</strong></p>
+                            <div className="text-sm whitespace-pre-wrap text-gray-700">
+{`Kedves ${tokenData.name}!
+
+Észrevettük, hogy regisztráltál a Pharmagister oldalunkon, de még nem aktiváltad a fiókodat és nem is léptél be.
+
+Kérjük, válaszd ki az alábbi opciók egyikét:
+
+✅ FIÓK MEGTARTÁSA
+Ha szeretnéd megtartani a fiókodat, kattints erre a linkre:
+${tokenData.keepLink}
+
+❌ FIÓK TÖRLÉSE
+Ha törölni szeretnéd a fiókodat és minden adatodat, kattints erre a linkre:
+${tokenData.deleteLink}
+
+Ha 30 napon belül nem választasz, a fiókod továbbra is aktív marad, de emlékeztetőket küldhetsz neki.
+
+A linkek 30 napig érvényesek és csak egyszer használhatók fel.
+
+Üdvözlettel,
+Pharmagister csapat`}
+                            </div>
+                          </div>
+                          
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => {
+                                const emailText = `Kedves ${tokenData.name}!\n\nÉszrevettük, hogy regisztráltál a Pharmagister oldalunkon, de még nem aktiváltad a fiókodat és nem is léptél be.\n\nKérjük, válaszd ki az alábbi opciók egyikét:\n\n✅ FIÓK MEGTARTÁSA\nHa szeretnéd megtartani a fiókodat, kattints erre a linkre:\n${tokenData.keepLink}\n\n❌ FIÓK TÖRLÉSE\nHa törölni szeretnéd a fiókodat és minden adatodat, kattints erre a linkre:\n${tokenData.deleteLink}\n\nHa 30 napon belül nem választasz, a fiókod továbbra is aktív marad, de emlékeztetőket küldhetsz neki.\n\nA linkek 30 napig érvényesek és csak egyszer használhatók fel.\n\nÜdvözlettel,\nPharmagister csapat`;
+                                navigator.clipboard.writeText(emailText);
+                                alert('📋 Email szöveg vágólapra másolva!');
+                              }}
+                              className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700"
+                            >
+                              📋 Szöveg másolása
+                            </button>
+                            <button
+                              onClick={() => {
+                                setActiveTab('compose');
+                                setSelectedRecipients([{ email: tokenData.email, displayName: tokenData.name }]);
+                                setSubject('Pharmagister fiók - Döntés szükséges');
+                                setBody(`Kedves ${tokenData.name}!\n\nÉszrevettük, hogy regisztráltál a Pharmagister oldalunkon, de még nem aktiváltad a fiókodat és nem is léptél be.\n\nKérjük, válaszd ki az alábbi opciók egyikét:\n\n✅ FIÓK MEGTARTÁSA\nHa szeretnéd megtartani a fiókodat, kattints erre a linkre:\n${tokenData.keepLink}\n\n❌ FIÓK TÖRLÉSE\nHa törölni szeretnéd a fiókodat és minden adatodat, kattints erre a linkre:\n${tokenData.deleteLink}\n\nHa 30 napon belül nem választasz, a fiókod továbbra is aktív marad, de emlékeztetőket küldhetsz neki.\n\nA linkek 30 napig érvényesek és csak egyszer használhatók fel.\n\nÜdvözlettel,\nPharmagister csapat`);
+                              }}
+                              className="text-xs bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700"
+                            >
+                              ✉️ Email küldéshez
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm text-yellow-800">
+                    <strong>💡 Tipp:</strong> Kattints az "Email küldéshez" gombra, hogy automatikusan kitöltse az Új email tabot az adott felhasználónak.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* SENT EMAILS TAB */}
         {activeTab === 'sent' && (

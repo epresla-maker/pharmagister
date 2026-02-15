@@ -31,6 +31,7 @@
     "react-dom": "^19.2.3",
     "resend": "^6.8.0",
     "rss-parser": "^3.13.0",
+    "uuid": "^13.0.0",
     "web-push": "^3.6.7"
   },
   "devDependencies": {
