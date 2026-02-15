@@ -189,7 +189,8 @@ export default function AdminUsersPage() {
                     const RoleIcon = getRoleIcon(u.pharmagisterRole);
                     const roleColor = getRoleColor(u.pharmagisterRole);
                     const hasPush = pushUserIds.has(u.id);
-                    const isActive = u.emailVerified && u.passwordActivated;
+                    const hasLoggedIn = !!(u.lastLogin || u.lastSeen);
+                    const isActivated = u.emailVerified && u.passwordActivated;
                     return (
                       <tr key={u.id} className="border-b last:border-0 hover:bg-gray-50 transition-colors">
                         <td className="py-3 px-4 text-center text-gray-400 text-xs font-mono">{index + 1}</td>
@@ -234,11 +235,11 @@ export default function AdminUsersPage() {
                           )}
                         </td>
                         <td className="py-3 px-4 text-center">
-                          {isActive && (u.lastLogin || u.lastSeen) ? (
+                          {hasLoggedIn ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
                               <UserCheck size={12} /> Aktív
                             </span>
-                          ) : isActive ? (
+                          ) : isActivated ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
                               Aktivált
                             </span>
@@ -261,7 +262,8 @@ export default function AdminUsersPage() {
                 const RoleIcon = getRoleIcon(u.pharmagisterRole);
                 const roleColor = getRoleColor(u.pharmagisterRole);
                 const hasPush = pushUserIds.has(u.id);
-                const isActive = u.emailVerified && u.passwordActivated;
+                const hasLoggedIn = !!(u.lastLogin || u.lastSeen);
+                const isActivated = u.emailVerified && u.passwordActivated;
                 return (
                   <div key={u.id} className="p-4">
                     <div className="flex items-start justify-between mb-2">
@@ -280,9 +282,9 @@ export default function AdminUsersPage() {
                         ) : (
                           <BellOff size={16} className="text-gray-300" />
                         )}
-                        {isActive && (u.lastLogin || u.lastSeen) ? (
+                        {hasLoggedIn ? (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Aktív</span>
-                        ) : isActive ? (
+                        ) : isActivated ? (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700">Aktivált</span>
                         ) : (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">Inaktív</span>
