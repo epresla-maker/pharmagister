@@ -112,20 +112,18 @@ export default function StatsPage() {
         console.error('Error loading demand stats counter:', e);
       }
 
-      // ===== JELENTKEZÉSEK (igény-központú) =====
-      // Igények ahol legalább 1 jelentkezést elfogadtak
-      const demandsWithAccepted = demands.filter(d => 
-        applications.some(a => a.demandId === d.id && a.status === 'accepted')
-      );
-      // Igények ahol MINDEN jelentkezést elutasítottak (és volt legalább 1)
+      // ===== IGÉNY ÁLLAPOTOK =====
+      const filledDemands = demands.filter(d => d.status === 'filled');
+      // Igények ahol van jelentkezés de még nem döntöttek (status még open + van pending app)
+      const demandsWaitingResponse = demands.filter(d => {
+        if (d.status !== 'open') return false;
+        return applications.some(a => a.demandId === d.id && a.status === 'pending');
+      });
+      // Igények ahol mindenkit elutasítottak (status még open + van app de mind rejected)
       const demandsAllRejected = demands.filter(d => {
+        if (d.status !== 'open') return false;
         const apps = applications.filter(a => a.demandId === d.id);
         return apps.length > 0 && apps.every(a => a.status === 'rejected');
-      });
-      // Igények ahol van jelentkezés, de a gyógyszertár még nem reagált (van pending és nincs accepted)
-      const demandsNoResponse = demands.filter(d => {
-        const apps = applications.filter(a => a.demandId === d.id);
-        return apps.length > 0 && !apps.some(a => a.status === 'accepted') && apps.some(a => a.status === 'pending');
       });
 
       // ===== CHAT & PUSH =====
@@ -141,7 +139,7 @@ export default function StatsPage() {
       setStats({
         users: { totalAll: users.length, active: activeUsers.length, pharmacists: pharmacists.length, pharmacies: pharmaciesArr.length, assistants: assistants.length, profileComplete: profileComplete.length, profileIncomplete: profileIncomplete.length, noRole: noRole.length },
         activity: { dau: { total: dau.length, ...countRoles(dau) }, wau: { total: wau.length, ...countRoles(wau) }, mau: { total: mau.length, ...countRoles(mau) } },
-        demands: { total: demands.length, totalEver: totalEverCreated, active: activeDemands.length, accepted: demandsWithAccepted.length, rejected: demandsAllRejected.length, noResponse: demandsNoResponse.length },
+        demands: { total: demands.length, totalEver: totalEverCreated, active: activeDemands.length, filled: filledDemands.length, rejected: demandsAllRejected.length, waiting: demandsWaitingResponse.length },
         chat: { total: chats.length, active: activeChats.length },
         push: { subscribers: uniquePushUsers, unreadNotifs },
         approvals: { pending: pendingApprovals.length, approved: approvedApprovals.length, rejected: rejectedApprovals.length },
@@ -275,15 +273,15 @@ export default function StatsPage() {
                 <BigCard icon={FileText} label="Jelenleg aktív" value={stats.demands.active} sub="Nyitott, jövőbeli dátummal" color="text-blue-600" bg="bg-blue-50" />
               </div>
               <div className="border-t pt-4">
-                <p className="text-xs font-semibold text-gray-500 mb-3 uppercase tracking-wider">Igények állapota (jelentkezések alapján)</p>
+                <p className="text-xs font-semibold text-gray-500 mb-3 uppercase tracking-wider">Igények állapota</p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="bg-green-50 rounded-xl p-4 border-l-4 border-green-500">
                     <div className="flex items-center gap-2 mb-1">
                       <CheckCircle size={18} className="text-green-600" />
-                      <p className="text-xl font-bold text-green-600">{stats.demands.accepted}</p>
+                      <p className="text-xl font-bold text-green-600">{stats.demands.filled}</p>
                     </div>
-                    <p className="text-sm text-gray-600">Betöltött igény</p>
-                    <p className="text-xs text-gray-400 mt-1">Legalább 1 jelentkezőt elfogadtak</p>
+                    <p className="text-sm text-gray-600">Betöltött</p>
+                    <p className="text-xs text-gray-400 mt-1">Jelentkező elfogadva, igény lezárva</p>
                   </div>
                   <div className="bg-red-50 rounded-xl p-4 border-l-4 border-red-500">
                     <div className="flex items-center gap-2 mb-1">
@@ -291,12 +289,12 @@ export default function StatsPage() {
                       <p className="text-xl font-bold text-red-600">{stats.demands.rejected}</p>
                     </div>
                     <p className="text-sm text-gray-600">Mindenkit elutasítottak</p>
-                    <p className="text-xs text-gray-400 mt-1">Minden jelentkezőt elutasított a gyógyszertár</p>
+                    <p className="text-xs text-gray-400 mt-1">Minden jelentkező elutasítva, igény még nyitott</p>
                   </div>
                   <div className="bg-yellow-50 rounded-xl p-4 border-l-4 border-yellow-500">
                     <div className="flex items-center gap-2 mb-1">
                       <Clock size={18} className="text-yellow-600" />
-                      <p className="text-xl font-bold text-yellow-600">{stats.demands.noResponse}</p>
+                      <p className="text-xl font-bold text-yellow-600">{stats.demands.waiting}</p>
                     </div>
                     <p className="text-sm text-gray-600">Vár válaszra</p>
                     <p className="text-xs text-gray-400 mt-1">Van jelentkező, de még nem döntöttek</p>
