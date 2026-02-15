@@ -1,7 +1,7 @@
 "use client";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { 
@@ -175,6 +175,17 @@ export default function StatsPage() {
               status: d.status,
               demandStatus,
               applicantCount: demandApps.length,
+              applicants: demandApps.map(app => {
+                const applicantUser = users.find(u => u.id === app.applicantId || u.id === app.userId);
+                return {
+                  id: app.id,
+                  name: applicantUser ? (applicantUser.displayName || applicantUser.name || applicantUser.email || 'Ismeretlen') : (app.applicantName || 'Ismeretlen'),
+                  role: applicantUser?.pharmagisterRole === 'pharmacist' || applicantUser?.pharmagisterRole === 'gyógyszerész' ? 'Gyógyszerész' : applicantUser?.pharmagisterRole === 'assistant' || applicantUser?.pharmagisterRole === 'szakasszisztens' ? 'Szakasszisztens' : '-',
+                  status: app.status,
+                  appliedAt: app.createdAt || app.appliedAt,
+                  decidedAt: app.acceptedAt || app.rejectedAt || app.updatedAt,
+                };
+              }),
               createdAt: d.createdAt,
             });
           });
@@ -387,7 +398,8 @@ export default function StatsPage() {
                                 {pharmacy.demands
                                   .sort((a, b) => (a.date > b.date ? -1 : 1))
                                   .map((d) => (
-                                  <tr key={d.id} className="border-b last:border-0">
+                                  <React.Fragment key={d.id}>
+                                  <tr className="border-b last:border-0">
                                     <td className="py-2 pr-3 font-medium">{d.date}</td>
                                     <td className="py-2 px-3">{d.position}</td>
                                     <td className="py-2 px-3 text-center">
@@ -418,6 +430,49 @@ export default function StatsPage() {
                                         : '-'}
                                     </td>
                                   </tr>
+                                  {d.applicants && d.applicants.length > 0 && (
+                                    <tr>
+                                      <td colSpan={5} className="pb-3 pt-0 px-2">
+                                        <div className="ml-4 bg-blue-50 rounded-lg p-3">
+                                          <p className="text-xs font-semibold text-blue-700 mb-2">👤 Jelentkezők:</p>
+                                          <div className="space-y-1.5">
+                                            {d.applicants.map(app => {
+                                              const formatDate = (val) => {
+                                                if (!val) return '-';
+                                                if (typeof val === 'string') return new Date(val).toLocaleDateString('hu-HU');
+                                                if (val.seconds) return new Date(val.seconds * 1000).toLocaleDateString('hu-HU');
+                                                return '-';
+                                              };
+                                              return (
+                                                <div key={app.id} className="flex items-center justify-between text-xs bg-white rounded-md px-3 py-1.5">
+                                                  <div className="flex items-center gap-2">
+                                                    <span className="font-medium text-gray-800">{app.name}</span>
+                                                    <span className="text-gray-400">({app.role})</span>
+                                                  </div>
+                                                  <div className="flex items-center gap-3">
+                                                    <span className="text-gray-400">Jelentkezett: {formatDate(app.appliedAt)}</span>
+                                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium ${
+                                                      app.status === 'accepted' ? 'bg-green-100 text-green-700' :
+                                                      app.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                                      'bg-yellow-100 text-yellow-700'
+                                                    }`}>
+                                                      {app.status === 'accepted' && <><CheckCircle size={10} /> Elfogadva</>}
+                                                      {app.status === 'rejected' && <><XCircle size={10} /> Elutasítva</>}
+                                                      {app.status === 'pending' && <><Clock size={10} /> Függőben</>}
+                                                    </span>
+                                                    {app.decidedAt && app.status !== 'pending' && (
+                                                      <span className="text-gray-400">({formatDate(app.decidedAt)})</span>
+                                                    )}
+                                                  </div>
+                                                </div>
+                                              );
+                                            })}
+                                          </div>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  )}
+                                  </React.Fragment>
                                 ))}
                               </tbody>
                             </table>
