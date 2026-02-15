@@ -105,8 +105,8 @@ export default function AdminUsersPage() {
 
   const sortedUsers = useMemo(() => {
     return [...filteredUsers].sort((a, b) => {
-      const dateA = parseDate(a.lastLogin);
-      const dateB = parseDate(b.lastLogin);
+      const dateA = parseDate(a.lastLogin) || parseDate(a.lastSeen);
+      const dateB = parseDate(b.lastLogin) || parseDate(b.lastSeen);
       if (!dateA && !dateB) return 0;
       if (!dateA) return 1;
       if (!dateB) return -1;
@@ -201,9 +201,15 @@ export default function AdminUsersPage() {
                           </span>
                         </td>
                         <td className="py-3 px-4">
-                          <div className="flex items-center gap-1.5 text-gray-500 text-xs">
-                            <Clock size={12} />
-                            {formatDate(u.lastLogin)}
+                          <div className="flex items-center gap-1.5 text-xs">
+                            <Clock size={12} className="text-gray-400" />
+                            {u.lastLogin ? (
+                              <span className="text-gray-500">{formatDate(u.lastLogin)}</span>
+                            ) : u.lastSeen ? (
+                              <span className="text-gray-400" title="Utoljára aktív (nem lépett be újra)">{formatDate(u.lastSeen)} <span className="text-orange-400">(aktív)</span></span>
+                            ) : (
+                              <span className="text-red-400">Soha nem lépett be</span>
+                            )}
                           </div>
                         </td>
                         <td className="py-3 px-4 text-center">
@@ -271,7 +277,13 @@ export default function AdminUsersPage() {
                       </span>
                       <span className="text-gray-400 flex items-center gap-1">
                         <Clock size={12} />
-                        {formatDate(u.lastLogin)}
+                        {u.lastLogin ? (
+                          formatDate(u.lastLogin)
+                        ) : u.lastSeen ? (
+                          <span>{formatDate(u.lastSeen)} <span className="text-orange-400">(aktív)</span></span>
+                        ) : (
+                          <span className="text-red-400">Soha</span>
+                        )}
                       </span>
                     </div>
                   </div>
