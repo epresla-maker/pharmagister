@@ -23,6 +23,18 @@ export default function StatsPage() {
       gyogyszeresz: 0,
       gyogyszertar: 0,
       szakasszisztens: 0
+    },
+    last7d: {
+      total: 0,
+      gyogyszeresz: 0,
+      gyogyszertar: 0,
+      szakasszisztens: 0
+    },
+    last30d: {
+      total: 0,
+      gyogyszeresz: 0,
+      gyogyszertar: 0,
+      szakasszisztens: 0
     }
   });
   const [loadingStats, setLoadingStats] = useState(true);
@@ -53,6 +65,8 @@ export default function StatsPage() {
       // Calculate stats
       const now = new Date();
       const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const last7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const last30d = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
       let totalAll = usersData.length;
       let gyogyszeresz = 0;
@@ -63,6 +77,14 @@ export default function StatsPage() {
       let last24hGyogyszertar = 0;
       let last24hSzakasszisztens = 0;
       let last24hTotal = 0;
+      let last7dGyogyszeresz = 0;
+      let last7dGyogyszertar = 0;
+      let last7dSzakasszisztens = 0;
+      let last7dTotal = 0;
+      let last30dGyogyszeresz = 0;
+      let last30dGyogyszertar = 0;
+      let last30dSzakasszisztens = 0;
+      let last30dTotal = 0;
 
       usersData.forEach(u => {
         const role = u.pharmagisterRole;
@@ -82,7 +104,7 @@ export default function StatsPage() {
           }
         }
 
-        // Check last login in 24h (only for active users)
+        // Check last login in 24h, 7d, 30d (only for active users)
         if (isActive) {
           let lastLogin = null;
           if (u.lastLogin) {
@@ -95,14 +117,39 @@ export default function StatsPage() {
             }
           }
 
-          if (lastLogin && lastLogin > last24h) {
-            last24hTotal++;
-            if (role === 'pharmacist' || role === 'gyógyszerész') {
-              last24hGyogyszeresz++;
-            } else if (role === 'pharmacy' || role === 'gyógyszertár') {
-              last24hGyogyszertar++;
-            } else if (role === 'assistant' || role === 'szakasszisztens') {
-              last24hSzakasszisztens++;
+          if (lastLogin) {
+            // Last 24h
+            if (lastLogin > last24h) {
+              last24hTotal++;
+              if (role === 'pharmacist' || role === 'gyógyszerész') {
+                last24hGyogyszeresz++;
+              } else if (role === 'pharmacy' || role === 'gyógyszertár') {
+                last24hGyogyszertar++;
+              } else if (role === 'assistant' || role === 'szakasszisztens') {
+                last24hSzakasszisztens++;
+              }
+            }
+            // Last 7 days
+            if (lastLogin > last7d) {
+              last7dTotal++;
+              if (role === 'pharmacist' || role === 'gyógyszerész') {
+                last7dGyogyszeresz++;
+              } else if (role === 'pharmacy' || role === 'gyógyszertár') {
+                last7dGyogyszertar++;
+              } else if (role === 'assistant' || role === 'szakasszisztens') {
+                last7dSzakasszisztens++;
+              }
+            }
+            // Last 30 days
+            if (lastLogin > last30d) {
+              last30dTotal++;
+              if (role === 'pharmacist' || role === 'gyógyszerész') {
+                last30dGyogyszeresz++;
+              } else if (role === 'pharmacy' || role === 'gyógyszertár') {
+                last30dGyogyszertar++;
+              } else if (role === 'assistant' || role === 'szakasszisztens') {
+                last30dSzakasszisztens++;
+              }
             }
           }
         }
@@ -119,6 +166,18 @@ export default function StatsPage() {
           gyogyszeresz: last24hGyogyszeresz,
           gyogyszertar: last24hGyogyszertar,
           szakasszisztens: last24hSzakasszisztens
+        },
+        last7d: {
+          total: last7dTotal,
+          gyogyszeresz: last7dGyogyszeresz,
+          gyogyszertar: last7dGyogyszertar,
+          szakasszisztens: last7dSzakasszisztens
+        },
+        last30d: {
+          total: last30dTotal,
+          gyogyszeresz: last30dGyogyszeresz,
+          gyogyszertar: last30dGyogyszertar,
+          szakasszisztens: last30dSzakasszisztens
         }
       });
     } catch (error) {
@@ -231,11 +290,36 @@ export default function StatsPage() {
               </div>
             </div>
 
-            {/* Last 24h activity */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
+            {/* DAU, WAU, MAU Summary */}
+            <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
               <h2 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
                 <TrendingUp size={20} />
-                Aktivitás az elmúlt 24 órában
+                Aktív felhasználók időszakok szerint
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl">
+                  <p className="text-sm font-semibold text-blue-700 mb-2">DAU (Daily Active Users)</p>
+                  <p className="text-4xl font-bold text-blue-600 mb-2">{stats.last24h.total}</p>
+                  <p className="text-xs text-gray-600">Elmúlt 24 óra</p>
+                </div>
+                <div className="text-center p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-xl">
+                  <p className="text-sm font-semibold text-green-700 mb-2">WAU (Weekly Active Users)</p>
+                  <p className="text-4xl font-bold text-green-600 mb-2">{stats.last7d.total}</p>
+                  <p className="text-xs text-gray-600">Elmúlt 7 nap</p>
+                </div>
+                <div className="text-center p-6 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl">
+                  <p className="text-sm font-semibold text-purple-700 mb-2">MAU (Monthly Active Users)</p>
+                  <p className="text-4xl font-bold text-purple-600 mb-2">{stats.last30d.total}</p>
+                  <p className="text-xs text-gray-600">Elmúlt 30 nap</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Last 24h activity */}
+            <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+              <h2 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                <Clock size={20} />
+                DAU - Aktivitás az elmúlt 24 órában
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                 <div className="text-center p-4 bg-blue-50 rounded-xl">
@@ -254,10 +338,55 @@ export default function StatsPage() {
                   <p className="text-gray-600 text-sm">Szakasszisztens belépés</p>
                 </div>
               </div>
-              <div className="mt-6 text-center">
-                <p className="text-gray-500 text-sm">
-                  Összesen <span className="font-bold text-purple-600">{stats.last24h.total}</span> felhasználó lépett be az elmúlt 24 órában
-                </p>
+            </div>
+
+            {/* Last 7 days activity */}
+            <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+              <h2 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                <Clock size={20} />
+                WAU - Aktivitás az elmúlt 7 napban
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <div className="text-center p-4 bg-blue-50 rounded-xl">
+                  <Pill className="mx-auto text-blue-500 mb-2" size={32} />
+                  <p className="text-3xl font-bold text-blue-600">{stats.last7d.gyogyszeresz}</p>
+                  <p className="text-gray-600 text-sm">Gyógyszerész belépés</p>
+                </div>
+                <div className="text-center p-4 bg-green-50 rounded-xl">
+                  <Building2 className="mx-auto text-green-500 mb-2" size={32} />
+                  <p className="text-3xl font-bold text-green-600">{stats.last7d.gyogyszertar}</p>
+                  <p className="text-gray-600 text-sm">Gyógyszertár belépés</p>
+                </div>
+                <div className="text-center p-4 bg-orange-50 rounded-xl">
+                  <UserCog className="mx-auto text-orange-500 mb-2" size={32} />
+                  <p className="text-3xl font-bold text-orange-600">{stats.last7d.szakasszisztens}</p>
+                  <p className="text-gray-600 text-sm">Szakasszisztens belépés</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Last 30 days activity */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                <Clock size={20} />
+                MAU - Aktivitás az elmúlt 30 napban
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <div className="text-center p-4 bg-blue-50 rounded-xl">
+                  <Pill className="mx-auto text-blue-500 mb-2" size={32} />
+                  <p className="text-3xl font-bold text-blue-600">{stats.last30d.gyogyszeresz}</p>
+                  <p className="text-gray-600 text-sm">Gyógyszerész belépés</p>
+                </div>
+                <div className="text-center p-4 bg-green-50 rounded-xl">
+                  <Building2 className="mx-auto text-green-500 mb-2" size={32} />
+                  <p className="text-3xl font-bold text-green-600">{stats.last30d.gyogyszertar}</p>
+                  <p className="text-gray-600 text-sm">Gyógyszertár belépés</p>
+                </div>
+                <div className="text-center p-4 bg-orange-50 rounded-xl">
+                  <UserCog className="mx-auto text-orange-500 mb-2" size={32} />
+                  <p className="text-3xl font-bold text-orange-600">{stats.last30d.szakasszisztens}</p>
+                  <p className="text-gray-600 text-sm">Szakasszisztens belépés</p>
+                </div>
               </div>
             </div>
           </>
