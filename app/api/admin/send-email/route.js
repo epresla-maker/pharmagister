@@ -21,11 +21,11 @@ export async function POST(request) {
     // SMTP transporter - info@pharmagister.hu
     const transporter = nodemailer.createTransport({
       host: '185.51.191.40', // mail.pharmagister.hu IP
-      port: 465,
+      port: parseInt(process.env.SMTP_PORT || '465'),
       secure: true,
       auth: {
-        user: 'info@pharmagister.hu',
-        pass: 'TimiLena82@11',
+        user: process.env.SMTP_INFO_USER || 'info@pharmagister.hu',
+        pass: process.env.SMTP_INFO_PASS,
       },
       tls: {
         rejectUnauthorized: false,
