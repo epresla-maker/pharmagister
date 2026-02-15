@@ -45,6 +45,9 @@ async function check() {
       console.log('   Név:', data.name || data.displayName);
       console.log('   Role:', data.role);
       console.log('   Pharmagister role:', data.pharmagisterRole);
+      console.log('   Email verified:', data.emailVerified ? '✅ IGEN' : '❌ NEM');
+      console.log('   Jelszó aktiválva:', data.passwordActivated ? '✅ IGEN' : '❌ NEM');
+      console.log('   Utolsó belépés:', data.lastLogin ? new Date(data.lastLogin.seconds * 1000).toLocaleString('hu-HU') : 'Soha nem lépett be');
       console.log('   Migrált:', data.migratedFrom || 'NEM (eredeti user)');
       console.log('   WP User ID:', data.wpUserId || 'N/A');
     });
