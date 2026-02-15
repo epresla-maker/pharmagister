@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { collection, getDocs, query, where, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Users, Building2, Pill, UserCog, TrendingUp, Clock, ArrowLeft, CheckCircle, XCircle, FileCheck } from "lucide-react";
+import { Users, Building2, Pill, UserCog, TrendingUp, Clock, ArrowLeft, CheckCircle, XCircle, FileCheck, Calendar, AlertCircle, FileText } from "lucide-react";
 
 const ADMIN_EMAILS = ['epresla@icloud.com'];
 const ADMINKA_EMAILS = ['etinatina22@gmail.com'];
@@ -41,6 +41,15 @@ export default function StatsPage() {
       accepted: 0,
       rejected: 0,
       pending: 0
+    },
+    demands: {
+      total: 0,
+      open: 0,
+      filled: 0,
+      withApplications: 0,
+      withoutApplications: 0,
+      withResponse: 0,
+      onlyPending: 0
     }
   });
   const [loadingStats, setLoadingStats] = useState(true);
@@ -80,6 +89,37 @@ export default function StatsPage() {
       const acceptedApplications = applicationsData.filter(app => app.status === 'accepted').length;
       const rejectedApplications = applicationsData.filter(app => app.status === 'rejected').length;
       const pendingApplications = applicationsData.filter(app => app.status === 'pending').length;
+
+      // Load pharma demands
+      const demandsSnapshot = await getDocs(collection(db, 'pharmaDemands'));
+      const demandsData = demandsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+
+      // Calculate demand stats
+      const totalDemands = demandsData.length;
+      const openDemands = demandsData.filter(d => d.status === 'open').length;
+      const filledDemands = demandsData.filter(d => d.status === 'filled').length;
+      
+      // Demands with/without applications
+      const demandsWithApplications = demandsData.filter(d => {
+        const apps = applicationsData.filter(app => app.demandId === d.id);
+        return apps.length > 0;
+      }).length;
+      const demandsWithoutApplications = totalDemands - demandsWithApplications;
+      
+      // Demands with response (accepted or rejected)
+      const demandsWithResponse = demandsData.filter(d => {
+        const apps = applicationsData.filter(app => app.demandId === d.id);
+        return apps.some(app => app.status === 'accepted' || app.status === 'rejected');
+      }).length;
+      
+      // Demands with only pending applications
+      const demandsOnlyPending = demandsData.filter(d => {
+        const apps = applicationsData.filter(app => app.demandId === d.id);
+        return apps.length > 0 && apps.every(app => app.status === 'pending');
+      }).length;
 
       // Calculate stats
       const now = new Date();
@@ -203,6 +243,15 @@ export default function StatsPage() {
           accepted: acceptedApplications,
           rejected: rejectedApplications,
           pending: pendingApplications
+        },
+        demands: {
+          total: totalDemands,
+          open: openDemands,
+          filled: filledDemands,
+          withApplications: demandsWithApplications,
+          withoutApplications: demandsWithoutApplications,
+          withResponse: demandsWithResponse,
+          onlyPending: demandsOnlyPending
         }
       });
     } catch (error) {
@@ -416,7 +465,7 @@ export default function StatsPage() {
             </div>
 
             {/* Applications Statistics */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
+            <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
               <h2 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
                 <FileCheck size={20} />
                 Helyettesítési jelentkezések statisztikája
@@ -450,6 +499,57 @@ export default function StatsPage() {
                   <p className="text-xs text-gray-500 mt-1">
                     {stats.applications.total > 0 ? `${Math.round((stats.applications.pending / stats.applications.total) * 100)}%` : '0%'}
                   </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Demands Statistics */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                <Calendar size={20} />
+                Helyettesítési igények statisztikája
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl">
+                  <Calendar className="mx-auto text-purple-500 mb-2" size={28} />
+                  <p className="text-3xl font-bold text-purple-600 mb-1">{stats.demands.total}</p>
+                  <p className="text-xs font-medium text-gray-600">Összes igény</p>
+                </div>
+                <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-xl">
+                  <FileText className="mx-auto text-green-500 mb-2" size={28} />
+                  <p className="text-3xl font-bold text-green-600 mb-1">{stats.demands.open}</p>
+                  <p className="text-xs font-medium text-gray-600">Nyitott igény</p>
+                </div>
+                <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl">
+                  <CheckCircle className="mx-auto text-blue-500 mb-2" size={28} />
+                  <p className="text-3xl font-bold text-blue-600 mb-1">{stats.demands.filled}</p>
+                  <p className="text-xs font-medium text-gray-600">Betöltött igény</p>
+                </div>
+                <div className="text-center p-4 bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl">
+                  <AlertCircle className="mx-auto text-orange-500 mb-2" size={28} />
+                  <p className="text-3xl font-bold text-orange-600 mb-1">{stats.demands.withoutApplications}</p>
+                  <p className="text-xs font-medium text-gray-600">Jelentkezés nélküli</p>
+                </div>
+              </div>
+              
+              <div className="border-t pt-4">
+                <h3 className="text-sm font-semibold text-gray-600 mb-3 flex items-center gap-2">
+                  <FileCheck size={16} />
+                  Gyógyszertári reakció
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="text-center p-4 bg-gray-50 rounded-lg">
+                    <p className="text-2xl font-bold text-gray-700">{stats.demands.withResponse}</p>
+                    <p className="text-xs text-gray-600 mt-1">Reakcióval (elfogadás/visszautasítás)</p>
+                  </div>
+                  <div className="text-center p-4 bg-yellow-50 rounded-lg">
+                    <p className="text-2xl font-bold text-yellow-600">{stats.demands.onlyPending}</p>
+                    <p className="text-xs text-gray-600 mt-1">Csak függőben lévő jelentkezések</p>
+                  </div>
+                  <div className="text-center p-4 bg-green-50 rounded-lg">
+                    <p className="text-2xl font-bold text-green-600">{stats.demands.withApplications}</p>
+                    <p className="text-xs text-gray-600 mt-1">Legalább 1 jelentkezéssel</p>
+                  </div>
                 </div>
               </div>
             </div>
