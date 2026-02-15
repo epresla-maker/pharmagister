@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
-import { db, auth } from '@/lib/firebaseAdmin';
+import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 
 export async function POST(request) {
   try {
+    const admin = getFirebaseAdmin();
+    const db = admin.firestore();
+    const auth = admin.auth();
     const { token, confirm } = await request.json();
 
     if (!token) {
@@ -122,6 +125,8 @@ export async function POST(request) {
 // GET endpoint - token információ lekérése
 export async function GET(request) {
   try {
+    const admin = getFirebaseAdmin();
+    const db = admin.firestore();
     const { searchParams } = new URL(request.url);
     const token = searchParams.get('token');
 

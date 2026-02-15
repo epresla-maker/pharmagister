@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/firebaseAdmin';
+import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(request) {
   try {
+    const admin = getFirebaseAdmin();
+    const db = admin.firestore();
     const usersSnapshot = await db.collection('users').get();
     const users = usersSnapshot.docs.map(doc => ({
       id: doc.id,
