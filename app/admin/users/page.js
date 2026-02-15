@@ -234,9 +234,13 @@ export default function AdminUsersPage() {
                           )}
                         </td>
                         <td className="py-3 px-4 text-center">
-                          {isActive ? (
+                          {isActive && (u.lastLogin || u.lastSeen) ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
                               <UserCheck size={12} /> Aktív
+                            </span>
+                          ) : isActive ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
+                              Aktivált
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
@@ -276,8 +280,10 @@ export default function AdminUsersPage() {
                         ) : (
                           <BellOff size={16} className="text-gray-300" />
                         )}
-                        {isActive ? (
+                        {isActive && (u.lastLogin || u.lastSeen) ? (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Aktív</span>
+                        ) : isActive ? (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700">Aktivált</span>
                         ) : (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">Inaktív</span>
                         )}
