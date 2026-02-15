@@ -156,6 +156,12 @@ export default function AdminPage() {
             >
               🏥 Gyógyszertárak kezelése
             </button>
+            <button
+              onClick={() => router.push('/admin/email')}
+              className="bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 text-xs sm:text-sm w-full"
+            >
+              ✉️ Email küldés
+            </button>
           </div>
           
           {/* Role Statistics Cards - Active users only */}

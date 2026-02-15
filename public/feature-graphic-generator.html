@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pharmagister Feature Graphic Generator</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #1a1a1a;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+    
+    .instructions {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      max-width: 1024px;
+      width: 100%;
+    }
+    
+    .instructions h2 {
+      margin-top: 0;
+      color: #059669;
+    }
+    
+    .instructions ol {
+      line-height: 1.8;
+    }
+    
+    .instructions code {
+      background: #f3f4f6;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    
+    /* Feature Graphic - EXACTLY 1024x500 px */
+    #feature-graphic {
+      width: 1024px;
+      height: 500px;
+      background: linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%);
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    
+    /* Animated background pattern */
+    #feature-graphic::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: 
+        radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 30%, rgba(255,255,255,0.08) 0%, transparent 50%),
+        radial-gradient(circle at 40% 80%, rgba(255,255,255,0.06) 0%, transparent 50%);
+    }
+    
+    /* Content container */
+    .content-wrapper {
+      position: relative;
+      z-index: 1;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      padding: 0 80px;
+      gap: 60px;
+    }
+    
+    /* Left side - Text */
+    .text-content {
+      flex: 1;
+      color: white;
+    }
+    
+    .app-name {
+      font-size: 72px;
+      font-weight: 800;
+      margin: 0 0 20px 0;
+      text-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      letter-spacing: -2px;
+    }
+    
+    .tagline {
+      font-size: 32px;
+      font-weight: 600;
+      margin: 0 0 16px 0;
+      opacity: 0.95;
+      line-height: 1.3;
+    }
+    
+    .description {
+      font-size: 20px;
+      opacity: 0.85;
+      margin: 0;
+      font-weight: 400;
+    }
+    
+    /* Right side - Icon */
+    .icon-container {
+      width: 280px;
+      height: 280px;
+      background: white;
+      border-radius: 64px;
+      padding: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+      flex-shrink: 0;
+    }
+    
+    .icon-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    
+    /* Fallback icon if image doesn't load */
+    .icon-placeholder {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #059669, #10b981);
+      border-radius: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 90px;
+      font-weight: 700;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  
+  <div class="instructions">
+    <h2>Feature Graphic Generálása (1024×500 px)</h2>
+    <ol>
+      <li>Nyisd meg ezt az oldalt <strong>teljes képernyős</strong> módban böngészőben</li>
+      <li>Görgess le az alábbi bannerre</li>
+      <li>Készíts róla <strong>screenshot-ot</strong> (csak a lila bannert, az instructionst ne!)
+        <ul>
+          <li><strong>macOS:</strong> <code>Cmd + Shift + 4</code> majd jelöld ki a bannert</li>
+          <li><strong>Windows:</strong> <code>Win + Shift + S</code> majd jelöld ki</li>
+        </ul>
+      </li>
+      <li>Mentsd el PNG formátumban: <code>feature-graphic.png</code></li>
+      <li>Ellenőrizd a méretet: <strong>pontosan 1024×500 px</strong> legyen</li>
+      <li>Töltsd fel a Google Play Console-ba a <strong>"Kiemelésül használt kép"</strong> mezőbe</li>
+    </ol>
+    <p><strong>Tipp:</strong> Ha a méret nem pontos, használj képszerkesztőt (Paint, Preview, Photoshop) a pontos vágáshoz.</p>
+  </div>
+
+  <!-- FEATURE GRAPHIC - Screenshot this part only! -->
+  <div id="feature-graphic">
+    <div class="content-wrapper">
+      <div class="text-content">
+        <h1 class="app-name">Pharmagister</h1>
+        <p class="tagline">Gyógyszertári helyettesítések egyszerűen</p>
+        <p class="description">Találd meg a tökéletes helyettest percek alatt</p>
+      </div>
+      
+      <div class="icon-container">
+        <!-- Try to load the actual icon, fallback to placeholder -->
+        <img src="/icons/icon-512x512.png" alt="Pharmagister" 
+             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="icon-placeholder" style="display: none;">Pm</div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

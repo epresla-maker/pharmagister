@@ -1,0 +1,48 @@
+// next.config.mobile.js
+// Ez a konfiguráció CSAK a mobil appok buildjeléhez használatos
+// A normál PWA deployment a next.config.js-t használja
+
+/** @type {import('next').NextConfig} */
+const nextConfigMobile = {
+  // Static export Capacitorhoz
+  output: 'export',
+  
+  // Disable image optimization for static export
+  images: {
+    unoptimized: true,
+  },
+  
+  // Trailing slash kötelező static exportnál
+  trailingSlash: true,
+  
+  // Base path konfiguráció (ha kell)
+  // basePath: '',
+  
+  // Asset prefix statichoz
+  assetPrefix: '',
+  
+  // Compiler optimalizációk
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
+  },
+  
+  // Webpack config - hasonló az eredetihez, de statikusra optimalizálva
+  webpack: (config, { dev, isServer }) => {
+    if (dev) {
+      config.watchOptions = {
+        poll: 1000,
+        aggregateTimeout: 300,
+        ignored: ['**/node_modules', '**/.next', '**/.git'],
+      };
+    }
+    
+    config.optimization = {
+      ...config.optimization,
+      moduleIds: 'deterministic',
+    };
+    
+    return config;
+  },
+};
+
+module.exports = nextConfigMobile;

@@ -1,0 +1,107 @@
+import nodemailer from 'nodemailer';
+import { NextResponse } from 'next/server';
+
+export const runtime = 'nodejs';
+
+export async function POST(request) {
+  try {
+    const { to, subject, body, isHtml } = await request.json();
+
+    if (!to || !to.length) {
+      return NextResponse.json({ error: 'Legalább egy címzett megadása kötelező' }, { status: 400 });
+    }
+    if (!subject) {
+      return NextResponse.json({ error: 'Tárgy megadása kötelező' }, { status: 400 });
+    }
+    if (!body) {
+      return NextResponse.json({ error: 'Üzenet megadása kötelező' }, { status: 400 });
+    }
+
+    // SMTP transporter - info@pharmagister.hu
+    const transporter = nodemailer.createTransport({
+      host: '185.51.191.40', // mail.pharmagister.hu IP
+      port: 465,
+      secure: true,
+      auth: {
+        user: 'info@pharmagister.hu',
+        pass: 'TimiLena82@11',
+      },
+      tls: {
+        rejectUnauthorized: false,
+        servername: 'mail.pharmagister.hu'
+      }
+    });
+
+    const results = [];
+    const errors = [];
+
+    // Send emails individually to each recipient
+    for (const recipient of to) {
+      try {
+        const mailOptions = {
+          from: '"Pharmagister" <info@pharmagister.hu>',
+          to: recipient,
+          subject: subject,
+        };
+
+        if (isHtml) {
+          mailOptions.html = generateHtmlEmail(subject, body);
+        } else {
+          mailOptions.html = generateHtmlEmail(subject, body.replace(/\n/g, '<br>'));
+        }
+
+        await transporter.sendMail(mailOptions);
+        results.push({ email: recipient, success: true });
+      } catch (err) {
+        console.error(`Failed to send to ${recipient}:`, err);
+        errors.push({ email: recipient, error: err.message });
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      sent: results.length,
+      failed: errors.length,
+      results,
+      errors,
+    });
+  } catch (error) {
+    console.error('Email send error:', error);
+    return NextResponse.json(
+      { error: 'Hiba történt az email küldés során: ' + error.message },
+      { status: 500 }
+    );
+  }
+}
+
+function generateHtmlEmail(subject, bodyHtml) {
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { margin: 0; padding: 0; background-color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
+    .header { background: linear-gradient(135deg, #7c3aed, #6d28d9); padding: 30px 20px; text-align: center; }
+    .header h1 { color: white; margin: 0; font-size: 24px; }
+    .content { padding: 30px 20px; color: #1f2937; line-height: 1.6; font-size: 16px; }
+    .footer { background-color: #f9fafb; padding: 20px; text-align: center; color: #9ca3af; font-size: 12px; border-top: 1px solid #e5e7eb; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Pharmagister</h1>
+    </div>
+    <div class="content">
+      ${bodyHtml}
+    </div>
+    <div class="footer">
+      <p>Ez az üzenet a Pharmagister rendszerből érkezett.</p>
+      <p>© 2026 Pharmagister - Minden jog fenntartva</p>
+    </div>
+  </div>
+</body>
+</html>`;
+}
