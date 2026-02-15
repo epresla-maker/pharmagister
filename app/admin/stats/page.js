@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { collection, getDocs, query, where, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Users, Building2, Pill, UserCog, TrendingUp, Clock, ArrowLeft } from "lucide-react";
+import { Users, Building2, Pill, UserCog, TrendingUp, Clock, ArrowLeft, CheckCircle, XCircle, FileCheck } from "lucide-react";
 
 const ADMIN_EMAILS = ['epresla@icloud.com'];
 const ADMINKA_EMAILS = ['etinatina22@gmail.com'];
@@ -35,6 +35,12 @@ export default function StatsPage() {
       gyogyszeresz: 0,
       gyogyszertar: 0,
       szakasszisztens: 0
+    },
+    applications: {
+      total: 0,
+      accepted: 0,
+      rejected: 0,
+      pending: 0
     }
   });
   const [loadingStats, setLoadingStats] = useState(true);
@@ -61,6 +67,19 @@ export default function StatsPage() {
         id: doc.id,
         ...doc.data()
       }));
+
+      // Load pharma applications
+      const applicationsSnapshot = await getDocs(collection(db, 'pharmaApplications'));
+      const applicationsData = applicationsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+
+      // Calculate application stats
+      const totalApplications = applicationsData.length;
+      const acceptedApplications = applicationsData.filter(app => app.status === 'accepted').length;
+      const rejectedApplications = applicationsData.filter(app => app.status === 'rejected').length;
+      const pendingApplications = applicationsData.filter(app => app.status === 'pending').length;
 
       // Calculate stats
       const now = new Date();
@@ -178,6 +197,12 @@ export default function StatsPage() {
           gyogyszeresz: last30dGyogyszeresz,
           gyogyszertar: last30dGyogyszertar,
           szakasszisztens: last30dSzakasszisztens
+        },
+        applications: {
+          total: totalApplications,
+          accepted: acceptedApplications,
+          rejected: rejectedApplications,
+          pending: pendingApplications
         }
       });
     } catch (error) {
@@ -366,7 +391,7 @@ export default function StatsPage() {
             </div>
 
             {/* Last 30 days activity */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
+            <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
               <h2 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
                 <Clock size={20} />
                 MAU - Aktivitás az elmúlt 30 napban
@@ -386,6 +411,45 @@ export default function StatsPage() {
                   <UserCog className="mx-auto text-orange-500 mb-2" size={32} />
                   <p className="text-3xl font-bold text-orange-600">{stats.last30d.szakasszisztens}</p>
                   <p className="text-gray-600 text-sm">Szakasszisztens belépés</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Applications Statistics */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                <FileCheck size={20} />
+                Helyettesítési jelentkezések statisztikája
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl">
+                  <FileCheck className="mx-auto text-blue-500 mb-2" size={32} />
+                  <p className="text-4xl font-bold text-blue-600 mb-2">{stats.applications.total}</p>
+                  <p className="text-sm font-medium text-gray-600">Összes jelentkezés</p>
+                </div>
+                <div className="text-center p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-xl">
+                  <CheckCircle className="mx-auto text-green-500 mb-2" size={32} />
+                  <p className="text-4xl font-bold text-green-600 mb-2">{stats.applications.accepted}</p>
+                  <p className="text-sm font-medium text-gray-600">Elfogadott</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {stats.applications.total > 0 ? `${Math.round((stats.applications.accepted / stats.applications.total) * 100)}%` : '0%'}
+                  </p>
+                </div>
+                <div className="text-center p-6 bg-gradient-to-br from-red-50 to-red-100 rounded-xl">
+                  <XCircle className="mx-auto text-red-500 mb-2" size={32} />
+                  <p className="text-4xl font-bold text-red-600 mb-2">{stats.applications.rejected}</p>
+                  <p className="text-sm font-medium text-gray-600">Visszautasított</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {stats.applications.total > 0 ? `${Math.round((stats.applications.rejected / stats.applications.total) * 100)}%` : '0%'}
+                  </p>
+                </div>
+                <div className="text-center p-6 bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl">
+                  <Clock className="mx-auto text-yellow-500 mb-2" size={32} />
+                  <p className="text-4xl font-bold text-yellow-600 mb-2">{stats.applications.pending}</p>
+                  <p className="text-sm font-medium text-gray-600">Függőben</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {stats.applications.total > 0 ? `${Math.round((stats.applications.pending / stats.applications.total) * 100)}%` : '0%'}
+                  </p>
                 </div>
               </div>
             </div>
