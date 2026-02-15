@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useRouter } from 'next/navigation';
-import { collection, addDoc, query, where, getDocs, getDoc, deleteDoc, doc, orderBy, serverTimestamp, updateDoc, arrayRemove } from 'firebase/firestore';
+import { collection, addDoc, query, where, getDocs, getDoc, deleteDoc, doc, orderBy, serverTimestamp, updateDoc, arrayRemove, setDoc, increment } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { createNotificationWithPush } from '@/lib/notifications';
 import { ChevronLeft, ChevronRight, Plus, X, Loader2, Clock, MapPin, MessageCircle, Send } from 'lucide-react';
@@ -595,6 +595,11 @@ function CreateDemandForm({ date, darkMode, onSuccess, onCancel }) {
       };
 
       const demandRef = await addDoc(collection(db, 'pharmaDemands'), demandData);
+
+      // Számláló növelése - összes valaha feladott igény
+      await setDoc(doc(db, 'firestoreStats', 'demands'), {
+        totalEverCreated: increment(1)
+      }, { merge: true });
       
       // Automatikusan létrehozunk egy serviceFeedPost-ot is
       await addDoc(collection(db, 'serviceFeedPosts'), {

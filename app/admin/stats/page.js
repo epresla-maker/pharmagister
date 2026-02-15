@@ -2,11 +2,11 @@
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { 
   Users, Building2, Pill, UserCog, TrendingUp, ArrowLeft, 
-  AlertCircle, Calendar, FileText,
+  AlertCircle, Calendar, FileText, CheckCircle, XCircle, Clock,
   MessageSquare, Bell, ShieldCheck, BarChart3,
   Activity, Send, UserCheck, UserX
 } from "lucide-react";
@@ -45,9 +45,10 @@ export default function StatsPage() {
   const loadStats = async () => {
     setLoadingStats(true);
     try {
-      const [usersSnap, demandsSnap, chatsSnap, notifsSnap, pushSnap, approvalsSnap] = await Promise.all([
+      const [usersSnap, demandsSnap, applicationsSnap, chatsSnap, notifsSnap, pushSnap, approvalsSnap] = await Promise.all([
         getDocs(collection(db, 'users')),
         getDocs(collection(db, 'pharmaDemands')),
+        getDocs(collection(db, 'pharmaApplications')),
         getDocs(collection(db, 'chats')),
         getDocs(collection(db, 'notifications')),
         getDocs(collection(db, 'pushSubscriptions')),
@@ -56,6 +57,7 @@ export default function StatsPage() {
 
       const users = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       const demands = demandsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const applications = applicationsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       const chats = chatsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       const notifications = notifsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       const pushSubs = pushSnap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -99,6 +101,22 @@ export default function StatsPage() {
         return dateStr >= todayStr;
       });
 
+      // Összes valaha feladott igény (számláló - töröltek is benne vannak)
+      let totalEverCreated = demands.length; // fallback
+      try {
+        const statsDoc = await getDoc(doc(db, 'firestoreStats', 'demands'));
+        if (statsDoc.exists() && statsDoc.data().totalEverCreated) {
+          totalEverCreated = statsDoc.data().totalEverCreated;
+        }
+      } catch (e) {
+        console.error('Error loading demand stats counter:', e);
+      }
+
+      // ===== JELENTKEZÉSEK =====
+      const acceptedApps = applications.filter(a => a.status === 'accepted');
+      const rejectedApps = applications.filter(a => a.status === 'rejected');
+      const noResponseApps = applications.filter(a => a.status === 'pending');
+
       // ===== CHAT & PUSH =====
       const activeChats = chats.filter(c => c.lastMessage);
       const uniquePushUsers = new Set(pushSubs.map(s => s.userId)).size;
@@ -112,7 +130,7 @@ export default function StatsPage() {
       setStats({
         users: { totalAll: users.length, active: activeUsers.length, pharmacists: pharmacists.length, pharmacies: pharmaciesArr.length, assistants: assistants.length, profileComplete: profileComplete.length, profileIncomplete: profileIncomplete.length, noRole: noRole.length },
         activity: { dau: { total: dau.length, ...countRoles(dau) }, wau: { total: wau.length, ...countRoles(wau) }, mau: { total: mau.length, ...countRoles(mau) } },
-        demands: { total: demands.length, active: activeDemands.length },
+        demands: { total: demands.length, totalEver: totalEverCreated, active: activeDemands.length, accepted: acceptedApps.length, rejected: rejectedApps.length, noResponse: noResponseApps.length },
         chat: { total: chats.length, active: activeChats.length },
         push: { subscribers: uniquePushUsers, unreadNotifs },
         approvals: { pending: pendingApprovals.length, approved: approvedApprovals.length, rejected: rejectedApprovals.length },
@@ -241,9 +259,38 @@ export default function StatsPage() {
               <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
                 <Calendar size={22} /> Helyettesítési igények
               </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <BigCard icon={BarChart3} label="Összes feladott igény" value={stats.demands.total} sub="Valaha létrehozott" color="text-purple-600" bg="bg-purple-50" />
+              <div className="grid grid-cols-2 sm:grid-cols-2 gap-6 mb-6">
+                <BigCard icon={BarChart3} label="Összes feladott igény" value={stats.demands.totalEver} sub="Valaha létrehozott (töröltekkel együtt)" color="text-purple-600" bg="bg-purple-50" />
                 <BigCard icon={FileText} label="Jelenleg aktív" value={stats.demands.active} sub="Nyitott, jövőbeli dátummal" color="text-blue-600" bg="bg-blue-50" />
+              </div>
+              <div className="border-t pt-4">
+                <p className="text-xs font-semibold text-gray-500 mb-3 uppercase tracking-wider">Jelentkezések visszajelzése</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="bg-green-50 rounded-xl p-4 border-l-4 border-green-500">
+                    <div className="flex items-center gap-2 mb-1">
+                      <CheckCircle size={18} className="text-green-600" />
+                      <p className="text-xl font-bold text-green-600">{stats.demands.accepted}</p>
+                    </div>
+                    <p className="text-sm text-gray-600">Elfogadott</p>
+                    <p className="text-xs text-gray-400 mt-1">Gyógyszertár elfogadta a jelentkezőt</p>
+                  </div>
+                  <div className="bg-red-50 rounded-xl p-4 border-l-4 border-red-500">
+                    <div className="flex items-center gap-2 mb-1">
+                      <XCircle size={18} className="text-red-600" />
+                      <p className="text-xl font-bold text-red-600">{stats.demands.rejected}</p>
+                    </div>
+                    <p className="text-sm text-gray-600">Elutasított</p>
+                    <p className="text-xs text-gray-400 mt-1">Gyógyszertár elutasította a jelentkezőt</p>
+                  </div>
+                  <div className="bg-yellow-50 rounded-xl p-4 border-l-4 border-yellow-500">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Clock size={18} className="text-yellow-600" />
+                      <p className="text-xl font-bold text-yellow-600">{stats.demands.noResponse}</p>
+                    </div>
+                    <p className="text-sm text-gray-600">Nem válaszolt</p>
+                    <p className="text-xs text-gray-400 mt-1">Gyógyszertár még nem reagált a jelentkezésre</p>
+                  </div>
+                </div>
               </div>
             </section>
 
