@@ -144,6 +144,12 @@ export default function AdminPage() {
             >
               📱 Mobil alkalmazások
             </button>
+            <button
+              onClick={() => router.push('/admin/users')}
+              className="bg-pink-600 text-white px-3 py-2 rounded-lg hover:bg-pink-700 text-xs sm:text-sm w-full"
+            >
+              👥 Felhasználók kezelése
+            </button>
           </div>
           
           {/* Role Statistics Cards - Active users only */}
