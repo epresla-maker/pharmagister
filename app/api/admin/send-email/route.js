@@ -24,8 +24,8 @@ export async function POST(request) {
       port: parseInt(process.env.SMTP_PORT || '465'),
       secure: true,
       auth: {
-        user: process.env.SMTP_INFO_USER || process.env.SMTP_USER || 'info@pharmagister.hu',
-        pass: process.env.SMTP_INFO_PASS || process.env.SMTP_PASS,
+        user: 'info@pharmagister.hu',
+        pass: process.env.SMTP_PASS,
       },
       tls: {
         rejectUnauthorized: false,
