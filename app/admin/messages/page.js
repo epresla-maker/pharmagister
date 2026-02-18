@@ -373,7 +373,9 @@ export default function AdminMessagesPage() {
                       const msg = item;
                       const sender = userMap[msg.senderId];
                       const senderName = sender?.name || "Ismeretlen";
-                          const msgTimestamp = msg.createdAt || msg.timestamp;
+                      const msgTimestamp = msg.createdAt || msg.timestamp;
+
+                      return (
                         <div key={msg.id} className="flex flex-col gap-0.5 mb-3">
                           {/* Sender label */}
                           <div className="flex items-center gap-2 px-1">
