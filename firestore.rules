@@ -44,6 +44,11 @@ service cloud.firestore {
     
     match /chats/{chatId} {
       allow read, write: if isAdmin() || isAuthenticated();
+      
+      // Messages subcollection — explicit szabály szükséges
+      match /messages/{messageId} {
+        allow read, write: if isAdmin() || isAuthenticated();
+      }
     }
     
     // Pharmagister-specifikus collections
