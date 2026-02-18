@@ -145,10 +145,21 @@ export default function PharmaCalendar({ pharmaRole }) {
       }
 
       const snapshot = await getDocs(q);
-      const demandsData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      
+      // Szűrjük ki a múltbeli dátumú igényeket
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD formátum
+      
+      const demandsData = snapshot.docs
+        .map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }))
+        .filter(demand => {
+          // Csak olyan igényeket tartunk meg, amelyek dátuma ma vagy jövőbeli
+          return demand.date >= todayStr;
+        });
       
       setDemands(demandsData);
     } catch (error) {

@@ -68,10 +68,21 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
       orderBy('date', 'desc')
     );
     const demandsSnapshot = await getDocs(demandsQuery);
-    const demandsData = demandsSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+    
+    // Szűrjük ki a múltbeli dátumú igényeket
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD formátum
+    
+    const demandsData = demandsSnapshot.docs
+      .map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }))
+      .filter(demand => {
+        // Csak olyan igényeket tartunk meg, amelyek dátuma ma vagy jövőbeli
+        return demand.date >= todayStr;
+      });
 
     // Jelentkezések betöltése minden igényhez
     const demandsWithApplications = await Promise.all(
@@ -132,10 +143,21 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
       orderBy('date', 'asc')
     );
     const demandsSnapshot = await getDocs(demandsQuery);
-    const demandsData = demandsSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+    
+    // Szűrjük ki a múltbeli dátumú igényeket
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD formátum
+    
+    const demandsData = demandsSnapshot.docs
+      .map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }))
+      .filter(demand => {
+        // Csak olyan igényeket tartunk meg, amelyek dátuma ma vagy jövőbeli
+        return demand.date >= todayStr;
+      });
 
     // Szűrés: amelyekre még nem jelentkezett
     const appliedDemandIds = applicationsData.map(app => app.demandId);

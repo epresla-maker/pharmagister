@@ -53,12 +53,24 @@ export function useServiceFeed({ userData }) {
   const filterPostsByModule = useCallback((postsToFilter) => {
     const userModules = getUserModules();
     
+    // Mai dátum a múltbeli igények szűréséhez
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD formátum
+    
     return postsToFilter.filter(post => {
       // Filter out reactionActivity posts
       if (post.postType === 'reactionActivity') return false;
       
       // Filter out accepted/filled demands - they should not appear in the feed
       if (post.status === 'accepted' || post.status === 'filled') return false;
+      
+      // Szűrjük ki a múltbeli dátumú igényeket (pharmaDemand, tutoDemand, beautyDemand)
+      if ((post.postType === 'pharmaDemand' || post.postType === 'tutoDemand' || post.postType === 'beautyDemand') && post.date) {
+        if (post.date < todayStr) {
+          return false; // Múltbeli igényt kiszűrjük
+        }
+      }
       
       // Module-specific posts
       if (post.module) {
