@@ -162,6 +162,12 @@ export default function AdminPage() {
             >
               ✉️ Email küldés
             </button>
+            <button
+              onClick={() => router.push('/admin/demands')}
+              className="bg-violet-600 text-white px-3 py-2 rounded-lg hover:bg-violet-700 text-xs sm:text-sm w-full"
+            >
+              📋 Igények kezelése
+            </button>
           </div>
           
           {/* Role Statistics Cards - Active users only */}
