@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { collection, getDocs, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Users, Building2, Pill, UserCog } from "lucide-react";
+import { Users, Building2, Pill, UserCog, MessageSquare } from "lucide-react";
 
 const ADMIN_EMAILS = ['epresla@icloud.com'];
 
@@ -161,6 +161,12 @@ export default function AdminPage() {
               className="bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 text-xs sm:text-sm w-full"
             >
               ✉️ Email küldés
+            </button>
+            <button
+              onClick={() => router.push('/admin/messages')}
+              className="bg-violet-600 text-white px-3 py-2 rounded-lg hover:bg-violet-700 text-xs sm:text-sm w-full flex items-center justify-center gap-2"
+            >
+              <MessageSquare size={14} /> Üzenetváltások megtekintése
             </button>
           </div>
           
