@@ -7,8 +7,6 @@ import {
   getDocs,
   doc,
   getDoc,
-  query,
-  orderBy,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import {
@@ -56,7 +54,8 @@ function groupMessagesByDate(messages) {
   const groups = [];
   let lastDate = null;
   for (const msg of messages) {
-    const d = msg.createdAt?.toDate ? msg.createdAt.toDate() : null;
+    const f = msg.createdAt || msg.timestamp;
+    const d = f?.toDate ? f.toDate() : (f?.seconds ? new Date(f.seconds * 1000) : null);
     const dateStr = d
       ? d.toLocaleDateString("hu-HU", { year: "numeric", month: "long", day: "numeric", weekday: "long" })
       : null;
@@ -153,9 +152,22 @@ export default function AdminMessagesPage() {
       setLoadingMessages(true);
       try {
         const messagesRef = collection(db, "chats", chat.id, "messages");
-        const q = query(messagesRef, orderBy("createdAt", "asc"));
-        const snap = await getDocs(q);
+        // Rendezés nélkül kérjük le, hogy mindkét mezőt (createdAt és timestamp) kezelje
+        const snap = await getDocs(messagesRef);
         const msgs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+        // Kliens oldalon rendezünk — kezeli a createdAt és timestamp mezőket egyaránt
+        msgs.sort((a, b) => {
+          const getTs = (m) => {
+            const f = m.createdAt || m.timestamp;
+            if (!f) return 0;
+            if (f.seconds) return f.seconds;
+            if (f.toDate) return f.toDate().getTime() / 1000;
+            return 0;
+          };
+          return getTs(a) - getTs(b);
+        });
+
         setMessages(msgs);
       } catch (e) {
         console.error("Hiba az üzenetek betöltésekor:", e);
@@ -361,8 +373,7 @@ export default function AdminMessagesPage() {
                       const msg = item;
                       const sender = userMap[msg.senderId];
                       const senderName = sender?.name || "Ismeretlen";
-
-                      return (
+                          const msgTimestamp = msg.createdAt || msg.timestamp;
                         <div key={msg.id} className="flex flex-col gap-0.5 mb-3">
                           {/* Sender label */}
                           <div className="flex items-center gap-2 px-1">
@@ -372,7 +383,7 @@ export default function AdminMessagesPage() {
                             <span className="text-xs font-semibold text-gray-600">{senderName}</span>
                             <span className="text-xs text-gray-400 flex items-center gap-1">
                               <Clock size={10} />
-                              {formatDate(msg.createdAt)}
+                              {formatDate(msgTimestamp)}
                             </span>
                             {msg.edited && (
                               <span className="text-xs text-gray-400 italic">(szerkesztve)</span>
