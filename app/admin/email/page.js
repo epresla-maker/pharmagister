@@ -64,6 +64,9 @@ export default function AdminEmailPage() {
   const [generatingTokens, setGeneratingTokens] = useState(false);
   const [generatedTokens, setGeneratedTokens] = useState([]);
   const [showTokenEmail, setShowTokenEmail] = useState(null);
+  const [tokenTarget, setTokenTarget] = useState('inactive'); // 'inactive' | 'active' | 'all' | 'custom'
+  const [tokenSearch, setTokenSearch] = useState('');
+  const [tokenSelectedUsers, setTokenSelectedUsers] = useState([]);
 
   useEffect(() => {
     if (!loading) {
@@ -110,11 +113,35 @@ export default function AdminEmailPage() {
   };
 
   const generateTokens = async () => {
-    if (!confirm('Biztosan generálod a tokeneket az összes inaktív felhasználónak?')) return;
+    let targetLabel = '';
+    let userIds = null;
+
+    if (tokenTarget === 'inactive') {
+      targetLabel = 'inaktív felhasználóknak';
+    } else if (tokenTarget === 'active') {
+      targetLabel = 'aktív felhasználóknak';
+      userIds = users.filter(u => u.passwordActivated || u.lastLogin || u.lastSeen).map(u => u.id);
+    } else if (tokenTarget === 'all') {
+      targetLabel = 'minden felhasználónak';
+      userIds = users.map(u => u.id);
+    } else if (tokenTarget === 'custom') {
+      if (tokenSelectedUsers.length === 0) {
+        return alert('Válassz ki legalább egy felhasználót!');
+      }
+      targetLabel = `${tokenSelectedUsers.length} kiválasztott felhasználónak`;
+      userIds = tokenSelectedUsers.map(u => u.id);
+    }
+
+    if (!confirm(`Biztosan generálod a tokeneket ${targetLabel}?`)) return;
     
     setGeneratingTokens(true);
     try {
-      const response = await fetch('/api/admin/generate-inactive-tokens', { method: 'POST' });
+      const fetchOptions = {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userIds ? { userIds } : {}),
+      };
+      const response = await fetch('/api/admin/generate-inactive-tokens', fetchOptions);
       const data = await response.json();
       
       if (response.ok) {
@@ -505,9 +532,9 @@ export default function AdminEmailPage() {
           <div className="space-y-4">
             {/* Info box */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h3 className="font-medium text-blue-900 mb-2">Token generálás inaktív felhasználóknak</h3>
+              <h3 className="font-medium text-blue-900 mb-2">Token generálás felhasználóknak</h3>
               <p className="text-sm text-blue-800">
-                Ez a funkció egyedi linkeket generál minden inaktív felhasználónak (akik még sosem léptek be és nem aktiválták a jelszavukat).
+                Ez a funkció egyedi linkeket generál a kiválasztott felhasználóknak.
                 Minden felhasználó kap 2 linket:
               </p>
               <ul className="text-sm text-blue-800 mt-2 space-y-1 ml-4 list-disc">
@@ -519,12 +546,135 @@ export default function AdminEmailPage() {
               </p>
             </div>
 
-            {/* Generate button */}
-            <div className="bg-white rounded-lg shadow-lg p-6">
+            {/* Célcsoport választó */}
+            <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
+              <h3 className="font-semibold text-sm mb-3">Célcsoport kiválasztása</h3>
+              
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+                {[
+                  { key: 'inactive', label: '🚫 Inaktívak', count: users.filter(u => !u.lastLogin && !u.lastSeen && !u.passwordActivated).length, color: 'orange' },
+                  { key: 'active', label: '✅ Aktívak', count: users.filter(u => u.passwordActivated || u.lastLogin || u.lastSeen).length, color: 'green' },
+                  { key: 'all', label: '👥 Mindenki', count: users.length, color: 'blue' },
+                  { key: 'custom', label: '🎯 Egyéni', count: tokenSelectedUsers.length, color: 'purple' },
+                ].map(opt => (
+                  <button
+                    key={opt.key}
+                    onClick={() => setTokenTarget(opt.key)}
+                    className={`p-3 rounded-xl border-2 text-left transition-all ${
+                      tokenTarget === opt.key
+                        ? `border-${opt.color}-500 bg-${opt.color}-50 shadow-sm`
+                        : 'border-gray-200 bg-white hover:border-gray-300'
+                    }`}
+                  >
+                    <p className="text-sm font-medium">{opt.label}</p>
+                    <p className={`text-lg font-bold mt-0.5 ${tokenTarget === opt.key ? `text-${opt.color}-600` : 'text-gray-700'}`}>
+                      {opt.count}
+                    </p>
+                  </button>
+                ))}
+              </div>
+
+              {/* Egyéni felhasználó választó */}
+              {tokenTarget === 'custom' && (
+                <div className="border rounded-lg p-3 bg-gray-50">
+                  <div className="relative mb-3">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                    <input
+                      type="text"
+                      placeholder="Keresés név vagy email alapján..."
+                      value={tokenSearch}
+                      onChange={(e) => setTokenSearch(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  {/* Kiválasztott felhasználók chipek */}
+                  {tokenSelectedUsers.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-3">
+                      {tokenSelectedUsers.map(u => (
+                        <span key={u.id} className="inline-flex items-center gap-1 bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs">
+                          {u.displayName || u.email}
+                          <button onClick={() => setTokenSelectedUsers(prev => prev.filter(p => p.id !== u.id))} className="hover:text-purple-900">
+                            <X size={12} />
+                          </button>
+                        </span>
+                      ))}
+                      <button
+                        onClick={() => setTokenSelectedUsers([])}
+                        className="text-xs text-red-600 hover:text-red-800 underline"
+                      >
+                        Mind törlése
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Felhasználó lista */}
+                  {loadingUsers ? (
+                    <div className="text-center py-4 text-gray-500 text-sm">Betöltés...</div>
+                  ) : (
+                    <div className="max-h-64 overflow-y-auto space-y-1">
+                      {(() => {
+                        const q = tokenSearch.toLowerCase().trim();
+                        const filtered = q
+                          ? users.filter(u =>
+                              (u.displayName || '').toLowerCase().includes(q) ||
+                              (u.email || '').toLowerCase().includes(q)
+                            )
+                          : users;
+                        if (filtered.length === 0) {
+                          return <div className="text-center py-4 text-gray-500 text-sm">Nincs találat</div>;
+                        }
+                        return filtered.map(u => {
+                          const isChecked = tokenSelectedUsers.some(s => s.id === u.id);
+                          const isInactive = !u.lastLogin && !u.lastSeen && !u.passwordActivated;
+                          return (
+                            <label
+                              key={u.id}
+                              className={`flex items-center gap-3 p-2 rounded cursor-pointer hover:bg-white transition-colors ${
+                                isChecked ? 'bg-purple-50 border border-purple-200' : 'bg-transparent'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => {
+                                  if (isChecked) {
+                                    setTokenSelectedUsers(prev => prev.filter(p => p.id !== u.id));
+                                  } else {
+                                    setTokenSelectedUsers(prev => [...prev, u]);
+                                  }
+                                }}
+                                className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium truncate">{u.displayName || 'Névtelen'}</div>
+                                <div className="text-xs text-gray-500 truncate">{u.email}</div>
+                              </div>
+                              {isInactive && (
+                                <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded flex-shrink-0">Inaktív</span>
+                              )}
+                              {u.pharmagisterRole && (
+                                <span className="text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded flex-shrink-0">
+                                  {u.pharmagisterRole === 'pharmacist' || u.pharmagisterRole === 'gyógyszerész' ? 'Gyógyszerész' :
+                                   u.pharmagisterRole === 'pharmacy' || u.pharmagisterRole === 'gyógyszertár' ? 'Gyógyszertár' :
+                                   u.pharmagisterRole === 'assistant' || u.pharmagisterRole === 'szakasszisztens' ? 'Szakasszisztens' :
+                                   u.pharmagisterRole}
+                                </span>
+                              )}
+                            </label>
+                          );
+                        });
+                      })()}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Generate button */}
               <button
                 onClick={generateTokens}
-                disabled={generatingTokens}
-                className="w-full flex items-center justify-center gap-2 bg-purple-600 text-white px-6 py-4 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-base font-medium shadow-lg"
+                disabled={generatingTokens || (tokenTarget === 'custom' && tokenSelectedUsers.length === 0)}
+                className="w-full flex items-center justify-center gap-2 bg-purple-600 text-white px-6 py-4 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-base font-medium shadow-lg mt-4"
               >
                 {generatingTokens ? (
                   <>
@@ -534,7 +684,11 @@ export default function AdminEmailPage() {
                 ) : (
                   <>
                     <Users size={20} />
-                    Tokenek generálása inaktív felhasználóknak
+                    Tokenek generálása
+                    {tokenTarget === 'inactive' && ` (${users.filter(u => !u.lastLogin && !u.lastSeen && !u.passwordActivated).length} inaktív)`}
+                    {tokenTarget === 'active' && ` (${users.filter(u => u.passwordActivated || u.lastLogin || u.lastSeen).length} aktív)`}
+                    {tokenTarget === 'all' && ` (${users.length} felhasználó)`}
+                    {tokenTarget === 'custom' && ` (${tokenSelectedUsers.length} kiválasztott)`}
                   </>
                 )}
               </button>

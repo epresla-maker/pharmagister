@@ -6,21 +6,37 @@ export async function POST(request) {
   try {
     const admin = getFirebaseAdmin();
     const db = admin.firestore();
+
+    // Opcionális: ha body-ban jön userId lista, azokat használjuk
+    let targetUserIds = null;
+    try {
+      const body = await request.json();
+      if (body.userIds && Array.isArray(body.userIds) && body.userIds.length > 0) {
+        targetUserIds = body.userIds;
+      }
+    } catch {}
+
     const usersSnapshot = await db.collection('users').get();
     const users = usersSnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     }));
 
-    // Inaktív felhasználók: nincs lastLogin ÉS nincs lastSeen ÉS nem aktiválta a jelszót
-    const inactiveUsers = users.filter(user => 
-      !user.lastLogin && !user.lastSeen && !user.passwordActivated
-    );
+    let targetUsers;
+    if (targetUserIds) {
+      // Kiválasztott felhasználók (admin által)
+      targetUsers = users.filter(user => targetUserIds.includes(user.id));
+    } else {
+      // Alapértelmezett: inaktív felhasználók
+      targetUsers = users.filter(user => 
+        !user.lastLogin && !user.lastSeen && !user.passwordActivated
+      );
+    }
 
     const tokens = [];
     const batch = db.batch();
 
-    for (const user of inactiveUsers) {
+    for (const user of targetUsers) {
       // Keep token
       const keepToken = uuidv4();
       const keepRef = db.collection('accountActionTokens').doc(keepToken);
@@ -66,7 +82,7 @@ export async function POST(request) {
 
     return NextResponse.json({ 
       success: true, 
-      count: inactiveUsers.length,
+      count: targetUsers.length,
       tokens 
     });
   } catch (error) {
