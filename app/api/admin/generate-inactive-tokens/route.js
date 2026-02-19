@@ -67,14 +67,15 @@ export async function POST(request) {
       };
       batch.set(deleteRef, deleteData);
 
+      const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://pharmagister.hu').trim();
       tokens.push({
         userId: user.id,
         email: user.email,
         name: user.name || user.displayName || 'Felhasználó',
         keepToken,
         deleteToken,
-        keepLink: `${process.env.NEXT_PUBLIC_APP_URL || 'https://pharmagister.hu'}/account-action/${keepToken}`,
-        deleteLink: `${process.env.NEXT_PUBLIC_APP_URL || 'https://pharmagister.hu'}/account-action/${deleteToken}`
+        keepLink: `${appUrl}/account-action/${keepToken}`,
+        deleteLink: `${appUrl}/account-action/${deleteToken}`
       });
     }
 
