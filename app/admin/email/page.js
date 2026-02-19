@@ -10,7 +10,7 @@ const ADMIN_EMAILS = ['epresla@icloud.com'];
 
 // Email vázlat sablon - ITT TUDOD MÓDOSÍTANI AZ EMAIL SZÖVEGÉT
 const generateInactiveUserEmail = (name, keepLink, deleteLink) => {
-  const subject = 'Pharmagister fiók - Döntés szükséges';
+  const subject = 'Fiók törlése - döntés szükséges';
   const body = `Kedves ${name}!
 
 Észrevettük, hogy regisztráltál a Pharmagister oldalunkon, de még nem aktiváltad a fiókodat és nem is léptél be.
@@ -25,7 +25,7 @@ ${keepLink}
 Ha törölni szeretnéd a fiókodat és minden adatodat, kattints erre a linkre:
 ${deleteLink}
 
-Ha 30 napon belül nem választasz, a fiókod továbbra is aktív marad, de emlékeztetőket küldhetsz neki.
+Ha 30 napon belül nem választasz, a fiókod automatikusan törlésre kerül.
 
 A linkek 30 napig érvényesek és csak egyszer használhatók fel.
 
