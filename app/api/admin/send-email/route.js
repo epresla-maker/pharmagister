@@ -93,7 +93,18 @@ export async function POST(request) {
   }
 }
 
+// URL-ek automatikus linkesítése (plain text URL → kattintható <a> tag)
+function autoLinkUrls(html) {
+  return html.replace(
+    /(https?:\/\/[^\s<>"']+)/gi,
+    '<a href="$1" style="color: #7c3aed; text-decoration: underline; word-break: break-all;">$1</a>'
+  );
+}
+
 function generateHtmlEmail(subject, bodyHtml) {
+  // URL-ek automatikus kattinthatóvá tétele
+  const linkedBody = autoLinkUrls(bodyHtml);
+  
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -106,6 +117,7 @@ function generateHtmlEmail(subject, bodyHtml) {
     .header h1 { color: white; margin: 0; font-size: 24px; }
     .content { padding: 30px 20px; color: #1f2937; line-height: 1.6; font-size: 16px; }
     .footer { background-color: #f9fafb; padding: 20px; text-align: center; color: #9ca3af; font-size: 12px; border-top: 1px solid #e5e7eb; }
+    a { color: #7c3aed; }
   </style>
 </head>
 <body>
@@ -114,7 +126,7 @@ function generateHtmlEmail(subject, bodyHtml) {
       <h1>Pharmagister</h1>
     </div>
     <div class="content">
-      ${bodyHtml}
+      ${linkedBody}
     </div>
     <div class="footer">
       <p>Ez az üzenet a Pharmagister rendszerből érkezett.</p>
