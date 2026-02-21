@@ -170,10 +170,10 @@ export default function NotificationsSettingsPage() {
         
         setPushPermission('granted');
         
-        // 2. Regisztráld az eszközt
-        await PushNotifications.register();
+        // 2. Először add hozzá a listenert, MAJD regisztrálj
+        await PushNotifications.removeAllListeners();
         
-        // 3. Listener a token fogadására
+        // 3. Listener a token fogadására (előbb kell mint a register!)
         await PushNotifications.addListener('registration', async (token) => {
           console.log('🔔 [NATIVE] Push token:', token.value);
           
@@ -212,6 +212,9 @@ export default function NotificationsSettingsPage() {
           console.error('🔔 [NATIVE] Registration error:', error);
           alert('Hiba történt a regisztráció során: ' + error.error);
         });
+        
+        // 4. Most regisztrálj (a listenerek már feliratkoztak)
+        await PushNotifications.register();
         
       } catch (error) {
         console.error('🔔 [NATIVE] Push subscription error:', error);
