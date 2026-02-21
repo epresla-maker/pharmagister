@@ -1,3 +1,4 @@
+export const dynamic = "force-static";
 import nodemailer from 'nodemailer';
 import { NextResponse } from 'next/server';
 

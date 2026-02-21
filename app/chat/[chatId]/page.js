@@ -58,7 +58,6 @@ function formatLastSeen(date) {
   return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
 }
 
-
 export default function ChatRoomPage() {
   const { user, loading } = useAuth();
   const router = useRouter();

@@ -1,3 +1,4 @@
+export const dynamic = "force-static";
 import { NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 import { Resend } from 'resend';

@@ -1,3 +1,4 @@
+export const dynamic = "force-static";
 import webpush from 'web-push';
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 
