@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
-import { ArrowLeft, BookOpen, ChevronDown, ChevronUp, Home, Calendar, MessageCircle, Bell, Settings, User, Search, Heart, Send } from 'lucide-react';
+import { ArrowLeft, BookOpen, ChevronDown, ChevronUp, Home, Calendar, MessageCircle, Bell, Settings, User, Heart } from 'lucide-react';
 import RouteGuard from '@/app/components/RouteGuard';
 
 export default function HelpPage() {
@@ -17,7 +17,7 @@ export default function HelpPage() {
   const sections = [
     {
       id: 'kezdooldal',
-      title: '🏠 Kezdőoldal (Hírfolyam)',
+      title: 'Kezdőoldal (Hírfolyam)',
       icon: Home,
       content: (
         <div className="space-y-4">
@@ -29,40 +29,12 @@ export default function HelpPage() {
             <li><strong>Admin posztok:</strong> Fontos közlemények és hírek a rendszer üzemeltetőitől.</li>
             <li><strong>Felhasználói posztok:</strong> Más felhasználók bejegyzései.</li>
           </ul>
-          <div className={`${darkMode ? 'bg-cyan-900/30 border-cyan-600' : 'bg-cyan-50 border-cyan-500'} border-l-4 p-3 rounded-r-lg`}>
-            <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-[#374151]'}`}>
-              💡 <strong>Tipp:</strong> Húzd le az oldalt a frissítéshez (pull-to-refresh).
-            </p>
-          </div>
-        </div>
-      )
-    },
-    {
-      id: 'hozzaszolas',
-      title: '💬 Hozzászólások',
-      icon: MessageCircle,
-      content: (
-        <div className="space-y-4">
-          <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-[#374151]'}`}>
-            Bármelyik poszthoz hozzászólhatsz:
-          </p>
-          <ol className={`list-decimal list-inside space-y-2 text-sm ${darkMode ? 'text-gray-300' : 'text-[#374151]'} ml-2`}>
-            <li>Kattints a <strong>"Hozzászólás"</strong> gombra a poszt alatt.</li>
-            <li>Megnyílik a poszt részletes nézete.</li>
-            <li>Az oldal alján található a beviteli mező.</li>
-            <li>Írd be a hozzászólásod és nyomd meg a küldés gombot.</li>
-          </ol>
-          <div className={`${darkMode ? 'bg-purple-900/30 border-purple-600' : 'bg-purple-50 border-purple-500'} border-l-4 p-3 rounded-r-lg`}>
-            <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-[#374151]'}`}>
-              💬 <strong>Válasz:</strong> Egy hozzászólásra válaszolni a "Válasz" gombbal tudsz.
-            </p>
-          </div>
         </div>
       )
     },
     {
       id: 'pharmagister',
-      title: '📅 Pharmagister (Naptár)',
+      title: 'Pharmagister (Naptár)',
       icon: Calendar,
       content: (
         <div className="space-y-4">
@@ -92,7 +64,7 @@ export default function HelpPage() {
           
           <div className={`${darkMode ? 'bg-green-900/30 border-green-600' : 'bg-green-50 border-green-500'} border-l-4 p-3 rounded-r-lg`}>
             <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-[#374151]'}`}>
-              ✅ <strong>Elfogadás után:</strong> Mindkét fél megkapja a másik elérhetőségeit.
+              <strong>Elfogadás után:</strong> Mindkét fél megkapja a másik elérhetőségeit.
             </p>
           </div>
         </div>
@@ -100,7 +72,7 @@ export default function HelpPage() {
     },
     {
       id: 'uzenetek',
-      title: '✉️ Üzenetek',
+      title: 'Üzenetek',
       icon: MessageCircle,
       content: (
         <div className="space-y-4">
@@ -114,7 +86,7 @@ export default function HelpPage() {
           </ul>
           <div className={`${darkMode ? 'bg-blue-900/30 border-blue-600' : 'bg-blue-50 border-blue-500'} border-l-4 p-3 rounded-r-lg`}>
             <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-[#374151]'}`}>
-              🔔 <strong>Badge:</strong> Az olvasatlan üzenetek száma megjelenik az alsó menüben.
+              <strong>Badge:</strong> Az olvasatlan üzenetek száma megjelenik az alsó menüben.
             </p>
           </div>
         </div>
@@ -122,7 +94,7 @@ export default function HelpPage() {
     },
     {
       id: 'ertesitesek',
-      title: '🔔 Értesítések',
+      title: 'Értesítések',
       icon: Bell,
       content: (
         <div className="space-y-4">
@@ -135,17 +107,13 @@ export default function HelpPage() {
             <li><strong>Új üzenet:</strong> Privát üzenetet kaptál.</li>
             <li><strong>Rendszer értesítések:</strong> Fontos információk.</li>
           </ul>
-          <div className={`${darkMode ? 'bg-yellow-900/30 border-yellow-600' : 'bg-yellow-50 border-yellow-500'} border-l-4 p-3 rounded-r-lg`}>
-            <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-[#374151]'}`}>
-              📱 <strong>Push értesítések:</strong> Engedélyezd a böngészőben a valós idejű értesítésekhez!
-            </p>
-          </div>
+
         </div>
       )
     },
     {
       id: 'profil',
-      title: '👤 Profil és Beállítások',
+      title: 'Profil és Beállítások',
       icon: User,
       content: (
         <div className="space-y-4">
@@ -156,14 +124,13 @@ export default function HelpPage() {
             <li><strong>Profilkép:</strong> Tölts fel egy fotót, hogy mások felismerjenek.</li>
             <li><strong>Adatok:</strong> Tartsd naprakészen a szakmai adataidat.</li>
             <li><strong>Bemutatkozás:</strong> Írj pár sort magadról.</li>
-            <li><strong>Sötét mód:</strong> Váltás világos/sötét téma között.</li>
           </ul>
         </div>
       )
     },
     {
       id: 'navigacio',
-      title: '🧭 Navigáció',
+      title: 'Navigáció',
       icon: Home,
       content: (
         <div className="space-y-4">
@@ -192,22 +159,17 @@ export default function HelpPage() {
               <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Beállítások</p>
             </div>
           </div>
-          <div className={`${darkMode ? 'bg-cyan-900/30 border-cyan-600' : 'bg-cyan-50 border-cyan-500'} border-l-4 p-3 rounded-r-lg mt-3`}>
-            <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-[#374151]'}`}>
-              💡 <strong>Tipp:</strong> Görgetéskor az alsó menü eltűnik, felfelé görgetéskor visszatér.
-            </p>
-          </div>
+
         </div>
       )
     },
     {
       id: 'tippek',
-      title: '💡 Hasznos tippek',
+      title: 'Hasznos tippek',
       icon: Heart,
       content: (
         <div className="space-y-4">
           <ul className={`list-disc list-inside space-y-3 text-sm ${darkMode ? 'text-gray-300' : 'text-[#374151]'}`}>
-            <li><strong>PWA telepítés:</strong> Add hozzá az alkalmazást a kezdőképernyődhöz a jobb élményért.</li>
             <li><strong>Push értesítések:</strong> Engedélyezd, hogy ne maradj le semmiről.</li>
             <li><strong>Profil kitöltése:</strong> Minél részletesebb a profilod, annál nagyobb eséllyel választanak.</li>
             <li><strong>Gyors válasz:</strong> A gyors reakció növeli az elfogadás esélyét.</li>
