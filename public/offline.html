@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Nincs kapcsolat</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+      background: #6B46C1;
+      color: white;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+      text-align: center;
+      padding: 40px 32px;
+    }
+    .icon {
+      font-size: 72px;
+      margin-bottom: 24px;
+      opacity: 0.9;
+    }
+    h1 {
+      font-size: 26px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      letter-spacing: -0.5px;
+    }
+    p {
+      font-size: 16px;
+      opacity: 0.85;
+      line-height: 1.6;
+      max-width: 280px;
+      margin-bottom: 40px;
+    }
+    button {
+      background: white;
+      color: #6B46C1;
+      border: none;
+      border-radius: 14px;
+      padding: 16px 40px;
+      font-size: 17px;
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: -0.3px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    button:active {
+      opacity: 0.85;
+    }
+    .logo {
+      position: absolute;
+      top: calc(env(safe-area-inset-top) + 24px);
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 15px;
+      font-weight: 700;
+      opacity: 0.7;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+  <span class="logo">Pharmagister</span>
+  <div class="icon">📡</div>
+  <h1>Nincs internetkapcsolat</h1>
+  <p>Kérlek ellenőrizd, hogy az eszközöd csatlakoztatva van-e az internethez, majd próbáld újra.</p>
+  <button onclick="window.location.reload()">Újrapróbálkozás</button>
+</body>
+</html>
