@@ -1,35 +1,85 @@
-// next.config.mobile.js
-// Ez a konfiguráció CSAK a mobil appok buildjeléhez használatos
-// A normál PWA deployment a next.config.js-t használja
+// next.config.js
 
 /** @type {import('next').NextConfig} */
-const nextConfigMobile = {
-  // Turbopack config - üres, hogy ne legyen konfliktus
+const nextConfig = {
+  // Turbopack config (üres, mert a next-pwa webpack-et használ)
   turbopack: {},
   
-  // Static export Capacitorhoz
-  output: 'export',
-  
-  // Disable image optimization for static export
+  // Image optimization - allowed external domains
   images: {
-    unoptimized: true,
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'firebasestorage.googleapis.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'api.dicebear.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+      },
+    ],
   },
   
-  // Trailing slash kötelező static exportnál
-  trailingSlash: true,
-  
-  // Base path konfiguráció (ha kell)
-  // basePath: '',
-  
-  // Asset prefix statichoz
-  assetPrefix: '',
-  
-  // Compiler optimalizációk
+  // Performance optimizations
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
   },
   
-  // Webpack config eltávolítva - Turbopack-et használunk
+  // Webpack optimizations
+  webpack: (config, { dev, isServer }) => {
+    if (dev) {
+      // Development optimizations
+      config.watchOptions = {
+        poll: 1000,
+        aggregateTimeout: 300,
+        ignored: ['**/node_modules', '**/.next', '**/.git'],
+      };
+    }
+    
+    // Memory optimization
+    config.optimization = {
+      ...config.optimization,
+      moduleIds: 'deterministic',
+    };
+    
+    return config;
+  },
+  
+  // Experimental features for better performance
+  experimental: {
+    optimizeCss: true,
+    optimizePackageImports: ['lucide-react', 'firebase', 'date-fns'],
+  },
+  
+  // Headers for Firebase Firestore CORS
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: '*',
+          },
+          {
+            key: 'Access-Control-Allow-Methods',
+            value: 'GET, POST, PUT, DELETE, OPTIONS',
+          },
+          {
+            key: 'Access-Control-Allow-Headers',
+            value: 'X-Requested-With, Content-Type, Authorization',
+          },
+        ],
+      },
+    ];
+  },
 };
 
-module.exports = nextConfigMobile;
+module.exports = nextConfig;
