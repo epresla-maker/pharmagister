@@ -1,9 +1,16 @@
-export const dynamic = "force-static";
 import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
+import { verifyAuth } from '@/lib/apiAuth';
+import { escapeHtml } from '@/lib/sanitize';
 
 export async function POST(request) {
   try {
+    // Verify authenticated user
+    const authUser = await verifyAuth(request);
+    if (!authUser) {
+      return NextResponse.json({ error: 'Nincs jogosultság' }, { status: 401 });
+    }
+
     const { reportType, reportedUserName, reason, details } = await request.json();
 
     // SMTP transporter
@@ -45,17 +52,17 @@ export async function POST(request) {
             </div>
             
             <div class="info-row">
-              <span class="info-label">Jelentett:</span> ${reportedUserName}
+              <span class="info-label">Jelentett:</span> ${escapeHtml(reportedUserName)}
             </div>
             
             <div class="info-row">
-              <span class="info-label">Ok:</span> ${reason}
+              <span class="info-label">Ok:</span> ${escapeHtml(reason)}
             </div>
             
             ${details ? `
             <div class="info-row">
               <span class="info-label">Részletek:</span><br/>
-              ${details}
+              ${escapeHtml(details)}
             </div>
             ` : ''}
             

@@ -68,9 +68,13 @@ export default function ReportModal({
       });
 
       // Email értesítés küldése adminnak
+      const idToken = await user.getIdToken();
       await fetch('/api/send-report-notification', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
         body: JSON.stringify({
           reportType,
           reportedUserName,

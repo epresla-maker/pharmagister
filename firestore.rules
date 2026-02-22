@@ -99,9 +99,48 @@ service cloud.firestore {
       allow delete: if isAuthenticated() && resource.data.blockerId == request.auth.uid;
     }
     
-    // Minden más collection - auth required VAGY admin
-    match /{document=**} {
-      allow read, write: if isAdmin() || isAuthenticated();
+    // Állandóra keres posts
+    match /allandoKeresPosts/{postId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
     }
+    
+    // Push subscriptions - user can manage their own
+    match /pushSubscriptions/{subId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+    
+    // Appointments
+    match /appointments/{appointmentId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+    
+    // Substitution requests
+    match /substitutionRequests/{requestId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+    
+    // Sent emails - admin only
+    match /sentEmails/{emailId} {
+      allow read, write: if isAdmin();
+    }
+    
+    // Account action tokens - server only (admin SDK bypasses rules)
+    match /accountActionTokens/{tokenId} {
+      allow read, write: if false;
+    }
+    
+    // Firestore stats - admin only
+    match /firestoreStats/{statId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    
+    // Deny everything else by default (no wildcard catch-all)
   }
 }

@@ -12,6 +12,7 @@ import {
   LogOut, 
   ChevronRight,
   Lock,
+  Trash2,
   Settings as SettingsIcon
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
@@ -26,6 +27,9 @@ export default function SettingsPage() {
   const { user, userData, loading } = useAuth();
   const { darkMode } = useTheme();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteStep, setDeleteStep] = useState(0); // 0: initial, 1: confirming, 2: deleting, 3: done
+  const [deleteError, setDeleteError] = useState('');
 
   useEffect(() => {
     if (!loading && !user) {
@@ -39,6 +43,35 @@ export default function SettingsPage() {
       router.push('/login');
     } catch (error) {
       console.error('Logout error:', error);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleteStep(2);
+    setDeleteError('');
+    try {
+      const idToken = await user.getIdToken();
+      const response = await fetch('/api/delete-my-account', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${idToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Törlési hiba');
+      }
+      setDeleteStep(3);
+      // Sign out locally after deletion
+      setTimeout(async () => {
+        try { await signOut(auth); } catch (e) {}
+        router.push('/login');
+      }, 2000);
+    } catch (error) {
+      console.error('Delete account error:', error);
+      setDeleteError(error.message || 'Hiba történt a fiók törlésekor');
+      setDeleteStep(1);
     }
   };
 
@@ -236,6 +269,18 @@ export default function SettingsPage() {
           <ChevronRight className={`w-5 h-5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`} />
         </button>
 
+        {/* Delete Account Button */}
+        <button
+          onClick={() => { setShowDeleteConfirm(true); setDeleteStep(0); setDeleteError(''); }}
+          className={`w-full ${darkMode ? 'bg-gray-800 hover:bg-red-900/30' : 'bg-white hover:bg-red-50'} rounded-xl shadow-sm px-4 py-3 flex items-center gap-3 transition-colors mb-4`}
+        >
+          <div className={`p-2 rounded-lg ${darkMode ? 'bg-red-900/30' : 'bg-red-100'}`}>
+            <Trash2 className="w-5 h-5 text-red-600" />
+          </div>
+          <span className="flex-1 text-left text-red-600 font-medium">Fiók törlése</span>
+          <ChevronRight className={`w-5 h-5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`} />
+        </button>
+
         {/* Logout Button */}
         <button
           onClick={() => setShowLogoutConfirm(true)}
@@ -273,6 +318,96 @@ export default function SettingsPage() {
                 Kijelentkezés
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Account Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6 max-w-sm w-full`}>
+            {deleteStep === 3 ? (
+              <>
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Trash2 className="w-6 h-6 text-green-600" />
+                  </div>
+                  <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'} mb-2`}>Fiók törölve</h3>
+                  <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>A fiókod és minden adatod véglegesen törölve lett. Átirányítás...</p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                    <Trash2 className="w-5 h-5 text-red-600" />
+                  </div>
+                  <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Fiók törlése</h3>
+                </div>
+                
+                {deleteStep === 0 && (
+                  <>
+                    <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-4`}>
+                      Ezzel <strong>véglegesen és visszavonhatatlanul</strong> törlöd a fiókodat és az összes adatodat:
+                    </p>
+                    <ul className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'} list-disc pl-5 mb-4 space-y-1`}>
+                      <li>Profil és beállítások</li>
+                      <li>Helyettesítési igények és jelentkezések</li>
+                      <li>Chat üzenetek</li>
+                      <li>Értesítések</li>
+                    </ul>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => setShowDeleteConfirm(false)}
+                        className={`flex-1 px-4 py-2 border ${darkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'} rounded-lg transition-colors`}
+                      >
+                        Mégse
+                      </button>
+                      <button
+                        onClick={() => setDeleteStep(1)}
+                        className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                      >
+                        Tovább
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {deleteStep === 1 && (
+                  <>
+                    <p className={`${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-4 font-medium`}>
+                      Biztosan törölni szeretnéd a fiókodat? Ez a művelet NEM vonható vissza!
+                    </p>
+                    {deleteError && (
+                      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 text-sm text-red-800 dark:text-red-200 mb-4">
+                        {deleteError}
+                      </div>
+                    )}
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => { setShowDeleteConfirm(false); setDeleteStep(0); }}
+                        className={`flex-1 px-4 py-2 border ${darkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'} rounded-lg transition-colors`}
+                      >
+                        Mégse
+                      </button>
+                      <button
+                        onClick={handleDeleteAccount}
+                        className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold"
+                      >
+                        Véglegesen törlöm
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {deleteStep === 2 && (
+                  <div className="text-center py-4">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-3"></div>
+                    <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Fiók törlése folyamatban...</p>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
       )}

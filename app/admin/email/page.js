@@ -102,7 +102,10 @@ export default function AdminEmailPage() {
   const loadSentEmails = async () => {
     setLoadingSent(true);
     try {
-      const response = await fetch('/api/admin/sent-emails');
+      const idToken = await user.getIdToken();
+      const response = await fetch('/api/admin/sent-emails', {
+        headers: { 'Authorization': `Bearer ${idToken}` }
+      });
       const data = await response.json();
       if (data.emails) setSentEmails(data.emails);
     } catch (error) {
@@ -136,9 +139,13 @@ export default function AdminEmailPage() {
     
     setGeneratingTokens(true);
     try {
+      const idToken = await user.getIdToken();
       const fetchOptions = {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
         body: JSON.stringify(userIds ? { userIds } : {}),
       };
       const response = await fetch('/api/admin/generate-inactive-tokens', fetchOptions);
@@ -227,9 +234,13 @@ export default function AdminEmailPage() {
     setSendResult(null);
 
     try {
+      const idToken = await user.getIdToken();
       const response = await fetch('/api/admin/send-email', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
         body: JSON.stringify({
           to: selectedRecipients.map(r => r.email),
           subject: subject.trim(),

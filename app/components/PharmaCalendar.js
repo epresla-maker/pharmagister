@@ -640,9 +640,13 @@ function CreateDemandForm({ date, darkMode, onSuccess, onCancel }) {
       
       // Push értesítés küldése a feliratkozott felhasználóknak
       try {
+        const idToken = await user.getIdToken();
         await fetch('/api/notify-new-demand', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${idToken}`
+          },
           body: JSON.stringify({
             demandId: demandRef.id,
             pharmacyZipCode: userData.pharmacyZipCode || '',

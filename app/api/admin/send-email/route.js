@@ -1,12 +1,18 @@
-export const dynamic = "force-static";
 import nodemailer from 'nodemailer';
 import { NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
+import { verifyAdmin } from '@/lib/apiAuth';
 
 export const runtime = 'nodejs';
 
 export async function POST(request) {
   try {
+    // Verify admin access
+    const adminUser = await verifyAdmin(request);
+    if (!adminUser) {
+      return NextResponse.json({ error: 'Nincs admin jogosultság' }, { status: 403 });
+    }
+
     const { to, subject, body, isHtml } = await request.json();
 
     if (!to || !to.length) {

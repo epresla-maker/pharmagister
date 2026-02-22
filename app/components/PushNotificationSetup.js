@@ -46,9 +46,36 @@ export default function PushNotificationSetup() {
   }, []);
 
   useEffect(() => {
-    if (!user || !platformChecked || isNativePlatform) return;
+    if (!user || !platformChecked) return;
     
-    // Check current permission status
+    if (isNativePlatform) {
+      // Set up native push listeners for foreground notification handling
+      const setupNativeListeners = async () => {
+        try {
+          const { PushNotifications } = await import('@capacitor/push-notifications');
+          
+          // Listen for notifications received while app is in foreground
+          await PushNotifications.addListener('pushNotificationReceived', (notification) => {
+            console.log('[PushSetup] Native push received in foreground:', notification);
+          });
+          
+          // Listen for notification tap actions
+          await PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+            console.log('[PushSetup] Native push action:', action);
+            const url = action.notification?.data?.url;
+            if (url) {
+              window.location.href = url;
+            }
+          });
+        } catch (e) {
+          console.log('[PushSetup] Could not set up native push listeners:', e);
+        }
+      };
+      setupNativeListeners();
+      return;
+    }
+    
+    // Web platform: check permission & subscription
     if ('Notification' in window) {
       setPermission(Notification.permission);
     }
@@ -164,9 +191,13 @@ export default function PushNotificationSetup() {
 // Helper function to send push notification (can be imported elsewhere)
 export async function sendPushNotification(userId, title, body, url = '/notifications', tag = null) {
   try {
+    const { auth } = await import('@/lib/firebase');
+    const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : null;
+    const headers = { 'Content-Type': 'application/json' };
+    if (idToken) headers['Authorization'] = `Bearer ${idToken}`;
     const response = await fetch('/api/send-push', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ userId, title, body, url, tag })
     });
     

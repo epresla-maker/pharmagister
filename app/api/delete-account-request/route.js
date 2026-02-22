@@ -1,6 +1,7 @@
 export const dynamic = "force-static";
 import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
+import { escapeHtml } from '@/lib/sanitize';
 
 export async function POST(request) {
   try {
@@ -54,16 +55,16 @@ export async function POST(request) {
               <p>Új fiók törlési kérelem érkezett a Pharmagister platformon.</p>
               
               <div class="info-box">
-                <p><span class="label">Email cím:</span><br>${email}</p>
+                <p><span class="label">Email cím:</span><br>${escapeHtml(email)}</p>
                 <p><span class="label">Időpont:</span><br>${new Date(timestamp).toLocaleString('hu-HU')}</p>
-                ${reason ? `<p><span class="label">Törlés oka:</span><br>${reason}</p>` : ''}
+                ${reason ? `<p><span class="label">Törlés oka:</span><br>${escapeHtml(reason)}</p>` : ''}
               </div>
 
               <div class="action-box">
                 <strong>⚠️ Teendők:</strong>
                 <ol style="margin: 10px 0 0 0; padding-left: 20px;">
                   <li>Ellenőrizd a felhasználó létezését a Firebase-ben</li>
-                  <li>Küldj megerősítő emailt a felhasználónak (${email})</li>
+                  <li>Küldj megerősítő emailt a felhasználónak (${escapeHtml(email)})</li>
                   <li>Megerősítés után töröld:
                     <ul style="margin: 5px 0;">
                       <li>Firebase Authentication fiók</li>

@@ -1,11 +1,17 @@
-export const dynamic = "force-static";
 import { NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
+import { verifyAdmin } from '@/lib/apiAuth';
 
 export const runtime = 'nodejs';
 
-export async function GET() {
+export async function GET(request) {
   try {
+    // Verify admin access
+    const adminUser = await verifyAdmin(request);
+    if (!adminUser) {
+      return NextResponse.json({ error: 'Nincs admin jogosultság' }, { status: 403 });
+    }
+
     const admin = getFirebaseAdmin();
     const db = admin.firestore();
     

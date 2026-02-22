@@ -107,9 +107,13 @@ function NewChatContent() {
 
       // Push notification küldése a címzettnek
       try {
+        const idToken = await user.getIdToken();
         await fetch('/api/send-push', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${idToken}`
+          },
           body: JSON.stringify({
             userId: recipientId,
             title: 'Új üzenet',

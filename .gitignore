@@ -8,6 +8,7 @@
 .env.vercel.check
 .env.vercel.production
 .env.*.production
+update-cloudinary-env.sh
 # testing
 /coverage
 

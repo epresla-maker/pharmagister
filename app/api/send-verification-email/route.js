@@ -1,6 +1,7 @@
 export const dynamic = "force-static";
 import nodemailer from 'nodemailer';
 import { NextResponse } from 'next/server';
+import { sanitizeUrl } from '@/lib/sanitize';
 
 // SMTP konfiguráció tarhely.eu-hoz
 const transporter = nodemailer.createTransport({
@@ -91,7 +92,7 @@ export async function POST(request) {
               <p>Kérjük, erősítsd meg az email címedet az alábbi gombra kattintva:</p>
               
               <div style="text-align: center;">
-                <a href="${verificationLink}" class="button">
+                <a href="${sanitizeUrl(verificationLink)}" class="button">
                   ✅ Email cím megerősítése
                 </a>
               </div>
@@ -100,7 +101,7 @@ export async function POST(request) {
                 Ha a gomb nem működik, másold be ezt a linket a böngésződbe:
               </p>
               <p style="font-size: 12px;">
-                <a href="${verificationLink}" class="link">${verificationLink}</a>
+                <a href="${sanitizeUrl(verificationLink)}" class="link">${sanitizeUrl(verificationLink)}</a>
               </p>
               
               <p style="margin-top: 30px; font-size: 14px; color: #666;">

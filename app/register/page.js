@@ -42,8 +42,8 @@ export default function RegisterPage() {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       
-      // Egyedi verification token generálása
-      const verificationToken = Math.random().toString(36).substring(2) + Date.now().toString(36);
+      // Egyedi verification token generálása (crypto-safe)
+      const verificationToken = Array.from(crypto.getRandomValues(new Uint8Array(32))).map(b => b.toString(16).padStart(2, '0')).join('');
       
       await setDoc(doc(db, 'users', userCredential.user.uid), {
         email: userCredential.user.email,

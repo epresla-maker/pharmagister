@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import admin from 'firebase-admin';
 import nodemailer from 'nodemailer';
 import { randomBytes } from 'crypto';
+import { escapeHtml } from '@/lib/sanitize';
 
 // Initialize Firebase Admin
 if (!admin.apps.length) {
@@ -41,7 +42,7 @@ function generateEmailHtml(name, email, resetLink) {
       <h1>Pharmagister</h1>
     </div>
     <div class="content">
-      <p>Kedves <strong>${name}</strong>!</p>
+      <p>Kedves <strong>${escapeHtml(name)}</strong>!</p>
       
       <p>Jelszó-visszaállítási kérelmet kaptunk a fiókodhoz.</p>
       
@@ -52,7 +53,7 @@ function generateEmailHtml(name, email, resetLink) {
       </p>
       
       <div class="info-box">
-        <p style="margin: 0;"><strong>Fiók email:</strong> ${email}</p>
+        <p style="margin: 0;"><strong>Fiók email:</strong> ${escapeHtml(email)}</p>
         <p style="margin: 10px 0 0 0; font-size: 14px; color: #6b7280;">A link 24 óráig érvényes.</p>
       </div>
       

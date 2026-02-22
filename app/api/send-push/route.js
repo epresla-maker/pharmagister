@@ -1,6 +1,6 @@
-export const dynamic = "force-static";
 import webpush from 'web-push';
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
+import { verifyAuth } from '@/lib/apiAuth';
 
 // Configure webpush on each request to ensure fresh keys
 function configureWebpush() {
@@ -25,7 +25,13 @@ function configureWebpush() {
 
 export async function POST(request) {
   try {
-    console.log('📨 Push notification API called');
+    // Verify authenticated user
+    const authUser = await verifyAuth(request);
+    if (!authUser) {
+      return new Response(JSON.stringify({ error: 'Nincs jogosultság' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
+    }
+
+    console.log('📨 Push notification API called by:', authUser.email);
     
     // Environment variables check
     let VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;

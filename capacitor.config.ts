@@ -7,7 +7,6 @@ const config: CapacitorConfig = {
   webDir: 'out',
   server: {
     url: 'https://pharmagister.hu',
-    cleartext: true,
     errorPath: 'offline.html'
   },
   ios: {

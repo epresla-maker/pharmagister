@@ -1,6 +1,7 @@
 export const dynamic = "force-static";
 import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
+import { escapeHtml } from '@/lib/sanitize';
 
 export async function POST(request) {
   try {
@@ -49,12 +50,12 @@ export async function POST(request) {
         <h2 style="color: #059669; margin: 10px 0;">Jelszó sikeresen beállítva!</h2>
       </div>
       
-      <p>Kedves <strong>${displayName || 'Felhasználó'}</strong>!</p>
+      <p>Kedves <strong>${escapeHtml(displayName || 'Felhasználó')}</strong>!</p>
       
       <p>Az új jelszavad sikeresen be lett állítva. Mostantól ezzel tudsz belépni a Pharmagister rendszerbe.</p>
       
       <div class="info-box">
-        <p style="margin: 0;"><strong>Belépési email:</strong> ${email}</p>
+        <p style="margin: 0;"><strong>Belépési email:</strong> ${escapeHtml(email)}</p>
       </div>
       
       <p style="text-align: center;">

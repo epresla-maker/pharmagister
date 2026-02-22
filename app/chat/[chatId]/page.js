@@ -774,9 +774,13 @@ export default function ChatRoomPage() {
           // Felhasználói adatok lekérése a saját nevünkhöz
           const senderName = partnerData?.name ? 'Üzenet' : 'Új üzenet';
           
+          const idToken = await user.getIdToken();
           await fetch('/api/send-push', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${idToken}`
+            },
             body: JSON.stringify({
               userId: partnerId,
               title: 'Új üzenet',

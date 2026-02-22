@@ -64,9 +64,13 @@ export default function AdminPage() {
     
     try {
       // Backend API hívás a teljes törléshez
+      const idToken = await user.getIdToken();
       const response = await fetch('/api/admin/delete-user', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
         body: JSON.stringify({ userId })
       });
 

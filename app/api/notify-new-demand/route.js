@@ -1,8 +1,14 @@
-export const dynamic = "force-static";
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
+import { verifyAuth } from '@/lib/apiAuth';
 
 export async function POST(request) {
   try {
+    // Verify authenticated user
+    const authUser = await verifyAuth(request);
+    if (!authUser) {
+      return Response.json({ error: 'Nincs jogosultság' }, { status: 401 });
+    }
+
     const admin = getFirebaseAdmin();
     const db = admin.firestore();
     
@@ -92,10 +98,13 @@ export async function POST(request) {
           }
         });
         
-        // Push notification küldése
+        // Push notification küldése - forward the original auth token
+        const authHeader = request.headers.get('Authorization');
+        const pushHeaders = { 'Content-Type': 'application/json' };
+        if (authHeader) pushHeaders['Authorization'] = authHeader;
         const pushResponse = await fetch(process.env.NEXT_PUBLIC_APP_URL + '/api/send-push', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: pushHeaders,
           body: JSON.stringify({
             userId: userInfo.id,
             title: 'Új helyettesítési igény',
