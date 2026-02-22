@@ -11,7 +11,7 @@ const config: CapacitorConfig = {
   },
   ios: {
     contentInset: 'always',
-    scheme: 'Pharmagister'
+    scheme: 'App'
   },
   android: {
     buildOptions: {

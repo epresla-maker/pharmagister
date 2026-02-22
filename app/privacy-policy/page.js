@@ -47,7 +47,8 @@ export default function PrivacyPolicyPage() {
               2. Adatkezelő
             </h2>
             <p className="leading-relaxed">
-              <strong>Név:</strong> Pharmagister<br />
+              <strong>Fejlesztő neve:</strong> Epres László<br />
+              <strong>Alkalmazás neve:</strong> Pharmagister<br />
               <strong>E-mail:</strong> info@pharmagister.hu<br />
               <strong>Weboldal:</strong> https://pharmagister.hu
             </p>
@@ -213,7 +214,9 @@ export default function PrivacyPolicyPage() {
             </h2>
             <p className="leading-relaxed">
               Adatvédelmi kérdésekkel kapcsolatban írjon nekünk:<br /><br />
-              <strong>E-mail:</strong> info@pharmagister.hu
+              <strong>Fejlesztő:</strong> Epres László<br />
+              <strong>E-mail:</strong> info@pharmagister.hu<br />
+              <strong>Weboldal:</strong> https://pharmagister.hu
             </p>
           </section>
 
