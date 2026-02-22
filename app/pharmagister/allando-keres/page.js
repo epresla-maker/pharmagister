@@ -20,7 +20,7 @@ import {
   startAfter,
   where
 } from 'firebase/firestore';
-import { Star, MessageCircle, Send, MoreHorizontal, X, Heart, Laugh, Frown, Angry, Zap, ImagePlus, RefreshCw, Trash2, Edit3 } from 'lucide-react';
+import { Star, Send, MoreHorizontal, X, Heart, Laugh, Frown, Angry, Zap, ImagePlus, RefreshCw, Trash2, Edit3 } from 'lucide-react';
 
 const PAGE_SIZE = 20;
 
@@ -573,8 +573,6 @@ function AllandoKeresContent() {
               </div>
             ) : (
               posts.map((post) => {
-                const commentsCount = (post.comments || []).length;
-
                 return (
                   <div key={post.id} className={`${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
                     {/* Post Header */}
@@ -711,25 +709,7 @@ function AllandoKeresContent() {
                       )}
                     </div>
 
-                    {/* Comments count */}
-                    {commentsCount > 0 && (
-                      <div className="pb-1.5 flex items-center text-sm text-gray-500 px-3 sm:px-4">
-                        <div className="flex-1 flex justify-end">
-                          <span>{commentsCount} hozzászólás</span>
-                        </div>
-                      </div>
-                    )}
 
-                    {/* Action Button */}
-                    <div className={`border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'} py-2 flex items-center justify-center`}>
-                      <button
-                        onClick={() => router.push(`/post/${post.id}?collection=allandoKeresPosts`)}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg ${darkMode ? 'hover:bg-gray-700 text-gray-400' : 'hover:bg-gray-100 text-gray-600'} transition-colors`}
-                      >
-                        <MessageCircle size={16} />
-                        <span className="text-sm">Hozzászólás</span>
-                      </button>
-                    </div>
                   </div>
                 );
               })
