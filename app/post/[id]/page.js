@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { doc, getDoc, updateDoc, arrayUnion, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
@@ -73,6 +73,8 @@ function CommentItem({ comment, postId, depth = 0, onReply, replyingTo, setReply
 export default function PostDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const collectionName = searchParams.get('collection') || 'serviceFeedPosts';
   const { user, userData } = useAuth();
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -101,7 +103,7 @@ export default function PostDetailPage() {
   useEffect(() => {
     const fetchPost = async () => {
       try {
-        const postDoc = await getDoc(doc(db, 'serviceFeedPosts', params.id));
+        const postDoc = await getDoc(doc(db, collectionName, params.id));
         if (postDoc.exists()) {
           setPost({ id: postDoc.id, ...postDoc.data() });
         }
@@ -115,7 +117,7 @@ export default function PostDetailPage() {
     if (params.id) {
       fetchPost();
     }
-  }, [params.id]);
+  }, [params.id, collectionName]);
 
   const handleComment = async () => {
     if (!commentText.trim() || !user) return;
@@ -131,7 +133,7 @@ export default function PostDetailPage() {
         replies: []
       };
 
-      const postRef = doc(db, 'serviceFeedPosts', params.id);
+      const postRef = doc(db, collectionName, params.id);
       await updateDoc(postRef, {
         comments: arrayUnion(newComment)
       });
@@ -180,7 +182,7 @@ export default function PostDetailPage() {
 
       const updatedComments = addReplyToComment(post.comments || []);
       
-      const postRef = doc(db, 'serviceFeedPosts', postId);
+      const postRef = doc(db, collectionName, postId);
       await updateDoc(postRef, {
         comments: updatedComments
       });
