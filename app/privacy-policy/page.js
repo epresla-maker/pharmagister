@@ -157,9 +157,13 @@ export default function PrivacyPolicyPage() {
               <li><strong>Tiltakozás joga:</strong> tiltakozhat az adatkezelés ellen</li>
             </ul>
             <p className="leading-relaxed mt-3">
-              Jogai gyakorlásához írjon az <strong>info@pharmagister.hu</strong> e-mail címre, vagy használja a{' '}
+              Jogai gyakorlásához írjon az <strong>info@pharmagister.hu</strong> e-mail címre. Fiókja azonnali törléséhez lépjen be az alkalmazásba és navigáljon a{' '}
+              <Link href="/settings" className="text-purple-600 hover:text-purple-700 font-semibold underline">
+                Beállítások → Fiók törlése
+              </Link>{' '}
+              menüpontra, vagy használja a{' '}
               <Link href="/delete-account" className="text-purple-600 hover:text-purple-700 font-semibold underline">
-                fiók törlési űrlapot
+                törlési űrlapot
               </Link>.
             </p>
           </section>

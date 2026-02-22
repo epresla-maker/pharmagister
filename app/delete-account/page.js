@@ -1,16 +1,28 @@
 "use client";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTheme } from '@/context/ThemeContext';
-import { ArrowLeft, Trash2, AlertTriangle, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Trash2, AlertTriangle, CheckCircle, Settings } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { auth } from '@/lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 
 export default function DeleteAccountPage() {
   const { darkMode } = useTheme();
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
+  const [isLoggedIn, setIsLoggedIn] = useState(null); // null = loading
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setIsLoggedIn(!!user);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -48,6 +60,58 @@ export default function DeleteAccountPage() {
       setSubmitting(false);
     }
   };
+
+  // Loading state
+  if (isLoggedIn === null) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+      </div>
+    );
+  }
+
+  // Logged in user - redirect to instant deletion in Settings
+  if (isLoggedIn) {
+    return (
+      <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+        <div className={`sticky top-0 z-10 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b`}>
+          <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
+            <Link href="/" className={`p-2 -ml-2 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}>
+              <ArrowLeft className={`w-5 h-5 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`} />
+            </Link>
+            <div className="flex items-center gap-2">
+              <Trash2 className="w-5 h-5 text-red-600" />
+              <h1 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                Fiók törlése
+              </h1>
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-2xl mx-auto px-4 py-12">
+          <div className={`${darkMode ? 'bg-gray-800 text-gray-200' : 'bg-white text-gray-700'} rounded-xl shadow-sm p-8 text-center`}>
+            <Settings className="w-16 h-16 text-purple-600 mx-auto mb-4" />
+            <h2 className={`text-2xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+              Azonnali fiók törlés
+            </h2>
+            <p className="leading-relaxed mb-6">
+              Be vagy jelentkezve, így <strong>azonnal törölheted</strong> a fiókodat a Beállítások oldalon. 
+              Nem kell várnod — az adataid azonnal törlésre kerülnek.
+            </p>
+            <button
+              onClick={() => router.push('/settings')}
+              className="inline-block px-8 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold"
+            >
+              Fiók törlése a Beállításokban
+            </button>
+            <p className="text-sm text-gray-500 mt-4">
+              Beállítások → Fiók törlése → Azonnali törlés
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (submitted) {
     return (

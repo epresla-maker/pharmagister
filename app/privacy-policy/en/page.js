@@ -157,11 +157,14 @@ export default function PrivacyPolicyEnPage() {
               <li><strong>Right to object:</strong> object to data processing</li>
             </ul>
             <p className="leading-relaxed mt-3">
-              To exercise your rights, write to <strong>info@pharmagister.hu</strong>, or use the{' '}
+              To exercise your rights, write to <strong>info@pharmagister.hu</strong>. To delete your account instantly, log in and go to{' '}
+              <Link href="/settings" className="text-purple-600 hover:text-purple-700 font-semibold underline">
+                Settings → Delete Account
+              </Link>, or use the{' '}
               <Link href="/delete-account" className="text-purple-600 hover:text-purple-700 font-semibold underline">
-                account deletion form
-              </Link>.
-              You can also delete your account instantly from Settings &gt; Delete Account within the app.
+                deletion request form
+              </Link>{' '}
+              if you cannot log in.
             </p>
           </section>
 
