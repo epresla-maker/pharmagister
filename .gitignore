@@ -3,6 +3,11 @@
 /.pnp
 .pnp.js
 
+# env files with secrets
+.env.vercel
+.env.vercel.check
+.env.vercel.production
+.env.*.production
 # testing
 /coverage
 

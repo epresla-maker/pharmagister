@@ -13,8 +13,8 @@ service cloud.firestore {
     
     // Users collection
     match /users/{userId} {
-      // Olvasás: mindenki (szükséges a verifikációs token query-hez)
-      allow read: if true;
+      // Olvasás: csak bejelentkezett userek (saját adat + mások profil megtekintéséhez)
+      allow read: if isAuthenticated();
       
       // Írás: csak saját profil
       allow create, delete: if isAuthenticated() && request.auth.uid == userId;
