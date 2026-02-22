@@ -28,35 +28,17 @@ export async function POST(request) {
     }
 
     const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-    const apiKey = process.env.CLOUDINARY_API_KEY;
-    const apiSecret = process.env.CLOUDINARY_API_SECRET;
 
-    if (!cloudName || !apiKey || !apiSecret) {
+    if (!cloudName) {
       console.error('Cloudinary configuration missing');
       return NextResponse.json({ error: 'Szerver konfigurációs hiba' }, { status: 500 });
     }
 
-    // Generate signature for signed upload
-    const timestamp = Math.round(Date.now() / 1000);
-    const folder = 'profiles';
-    
-    // Build signature string (params must be alphabetically sorted)
-    const signatureString = `folder=${folder}&timestamp=${timestamp}${apiSecret}`;
-    
-    // Create SHA-1 signature
-    const encoder = new TextEncoder();
-    const data = encoder.encode(signatureString);
-    const hashBuffer = await crypto.subtle.digest('SHA-1', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const signature = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-
-    // Upload to Cloudinary with signed request
+    // Upload to Cloudinary with unsigned upload preset
     const uploadFormData = new FormData();
     uploadFormData.append('file', file);
-    uploadFormData.append('api_key', apiKey);
-    uploadFormData.append('timestamp', timestamp.toString());
-    uploadFormData.append('signature', signature);
-    uploadFormData.append('folder', folder);
+    uploadFormData.append('upload_preset', 'pharmagister_profiles');
+    uploadFormData.append('folder', 'profiles');
 
     const response = await fetch(
       `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
