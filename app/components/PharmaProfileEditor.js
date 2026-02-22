@@ -100,8 +100,12 @@ export default function PharmaProfileEditor({ pharmaRole }) {
       formData.append('userId', `pharma_${user.uid}`); // pharma prefix a mappához
 
       // 2. API hívás a képfeltöltéshez Cloudinary-ra
+      const idToken = await user.getIdToken();
       const response = await fetch('/api/upload', {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${idToken}`
+        },
         body: formData,
       });
 

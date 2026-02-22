@@ -56,34 +56,32 @@ export default function ProfileEditPage() {
 
       const formDataUpload = new FormData();
       formDataUpload.append('file', file);
-      formDataUpload.append('upload_preset', 'pharmagister_profiles');
+      formDataUpload.append('userId', user.uid);
 
-      const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-      if (!cloudName) {
-        throw new Error('Cloudinary nincs konfigurálva');
-      }
+      const idToken = await user.getIdToken();
 
-      console.log('Uploading to Cloudinary...');
-      const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-        {
+      console.log('Uploading via /api/upload...');
+      const response = await fetch('/api/upload', {
           method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${idToken}`
+          },
           body: formDataUpload,
         }
       );
 
       const data = await response.json();
-      console.log('Cloudinary response:', data);
+      console.log('Upload response:', data);
       
       if (!response.ok) {
-        console.error('Cloudinary error:', data);
-        throw new Error(data.error?.message || 'Upload failed');
+        console.error('Upload error:', data);
+        throw new Error(data.error?.message || data.error || 'Upload failed');
       }
 
-      const imageUrl = data.secure_url;
+      const imageUrl = data.url;
       
       if (!imageUrl) {
-        throw new Error('Nem kaptunk vissza URL-t a Cloudinary-tól');
+        throw new Error('Nem kaptunk vissza URL-t');
       }
 
       // Firestore update - setDoc merge-gel megbízhatóbb

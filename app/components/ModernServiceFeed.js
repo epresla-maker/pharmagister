@@ -262,8 +262,12 @@ export default function ModernServiceFeed() {
         formData.append('file', selectedImage);
         formData.append('userId', user.uid);
 
+        const idToken = await user.getIdToken();
         const response = await fetch('/api/upload', {
           method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${idToken}`
+          },
           body: formData,
         });
 

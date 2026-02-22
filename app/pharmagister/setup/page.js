@@ -120,12 +120,14 @@ function PharmagisterSetupContent() {
     try {
       const uploadFormData = new FormData();
       uploadFormData.append('file', file);
-      uploadFormData.append('upload_preset', 'pharmagister_profiles');
+      uploadFormData.append('userId', user.uid);
 
-      const response = await fetch(
-        `https://api.cloudinary.com/v1_1/dyoq9pcdx/image/upload`,
-        {
+      const idToken = await user.getIdToken();
+      const response = await fetch('/api/upload', {
           method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${idToken}`
+          },
           body: uploadFormData,
         }
       );
@@ -133,10 +135,10 @@ function PharmagisterSetupContent() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error?.message || 'Feltöltés sikertelen');
+        throw new Error(data.error?.message || data.error || 'Feltöltés sikertelen');
       }
 
-      const imageUrl = data.secure_url;
+      const imageUrl = data.url;
       
       // Azonnal mentjük Firestore-ba
       await setDoc(doc(db, 'users', user.uid), { photoURL: imageUrl }, { merge: true });

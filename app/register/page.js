@@ -32,8 +32,13 @@ export default function RegisterPage() {
       return;
     }
 
-    if (password.length < 6) {
-      setError('A jelszónak legalább 6 karakter hosszúnak kell lennie');
+    if (password.length < 8) {
+      setError('A jelszónak legalább 8 karakter hosszúnak kell lennie');
+      return;
+    }
+
+    if (!/[A-Z]/.test(password) || !/[0-9]/.test(password)) {
+      setError('A jelszónak tartalmaznia kell legalább egy nagybetűt és egy számot');
       return;
     }
 
@@ -172,7 +177,7 @@ export default function RegisterPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none pr-12"
                 required
-                minLength={6}
+                minLength={8}
               />
               <button
                 type="button"
@@ -193,7 +198,7 @@ export default function RegisterPage() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none pr-12"
                 required
-                minLength={6}
+                minLength={8}
               />
               <button
                 type="button"

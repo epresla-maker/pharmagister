@@ -1,12 +1,19 @@
-export const dynamic = "force-static";
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { sanitizeUrl } from '@/lib/sanitize';
+import { checkRateLimit, getClientIp } from '@/lib/rateLimit';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(request) {
   try {
+    // Rate limit: 5 requests per 15 minutes
+    const ip = getClientIp(request);
+    const { allowed } = checkRateLimit(`verification:${ip}`, 5, 15 * 60 * 1000);
+    if (!allowed) {
+      return NextResponse.json({ error: 'Túl sok kérés. Kérjük próbálja újra később.' }, { status: 429 });
+    }
+
     const { email, verificationToken } = await request.json();
     
     console.log('📧 [send-custom-verification] Starting email send to:', email);

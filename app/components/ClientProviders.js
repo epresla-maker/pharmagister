@@ -3,6 +3,7 @@ import { memo, Suspense, lazy } from 'react';
 import { AuthProvider } from '@/context/AuthContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { ToastProvider } from '@/context/ToastContext';
+import ErrorBoundary from './ErrorBoundary';
 
 // Lazy load non-critical components to reduce initial bundle
 const PWARegister = lazy(() => import('./PWARegister'));
@@ -19,6 +20,7 @@ const EmptyFallback = () => null;
 
 function ClientProviders({ children }) {
   return (
+    <ErrorBoundary>
     <AuthProvider>
       {/* Non-critical PWA components - lazy loaded */}
       <Suspense fallback={<EmptyFallback />}>
@@ -47,6 +49,7 @@ function ClientProviders({ children }) {
         </ToastProvider>
       </ThemeProvider>
     </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

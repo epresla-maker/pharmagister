@@ -27,35 +27,35 @@
 
 - [x] **9. Email template XSS védelem** – ✅ escapeHtml/sanitizeUrl minden template-ben
 
-- [ ] **10. Cloudinary unsigned upload korlátozása**
+- [x] **10. Cloudinary unsigned upload korlátozása** – ✅ Server-side signed upload /api/upload
   - Upload preset korlátozás vagy signed upload
 
 ## 🟡 KÖZEPES
 
-- [ ] **11. Rate limiting hozzáadása**
+- [x] **11. Rate limiting hozzáadása** – ✅ lib/rateLimit.js, 4 route-ra alkalmazva
   - Regisztráció, login, jelszó reset, email küldés
 
-- [ ] **12. Jelszó policy erősítése**
+- [x] **12. Jelszó policy erősítése** – ✅ 8 karakter + nagybetű + szám
   - Minimum 6 → 8 karakter, komplexitás
 
-- [ ] **13. React Error Boundary hozzáadása**
+- [x] **13. React Error Boundary hozzáadása** – ✅ ErrorBoundary.js + ClientProviders wrap
   - Fehér képernyő megelőzése crash esetén
 
-- [ ] **14. Privacy policy angol verzió**
+- [x] **14. Privacy policy angol verzió** – ✅ /privacy-policy/en
   - Apple reviewer nem tud magyarul
 
-- [ ] **15. SMTP TLS verification bekapcsolása**
+- [x] **15. SMTP TLS verification bekapcsolása** – ✅ rejectUnauthorized: true 3 route-ban
   - `rejectUnauthorized: false` → `true`
 
-- [ ] **16. RSS scraping felülvizsgálata**
+- [x] **16. RSS scraping felülvizsgálata** – ✅ Publikus egyetemi RSS, rendben
   - Semmelweis RSS – van-e jogosultság
 
 ## 🟢 ALACSONY
 
 - [x] **17. `cleartext: true` eltávolítása capacitor.config-ból** – ✅ Kész
-- [ ] **18. iOS projekt artifact cleanup** (duplikált config xml-ek)
-- [ ] **19. `ITSAppUsesNonExemptEncryption` ellenőrzése**
-- [ ] **20. Teszt fiók létrehozása Apple reviewer-nek**
+- [x] **18. iOS projekt artifact cleanup** – ✅ 8 duplikált config xml törölve
+- [x] **19. `ITSAppUsesNonExemptEncryption` ellenőrzése** – ✅ Már megvolt
+- [x] **20. Teszt fiók létrehozása Apple reviewer-nek** – ✅ teszt.review@pharmagister.hu
 
 ---
 
@@ -72,14 +72,14 @@
 | 7 | Admin védelem | ✅ API auth middleware-rel megoldva |
 | 8 | Token generálás | ✅ Kész – crypto.getRandomValues |
 | 9 | Email XSS | ✅ Kész – escapeHtml/sanitizeUrl minden template-ben |
-| 10 | Cloudinary upload | ⬜ |
-| 11 | Rate limiting | ⬜ |
-| 12 | Jelszó policy | ⬜ |
-| 13 | Error Boundary | ⬜ |
-| 14 | Angol privacy policy | ⬜ |
-| 15 | SMTP TLS | ⬜ |
-| 16 | RSS scraping | ⬜ |
+| 10 | Cloudinary upload | ✅ Server-side signed upload /api/upload |
+| 11 | Rate limiting | ✅ lib/rateLimit.js, 4 route-ra alkalmazva |
+| 12 | Jelszó policy | ✅ 8 karakter + nagybetű + szám |
+| 13 | Error Boundary | ✅ ErrorBoundary.js + ClientProviders wrap |
+| 14 | Angol privacy policy | ✅ /privacy-policy/en |
+| 15 | SMTP TLS | ✅ rejectUnauthorized: true |
+| 16 | RSS scraping | ✅ Publikus egyetemi RSS, rendben |
 | 17 | cleartext removal | ✅ Kész |
-| 18 | iOS cleanup | ⬜ |
+| 18 | iOS cleanup | ✅ 8 duplikált config xml törölve |
 | 19 | Encryption flag | ✅ Már megvolt (ITSAppUsesNonExemptEncryption: false) |
-| 20 | Teszt fiók | ⬜ |
+| 20 | Teszt fiók | ✅ teszt.review@pharmagister.hu / AppleReview2026! |

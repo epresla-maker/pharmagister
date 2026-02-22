@@ -35,7 +35,7 @@ export async function POST(request) {
         pass: process.env.SMTP_PASS,
       },
       tls: {
-        rejectUnauthorized: false,
+        rejectUnauthorized: true,
         servername: 'mail.pharmagister.hu'
       }
     });

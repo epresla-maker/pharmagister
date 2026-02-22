@@ -28,7 +28,8 @@ export default function PrivacyPolicyPage() {
         <div className={`${darkMode ? 'bg-gray-800 text-gray-200' : 'bg-white text-gray-700'} rounded-xl shadow-sm p-6 space-y-6`}>
           
           <div className="text-sm text-gray-500 mb-4">
-            Hatályos: 2026. február 11.
+            Hatályos: 2026. február 11. |{' '}
+            <Link href="/privacy-policy/en" className="text-purple-600 hover:underline">English version</Link>
           </div>
 
           <section>

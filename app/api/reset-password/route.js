@@ -1,6 +1,6 @@
-export const dynamic = "force-static";
 import { NextResponse } from 'next/server';
 import admin from 'firebase-admin';
+import { checkRateLimit, getClientIp } from '@/lib/rateLimit';
 
 // Initialize Firebase Admin
 if (!admin.apps.length) {
@@ -18,10 +18,21 @@ const auth = admin.auth();
 
 export async function POST(request) {
   try {
+    // Rate limit: 10 requests per 15 minutes
+    const ip = getClientIp(request);
+    const { allowed } = checkRateLimit(`reset-password:${ip}`, 10, 15 * 60 * 1000);
+    if (!allowed) {
+      return NextResponse.json({ error: 'Túl sok kérés. Kérjük próbálja újra később.' }, { status: 429 });
+    }
+
     const { token, newPassword } = await request.json();
 
     if (!token || !newPassword) {
       return NextResponse.json({ error: 'Token és jelszó megadása kötelező' }, { status: 400 });
+    }
+
+    if (newPassword.length < 8) {
+      return NextResponse.json({ error: 'A jelszónak legalább 8 karakter hosszúnak kell lennie' }, { status: 400 });
     }
 
     // Find user by reset token

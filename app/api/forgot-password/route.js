@@ -1,9 +1,9 @@
-export const dynamic = "force-static";
 import { NextResponse } from 'next/server';
 import admin from 'firebase-admin';
 import nodemailer from 'nodemailer';
 import { randomBytes } from 'crypto';
 import { escapeHtml } from '@/lib/sanitize';
+import { checkRateLimit, getClientIp } from '@/lib/rateLimit';
 
 // Initialize Firebase Admin
 if (!admin.apps.length) {
@@ -78,6 +78,13 @@ function generateEmailHtml(name, email, resetLink) {
 
 export async function POST(request) {
   try {
+    // Rate limit: 5 requests per 15 minutes
+    const ip = getClientIp(request);
+    const { allowed } = checkRateLimit(`forgot-password:${ip}`, 5, 15 * 60 * 1000);
+    if (!allowed) {
+      return NextResponse.json({ error: 'Túl sok kérés. Kérjük próbálja újra később.' }, { status: 429 });
+    }
+
     const { email } = await request.json();
 
     if (!email) {
@@ -135,7 +142,7 @@ export async function POST(request) {
         pass: process.env.SMTP_PASS,
       },
       tls: {
-        rejectUnauthorized: false,
+        rejectUnauthorized: true,
         servername: SMTP_DOMAIN
       },
       name: 'pharmagister.hu'

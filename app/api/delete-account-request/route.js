@@ -1,10 +1,17 @@
-export const dynamic = "force-static";
 import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import { escapeHtml } from '@/lib/sanitize';
+import { checkRateLimit, getClientIp } from '@/lib/rateLimit';
 
 export async function POST(request) {
   try {
+    // Rate limit: 3 requests per 15 minutes
+    const ip = getClientIp(request);
+    const { allowed } = checkRateLimit(`delete-account:${ip}`, 3, 15 * 60 * 1000);
+    if (!allowed) {
+      return NextResponse.json({ error: 'Túl sok kérés. Kérjük próbálja újra később.' }, { status: 429 });
+    }
+
     const { email, reason, timestamp } = await request.json();
 
     if (!email) {
