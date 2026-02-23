@@ -138,9 +138,9 @@ export default function ResponseRateBar({ pharmacyId }) {
         </span>
       </div>
 
-      {/* Alatta: felirat */}
+      {/* Felirat */}
       <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>
-        válaszadás határidőtartása {totalApplications} jelentkezőből
+        válaszadás határidőtartása
       </div>
     </div>
   );
