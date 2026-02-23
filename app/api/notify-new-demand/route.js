@@ -109,31 +109,61 @@ export async function POST(request) {
           }
         });
         
-        // Push notification küldése közvetlenül (nem API híváson keresztül)
+        // Push notification küldése közvetlenül (web + natív FCM)
         try {
-          if (configureWebpush()) {
-            const subsSnapshot = await db.collection('pushSubscriptions')
-              .where('userId', '==', userInfo.id)
-              .get();
+          const subsSnapshot = await db.collection('pushSubscriptions')
+            .where('userId', '==', userInfo.id)
+            .get();
+          
+          if (!subsSnapshot.empty) {
+            const webPayload = JSON.stringify({
+              title: 'Új helyettesítési igény',
+              body: `${pharmacyName || 'Egy gyógyszertár'} ${positionLabel} helyettest keres${dateStr ? ` (${dateStr})` : ''}.`,
+              icon: '/icons/icon-192x192.png',
+              badge: '/icons/icon-72x72.png',
+              tag: `new-demand-${demandId}`,
+              url: `/pharmagister/demand/${demandId}`
+            });
             
-            if (!subsSnapshot.empty) {
-              const payload = JSON.stringify({
-                title: 'Új helyettesítési igény',
-                body: `${pharmacyName || 'Egy gyógyszertár'} ${positionLabel} helyettest keres${dateStr ? ` (${dateStr})` : ''}.`,
-                icon: '/icons/icon-192x192.png',
-                badge: '/icons/icon-72x72.png',
-                tag: `new-demand-${demandId}`,
-                url: `/pharmagister/demand/${demandId}`
-              });
-              
-              for (const subDoc of subsSnapshot.docs) {
-                const subscription = subDoc.data().subscription;
-                try {
-                  await webpush.sendNotification(subscription, payload);
-                } catch (pushErr) {
-                  if (pushErr.statusCode === 410 || pushErr.statusCode === 404) {
-                    await db.collection('pushSubscriptions').doc(subDoc.id).delete();
-                  }
+            const webpushReady = configureWebpush();
+            
+            for (const subDoc of subsSnapshot.docs) {
+              const subscription = subDoc.data().subscription;
+              try {
+                if (subscription.endpoint?.startsWith('native-') && subscription.token) {
+                  // Natív push FCM-en keresztül
+                  await admin.messaging().send({
+                    token: subscription.token,
+                    notification: {
+                      title: 'Új helyettesítési igény',
+                      body: `${pharmacyName || 'Egy gyógyszertár'} ${positionLabel} helyettest keres${dateStr ? ` (${dateStr})` : ''}.`,
+                    },
+                    data: {
+                      url: `/pharmagister/demand/${demandId}`,
+                      tag: `new-demand-${demandId}`
+                    },
+                    apns: {
+                      payload: {
+                        aps: {
+                          alert: {
+                            title: 'Új helyettesítési igény',
+                            body: `${pharmacyName || 'Egy gyógyszertár'} ${positionLabel} helyettest keres${dateStr ? ` (${dateStr})` : ''}.`,
+                          },
+                          badge: 1,
+                          sound: 'default'
+                        }
+                      }
+                    }
+                  });
+                } else if (webpushReady) {
+                  // Web push
+                  await webpush.sendNotification(subscription, webPayload);
+                }
+              } catch (pushErr) {
+                if (pushErr.statusCode === 410 || pushErr.statusCode === 404 ||
+                    pushErr.code === 'messaging/registration-token-not-registered' ||
+                    pushErr.code === 'messaging/invalid-registration-token') {
+                  await db.collection('pushSubscriptions').doc(subDoc.id).delete();
                 }
               }
             }

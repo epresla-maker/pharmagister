@@ -89,20 +89,54 @@ export async function POST(request) {
     const results = [];
     const expiredSubscriptions = [];
 
-    for (const doc of subscriptionsSnapshot.docs) {
-      const subscription = doc.data().subscription;
+    for (const subDoc of subscriptionsSnapshot.docs) {
+      const subscription = subDoc.data().subscription;
       
       try {
-        await webpush.sendNotification(subscription, payload);
-        results.push({ success: true, id: doc.id });
+        // Natív (iOS/Android) push - FCM-en keresztül
+        if (subscription.endpoint?.startsWith('native-') && subscription.token) {
+          const message = {
+            token: subscription.token,
+            notification: {
+              title: title || 'Pharmagister',
+              body: body || 'Új értesítésed érkezett!',
+            },
+            data: {
+              url: url || '/notifications',
+              tag: tag || 'pharmagister-notification'
+            },
+            apns: {
+              payload: {
+                aps: {
+                  alert: {
+                    title: title || 'Pharmagister',
+                    body: body || 'Új értesítésed érkezett!',
+                  },
+                  badge: 1,
+                  sound: 'default'
+                }
+              }
+            }
+          };
+          
+          await admin.messaging().send(message);
+          results.push({ success: true, id: subDoc.id, platform: 'native' });
+          console.log(`✅ FCM push sent to ${subDoc.id}`);
+        } else {
+          // Web push - VAPID/webpush
+          await webpush.sendNotification(subscription, payload);
+          results.push({ success: true, id: subDoc.id, platform: 'web' });
+        }
       } catch (error) {
-        console.error(`Push failed for subscription ${doc.id}:`, error.statusCode);
+        console.error(`Push failed for subscription ${subDoc.id}:`, error.statusCode || error.code || error.message);
         
         // If subscription is expired or invalid, mark for deletion
-        if (error.statusCode === 410 || error.statusCode === 404) {
-          expiredSubscriptions.push(doc.id);
+        if (error.statusCode === 410 || error.statusCode === 404 || 
+            error.code === 'messaging/registration-token-not-registered' ||
+            error.code === 'messaging/invalid-registration-token') {
+          expiredSubscriptions.push(subDoc.id);
         }
-        results.push({ success: false, id: doc.id, error: error.message });
+        results.push({ success: false, id: subDoc.id, error: error.message });
       }
     }
 
