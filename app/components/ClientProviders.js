@@ -14,6 +14,7 @@ const PushNotificationBanner = lazy(() => import('./PushNotificationBanner'));
 const GlobalBottomNav = lazy(() => import('./GlobalBottomNav'));
 const PWAInstallBanner = lazy(() => import('./PWAInstallBanner'));
 const OfflineBanner = lazy(() => import('./OfflineBanner'));
+const TermsUpdateModal = lazy(() => import('./TermsUpdateModal'));
 
 // Empty fallback for lazy-loaded components
 const EmptyFallback = () => null;
@@ -39,6 +40,9 @@ function ClientProviders({ children }) {
         <ToastProvider>
           <Suspense fallback={<EmptyFallback />}>
             <OfflineBanner />
+          </Suspense>
+          <Suspense fallback={<EmptyFallback />}>
+            <TermsUpdateModal />
           </Suspense>
           {children}
           {/* Bottom nav and install banner - lazy loaded */}

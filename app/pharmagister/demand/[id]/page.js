@@ -8,6 +8,7 @@ import { doc, getDoc, updateDoc, arrayUnion, arrayRemove, Timestamp, collection,
 import { db } from '@/lib/firebase';
 import { createNotificationWithPush } from '@/lib/notifications';
 import { MessageCircle } from 'lucide-react';
+import ResponseRateBar from '@/app/components/ResponseRateBar';
 
 export default function DemandDetailPage() {
   const { user, userData } = useAuth();
@@ -421,6 +422,7 @@ export default function DemandDetailPage() {
                   <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                     {demand.pharmacyFullAddress || `${demand.pharmacyZipCode || ''} ${demand.pharmacyCity || ''}`}
                   </p>
+                  <ResponseRateBar pharmacyId={demand.pharmacyId} />
                 </div>
               </div>
             </div>

@@ -7,6 +7,7 @@ import { collection, query, where, getDocs, orderBy, updateDoc, doc, addDoc, del
 import { db } from '@/lib/firebase';
 import { createNotificationWithPush } from '@/lib/notifications';
 import { Loader2, Search, ChevronDown, ChevronUp, MapPin, Clock, CheckCircle, XCircle, MessageCircle, User, Calendar, Edit2, Trash2, Eye, CalendarDays, Filter } from 'lucide-react';
+import ResponseRateBar from '@/app/components/ResponseRateBar';
 
 export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
   const { user, userData } = useAuth();
@@ -764,6 +765,7 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
                           <h4 className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'} truncate`}>
                             {application.demand?.pharmacyName || 'Ismeretlen gyógyszertár'}
                           </h4>
+                          {application.demand?.pharmacyId && <ResponseRateBar pharmacyId={application.demand.pharmacyId} />}
                           <span className={`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${
                             application.status === 'accepted' ? 'bg-green-100 text-green-700' :
                             application.status === 'rejected' ? 'bg-red-100 text-red-700' :
@@ -885,6 +887,7 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
                     <div className="flex items-start gap-2 mb-2">
                       <div className="flex-1 min-w-0">
                         <h4 className={`font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'} mb-1 text-sm`}>{demand.pharmacyName}</h4>
+                        <ResponseRateBar pharmacyId={demand.pharmacyId} />
                         <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-[#6B7280]'}`}>
                           {new Date(demand.date).toLocaleDateString('hu-HU')}
                           {demand.workHours && ` • ${demand.workHours}`}

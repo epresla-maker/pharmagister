@@ -7,6 +7,7 @@ import { collection, addDoc, query, where, getDocs, getDoc, deleteDoc, doc, orde
 import { db } from '@/lib/firebase';
 import { createNotificationWithPush } from '@/lib/notifications';
 import { ChevronLeft, ChevronRight, Plus, X, Loader2, Clock, MapPin, MessageCircle, Send } from 'lucide-react';
+import ResponseRateBar from '@/app/components/ResponseRateBar';
 
 // Magyar ünnepek (fix dátumok)
 const HUNGARIAN_HOLIDAYS = {
@@ -982,6 +983,7 @@ function DemandCard({ demand, pharmaRole, darkMode }) {
 
         <div className="flex-1">
           <h4 className={`font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'} mb-1 text-lg`}>{demand.pharmacyName}</h4>
+          <ResponseRateBar pharmacyId={demand.pharmacyId} />
           {demand.pharmacyCity && (
             <div className={`flex items-center gap-1 text-sm ${darkMode ? 'text-gray-400' : 'text-[#6B7280]'} font-medium mb-2`}>
               <MapPin className="w-4 h-4" />
