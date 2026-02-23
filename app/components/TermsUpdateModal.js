@@ -108,34 +108,34 @@ export default function TermsUpdateModal() {
             backgroundColor: darkMode ? 'rgba(107,70,193,0.15)' : '#f5f3ff',
           }}>
             <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, color: darkMode ? '#c4b5fd' : '#6B46C1' }}>
-              Gyogyszertari valaszadasi arany nyilvanos megjelenitese
+              Gyógyszertári válaszadási arány nyilvános megjelenítése
             </h3>
             <p style={{ marginBottom: 0, fontSize: 14 }}>
-              A rendszer mostantol nyilvantartja, hogy a gyogyszertarak milyen aranyban valaszolnak
-              (elfogadas vagy elutasitas) a hozzajuk berkezo helyettesitesi jelentkezesekre
-              <strong> 72 oran belul</strong>. Ez az adat egy szines visszajelzo sav formajaban
-              megjelenik a gyogyszertar neve mellett mindenhol, ahol egy helyettesitesi igenyt
-              megtekint egy felhasznalo.
+              A rendszer mostantól nyilvántartja, hogy a gyógyszertárak milyen arányban válaszolnak
+              (elfogadás vagy elutasítás) a hozzájuk beérkező helyettesítési jelentkezésekre
+              <strong> 72 órán belül</strong>. Ez az adat egy színes visszajelző sáv formájában
+              megjelenik a gyógyszertár neve mellett mindenhol, ahol egy helyettesítési igényt
+              megtekint egy felhasználó.
             </p>
           </div>
 
           {/* 1. Válaszadási visszajelzés */}
           <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>
-            1. Reszletek
+            1. Részletek
           </h3>
           <p style={{ marginBottom: 8 }}>
-            A visszajelzo sav szazalekos aranyt mutat, es kizarolag osszesitett, anonimizalt
-            statisztikan alapul -- egyedi jelentkezok adatai nem kerulnek nyilvanossagra.
+            A visszajelző sáv százalékos arányt mutat, és kizárólag összesített, anonimizált
+            statisztikán alapul -- egyedi jelentkezők adatai nem kerülnek nyilvánosságra.
           </p>
           <p style={{ marginBottom: 16 }}>
-            A sav a kovetkezo modon mukodik: a piros szin alacsony, a narancs kozepes, a zold
-            szin magas valaszadasi aranyt jelol. Ha a gyogyszertarnak meg nincs jelentkezoje,
-            a sav teljes egeszeben zold.
+            A sáv a következő módon működik: a piros szín alacsony, a narancs közepes, a zöld
+            szín magas válaszadási arányt jelöl. Ha a gyógyszertárnak még nincs jelentkezője,
+            a sáv teljes egészében zöld.
           </p>
 
           {/* 2. Adatkezelés */}
           <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>
-            2. Adatkezelesi kiegeszites
+            2. Adatkezelési kiegészítés
           </h3>
           <p style={{ marginBottom: 8 }}>
             A válaszadási arány kiszámításához a rendszer az alábbi, már korábban is tárolt adatokat
@@ -154,7 +154,7 @@ export default function TermsUpdateModal() {
 
           {/* 3. Cél */}
           <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>
-            3. A modositas celja
+            3. A módosítás célja
           </h3>
           <p style={{ marginBottom: 16 }}>
             A változtatás célja, hogy a helyettesítő gyógyszerészek és szakasszisztensek
@@ -165,7 +165,7 @@ export default function TermsUpdateModal() {
 
           {/* 4. Jogok */}
           <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>
-            4. Felhasznaloi jogok
+            4. Felhasználói jogok
           </h3>
           <p style={{ marginBottom: 16 }}>
             Az adatvédelmi tájékoztatóban rögzített jogaid (hozzáférés, helyesbítés, törlés,

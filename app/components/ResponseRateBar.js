@@ -86,7 +86,8 @@ export default function ResponseRateBar({ pharmacyId }) {
   // ---- Méretek ----
   const BAR_WIDTH = 240; // ~30 karakter
   const BAR_HEIGHT = 18; // nagybetű magasság
-  const filledWidth = (responseRate / 100) * BAR_WIDTH;
+  const isVeryLow = responseRate < 10; // 10% alatt teljes piros
+  const filledWidth = isVeryLow ? BAR_WIDTH : (responseRate / 100) * BAR_WIDTH;
   const oneThird = BAR_WIDTH / 3;
   const twoThirds = (BAR_WIDTH * 2) / 3;
 
@@ -101,11 +102,11 @@ export default function ResponseRateBar({ pharmacyId }) {
           borderRadius: 3,
           position: 'relative',
           overflow: 'hidden',
-          background: '#d1d5db', // szürke (kitöltetlen rész)
+          background: isVeryLow ? '#ef4444' : '#d1d5db', // 10% alatt teljes piros, egyébként szürke
         }}
       >
-        {/* Piros szegmens: 0 → min(filledWidth, 1/3) */}
-        {filledWidth > 0 && (
+        {/* 10% alatt: teljes piros, szegmensek nem kellenek */}
+        {!isVeryLow && filledWidth > 0 && (
           <div
             style={{
               position: 'absolute',
@@ -118,7 +119,7 @@ export default function ResponseRateBar({ pharmacyId }) {
           />
         )}
         {/* Narancs szegmens: 1/3 → min(filledWidth, 2/3) */}
-        {filledWidth > oneThird && (
+        {!isVeryLow && filledWidth > oneThird && (
           <div
             style={{
               position: 'absolute',
@@ -131,7 +132,7 @@ export default function ResponseRateBar({ pharmacyId }) {
           />
         )}
         {/* Zöld szegmens: 2/3 → filledWidth */}
-        {filledWidth > twoThirds && (
+        {!isVeryLow && filledWidth > twoThirds && (
           <div
             style={{
               position: 'absolute',
