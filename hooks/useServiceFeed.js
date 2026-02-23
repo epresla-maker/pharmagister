@@ -53,10 +53,9 @@ export function useServiceFeed({ userData }) {
   const filterPostsByModule = useCallback((postsToFilter) => {
     const userModules = getUserModules();
     
-    // Mai dátum a múltbeli igények szűréséhez
+    // Mai dátum a múltbeli igények szűréséhez (lokális időzóna!)
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD formátum
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     
     return postsToFilter.filter(post => {
       // Filter out reactionActivity posts

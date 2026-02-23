@@ -146,10 +146,9 @@ export default function PharmaCalendar({ pharmaRole }) {
 
       const snapshot = await getDocs(q);
       
-      // Szűrjük ki a múltbeli dátumú igényeket
+      // Szűrjük ki a múltbeli dátumú igényeket (lokális időzóna!)
       const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD formátum
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
       
       const demandsData = snapshot.docs
         .map(doc => ({

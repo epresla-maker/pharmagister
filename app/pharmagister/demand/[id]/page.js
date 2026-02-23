@@ -86,6 +86,14 @@ export default function DemandDetailPage() {
       return;
     }
 
+    // Check if demand is expired
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    if (demand.date && demand.date < todayStr) {
+      alert('Ez az igény már lejárt, nem lehet rá jelentkezni.');
+      return;
+    }
+
     // Check if user has pharmagister role
     if (!userData.pharmagisterRole || userData.pharmagisterRole === 'pharmacy') {
       alert('Csak gyógyszerészek és szakasszisztensek jelentkezhetnek!');
@@ -419,15 +427,29 @@ export default function DemandDetailPage() {
 
             {/* Demand Status Badge */}
             <div className="px-4 pt-4">
-              <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                demand.status === 'open' 
-                  ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                  : demand.status === 'filled'
-                  ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
-                  : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400'
-              }`}>
-                {demand.status === 'open' ? '🟢 Aktív' : demand.status === 'filled' ? '✅ Betöltve' : '⚪ Lezárva'}
-              </span>
+              {(() => {
+                const today = new Date();
+                const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                const isExpired = demand.date && demand.date < todayStr;
+                if (isExpired) {
+                  return (
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                      ⛔ Lejárt igény
+                    </span>
+                  );
+                }
+                return (
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                    demand.status === 'open' 
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                      : demand.status === 'filled'
+                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+                      : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400'
+                  }`}>
+                    {demand.status === 'open' ? '🟢 Aktív' : demand.status === 'filled' ? '✅ Betöltve' : '⚪ Lezárva'}
+                  </span>
+                );
+              })()}
             </div>
 
             {/* Details */}
@@ -620,7 +642,13 @@ export default function DemandDetailPage() {
         </div>
 
         {/* Action Buttons - Fixed Bottom */}
-        {!isOwnDemand && demand.status === 'open' && (
+        {!isOwnDemand && demand.status === 'open' && (() => {
+          const today = new Date();
+          const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+          const isExpired = demand.date && demand.date < todayStr;
+          if (isExpired) return null;
+          return true;
+        })() && (
           <div className={`fixed bottom-20 left-0 right-0 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-t p-4 z-10 shadow-lg`}>
             <div className="max-w-lg mx-auto flex gap-3">
               {roleMatches ? (

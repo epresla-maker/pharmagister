@@ -25,10 +25,9 @@ const db = admin.firestore();
 async function cleanupPastDemands() {
   console.log('\n🧹 Múltbeli dátumú igények automatikus törlése...\n');
   
-  // Mai dátum YYYY-MM-DD formátumban
+  // Mai dátum YYYY-MM-DD formátumban (lokális időzóna!)
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const todayStr = today.toISOString().split('T')[0];
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   
   console.log(`📅 Mai dátum: ${todayStr}`);
   console.log('⏰ Minden ennél régebbi dátumú igény törölve lesz.\n');
