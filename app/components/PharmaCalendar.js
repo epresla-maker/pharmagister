@@ -606,10 +606,14 @@ function CreateDemandForm({ date, darkMode, onSuccess, onCancel }) {
 
       const demandRef = await addDoc(collection(db, 'pharmaDemands'), demandData);
 
-      // Számláló növelése - összes valaha feladott igény
-      await setDoc(doc(db, 'firestoreStats', 'demands'), {
-        totalEverCreated: increment(1)
-      }, { merge: true });
+      // Számláló növelése - összes valaha feladott igény (nem kritikus)
+      try {
+        await setDoc(doc(db, 'firestoreStats', 'demands'), {
+          totalEverCreated: increment(1)
+        }, { merge: true });
+      } catch (statsError) {
+        console.log('Stats update failed (non-critical):', statsError);
+      }
       
       // Automatikusan létrehozunk egy serviceFeedPost-ot is
       await addDoc(collection(db, 'serviceFeedPosts'), {

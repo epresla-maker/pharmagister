@@ -135,10 +135,10 @@ service cloud.firestore {
       allow read, write: if false;
     }
     
-    // Firestore stats - admin only
+    // Firestore stats - authenticated users can update counters, admin full access
     match /firestoreStats/{statId} {
       allow read: if isAuthenticated();
-      allow write: if isAdmin();
+      allow write: if isAdmin() || isAuthenticated();
     }
     
     // Deny everything else by default (no wildcard catch-all)
