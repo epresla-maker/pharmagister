@@ -1,5 +1,16 @@
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 import { verifyAuth } from '@/lib/apiAuth';
+import webpush from 'web-push';
+
+function configureWebpush() {
+  let VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  let VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
+  if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) return false;
+  VAPID_PUBLIC_KEY = VAPID_PUBLIC_KEY.trim().replace(/=+$/, '');
+  VAPID_PRIVATE_KEY = VAPID_PRIVATE_KEY.trim().replace(/=+$/, '');
+  webpush.setVapidDetails('mailto:epresla@icloud.com', VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+  return true;
+}
 
 export async function POST(request) {
   try {
@@ -98,21 +109,38 @@ export async function POST(request) {
           }
         });
         
-        // Push notification küldése - forward the original auth token
-        const authHeader = request.headers.get('Authorization');
-        const pushHeaders = { 'Content-Type': 'application/json' };
-        if (authHeader) pushHeaders['Authorization'] = authHeader;
-        const pushResponse = await fetch(process.env.NEXT_PUBLIC_APP_URL + '/api/send-push', {
-          method: 'POST',
-          headers: pushHeaders,
-          body: JSON.stringify({
-            userId: userInfo.id,
-            title: 'Új helyettesítési igény',
-            body: `${pharmacyName || 'Egy gyógyszertár'} ${positionLabel} helyettest keres${dateStr ? ` (${dateStr})` : ''}.`,
-            url: `/pharmagister/demand/${demandId}`,
-            tag: `new-demand-${demandId}`
-          })
-        });
+        // Push notification küldése közvetlenül (nem API híváson keresztül)
+        try {
+          if (configureWebpush()) {
+            const subsSnapshot = await db.collection('pushSubscriptions')
+              .where('userId', '==', userInfo.id)
+              .get();
+            
+            if (!subsSnapshot.empty) {
+              const payload = JSON.stringify({
+                title: 'Új helyettesítési igény',
+                body: `${pharmacyName || 'Egy gyógyszertár'} ${positionLabel} helyettest keres${dateStr ? ` (${dateStr})` : ''}.`,
+                icon: '/icons/icon-192x192.png',
+                badge: '/icons/icon-72x72.png',
+                tag: `new-demand-${demandId}`,
+                url: `/pharmagister/demand/${demandId}`
+              });
+              
+              for (const subDoc of subsSnapshot.docs) {
+                const subscription = subDoc.data().subscription;
+                try {
+                  await webpush.sendNotification(subscription, payload);
+                } catch (pushErr) {
+                  if (pushErr.statusCode === 410 || pushErr.statusCode === 404) {
+                    await db.collection('pushSubscriptions').doc(subDoc.id).delete();
+                  }
+                }
+              }
+            }
+          }
+        } catch (pushError) {
+          console.log(`Push notification failed for ${userInfo.id} (non-critical):`, pushError.message);
+        }
         
         results.push({ userId: userInfo.id, success: true });
         console.log(`✅ Notified user ${userInfo.id}`);
