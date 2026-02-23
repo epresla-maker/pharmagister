@@ -86,10 +86,10 @@ export default function ResponseRateBar({ pharmacyId }) {
   // ---- Méretek ----
   const BAR_WIDTH = 240; // ~30 karakter
   const BAR_HEIGHT = 18; // nagybetű magasság
-  const isVeryLow = responseRate < 10; // 10% alatt teljes piros
-  const filledWidth = isVeryLow ? BAR_WIDTH : (responseRate / 100) * BAR_WIDTH;
-  const oneThird = BAR_WIDTH / 3;
-  const twoThirds = (BAR_WIDTH * 2) / 3;
+  const filledWidth = (responseRate / 100) * BAR_WIDTH;
+
+  // Egyszínű kitöltés a tartomány szerint
+  const barColor = responseRate < 33 ? '#ef4444' : responseRate < 66 ? '#f97316' : '#22c55e';
 
   return (
     <div style={{ display: 'inline-block', marginTop: 4 }}>
@@ -102,45 +102,19 @@ export default function ResponseRateBar({ pharmacyId }) {
           borderRadius: 3,
           position: 'relative',
           overflow: 'hidden',
-          background: isVeryLow ? '#ef4444' : '#d1d5db', // 10% alatt teljes piros, egyébként szürke
+          background: '#d1d5db', // szürke (kitöltetlen rész)
         }}
       >
-        {/* 10% alatt: teljes piros, szegmensek nem kellenek */}
-        {!isVeryLow && filledWidth > 0 && (
+        {/* Kitöltött rész - egyetlen szín a %-ig */}
+        {filledWidth > 0 && (
           <div
             style={{
               position: 'absolute',
               left: 0,
               top: 0,
-              width: Math.min(filledWidth, oneThird),
+              width: filledWidth,
               height: '100%',
-              background: '#ef4444',
-            }}
-          />
-        )}
-        {/* Narancs szegmens: 1/3 → min(filledWidth, 2/3) */}
-        {!isVeryLow && filledWidth > oneThird && (
-          <div
-            style={{
-              position: 'absolute',
-              left: oneThird,
-              top: 0,
-              width: Math.min(filledWidth - oneThird, oneThird),
-              height: '100%',
-              background: '#f97316',
-            }}
-          />
-        )}
-        {/* Zöld szegmens: 2/3 → filledWidth */}
-        {!isVeryLow && filledWidth > twoThirds && (
-          <div
-            style={{
-              position: 'absolute',
-              left: twoThirds,
-              top: 0,
-              width: filledWidth - twoThirds,
-              height: '100%',
-              background: '#22c55e',
+              background: barColor,
             }}
           />
         )}
