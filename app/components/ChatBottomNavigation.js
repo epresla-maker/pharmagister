@@ -44,13 +44,6 @@ export default function ChatBottomNavigation({ isVisible = true, onMenuOpen }) {
       path: '/notifications',
       badge: badges.notifications,
       onClick: () => router.push('/notifications')
-    },
-    {
-      icon: Menu,
-      label: 'Menü',
-      path: null,
-      isLarge: true,
-      onClick: onMenuOpen
     }
   ];
 
@@ -65,7 +58,7 @@ export default function ChatBottomNavigation({ isVisible = true, onMenuOpen }) {
         paddingBottom: 'env(safe-area-inset-bottom, 0px)'
       }}
     >
-      <div className="grid grid-cols-3 gap-1 px-2 py-2">
+      <div className="grid grid-cols-2 gap-1 px-2 py-2">
         {navItems.map((item, index) => {
           // Pontos egyezés - /chat csak /chat-ra aktív, nem /chat/settings-re
           const isActive = item.path && pathname === item.path;
