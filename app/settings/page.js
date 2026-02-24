@@ -104,6 +104,13 @@ export default function SettingsPage() {
           onClick: () => router.push('/settings/password'),
           color: 'text-blue-600',
           bgColor: darkMode ? 'bg-blue-900/30' : 'bg-blue-100'
+        },
+        {
+          icon: Trash2,
+          label: 'Fiók törlése',
+          onClick: () => { setShowDeleteConfirm(true); setDeleteStep(0); setDeleteError(''); },
+          color: 'text-red-600',
+          bgColor: darkMode ? 'bg-red-900/30' : 'bg-red-100'
         }
       ]
     },
@@ -128,6 +135,13 @@ export default function SettingsPage() {
           onClick: () => router.push('/help'),
           color: 'text-teal-600',
           bgColor: darkMode ? 'bg-teal-900/30' : 'bg-teal-100'
+        },
+        {
+          icon: HelpCircle,
+          label: 'Támogatás / Support',
+          onClick: () => router.push('/support'),
+          color: 'text-indigo-600',
+          bgColor: darkMode ? 'bg-indigo-900/30' : 'bg-indigo-100'
         },
         {
           icon: Shield,
