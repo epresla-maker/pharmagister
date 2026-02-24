@@ -863,18 +863,7 @@ export default function ChatRoomPage() {
                 </span>
               )}
             </h1>
-            <p className={`text-xs ${darkMode ? 'text-gray-600' : 'text-gray-600'}`}>
-              {isPartnerOnline ? (
-                <span className="flex items-center gap-1">
-                  <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                  Jelenleg elérhető
-                </span>
-              ) : partnerLastSeen ? (
-                `Utoljára elérhető: ${formatLastSeen(partnerLastSeen)}`
-              ) : (
-                "Offline"
-              )}
-            </p>
+{/* Online státusz eltávolítva */}
           </div>
         </div>
       </header>
