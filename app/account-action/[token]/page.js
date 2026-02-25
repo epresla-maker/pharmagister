@@ -87,7 +87,7 @@ export default function AccountActionPage() {
                 {result.message}
               </p>
               <p className="text-sm text-gray-500">
-                A fiókod aktív marad. Kérjük, aktiváld a jelszavadat az emailedben kapott linkkel!
+                A fiókod aktív marad. Köszönjük, hogy velünk maradsz!
               </p>
             </>
           ) : (
