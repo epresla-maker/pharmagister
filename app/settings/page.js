@@ -152,7 +152,7 @@ export default function SettingsPage() {
         },
         {
           icon: Shield,
-          label: 'Privacy Policy',
+          label: 'Adatvédelmi irányelvek / Privacy Policy',
           onClick: () => router.push('/privacy-policy'),
           color: 'text-blue-600',
           bgColor: darkMode ? 'bg-blue-900/30' : 'bg-blue-100'
