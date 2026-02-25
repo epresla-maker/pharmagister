@@ -171,38 +171,66 @@ export default function AdminEmailPage() {
 
   const sendBulkTokenEmails = async () => {
     if (generatedTokens.length === 0) return alert('Nincsenek generált tokenek!');
-    if (!confirm(`Biztosan elküldöd a személyre szabott emailt mind a ${generatedTokens.length} felhasználónak?`)) return;
+    if (!confirm(`Biztosan elküldöd a személyre szabott emailt mind a ${generatedTokens.length} felhasználónak?\n\nEz ${Math.ceil(generatedTokens.length / 5)} batch-ben fog kimenni (5-ösével).`)) return;
 
     setBulkSending(true);
     setBulkSendProgress({ sent: 0, failed: 0, total: generatedTokens.length });
     setBulkSendResult(null);
 
+    const BATCH_SIZE = 5;
+    let totalSent = 0;
+    let totalFailed = 0;
+    const allErrors = [];
+
     try {
       const idToken = await user.getIdToken();
-      const response = await fetch('/api/admin/send-bulk-token-emails', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`
-        },
-        body: JSON.stringify({ tokens: generatedTokens })
-      });
 
-      const result = await response.json();
+      for (let i = 0; i < generatedTokens.length; i += BATCH_SIZE) {
+        const batch = generatedTokens.slice(i, i + BATCH_SIZE);
+        
+        try {
+          const response = await fetch('/api/admin/send-bulk-token-emails', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${idToken}`
+            },
+            body: JSON.stringify({ tokens: batch })
+          });
 
-      if (response.ok) {
-        setBulkSendResult({
-          type: 'success',
-          sent: result.sent,
-          failed: result.failed,
-          total: result.total,
-          errors: result.errors || []
-        });
-        setBulkSendProgress({ sent: result.sent, failed: result.failed, total: result.total });
-        loadSentEmails();
-      } else {
-        setBulkSendResult({ type: 'error', message: result.error || 'Ismeretlen hiba' });
+          const result = await response.json();
+
+          if (response.ok) {
+            totalSent += result.sent;
+            totalFailed += result.failed;
+            if (result.errors) allErrors.push(...result.errors);
+          } else {
+            // Ha a request sikertelen, az egész batch-et sikertelennek jelöljük
+            totalFailed += batch.length;
+            batch.forEach(t => allErrors.push({ email: t.email, name: t.name, error: result.error || 'Request failed' }));
+          }
+        } catch (fetchErr) {
+          totalFailed += batch.length;
+          batch.forEach(t => allErrors.push({ email: t.email, name: t.name, error: fetchErr.message }));
+        }
+
+        // Progress frissítés minden batch után
+        setBulkSendProgress({ sent: totalSent, failed: totalFailed, total: generatedTokens.length });
+
+        // Kis szünet batch-ek között
+        if (i + BATCH_SIZE < generatedTokens.length) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
       }
+
+      setBulkSendResult({
+        type: 'success',
+        sent: totalSent,
+        failed: totalFailed,
+        total: generatedTokens.length,
+        errors: allErrors
+      });
+      loadSentEmails();
     } catch (err) {
       setBulkSendResult({ type: 'error', message: 'Hálózati hiba: ' + err.message });
     } finally {
@@ -851,14 +879,17 @@ export default function AdminEmailPage() {
                   {/* Progresszió */}
                   {bulkSending && bulkSendProgress && (
                     <div className="mt-3">
-                      <div className="w-full bg-green-200 rounded-full h-2">
+                      <div className="w-full bg-green-200 rounded-full h-3">
                         <div
-                          className="bg-green-600 h-2 rounded-full transition-all duration-300"
-                          style={{ width: '100%' }}
+                          className="bg-green-600 h-3 rounded-full transition-all duration-500"
+                          style={{ width: `${Math.round(((bulkSendProgress.sent + bulkSendProgress.failed) / bulkSendProgress.total) * 100)}%` }}
                         />
                       </div>
-                      <p className="text-xs text-green-700 mt-1 text-center">
-                        Küldés folyamatban... ({bulkSendProgress.total} email)
+                      <p className="text-xs text-green-700 mt-1 text-center font-medium">
+                        Küldés folyamatban... {bulkSendProgress.sent + bulkSendProgress.failed} / {bulkSendProgress.total}
+                        {bulkSendProgress.sent > 0 && ` (✅ ${bulkSendProgress.sent} sikeres`}
+                        {bulkSendProgress.failed > 0 && `, ❌ ${bulkSendProgress.failed} sikertelen`}
+                        {bulkSendProgress.sent > 0 && ')'}
                       </p>
                     </div>
                   )}

@@ -89,6 +89,9 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Nincs küldendő token adat' }, { status: 400 });
     }
 
+    // Max 5 email per request a Vercel timeout elkerüléséhez
+    const batch = tokens.slice(0, 5);
+
     // SMTP transporter
     const transporter = nodemailer.createTransport({
       host: '185.51.191.40',
@@ -108,8 +111,8 @@ export async function POST(request) {
     const errors = [];
 
     // Egyesével küldés - minden felhasználó személyre szabott emailt kap
-    for (let i = 0; i < tokens.length; i++) {
-      const tokenData = tokens[i];
+    for (let i = 0; i < batch.length; i++) {
+      const tokenData = batch[i];
 
       try {
         const { subject, body } = generateEmailBody(
@@ -141,8 +144,8 @@ export async function POST(request) {
       }
 
       // Kis szünet az SMTP szerver túlterhelésének elkerüléséhez
-      if (i < tokens.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 500));
+      if (i < batch.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 300));
       }
     }
 
@@ -154,7 +157,7 @@ export async function POST(request) {
         to: results.map(r => r.email),
         failedTo: errors.map(e => e.email),
         subject: 'Fiók törlése - döntés szükséges (tömeges)',
-        body: `Tömeges token email küldés ${tokens.length} felhasználónak`,
+        body: `Tömeges token email küldés ${batch.length} felhasználónak (batch)`,
         sentAt: admin.firestore.FieldValue.serverTimestamp(),
         sentCount: results.length,
         failedCount: errors.length,
