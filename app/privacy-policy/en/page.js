@@ -81,6 +81,7 @@ export default function PrivacyPolicyEnPage() {
               <li>Enabling communication between users</li>
               <li>Sending push notifications (new requests, messages)</li>
               <li>Service improvement and bug fixes</li>
+              <li><strong>Response rate measurement:</strong> we display pharmacies&apos; 72-hour response rates as a percentage on substitution requests to improve service quality. This data is automatically calculated based on responses to applications.</li>
             </ul>
           </section>
 

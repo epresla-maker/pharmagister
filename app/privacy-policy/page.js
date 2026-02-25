@@ -81,6 +81,7 @@ export default function PrivacyPolicyPage() {
               <li>Felhasználók közötti kommunikáció biztosítása</li>
               <li>Push értesítések küldése (új igények, üzenetek)</li>
               <li>Szolgáltatás fejlesztése és hibák javítása</li>
+              <li><strong>Válaszadási arány mérése:</strong> a gyógyszertárak 72 órán belüli válaszadási arányát százalékosan megjelenítjük a helyettesítési igényeknél, a szolgáltatás minőségének javítása érdekében. Ez az adat a jelentkezésekre adott válaszok alapján automatikusan kerül kiszámításra.</li>
             </ul>
           </section>
 
