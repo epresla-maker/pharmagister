@@ -171,71 +171,73 @@ export default function AdminEmailPage() {
 
   const sendBulkTokenEmails = async () => {
     if (generatedTokens.length === 0) return alert('Nincsenek generált tokenek!');
-    if (!confirm(`Biztosan elküldöd a személyre szabott emailt mind a ${generatedTokens.length} felhasználónak?\n\nEz ${Math.ceil(generatedTokens.length / 5)} batch-ben fog kimenni (5-ösével).`)) return;
+    if (!confirm(`Biztosan elküldöd a személyre szabott emailt mind a ${generatedTokens.length} felhasználónak?\n\nEz ${Math.ceil(generatedTokens.length / 10)} batch-ben fog kimenni (10-esével).`)) return;
 
     setBulkSending(true);
     setBulkSendProgress({ sent: 0, failed: 0, total: generatedTokens.length });
     setBulkSendResult(null);
 
-    const BATCH_SIZE = 5;
+    const BATCH_SIZE = 10;
     let totalSent = 0;
     let totalFailed = 0;
     const allErrors = [];
 
-    try {
-      const idToken = await user.getIdToken();
+    for (let i = 0; i < generatedTokens.length; i += BATCH_SIZE) {
+      const batch = generatedTokens.slice(i, i + BATCH_SIZE);
+      
+      try {
+        // Token frissítés minden batch-nél (nehogy lejárjon)
+        const idToken = await user.getIdToken(true);
 
-      for (let i = 0; i < generatedTokens.length; i += BATCH_SIZE) {
-        const batch = generatedTokens.slice(i, i + BATCH_SIZE);
-        
+        const response = await fetch('/api/admin/send-bulk-token-emails', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${idToken}`
+          },
+          body: JSON.stringify({ tokens: batch })
+        });
+
+        let result;
         try {
-          const response = await fetch('/api/admin/send-bulk-token-emails', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${idToken}`
-            },
-            body: JSON.stringify({ tokens: batch })
-          });
+          result = await response.json();
+        } catch (parseErr) {
+          // Ha a válasz nem JSON (pl. Vercel 504 timeout)
+          throw new Error(`HTTP ${response.status} - nem sikerült a válasz feldolgozása`);
+        }
 
-          const result = await response.json();
-
-          if (response.ok) {
-            totalSent += result.sent;
-            totalFailed += result.failed;
-            if (result.errors) allErrors.push(...result.errors);
-          } else {
-            // Ha a request sikertelen, az egész batch-et sikertelennek jelöljük
-            totalFailed += batch.length;
-            batch.forEach(t => allErrors.push({ email: t.email, name: t.name, error: result.error || 'Request failed' }));
-          }
-        } catch (fetchErr) {
+        if (response.ok) {
+          totalSent += result.sent;
+          totalFailed += result.failed;
+          if (result.errors) allErrors.push(...result.errors);
+        } else {
           totalFailed += batch.length;
-          batch.forEach(t => allErrors.push({ email: t.email, name: t.name, error: fetchErr.message }));
+          batch.forEach(t => allErrors.push({ email: t.email, name: t.name, error: result.error || 'Request failed' }));
         }
-
-        // Progress frissítés minden batch után
-        setBulkSendProgress({ sent: totalSent, failed: totalFailed, total: generatedTokens.length });
-
-        // Kis szünet batch-ek között
-        if (i + BATCH_SIZE < generatedTokens.length) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
+      } catch (fetchErr) {
+        console.error(`Batch ${Math.floor(i / BATCH_SIZE) + 1} hiba:`, fetchErr);
+        totalFailed += batch.length;
+        batch.forEach(t => allErrors.push({ email: t.email, name: t.name, error: fetchErr.message }));
       }
 
-      setBulkSendResult({
-        type: 'success',
-        sent: totalSent,
-        failed: totalFailed,
-        total: generatedTokens.length,
-        errors: allErrors
-      });
-      loadSentEmails();
-    } catch (err) {
-      setBulkSendResult({ type: 'error', message: 'Hálózati hiba: ' + err.message });
-    } finally {
-      setBulkSending(false);
+      // Progress frissítés minden batch után
+      setBulkSendProgress({ sent: totalSent, failed: totalFailed, total: generatedTokens.length });
+
+      // Kis szünet batch-ek között
+      if (i + BATCH_SIZE < generatedTokens.length) {
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      }
     }
+
+    setBulkSendResult({
+      type: 'success',
+      sent: totalSent,
+      failed: totalFailed,
+      total: generatedTokens.length,
+      errors: allErrors
+    });
+    loadSentEmails();
+    setBulkSending(false);
   };
 
   const filteredUsers = useMemo(() => {

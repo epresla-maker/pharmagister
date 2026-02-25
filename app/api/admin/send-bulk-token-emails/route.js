@@ -89,8 +89,8 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Nincs küldendő token adat' }, { status: 400 });
     }
 
-    // Max 5 email per request a Vercel timeout elkerüléséhez
-    const batch = tokens.slice(0, 5);
+    // Max 10 email per request a Vercel timeout elkerüléséhez
+    const batch = tokens.slice(0, 10);
 
     // SMTP transporter
     const transporter = nodemailer.createTransport({
