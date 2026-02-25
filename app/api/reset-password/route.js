@@ -55,9 +55,10 @@ export async function POST(request) {
       return NextResponse.json({ error: 'A token lejárt. Kérj új jelszó-visszaállító linket!' }, { status: 400 });
     }
 
-    // Update password in Firebase Auth
+    // Update password in Firebase Auth + email megerősítése
     await auth.updateUser(userId, {
-      password: newPassword
+      password: newPassword,
+      emailVerified: true
     });
 
     // Update Firestore - mark password as activated, remove token
@@ -65,6 +66,7 @@ export async function POST(request) {
       passwordActivated: true,
       passwordActivatedAt: admin.firestore.FieldValue.serverTimestamp(),
       lastPasswordChange: admin.firestore.FieldValue.serverTimestamp(),
+      emailVerified: true,
       passwordResetToken: admin.firestore.FieldValue.delete(),
       passwordResetTokenExpiry: admin.firestore.FieldValue.delete()
     });
