@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
+import { randomBytes } from 'crypto';
 
 export async function POST(request) {
   try {
@@ -55,10 +56,15 @@ export async function POST(request) {
 
     // Végrehajtás
     if (tokenData.action === 'keep') {
-      // Fiók megtartása - jelöljük meg, hogy aktív akar maradni
+      // Jelszó-aktiváló token generálása
+      const passwordResetToken = randomBytes(32).toString('hex');
+
+      // Fiók megtartása + jelszó token mentése
       await db.collection('users').doc(tokenData.userId).update({
         wantsToKeepAccount: true,
-        accountKeptAt: new Date()
+        accountKeptAt: new Date(),
+        passwordResetToken: passwordResetToken,
+        passwordResetTokenExpiry: null // Visszavonásig érvényes
       });
 
       // Token használtra állítása
@@ -67,10 +73,13 @@ export async function POST(request) {
         usedAt: new Date()
       });
 
+      const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://pharmagister.hu').trim();
+
       return NextResponse.json({
         success: true,
         action: 'keep',
-        message: 'A fiókod meg lett tartva. Köszönjük!'
+        message: 'A fiókod meg lett tartva. Köszönjük!',
+        passwordSetUrl: `${appUrl}/set-password?token=${passwordResetToken}`
       });
 
     } else if (tokenData.action === 'delete') {

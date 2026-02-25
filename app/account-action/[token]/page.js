@@ -86,9 +86,17 @@ export default function AccountActionPage() {
               <p className="text-gray-600 mb-6">
                 {result.message}
               </p>
-              <p className="text-sm text-gray-500">
-                A fiókod aktív marad. Köszönjük, hogy velünk maradsz!
+              <p className="text-sm text-gray-500 mb-6">
+                A fiókod aktív marad. Most állítsd be a jelszavadat, hogy tudjál belépni!
               </p>
+              {result.passwordSetUrl && (
+                <a
+                  href={result.passwordSetUrl}
+                  className="inline-block bg-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-purple-700 transition-colors"
+                >
+                  Jelszó beállítása →
+                </a>
+              )}
             </>
           ) : (
             <>
