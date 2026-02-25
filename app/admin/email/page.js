@@ -68,6 +68,11 @@ export default function AdminEmailPage() {
   const [tokenSearch, setTokenSearch] = useState('');
   const [tokenSelectedUsers, setTokenSelectedUsers] = useState([]);
 
+  // Bulk send state
+  const [bulkSending, setBulkSending] = useState(false);
+  const [bulkSendProgress, setBulkSendProgress] = useState(null); // { sent, failed, total }
+  const [bulkSendResult, setBulkSendResult] = useState(null);
+
   useEffect(() => {
     if (!loading) {
       if (!user || !ADMIN_EMAILS.includes(user.email)) {
@@ -161,6 +166,47 @@ export default function AdminEmailPage() {
       alert('❌ Hiba a token generálás során: ' + error.message);
     } finally {
       setGeneratingTokens(false);
+    }
+  };
+
+  const sendBulkTokenEmails = async () => {
+    if (generatedTokens.length === 0) return alert('Nincsenek generált tokenek!');
+    if (!confirm(`Biztosan elküldöd a személyre szabott emailt mind a ${generatedTokens.length} felhasználónak?`)) return;
+
+    setBulkSending(true);
+    setBulkSendProgress({ sent: 0, failed: 0, total: generatedTokens.length });
+    setBulkSendResult(null);
+
+    try {
+      const idToken = await user.getIdToken();
+      const response = await fetch('/api/admin/send-bulk-token-emails', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
+        body: JSON.stringify({ tokens: generatedTokens })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setBulkSendResult({
+          type: 'success',
+          sent: result.sent,
+          failed: result.failed,
+          total: result.total,
+          errors: result.errors || []
+        });
+        setBulkSendProgress({ sent: result.sent, failed: result.failed, total: result.total });
+        loadSentEmails();
+      } else {
+        setBulkSendResult({ type: 'error', message: result.error || 'Ismeretlen hiba' });
+      }
+    } catch (err) {
+      setBulkSendResult({ type: 'error', message: 'Hálózati hiba: ' + err.message });
+    } finally {
+      setBulkSending(false);
     }
   };
 
@@ -774,9 +820,83 @@ export default function AdminEmailPage() {
                   ))}
                 </div>
 
-                <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                {/* Tömeges küldés gomb */}
+                <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div>
+                      <p className="font-medium text-green-900 text-sm">📨 Tömeges email küldés</p>
+                      <p className="text-xs text-green-700 mt-1">
+                        Minden felhasználó személyre szabott emailt kap az egyedi linkjeivel.
+                      </p>
+                    </div>
+                    <button
+                      onClick={sendBulkTokenEmails}
+                      disabled={bulkSending}
+                      className="flex items-center gap-2 bg-green-600 text-white px-5 py-3 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm shadow-md whitespace-nowrap"
+                    >
+                      {bulkSending ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          Küldés folyamatban...
+                        </>
+                      ) : (
+                        <>
+                          <Send size={16} />
+                          Összes email elküldése ({generatedTokens.length})
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Progresszió */}
+                  {bulkSending && bulkSendProgress && (
+                    <div className="mt-3">
+                      <div className="w-full bg-green-200 rounded-full h-2">
+                        <div
+                          className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                          style={{ width: '100%' }}
+                        />
+                      </div>
+                      <p className="text-xs text-green-700 mt-1 text-center">
+                        Küldés folyamatban... ({bulkSendProgress.total} email)
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Eredmény */}
+                  {bulkSendResult && !bulkSending && (
+                    <div className={`mt-3 p-3 rounded-lg text-sm ${
+                      bulkSendResult.type === 'success'
+                        ? 'bg-white border border-green-300'
+                        : 'bg-red-50 border border-red-300'
+                    }`}>
+                      {bulkSendResult.type === 'success' ? (
+                        <>
+                          <p className="font-medium text-green-800">
+                            ✅ Sikeresen elküldve: {bulkSendResult.sent} / {bulkSendResult.total}
+                            {bulkSendResult.failed > 0 && (
+                              <span className="text-red-600 ml-2">❌ Sikertelen: {bulkSendResult.failed}</span>
+                            )}
+                          </p>
+                          {bulkSendResult.errors.length > 0 && (
+                            <div className="mt-2">
+                              <p className="text-xs text-red-600 font-medium">Sikertelen címzettek:</p>
+                              {bulkSendResult.errors.map((e, i) => (
+                                <p key={i} className="text-xs text-red-500">{e.name} ({e.email}): {e.error}</p>
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <p className="font-medium text-red-800">❌ {bulkSendResult.message}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                   <p className="text-sm text-yellow-800">
-                    <strong>💡 Tipp:</strong> Kattints az "Email küldéshez" gombra, hogy automatikusan kitöltse az Új email tabot az adott felhasználónak.
+                    <strong>💡 Tipp:</strong> Vagy kattints az "Email küldéshez" gombra az egyes felhasználóknál, ha egyesével szeretnéd küldeni.
                   </p>
                 </div>
               </div>
