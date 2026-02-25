@@ -340,7 +340,7 @@ export default function DemandDetailPage() {
     <RouteGuard>
       <div className={`min-h-screen ${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'} pb-32`}>
         {/* Header */}
-        <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b sticky top-0 z-10`}>
+        <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b sticky top-0 z-10 pt-safe-small`}>
           <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-4">
             <button
               onClick={() => router.back()}
@@ -651,7 +651,9 @@ export default function DemandDetailPage() {
           if (isExpired) return null;
           return true;
         })() && (
-          <div className={`fixed bottom-20 left-0 right-0 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-t p-4 z-10 shadow-lg`}>
+          <div className={`fixed left-0 right-0 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-t p-4 z-10 shadow-lg`}
+            style={{ bottom: 'calc(56px + env(safe-area-inset-bottom, 0px))' }}
+          >
             <div className="max-w-lg mx-auto flex gap-3">
               {roleMatches ? (
                 <>
