@@ -145,7 +145,7 @@ export default function SettingsPage() {
         },
         {
           icon: Shield,
-          label: 'Adatvédelem',
+          label: 'Adatvédelmi beállítások',
           onClick: () => router.push('/privacy'),
           color: 'text-gray-600',
           bgColor: darkMode ? 'bg-gray-700' : 'bg-gray-100'
