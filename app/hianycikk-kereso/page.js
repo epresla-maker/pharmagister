@@ -719,7 +719,7 @@ export default function HianycikkKeresoPage() {
   }
 
   return (
-    <div className={`min-h-screen pb-24 ${darkMode ? 'bg-gray-900' : 'bg-[#F9FAFB]'}`}>
+    <div className={`min-h-screen pb-96 ${darkMode ? 'bg-gray-900' : 'bg-[#F9FAFB]'}`}>
       {/* Header */}
       <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b sticky top-0 z-10`}>
         <div className="flex items-center px-4 py-3">
