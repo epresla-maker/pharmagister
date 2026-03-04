@@ -299,22 +299,27 @@ function ElerhetoNalunkTab({ darkMode, user, onSuccess }) {
     setSubmitting(true);
     try {
       // Duplicate check: same pharmacy + drug within 48h
-      const cutoff = Timestamp.fromMillis(Date.now() - 48 * 60 * 60 * 1000);
+      // Simplified query (fewer fields) + client-side filtering to avoid complex composite index
       const dupQuery = query(
         collection(db, 'shortage_items'),
         where('createdByUserId', '==', user.uid),
-        where('drugNameLower', '==', form.drugName.trim().toLowerCase()),
-        where('pharmacyName', '==', form.pharmacyName.trim()),
         where('isActive', '==', true),
-        where('createdAt', '>=', cutoff)
+        orderBy('createdAt', 'desc'),
+        limit(20)
       );
       const dupSnapshot = await getDocs(dupQuery);
       
-      // Filter expired ones client-side as extra safety
+      // Client-side filter: same drug + pharmacy + not expired
+      const drugLower = form.drugName.trim().toLowerCase();
+      const pharmName = form.pharmacyName.trim();
       const activeDups = [];
       dupSnapshot.forEach((doc) => {
         const data = doc.data();
-        if (data.expiresAt && data.expiresAt.toMillis() > Date.now()) {
+        if (
+          data.drugNameLower === drugLower &&
+          data.pharmacyName === pharmName &&
+          data.expiresAt && data.expiresAt.toMillis() > Date.now()
+        ) {
           activeDups.push(doc);
         }
       });
