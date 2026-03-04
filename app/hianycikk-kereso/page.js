@@ -473,7 +473,7 @@ function ElerhetoNalunkTab({ darkMode, user, onSuccess }) {
 // ============================================
 // MAIN PAGE COMPONENT
 // ============================================
-const ADMIN_EMAIL = 'epresla@icloud.com';
+const ADMIN_EMAILS = ['epresla@icloud.com', 'etinatina22@gmail.com'];
 
 export default function HianycikkKeresoPage() {
   const router = useRouter();
@@ -483,7 +483,7 @@ export default function HianycikkKeresoPage() {
 
   // Admin-only hozzáférés
   useEffect(() => {
-    if (!loading && (!user || user.email !== ADMIN_EMAIL)) {
+    if (!loading && (!user || !ADMIN_EMAILS.includes(user.email))) {
       router.push('/');
     }
   }, [user, loading, router]);
@@ -496,7 +496,7 @@ export default function HianycikkKeresoPage() {
     );
   }
 
-  if (!user || user.email !== ADMIN_EMAIL) {
+  if (!user || !ADMIN_EMAILS.includes(user.email)) {
     return null;
   }
 

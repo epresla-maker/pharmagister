@@ -484,7 +484,7 @@ export default function ModernServiceFeed() {
           </button>
 
           {/* Hiánycikk kereső gomb - csak admin látja */}
-          {user?.email === 'epresla@icloud.com' && (
+          {(user?.email === 'epresla@icloud.com' || user?.email === 'etinatina22@gmail.com') && (
             <button
               onClick={() => router.push('/hianycikk-kereso')}
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-lg font-medium transition-colors"
