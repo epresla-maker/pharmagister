@@ -1,10 +1,33 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, deleteDoc, doc, setDoc, getDocs } from 'firebase/firestore';
-import { Trash2, Send, EyeOff } from 'lucide-react';
+import { Trash2, Send, EyeOff, Eye, Palette, Type, Image, ChevronDown, ChevronUp, X } from 'lucide-react';
+
+// Előre definiált színsémák
+const COLOR_PRESETS = [
+  { name: 'Alapértelmezett', bg: '#ffffff', text: '#000000' },
+  { name: 'Sötét', bg: '#1a1a2e', text: '#e0e0e0' },
+  { name: 'Kék', bg: '#1e3a5f', text: '#ffffff' },
+  { name: 'Zöld', bg: '#1b4332', text: '#d8f3dc' },
+  { name: 'Lila', bg: '#3c096c', text: '#e0aaff' },
+  { name: 'Meleg', bg: '#7f5539', text: '#ffe8d6' },
+  { name: 'Piros', bg: '#6a040f', text: '#ffddd2' },
+  { name: 'Arany', bg: '#ffd60a', text: '#001d3d' },
+  { name: 'Narancs', bg: '#f48c06', text: '#ffffff' },
+  { name: 'Türkiz', bg: '#0a9396', text: '#ffffff' },
+];
+
+const FONT_OPTIONS = [
+  { value: 'sans', label: 'Sans-serif (alapértelmezett)' },
+  { value: 'serif', label: 'Serif (elegáns)' },
+  { value: 'mono', label: 'Monospace (kód)' },
+  { value: 'cursive', label: 'Cursive (kézírásos)' },
+];
+
+const FONT_SIZE_OPTIONS = [14, 16, 18, 20, 24, 28, 32];
 
 export default function AdminPostsPage() {
   const { user, userData } = useAuth();
@@ -15,6 +38,29 @@ export default function AdminPostsPage() {
   const [rssPosts, setRssPosts] = useState([]);
   const [hiddenRssIds, setHiddenRssIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
+
+  // Stílus beállítások
+  const [showStylePanel, setShowStylePanel] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [imageUrl, setImageUrl] = useState('');
+  const [style, setStyle] = useState({
+    backgroundColor: '#ffffff',
+    textColor: '#000000',
+    fontSize: 16,
+    fontFamily: 'sans',
+  });
+
+  const textareaRef = useRef(null);
+  const hasCustomStyle = style.backgroundColor !== '#ffffff' || style.textColor !== '#000000' || style.fontSize !== 16 || style.fontFamily !== 'sans';
+
+  const getFontFamilyCSS = (family) => {
+    switch (family) {
+      case 'serif': return 'Georgia, serif';
+      case 'mono': return 'monospace';
+      case 'cursive': return 'cursive';
+      default: return 'inherit';
+    }
+  };
 
   // Ellenőrizzük hogy admin-e
   useEffect(() => {
@@ -73,7 +119,7 @@ export default function AdminPostsPage() {
 
     setIsSubmitting(true);
     try {
-      await addDoc(collection(db, 'serviceFeedPosts'), {
+      const postData = {
         userId: user.uid,
         text: postText,
         postType: 'adminPost',
@@ -84,9 +130,30 @@ export default function AdminPostsPage() {
         },
         comments: [],
         reactions: {}
-      });
+      };
+
+      // Stílus hozzáadása ha van egyedi beállítás
+      if (hasCustomStyle) {
+        postData.style = {
+          backgroundColor: style.backgroundColor,
+          textColor: style.textColor,
+          fontSize: style.fontSize,
+          fontFamily: style.fontFamily,
+        };
+      }
+
+      // Kép hozzáadása ha van
+      if (imageUrl.trim()) {
+        postData.imageUrl = imageUrl.trim();
+      }
+
+      await addDoc(collection(db, 'serviceFeedPosts'), postData);
 
       setPostText('');
+      setImageUrl('');
+      setStyle({ backgroundColor: '#ffffff', textColor: '#000000', fontSize: 16, fontFamily: 'sans' });
+      setShowStylePanel(false);
+      setShowPreview(false);
       alert('✅ Poszt sikeresen létrehozva!');
     } catch (error) {
       console.error('Error creating post:', error);
@@ -177,28 +244,270 @@ export default function AdminPostsPage() {
             </button>
           </div>
 
-          {/* Új poszt létrehozása */}
+          {/* Új poszt létrehozása - Professzionális szerkesztő */}
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-medium text-gray-700">
                 Új poszt a hírfolyamba
               </label>
-              <textarea
-                value={postText}
-                onChange={(e) => setPostText(e.target.value)}
-                placeholder="Írj egy posztot..."
-                rows={4}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              />
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowStylePanel(!showStylePanel)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    showStylePanel 
+                      ? 'bg-purple-100 text-purple-700 ring-2 ring-purple-300' 
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  <Palette size={14} />
+                  Stílus
+                  {hasCustomStyle && <span className="w-2 h-2 rounded-full bg-purple-500" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowPreview(!showPreview)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    showPreview
+                      ? 'bg-blue-100 text-blue-700 ring-2 ring-blue-300'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  <Eye size={14} />
+                  Előnézet
+                </button>
+              </div>
             </div>
-            <button
-              type="submit"
-              disabled={!postText.trim() || isSubmitting}
-              className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
-            >
-              <Send size={16} />
-              {isSubmitting ? 'Közzététel...' : 'Poszt közzététele'}
-            </button>
+
+            {/* Stílus panel */}
+            {showStylePanel && (
+              <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 space-y-4 animate-in">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                    <Palette size={16} className="text-purple-600" />
+                    Megjelenés testreszabása
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStyle({ backgroundColor: '#ffffff', textColor: '#000000', fontSize: 16, fontFamily: 'sans' });
+                    }}
+                    className="text-xs text-gray-500 hover:text-gray-700 underline"
+                  >
+                    Alaphelyzetbe állítás
+                  </button>
+                </div>
+
+                {/* Színsémák */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-2">Színséma</label>
+                  <div className="flex flex-wrap gap-2">
+                    {COLOR_PRESETS.map((preset) => (
+                      <button
+                        key={preset.name}
+                        type="button"
+                        onClick={() => setStyle(s => ({ ...s, backgroundColor: preset.bg, textColor: preset.text }))}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                          style.backgroundColor === preset.bg && style.textColor === preset.text
+                            ? 'ring-2 ring-purple-400 border-purple-300'
+                            : 'border-gray-200 hover:border-gray-400'
+                        }`}
+                      >
+                        <span
+                          className="w-4 h-4 rounded-full border border-gray-300 flex-shrink-0"
+                          style={{ backgroundColor: preset.bg }}
+                        />
+                        {preset.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Egyedi színek */}
+                <div className="flex gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Háttérszín</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={style.backgroundColor}
+                        onChange={(e) => setStyle(s => ({ ...s, backgroundColor: e.target.value }))}
+                        className="w-8 h-8 rounded cursor-pointer border border-gray-300"
+                      />
+                      <span className="text-xs text-gray-500 font-mono">{style.backgroundColor}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Betűszín</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={style.textColor}
+                        onChange={(e) => setStyle(s => ({ ...s, textColor: e.target.value }))}
+                        className="w-8 h-8 rounded cursor-pointer border border-gray-300"
+                      />
+                      <span className="text-xs text-gray-500 font-mono">{style.textColor}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Betűtípus és méret */}
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      <Type size={12} className="inline mr-1" />
+                      Betűtípus
+                    </label>
+                    <select
+                      value={style.fontFamily}
+                      onChange={(e) => setStyle(s => ({ ...s, fontFamily: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-400 focus:border-transparent"
+                    >
+                      {FONT_OPTIONS.map(f => (
+                        <option key={f.value} value={f.value}>{f.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Betűméret</label>
+                    <div className="flex items-center gap-1">
+                      {FONT_SIZE_OPTIONS.map(size => (
+                        <button
+                          key={size}
+                          type="button"
+                          onClick={() => setStyle(s => ({ ...s, fontSize: size }))}
+                          className={`w-8 h-8 rounded text-xs font-medium transition-all ${
+                            style.fontSize === size
+                              ? 'bg-purple-600 text-white'
+                              : 'bg-white border border-gray-300 text-gray-600 hover:border-purple-400'
+                          }`}
+                        >
+                          {size}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Szöveg szerkesztő */}
+            {!showPreview ? (
+              <div className="relative">
+                <textarea
+                  ref={textareaRef}
+                  value={postText}
+                  onChange={(e) => setPostText(e.target.value)}
+                  placeholder="Írj egy posztot..."
+                  rows={6}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent resize-y text-base"
+                  style={hasCustomStyle ? {
+                    backgroundColor: style.backgroundColor,
+                    color: style.textColor,
+                    fontSize: `${style.fontSize}px`,
+                    fontFamily: getFontFamilyCSS(style.fontFamily),
+                  } : {}}
+                />
+                <div className="absolute bottom-3 right-3 text-xs text-gray-400">
+                  {postText.length} karakter
+                </div>
+              </div>
+            ) : (
+              /* Előnézet */
+              <div className="border border-blue-200 rounded-xl overflow-hidden bg-white">
+                <div className="bg-blue-50 px-4 py-2 border-b border-blue-200 flex items-center gap-2">
+                  <Eye size={14} className="text-blue-600" />
+                  <span className="text-xs font-medium text-blue-700">Előnézet – így fog megjelenni a hírfolyamban</span>
+                </div>
+                <div className="p-4">
+                  {/* Fejléc mint a feedben */}
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full flex items-center justify-center flex-shrink-0">
+                      <span className="text-white font-bold text-sm">Pm</span>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900 text-sm">Pharmagister Admin</p>
+                      <p className="text-xs text-gray-500">Éppen most</p>
+                    </div>
+                    <span className="ml-auto px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                      👑 Admin poszt
+                    </span>
+                  </div>
+                  {/* Tartalom */}
+                  {hasCustomStyle ? (
+                    <div
+                      className="p-4 rounded-xl whitespace-pre-wrap"
+                      style={{
+                        backgroundColor: style.backgroundColor,
+                        color: style.textColor,
+                        fontSize: `${style.fontSize}px`,
+                        fontFamily: getFontFamilyCSS(style.fontFamily),
+                      }}
+                    >
+                      {postText || <span className="opacity-50">A poszt szövege itt jelenik meg...</span>}
+                    </div>
+                  ) : (
+                    <p className="text-gray-900 whitespace-pre-wrap">
+                      {postText || <span className="text-gray-400">A poszt szövege itt jelenik meg...</span>}
+                    </p>
+                  )}
+                  {/* Kép előnézet */}
+                  {imageUrl.trim() && (
+                    <div className="mt-3">
+                      <img
+                        src={imageUrl}
+                        alt="Poszt kép"
+                        className="w-full h-48 object-cover rounded-lg border border-gray-200"
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Kép URL */}
+            <div>
+              <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600 mb-1">
+                <Image size={14} />
+                Kép URL (opcionális)
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="url"
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  placeholder="https://example.com/image.jpg"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+                {imageUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setImageUrl('')}
+                    className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                  >
+                    <X size={16} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <button
+                type="submit"
+                disabled={!postText.trim() || isSubmitting}
+                className="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium transition-colors shadow-sm"
+              >
+                <Send size={16} />
+                {isSubmitting ? 'Közzététel...' : 'Poszt közzététele'}
+              </button>
+              {hasCustomStyle && (
+                <span className="text-xs text-purple-600 flex items-center gap-1">
+                  <Palette size={12} />
+                  Egyedi stílus aktív
+                </span>
+              )}
+            </div>
           </form>
         </div>
 
