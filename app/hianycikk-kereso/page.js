@@ -764,19 +764,21 @@ export default function HianycikkKeresoPage() {
         </div>
       </div>
 
-      {/* Figyelmeztető szöveg */}
-      <div className="max-w-xl mx-auto px-4 pt-3">
-        <div className={`rounded-xl border p-3 ${
-          darkMode ? 'bg-amber-900/10 border-amber-800/30' : 'bg-amber-50 border-amber-200'
-        }`}>
-          <div className="flex gap-2">
-            <AlertCircle className={`w-4 h-4 flex-shrink-0 mt-0.5 ${darkMode ? 'text-amber-400' : 'text-amber-500'}`} />
-            <p className={`text-xs leading-relaxed ${darkMode ? 'text-amber-200/80' : 'text-amber-700'}`}>
-              A Hiánycikk kereső kizárólag tájékoztató jellegű információmegosztást szolgál. Nem történik értékesítés vagy tranzakció. A Pharmagister nem vállal felelősséget a hiánycikkek elérhetőségéért. Indulás előtt mindenképpen vegye fel a kapcsolatot a gyógyszertárral a megadott elérhetőségek valamelyikén.
-            </p>
+      {/* Figyelmeztető szöveg - csak a Keresek tabon */}
+      {activeTab === 'keresek' && (
+        <div className="max-w-xl mx-auto px-4 pt-3">
+          <div className={`rounded-xl border p-3 ${
+            darkMode ? 'bg-amber-900/10 border-amber-800/30' : 'bg-amber-50 border-amber-200'
+          }`}>
+            <div className="flex gap-2">
+              <AlertCircle className={`w-4 h-4 flex-shrink-0 mt-0.5 ${darkMode ? 'text-amber-400' : 'text-amber-500'}`} />
+              <p className={`text-xs leading-relaxed ${darkMode ? 'text-amber-200/80' : 'text-amber-700'}`}>
+                A Hiánycikk kereső kizárólag tájékoztató jellegű információmegosztást szolgál. Nem történik értékesítés vagy tranzakció. A Pharmagister nem vállal felelősséget a hiánycikkek elérhetőségéért. Indulás előtt mindenképpen vegye fel a kapcsolatot a gyógyszertárral a megadott elérhetőségek valamelyikén.
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Tab Content */}
       <div className="max-w-xl mx-auto px-4 py-4">
