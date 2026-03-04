@@ -219,6 +219,15 @@ function KeresekTab({ darkMode }) {
                   <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                     {item.pharmacyContact}
                   </span>
+                  {item.pharmacyContact && /[\d+]/.test(item.pharmacyContact) && (
+                    <a
+                      href={`tel:${item.pharmacyContact.replace(/[^\d+]/g, '')}`}
+                      className="ml-1 px-2.5 py-1 text-xs font-medium rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 transition-all flex items-center gap-1"
+                    >
+                      <Phone className="w-3 h-3" />
+                      Hívás
+                    </a>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock className={`w-4 h-4 flex-shrink-0 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`} />
