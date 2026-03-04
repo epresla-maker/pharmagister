@@ -30,7 +30,9 @@ import {
   AlertCircle,
   Loader2,
   Trash2,
-  Package
+  Package,
+  HelpCircle,
+  X
 } from 'lucide-react';
 
 // ============================================
@@ -645,6 +647,7 @@ export default function HianycikkKeresoPage() {
   const { user, loading } = useAuth();
   const { darkMode } = useTheme();
   const [activeTab, setActiveTab] = useState('keresek');
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
 
   if (loading) {
     return (
@@ -672,8 +675,46 @@ export default function HianycikkKeresoPage() {
           <h1 className={`text-lg font-semibold ml-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
             Hiánycikk kereső
           </h1>
+          <button
+            onClick={() => setShowHowItWorks(!showHowItWorks)}
+            className={`ml-auto flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-medium transition-colors ${
+              darkMode
+                ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            <HelpCircle className="w-3.5 h-3.5" />
+            Hogyan működik?
+          </button>
         </div>
       </div>
+
+      {/* Hogyan működik? info panel */}
+      {showHowItWorks && (
+        <div className="max-w-xl mx-auto px-4 pt-3">
+          <div className={`rounded-xl border p-4 relative ${
+            darkMode ? 'bg-emerald-900/20 border-emerald-800/40' : 'bg-emerald-50 border-emerald-200'
+          }`}>
+            <button
+              onClick={() => setShowHowItWorks(false)}
+              className={`absolute top-2 right-2 p-1 rounded-full transition-colors ${
+                darkMode ? 'hover:bg-emerald-800/40 text-emerald-400' : 'hover:bg-emerald-100 text-emerald-600'
+              }`}
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <div className="flex gap-2">
+              <HelpCircle className={`w-5 h-5 flex-shrink-0 mt-0.5 ${darkMode ? 'text-emerald-400' : 'text-emerald-600'}`} />
+              <div>
+                <h3 className={`text-sm font-semibold mb-1 ${darkMode ? 'text-emerald-300' : 'text-emerald-800'}`}>Hogyan működik?</h3>
+                <p className={`text-xs leading-relaxed ${darkMode ? 'text-emerald-200/80' : 'text-emerald-700'}`}>
+                  Regisztrált felhasználók új tételt rögzíthetnek a köztudottan hiánycikknek számító termékekről, ezzel jelezhetik, ha az adott készítmény náluk elérhető.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className={`sticky top-[53px] z-10 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b`}>
