@@ -15,7 +15,6 @@ import {
   addDoc,
   deleteDoc,
   doc,
-  updateDoc,
   Timestamp,
   limit
 } from 'firebase/firestore';
@@ -643,18 +642,9 @@ function ElerhetoNalunkTab({ darkMode, user, onSuccess }) {
 // ============================================
 export default function HianycikkKeresoPage() {
   const router = useRouter();
-  const { user, userData, loading } = useAuth();
+  const { user, loading } = useAuth();
   const { darkMode } = useTheme();
   const [activeTab, setActiveTab] = useState('keresek');
-  const [accepted, setAccepted] = useState(false);
-  const [accepting, setAccepting] = useState(false);
-
-  // Check if user already accepted the disclaimer
-  useEffect(() => {
-    if (userData?.shortageDisclaimerAccepted) {
-      setAccepted(true);
-    }
-  }, [userData]);
 
   if (loading) {
     return (
@@ -667,83 +657,6 @@ export default function HianycikkKeresoPage() {
   const handlePostSuccess = () => {
     setActiveTab('keresek');
   };
-
-  const handleAcceptDisclaimer = async () => {
-    setAccepting(true);
-    try {
-      if (user?.uid) {
-        await updateDoc(doc(db, 'users', user.uid), {
-          shortageDisclaimerAccepted: true,
-          shortageDisclaimerAcceptedAt: new Date().toISOString()
-        });
-      }
-      setAccepted(true);
-    } catch (error) {
-      console.error('Disclaimer elfogadási hiba:', error);
-      // Even if Firestore fails, allow access this session
-      setAccepted(true);
-    } finally {
-      setAccepting(false);
-    }
-  };
-
-  // Figyelmeztető képernyő
-  if (!accepted) {
-    return (
-      <div className={`min-h-screen pb-24 ${darkMode ? 'bg-gray-900' : 'bg-[#F9FAFB]'}`}>
-        {/* Header */}
-        <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b sticky top-0 z-10`}>
-          <div className="flex items-center px-4 py-3">
-            <button
-              onClick={() => router.push('/')}
-              className={`p-2 -ml-2 ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} rounded-full transition-colors`}
-            >
-              <ArrowLeft className={`w-5 h-5 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`} />
-            </button>
-            <h1 className={`text-lg font-semibold ml-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              Hiánycikk kereső
-            </h1>
-          </div>
-        </div>
-
-        <div className="max-w-xl mx-auto px-4 py-6">
-          <div className={`rounded-xl border p-5 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'}`}>
-            <div className={`flex items-center gap-2 mb-4`}>
-              <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0" />
-              <h2 className={`font-semibold text-base ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                Hiánycikk kereső használata:
-              </h2>
-            </div>
-            <p className={`text-sm leading-relaxed ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-              A Hiánycikk kereső funkció kizárólag tájékoztató jellegű információmegosztást szolgál a regisztrált gyógyszertárak és alkalmazottak között. Az oldalon nem történik értékesítés vagy tranzakció, és a felhasználók közötti kapcsolatfelvétel minden esetben offline, telefonon vagy emailben történik. A Pharmagister nem vállal felelősséget a hiánycikkek elérhetőségéért vagy az abból származó esetleges következményekért. Indulás előtt mindenképpen vegye fel a kapcsolatot a gyógyszertárral a megadott elérhetőségek valamelyikén.
-            </p>
-
-            <div className="mt-6 space-y-3">
-              <button
-                onClick={handleAcceptDisclaimer}
-                disabled={accepting}
-                className={`w-full py-3 rounded-xl font-semibold text-white transition-all ${
-                  accepting ? 'bg-emerald-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98]'
-                }`}
-              >
-                {accepting ? 'Feldolgozás...' : 'Elfogadom, megnyitom'}
-              </button>
-              <button
-                onClick={() => router.push('/')}
-                className={`w-full py-3 rounded-xl font-semibold transition-all ${
-                  darkMode
-                    ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                Mégse
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className={`min-h-screen pb-96 ${darkMode ? 'bg-gray-900' : 'bg-[#F9FAFB]'}`}>
@@ -807,6 +720,20 @@ export default function HianycikkKeresoPage() {
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-600 rounded-full" />
             )}
           </button>
+        </div>
+      </div>
+
+      {/* Figyelmeztető szöveg */}
+      <div className="max-w-xl mx-auto px-4 pt-3">
+        <div className={`rounded-xl border p-3 ${
+          darkMode ? 'bg-amber-900/10 border-amber-800/30' : 'bg-amber-50 border-amber-200'
+        }`}>
+          <div className="flex gap-2">
+            <AlertCircle className={`w-4 h-4 flex-shrink-0 mt-0.5 ${darkMode ? 'text-amber-400' : 'text-amber-500'}`} />
+            <p className={`text-xs leading-relaxed ${darkMode ? 'text-amber-200/80' : 'text-amber-700'}`}>
+              A Hiánycikk kereső kizárólag tájékoztató jellegű információmegosztást szolgál. Nem történik értékesítés vagy tranzakció. A Pharmagister nem vállal felelősséget a hiánycikkek elérhetőségéért. Indulás előtt mindenképpen vegye fel a kapcsolatot a gyógyszertárral a megadott elérhetőségek valamelyikén.
+            </p>
+          </div>
         </div>
       </div>
 
