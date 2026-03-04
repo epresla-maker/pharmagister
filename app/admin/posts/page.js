@@ -429,9 +429,6 @@ export default function AdminPostsPage() {
                       <p className="font-semibold text-gray-900 text-sm">Pharmagister Admin</p>
                       <p className="text-xs text-gray-500">Éppen most</p>
                     </div>
-                    <span className="ml-auto px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                      👑 Admin poszt
-                    </span>
                   </div>
                   {/* Tartalom */}
                   {hasCustomStyle ? (
@@ -554,19 +551,15 @@ export default function AdminPostsPage() {
                         </p>
                       </div>
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      post.source === 'rss' 
-                        ? 'bg-purple-100 text-purple-700' 
-                        : post.postType === 'pharmaDemand' 
-                          ? 'bg-green-100 text-green-700' 
-                          : 'bg-blue-100 text-blue-700'
-                    }`}>
-                      {post.source === 'rss' 
-                        ? '📰 RSS Hír' 
-                        : post.postType === 'pharmaDemand' 
-                          ? '💊 Gyógyszertári igény' 
-                          : '👑 Admin poszt'}
-                    </span>
+                    {(post.source === 'rss' || post.postType === 'pharmaDemand') && (
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        post.source === 'rss' 
+                          ? 'bg-purple-100 text-purple-700' 
+                          : 'bg-green-100 text-green-700'
+                      }`}>
+                        {post.source === 'rss' ? '📰 RSS Hír' : '💊 Gyógyszertári igény'}
+                      </span>
+                    )}
                   </div>
 
                   {post.source === 'rss' ? (
