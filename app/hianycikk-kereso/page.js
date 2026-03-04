@@ -91,10 +91,7 @@ function KeresekTab({ darkMode }) {
       const items = [];
       snapshot.forEach((doc) => {
         const data = doc.data();
-        // Client-side filter: only show non-expired items
-        if (data.expiresAt && data.expiresAt.toMillis() > Date.now()) {
-          items.push({ id: doc.id, ...data });
-        }
+        items.push({ id: doc.id, ...data });
       });
       setResults(items);
     } catch (error) {
@@ -280,9 +277,7 @@ function ElerhetoNalunkTab({ darkMode, user, onSuccess }) {
       const items = [];
       snapshot.forEach((d) => {
         const data = d.data();
-        if (data.expiresAt && data.expiresAt.toMillis() > Date.now()) {
-          items.push({ id: d.id, ...data });
-        }
+        items.push({ id: d.id, ...data });
       });
       setMyItems(items);
     } catch (error) {
@@ -380,7 +375,7 @@ function ElerhetoNalunkTab({ darkMode, user, onSuccess }) {
       );
       const dupSnapshot = await getDocs(dupQuery);
       
-      // Client-side filter: same drug + pharmacy + not expired
+      // Client-side filter: same drug + pharmacy + still active
       const drugLower = form.drugName.trim().toLowerCase();
       const pharmName = form.pharmacyName.trim();
       const activeDups = [];
@@ -388,22 +383,20 @@ function ElerhetoNalunkTab({ darkMode, user, onSuccess }) {
         const data = doc.data();
         if (
           data.drugNameLower === drugLower &&
-          data.pharmacyName === pharmName &&
-          data.expiresAt && data.expiresAt.toMillis() > Date.now()
+          data.pharmacyName === pharmName
         ) {
           activeDups.push(doc);
         }
       });
 
       if (activeDups.length > 0) {
-        showToast('Ez a gyógyszer már feladásra került ennél a patikánál az elmúlt 48 órában.', 'error', 3000);
+        showToast('Ez a gyógyszer már feladásra került ennél a patikánál.', 'error', 3000);
         setSubmitting(false);
         return;
       }
 
       // Create document
       const now = Timestamp.now();
-      const expiresAt = Timestamp.fromMillis(now.toMillis() + 48 * 60 * 60 * 1000);
 
       const newDoc = {
         drugName: form.drugName.trim(),
@@ -414,7 +407,6 @@ function ElerhetoNalunkTab({ darkMode, user, onSuccess }) {
         pharmacyContact: form.pharmacyContact.trim(),
         createdByUserId: user.uid,
         createdAt: now,
-        expiresAt: expiresAt,
         isActive: true
       };
       if (form.quantity.trim()) {
@@ -631,9 +623,6 @@ function ElerhetoNalunkTab({ darkMode, user, onSuccess }) {
         )}
       </button>
 
-        <p className={`text-xs text-center ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-          A bejegyzés 48 óráig marad aktív, utána automatikusan lejár.
-        </p>
       </form>
     </div>
   );
