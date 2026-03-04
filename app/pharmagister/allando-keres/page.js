@@ -369,7 +369,7 @@ function AllandoKeresContent() {
 
             {/* Cím - középre */}
             <h1 className="absolute left-1/2 -translate-x-1/2 text-lg sm:text-xl font-bold text-purple-600 whitespace-nowrap">
-              Állandóra keres
+              Állást keres
             </h1>
 
             <div className="w-16"></div>
@@ -429,7 +429,7 @@ function AllandoKeresContent() {
                   >
                     <X size={24} />
                   </button>
-                  <h2 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Állandóra keres</h2>
+                  <h2 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Állást keres</h2>
                   <button
                     onClick={handleCreatePost}
                     disabled={!newPostText.trim() || uploading}
