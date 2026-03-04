@@ -1,0 +1,605 @@
+"use client";
+
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
+import { useToast } from '@/context/ToastContext';
+import { db } from '@/lib/firebase';
+import {
+  collection,
+  query,
+  where,
+  orderBy,
+  getDocs,
+  addDoc,
+  Timestamp,
+  limit
+} from 'firebase/firestore';
+import {
+  ArrowLeft,
+  Search,
+  Plus,
+  Pill,
+  MapPin,
+  Phone,
+  Clock,
+  Building2,
+  AlertCircle,
+  Loader2
+} from 'lucide-react';
+
+// ============================================
+// KERESEK TAB - Search for shortage items
+// ============================================
+function KeresekTab({ darkMode }) {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedTerm, setDebouncedTerm] = useState('');
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [initialLoad, setInitialLoad] = useState(true);
+  const debounceRef = useRef(null);
+
+  // Debounce search input
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setDebouncedTerm(searchTerm.trim());
+    }, 400);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [searchTerm]);
+
+  // Fetch results
+  const fetchResults = useCallback(async (term) => {
+    setLoading(true);
+    try {
+      const now = Timestamp.now();
+      let q;
+
+      if (term.length > 0) {
+        // Prefix search: drugName >= term && drugName <= term + high unicode char
+        const termLower = term.charAt(0).toUpperCase() + term.slice(1).toLowerCase();
+        const termEnd = termLower + '\uf8ff';
+        q = query(
+          collection(db, 'shortage_items'),
+          where('isActive', '==', true),
+          where('drugNameLower', '>=', term.toLowerCase()),
+          where('drugNameLower', '<=', term.toLowerCase() + '\uf8ff'),
+          orderBy('drugNameLower'),
+          orderBy('createdAt', 'desc'),
+          limit(50)
+        );
+      } else {
+        // Show latest items when no search term
+        q = query(
+          collection(db, 'shortage_items'),
+          where('isActive', '==', true),
+          orderBy('createdAt', 'desc'),
+          limit(30)
+        );
+      }
+
+      const snapshot = await getDocs(q);
+      const items = [];
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        // Client-side filter: only show non-expired items
+        if (data.expiresAt && data.expiresAt.toMillis() > Date.now()) {
+          items.push({ id: doc.id, ...data });
+        }
+      });
+      setResults(items);
+    } catch (error) {
+      console.error('Hiba a keresés során:', error);
+      setResults([]);
+    } finally {
+      setLoading(false);
+      setInitialLoad(false);
+    }
+  }, []);
+
+  // Trigger search on debounced term change
+  useEffect(() => {
+    fetchResults(debouncedTerm);
+  }, [debouncedTerm, fetchResults]);
+
+  const formatDate = (timestamp) => {
+    if (!timestamp) return '';
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    return date.toLocaleDateString('hu-HU', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Search Input */}
+      <div className="relative">
+        <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${darkMode ? 'text-gray-400' : 'text-gray-400'}`} />
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Gyógyszer neve..."
+          className={`w-full pl-10 pr-4 py-3 rounded-xl border transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
+            darkMode
+              ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-500'
+              : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400'
+          }`}
+        />
+        {searchTerm && (
+          <button
+            onClick={() => setSearchTerm('')}
+            className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs px-2 py-1 rounded-md ${
+              darkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-400 hover:bg-gray-100'
+            }`}
+          >
+            Törlés
+          </button>
+        )}
+      </div>
+
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
+        </div>
+      )}
+
+      {/* Results */}
+      {!loading && results.length === 0 && !initialLoad && (
+        <div className={`text-center py-12 rounded-xl border ${
+          darkMode ? 'bg-gray-800/50 border-gray-700' : 'bg-gray-50 border-gray-200'
+        }`}>
+          <Pill className={`w-10 h-10 mx-auto mb-3 ${darkMode ? 'text-gray-600' : 'text-gray-300'}`} />
+          <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+            Jelenleg nincs aktív bejegyzés.
+          </p>
+        </div>
+      )}
+
+      {!loading && results.length > 0 && (
+        <div className="space-y-3">
+          {results.map((item) => (
+            <div
+              key={item.id}
+              className={`rounded-xl border p-4 transition-colors ${
+                darkMode
+                  ? 'bg-gray-800 border-gray-700'
+                  : 'bg-white border-gray-200 shadow-sm'
+              }`}
+            >
+              {/* Drug Name */}
+              <div className="flex items-start gap-3 mb-3">
+                <div className={`p-2 rounded-lg flex-shrink-0 ${
+                  darkMode ? 'bg-emerald-900/30' : 'bg-emerald-50'
+                }`}>
+                  <Pill className="w-5 h-5 text-emerald-600" />
+                </div>
+                <h3 className={`font-semibold text-base leading-tight ${
+                  darkMode ? 'text-white' : 'text-gray-900'
+                }`}>
+                  {item.drugName}
+                </h3>
+              </div>
+
+              {/* Details */}
+              <div className="space-y-2 ml-11">
+                <div className="flex items-center gap-2">
+                  <Building2 className={`w-4 h-4 flex-shrink-0 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`} />
+                  <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    {item.pharmacyName}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <MapPin className={`w-4 h-4 flex-shrink-0 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`} />
+                  <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    {item.pharmacyAddress}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Phone className={`w-4 h-4 flex-shrink-0 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`} />
+                  <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    {item.pharmacyContact}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock className={`w-4 h-4 flex-shrink-0 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`} />
+                  <span className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                    Feladva: {formatDate(item.createdAt)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================
+// ELERHETO NALUNK TAB - Post new shortage item
+// ============================================
+function ElerhetoNalunkTab({ darkMode, user, onSuccess }) {
+  const { showToast } = useToast();
+  const [form, setForm] = useState({
+    drugName: '',
+    pharmacyName: '',
+    pharmacyAddress: '',
+    pharmacyContact: ''
+  });
+  const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+  const [prefilled, setPrefilled] = useState(false);
+
+  // Auto-fill pharmacy data from previous entries
+  useEffect(() => {
+    if (!user?.uid || prefilled) return;
+
+    const loadPreviousData = async () => {
+      try {
+        const q = query(
+          collection(db, 'shortage_items'),
+          where('createdByUserId', '==', user.uid),
+          orderBy('createdAt', 'desc'),
+          limit(1)
+        );
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+          const prev = snapshot.docs[0].data();
+          setForm((f) => ({
+            ...f,
+            pharmacyName: prev.pharmacyName || '',
+            pharmacyAddress: prev.pharmacyAddress || '',
+            pharmacyContact: prev.pharmacyContact || ''
+          }));
+          setPrefilled(true);
+        }
+      } catch (error) {
+        // Silent – can't load previous data, user fills manually
+        console.error('Korábbi adatok betöltési hiba:', error);
+      }
+    };
+
+    loadPreviousData();
+  }, [user?.uid, prefilled]);
+
+  const validate = () => {
+    const newErrors = {};
+    if (!form.drugName.trim()) newErrors.drugName = 'Kötelező mező';
+    if (!form.pharmacyName.trim()) newErrors.pharmacyName = 'Kötelező mező';
+    if (!form.pharmacyAddress.trim()) newErrors.pharmacyAddress = 'Kötelező mező';
+    if (!form.pharmacyContact.trim()) newErrors.pharmacyContact = 'Kötelező mező';
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleChange = (field) => (e) => {
+    setForm((f) => ({ ...f, [field]: e.target.value }));
+    if (errors[field]) {
+      setErrors((prev) => {
+        const copy = { ...prev };
+        delete copy[field];
+        return copy;
+      });
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validate()) return;
+
+    setSubmitting(true);
+    try {
+      // Duplicate check: same pharmacy + drug within 48h
+      const cutoff = Timestamp.fromMillis(Date.now() - 48 * 60 * 60 * 1000);
+      const dupQuery = query(
+        collection(db, 'shortage_items'),
+        where('createdByUserId', '==', user.uid),
+        where('drugNameLower', '==', form.drugName.trim().toLowerCase()),
+        where('pharmacyName', '==', form.pharmacyName.trim()),
+        where('isActive', '==', true),
+        where('createdAt', '>=', cutoff)
+      );
+      const dupSnapshot = await getDocs(dupQuery);
+      
+      // Filter expired ones client-side as extra safety
+      const activeDups = [];
+      dupSnapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data.expiresAt && data.expiresAt.toMillis() > Date.now()) {
+          activeDups.push(doc);
+        }
+      });
+
+      if (activeDups.length > 0) {
+        showToast('Ez a gyógyszer már feladásra került ennél a patikánál az elmúlt 48 órában.', 'error', 3000);
+        setSubmitting(false);
+        return;
+      }
+
+      // Create document
+      const now = Timestamp.now();
+      const expiresAt = Timestamp.fromMillis(now.toMillis() + 48 * 60 * 60 * 1000);
+
+      await addDoc(collection(db, 'shortage_items'), {
+        drugName: form.drugName.trim(),
+        drugNameLower: form.drugName.trim().toLowerCase(),
+        pharmacyId: user.uid,
+        pharmacyName: form.pharmacyName.trim(),
+        pharmacyAddress: form.pharmacyAddress.trim(),
+        pharmacyContact: form.pharmacyContact.trim(),
+        createdByUserId: user.uid,
+        createdAt: now,
+        expiresAt: expiresAt,
+        isActive: true
+      });
+
+      showToast('Bejegyzés sikeresen feladva!', 'success', 2000);
+      setForm((f) => ({ ...f, drugName: '' }));
+      onSuccess();
+    } catch (error) {
+      console.error('Hiba a feladás során:', error);
+      showToast('Hiba történt a feladás során. Próbáld újra.', 'error', 3000);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const inputClass = (field) =>
+    `w-full px-4 py-3 rounded-xl border transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
+      errors[field]
+        ? 'border-red-400 focus:ring-red-400'
+        : darkMode
+        ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-500'
+        : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400'
+    }`;
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Drug Name */}
+      <div>
+        <label className={`block text-sm font-medium mb-1.5 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+          Gyógyszer neve <span className="text-red-500">*</span>
+        </label>
+        <input
+          type="text"
+          value={form.drugName}
+          onChange={handleChange('drugName')}
+          placeholder="pl. Algoflex 400mg"
+          className={inputClass('drugName')}
+        />
+        {errors.drugName && (
+          <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+            <AlertCircle className="w-3 h-3" /> {errors.drugName}
+          </p>
+        )}
+      </div>
+
+      {/* Pharmacy Name */}
+      <div>
+        <label className={`block text-sm font-medium mb-1.5 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+          Patika neve <span className="text-red-500">*</span>
+        </label>
+        <input
+          type="text"
+          value={form.pharmacyName}
+          onChange={handleChange('pharmacyName')}
+          placeholder="pl. Galenus Gyógyszertár"
+          className={inputClass('pharmacyName')}
+        />
+        {errors.pharmacyName && (
+          <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+            <AlertCircle className="w-3 h-3" /> {errors.pharmacyName}
+          </p>
+        )}
+      </div>
+
+      {/* Pharmacy Address */}
+      <div>
+        <label className={`block text-sm font-medium mb-1.5 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+          Patika címe <span className="text-red-500">*</span>
+        </label>
+        <input
+          type="text"
+          value={form.pharmacyAddress}
+          onChange={handleChange('pharmacyAddress')}
+          placeholder="pl. 1051 Budapest, Váci utca 10."
+          className={inputClass('pharmacyAddress')}
+        />
+        {errors.pharmacyAddress && (
+          <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+            <AlertCircle className="w-3 h-3" /> {errors.pharmacyAddress}
+          </p>
+        )}
+      </div>
+
+      {/* Pharmacy Contact */}
+      <div>
+        <label className={`block text-sm font-medium mb-1.5 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+          Elérhetőség <span className="text-red-500">*</span>
+        </label>
+        <input
+          type="text"
+          value={form.pharmacyContact}
+          onChange={handleChange('pharmacyContact')}
+          placeholder="pl. +36 1 234 5678"
+          className={inputClass('pharmacyContact')}
+        />
+        {errors.pharmacyContact && (
+          <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+            <AlertCircle className="w-3 h-3" /> {errors.pharmacyContact}
+          </p>
+        )}
+      </div>
+
+      {/* Submit */}
+      <button
+        type="submit"
+        disabled={submitting}
+        className={`w-full py-3 rounded-xl font-semibold text-white transition-all ${
+          submitting
+            ? 'bg-emerald-400 cursor-not-allowed'
+            : 'bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98]'
+        } flex items-center justify-center gap-2`}
+      >
+        {submitting ? (
+          <>
+            <Loader2 className="w-5 h-5 animate-spin" />
+            Feladás...
+          </>
+        ) : (
+          <>
+            <Plus className="w-5 h-5" />
+            Bejegyzés feladása
+          </>
+        )}
+      </button>
+
+      <p className={`text-xs text-center ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+        A bejegyzés 48 óráig marad aktív, utána automatikusan lejár.
+      </p>
+    </form>
+  );
+}
+
+// ============================================
+// MAIN PAGE COMPONENT
+// ============================================
+const ADMIN_EMAIL = 'epresla@icloud.com';
+
+export default function HianycikkKeresoPage() {
+  const router = useRouter();
+  const { user, loading } = useAuth();
+  const { darkMode } = useTheme();
+  const [activeTab, setActiveTab] = useState('keresek');
+
+  // Admin-only hozzáférés
+  useEffect(() => {
+    if (!loading && (!user || user.email !== ADMIN_EMAIL)) {
+      router.push('/');
+    }
+  }, [user, loading, router]);
+
+  if (loading) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+        <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
+      </div>
+    );
+  }
+
+  if (!user || user.email !== ADMIN_EMAIL) {
+    return null;
+  }
+
+  const handlePostSuccess = () => {
+    setActiveTab('keresek');
+  };
+
+  return (
+    <div className={`min-h-screen pb-24 ${darkMode ? 'bg-gray-900' : 'bg-[#F9FAFB]'}`}>
+      {/* Header */}
+      <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b sticky top-0 z-10`}>
+        <div className="flex items-center px-4 py-3">
+          <button
+            onClick={() => router.back()}
+            className={`p-2 -ml-2 ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} rounded-full transition-colors`}
+          >
+            <ArrowLeft className={`w-5 h-5 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`} />
+          </button>
+          <h1 className={`text-lg font-semibold ml-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+            Hiánycikk kereső
+          </h1>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className={`sticky top-[53px] z-10 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b`}>
+        <div className="flex max-w-xl mx-auto">
+          <button
+            onClick={() => setActiveTab('keresek')}
+            className={`flex-1 py-3 text-sm font-medium text-center transition-colors relative ${
+              activeTab === 'keresek'
+                ? 'text-emerald-600'
+                : darkMode
+                ? 'text-gray-400 hover:text-gray-200'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <div className="flex items-center justify-center gap-1.5">
+              <Search className="w-4 h-4" />
+              Keresek
+            </div>
+            {activeTab === 'keresek' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-600 rounded-full" />
+            )}
+          </button>
+          <button
+            onClick={() => {
+              if (!user) {
+                router.push('/login');
+                return;
+              }
+              setActiveTab('elerheto');
+            }}
+            className={`flex-1 py-3 text-sm font-medium text-center transition-colors relative ${
+              activeTab === 'elerheto'
+                ? 'text-emerald-600'
+                : darkMode
+                ? 'text-gray-400 hover:text-gray-200'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <div className="flex items-center justify-center gap-1.5">
+              <Plus className="w-4 h-4" />
+              Elérhető nálunk
+            </div>
+            {activeTab === 'elerheto' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-600 rounded-full" />
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      <div className="max-w-xl mx-auto px-4 py-4">
+        {activeTab === 'keresek' && (
+          <KeresekTab darkMode={darkMode} />
+        )}
+
+        {activeTab === 'elerheto' && user && (
+          <ElerhetoNalunkTab
+            darkMode={darkMode}
+            user={user}
+            onSuccess={handlePostSuccess}
+          />
+        )}
+
+        {activeTab === 'elerheto' && !user && (
+          <div className={`text-center py-12 rounded-xl border ${
+            darkMode ? 'bg-gray-800/50 border-gray-700' : 'bg-gray-50 border-gray-200'
+          }`}>
+            <AlertCircle className={`w-10 h-10 mx-auto mb-3 ${darkMode ? 'text-gray-600' : 'text-gray-300'}`} />
+            <p className={`text-sm mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              Bejelentkezés szükséges a bejegyzés feladásához.
+            </p>
+            <button
+              onClick={() => router.push('/login')}
+              className="px-6 py-2 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-colors"
+            >
+              Bejelentkezés
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

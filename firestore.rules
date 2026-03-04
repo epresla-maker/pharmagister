@@ -141,6 +141,13 @@ service cloud.firestore {
       allow write: if isAdmin() || isAuthenticated();
     }
     
+    // Shortage items (Hiánycikk kereső) - anyone authenticated can read, create own entries
+    match /shortage_items/{itemId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.createdByUserId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && (resource.data.createdByUserId == request.auth.uid || isAdmin());
+    }
+    
     // Deny everything else by default (no wildcard catch-all)
   }
 }
