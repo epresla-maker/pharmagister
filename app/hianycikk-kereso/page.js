@@ -13,6 +13,8 @@ import {
   orderBy,
   getDocs,
   addDoc,
+  deleteDoc,
+  doc,
   Timestamp,
   limit
 } from 'firebase/firestore';
@@ -26,7 +28,9 @@ import {
   Clock,
   Building2,
   AlertCircle,
-  Loader2
+  Loader2,
+  Trash2,
+  Package
 } from 'lucide-react';
 
 // ============================================
@@ -187,6 +191,13 @@ function KeresekTab({ darkMode }) {
                 }`}>
                   {item.drugName}
                 </h3>
+                {item.quantity && (
+                  <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${
+                    darkMode ? 'bg-emerald-900/30 text-emerald-400' : 'bg-emerald-50 text-emerald-700'
+                  }`}>
+                    {item.quantity}
+                  </span>
+                )}
               </div>
 
               {/* Details */}
@@ -231,6 +242,7 @@ function ElerhetoNalunkTab({ darkMode, user, onSuccess }) {
   const { showToast } = useToast();
   const [form, setForm] = useState({
     drugName: '',
+    quantity: '',
     pharmacyName: '',
     pharmacyAddress: '',
     pharmacyContact: ''
@@ -238,6 +250,54 @@ function ElerhetoNalunkTab({ darkMode, user, onSuccess }) {
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [prefilled, setPrefilled] = useState(false);
+  const [myItems, setMyItems] = useState([]);
+  const [loadingMyItems, setLoadingMyItems] = useState(true);
+  const [deletingId, setDeletingId] = useState(null);
+
+  // Load user's own active items
+  const loadMyItems = useCallback(async () => {
+    if (!user?.uid) return;
+    try {
+      const q = query(
+        collection(db, 'shortage_items'),
+        where('createdByUserId', '==', user.uid),
+        where('isActive', '==', true),
+        orderBy('createdAt', 'desc'),
+        limit(30)
+      );
+      const snapshot = await getDocs(q);
+      const items = [];
+      snapshot.forEach((d) => {
+        const data = d.data();
+        if (data.expiresAt && data.expiresAt.toMillis() > Date.now()) {
+          items.push({ id: d.id, ...data });
+        }
+      });
+      setMyItems(items);
+    } catch (error) {
+      console.error('Saját bejegyzések betöltési hiba:', error);
+    } finally {
+      setLoadingMyItems(false);
+    }
+  }, [user?.uid]);
+
+  useEffect(() => {
+    loadMyItems();
+  }, [loadMyItems]);
+
+  const handleDelete = async (itemId) => {
+    setDeletingId(itemId);
+    try {
+      await deleteDoc(doc(db, 'shortage_items', itemId));
+      setMyItems((prev) => prev.filter((item) => item.id !== itemId));
+      showToast('Bejegyzés törölve!', 'success', 1500);
+    } catch (error) {
+      console.error('Törlési hiba:', error);
+      showToast('Hiba történt a törlés során.', 'error', 3000);
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   // Auto-fill pharmacy data from previous entries
   useEffect(() => {
@@ -334,7 +394,7 @@ function ElerhetoNalunkTab({ darkMode, user, onSuccess }) {
       const now = Timestamp.now();
       const expiresAt = Timestamp.fromMillis(now.toMillis() + 48 * 60 * 60 * 1000);
 
-      await addDoc(collection(db, 'shortage_items'), {
+      const newDoc = {
         drugName: form.drugName.trim(),
         drugNameLower: form.drugName.trim().toLowerCase(),
         pharmacyId: user.uid,
@@ -345,10 +405,16 @@ function ElerhetoNalunkTab({ darkMode, user, onSuccess }) {
         createdAt: now,
         expiresAt: expiresAt,
         isActive: true
-      });
+      };
+      if (form.quantity.trim()) {
+        newDoc.quantity = form.quantity.trim();
+      }
+
+      await addDoc(collection(db, 'shortage_items'), newDoc);
 
       showToast('Bejegyzés sikeresen feladva!', 'success', 2000);
-      setForm((f) => ({ ...f, drugName: '' }));
+      setForm((f) => ({ ...f, drugName: '', quantity: '' }));
+      loadMyItems();
       onSuccess();
     } catch (error) {
       console.error('Hiba a feladás során:', error);
@@ -367,26 +433,112 @@ function ElerhetoNalunkTab({ darkMode, user, onSuccess }) {
         : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400'
     }`;
 
+  const formatDate = (timestamp) => {
+    if (!timestamp) return '';
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    return date.toLocaleDateString('hu-HU', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Drug Name */}
-      <div>
-        <label className={`block text-sm font-medium mb-1.5 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-          Gyógyszer neve <span className="text-red-500">*</span>
-        </label>
-        <input
-          type="text"
-          value={form.drugName}
-          onChange={handleChange('drugName')}
-          placeholder="pl. Algoflex 400mg"
-          className={inputClass('drugName')}
-        />
-        {errors.drugName && (
-          <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
-            <AlertCircle className="w-3 h-3" /> {errors.drugName}
-          </p>
-        )}
-      </div>
+    <div className="space-y-6">
+      {/* Saját bejegyzések */}
+      {myItems.length > 0 && (
+        <div>
+          <h3 className={`text-sm font-semibold mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+            Saját aktív bejegyzéseid ({myItems.length})
+          </h3>
+          <div className="space-y-2">
+            {myItems.map((item) => (
+              <div
+                key={item.id}
+                className={`rounded-xl border p-3 flex items-center justify-between ${
+                  darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'
+                }`}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <Pill className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                    <span className={`font-medium text-sm truncate ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                      {item.drugName}
+                    </span>
+                    {item.quantity && (
+                      <span className={`text-xs px-1.5 py-0.5 rounded ${darkMode ? 'bg-emerald-900/30 text-emerald-400' : 'bg-emerald-50 text-emerald-700'}`}>
+                        {item.quantity}
+                      </span>
+                    )}
+                  </div>
+                  <p className={`text-xs mt-0.5 ml-6 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                    {item.pharmacyName} · {formatDate(item.createdAt)}
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleDelete(item.id)}
+                  disabled={deletingId === item.id}
+                  className={`p-2 rounded-lg transition-colors flex-shrink-0 ${
+                    darkMode ? 'hover:bg-red-900/30 text-red-400' : 'hover:bg-red-50 text-red-500'
+                  }`}
+                >
+                  {deletingId === item.id ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {loadingMyItems && (
+        <div className="flex items-center justify-center py-4">
+          <Loader2 className="w-5 h-5 animate-spin text-emerald-600" />
+        </div>
+      )}
+
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <h3 className={`text-sm font-semibold ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+          Új bejegyzés feladása
+        </h3>
+
+        {/* Drug Name */}
+        <div>
+          <label className={`block text-sm font-medium mb-1.5 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+            Gyógyszer neve <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            value={form.drugName}
+            onChange={handleChange('drugName')}
+            placeholder="pl. Algoflex 400mg"
+            className={inputClass('drugName')}
+          />
+          {errors.drugName && (
+            <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+              <AlertCircle className="w-3 h-3" /> {errors.drugName}
+            </p>
+          )}
+        </div>
+
+        {/* Quantity (optional) */}
+        <div>
+          <label className={`block text-sm font-medium mb-1.5 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+            Elérhető mennyiség <span className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>(opcionális)</span>
+          </label>
+          <input
+            type="text"
+            value={form.quantity}
+            onChange={handleChange('quantity')}
+            placeholder="pl. 5 doboz, 20 db"
+            className={inputClass('quantity')}
+          />
+        </div>
 
       {/* Pharmacy Name */}
       <div>
@@ -468,10 +620,11 @@ function ElerhetoNalunkTab({ darkMode, user, onSuccess }) {
         )}
       </button>
 
-      <p className={`text-xs text-center ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-        A bejegyzés 48 óráig marad aktív, utána automatikusan lejár.
-      </p>
-    </form>
+        <p className={`text-xs text-center ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+          A bejegyzés 48 óráig marad aktív, utána automatikusan lejár.
+        </p>
+      </form>
+    </div>
   );
 }
 
