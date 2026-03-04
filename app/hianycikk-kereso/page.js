@@ -538,7 +538,7 @@ export default function HianycikkKeresoPage() {
               </h2>
             </div>
             <p className={`text-sm leading-relaxed ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-              A Hiánycikk kereső funkció kizárólag tájékoztató jellegű információmegosztást szolgál a regisztrált gyógyszertárak és alkalmazottak között. Az oldalon nem történik értékesítés vagy tranzakció, és a felhasználók közötti kapcsolatfelvétel minden esetben offline, telefonon vagy emailben történik. A Pharmagister nem vállal felelősséget a hiánycikkek elérhetőségéért vagy az abból származó esetleges következményekért.
+              A Hiánycikk kereső funkció kizárólag tájékoztató jellegű információmegosztást szolgál a regisztrált gyógyszertárak és alkalmazottak között. Az oldalon nem történik értékesítés vagy tranzakció, és a felhasználók közötti kapcsolatfelvétel minden esetben offline, telefonon vagy emailben történik. A Pharmagister nem vállal felelősséget a hiánycikkek elérhetőségéért vagy az abból származó esetleges következményekért. Indulás előtt mindenképpen vegye fel a kapcsolatot a gyógyszertárral a megadott elérhetőségek valamelyikén.
             </p>
 
             <div className="mt-6 space-y-3">
