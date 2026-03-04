@@ -485,6 +485,7 @@ export default function HianycikkKeresoPage() {
   const { user, loading } = useAuth();
   const { darkMode } = useTheme();
   const [activeTab, setActiveTab] = useState('keresek');
+  const [accepted, setAccepted] = useState(false);
 
   // Admin-only hozzáférés
   useEffect(() => {
@@ -508,6 +509,61 @@ export default function HianycikkKeresoPage() {
   const handlePostSuccess = () => {
     setActiveTab('keresek');
   };
+
+  // Figyelmeztető képernyő
+  if (!accepted) {
+    return (
+      <div className={`min-h-screen pb-24 ${darkMode ? 'bg-gray-900' : 'bg-[#F9FAFB]'}`}>
+        {/* Header */}
+        <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b sticky top-0 z-10`}>
+          <div className="flex items-center px-4 py-3">
+            <button
+              onClick={() => router.push('/')}
+              className={`p-2 -ml-2 ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} rounded-full transition-colors`}
+            >
+              <ArrowLeft className={`w-5 h-5 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`} />
+            </button>
+            <h1 className={`text-lg font-semibold ml-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+              Hiánycikk kereső
+            </h1>
+          </div>
+        </div>
+
+        <div className="max-w-xl mx-auto px-4 py-6">
+          <div className={`rounded-xl border p-5 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'}`}>
+            <div className={`flex items-center gap-2 mb-4`}>
+              <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0" />
+              <h2 className={`font-semibold text-base ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                Hiánycikk kereső használata:
+              </h2>
+            </div>
+            <p className={`text-sm leading-relaxed ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+              A Hiánycikk kereső funkció kizárólag tájékoztató jellegű információmegosztást szolgál a regisztrált gyógyszertárak és alkalmazottak között. Az oldalon nem történik értékesítés vagy tranzakció, és a felhasználók közötti kapcsolatfelvétel minden esetben offline, telefonon vagy emailben történik. A Pharmagister nem vállal felelősséget a hiánycikkek elérhetőségéért vagy az abból származó esetleges következményekért.
+            </p>
+
+            <div className="mt-6 space-y-3">
+              <button
+                onClick={() => setAccepted(true)}
+                className="w-full py-3 rounded-xl font-semibold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] transition-all"
+              >
+                Megnyitom
+              </button>
+              <button
+                onClick={() => router.push('/')}
+                className={`w-full py-3 rounded-xl font-semibold transition-all ${
+                  darkMode
+                    ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                Mégse
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`min-h-screen pb-24 ${darkMode ? 'bg-gray-900' : 'bg-[#F9FAFB]'}`}>
