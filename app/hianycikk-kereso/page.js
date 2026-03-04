@@ -15,6 +15,7 @@ import {
   addDoc,
   deleteDoc,
   doc,
+  updateDoc,
   Timestamp,
   limit
 } from 'firebase/firestore';
@@ -640,21 +641,20 @@ function ElerhetoNalunkTab({ darkMode, user, onSuccess }) {
 // ============================================
 // MAIN PAGE COMPONENT
 // ============================================
-const ADMIN_EMAILS = ['epresla@icloud.com', 'etinatina22@gmail.com'];
-
 export default function HianycikkKeresoPage() {
   const router = useRouter();
-  const { user, loading } = useAuth();
+  const { user, userData, loading } = useAuth();
   const { darkMode } = useTheme();
   const [activeTab, setActiveTab] = useState('keresek');
   const [accepted, setAccepted] = useState(false);
+  const [accepting, setAccepting] = useState(false);
 
-  // Admin-only hozzáférés
+  // Check if user already accepted the disclaimer
   useEffect(() => {
-    if (!loading && (!user || !ADMIN_EMAILS.includes(user.email))) {
-      router.push('/');
+    if (userData?.shortageDisclaimerAccepted) {
+      setAccepted(true);
     }
-  }, [user, loading, router]);
+  }, [userData]);
 
   if (loading) {
     return (
@@ -664,12 +664,27 @@ export default function HianycikkKeresoPage() {
     );
   }
 
-  if (!user || !ADMIN_EMAILS.includes(user.email)) {
-    return null;
-  }
-
   const handlePostSuccess = () => {
     setActiveTab('keresek');
+  };
+
+  const handleAcceptDisclaimer = async () => {
+    setAccepting(true);
+    try {
+      if (user?.uid) {
+        await updateDoc(doc(db, 'users', user.uid), {
+          shortageDisclaimerAccepted: true,
+          shortageDisclaimerAcceptedAt: new Date().toISOString()
+        });
+      }
+      setAccepted(true);
+    } catch (error) {
+      console.error('Disclaimer elfogadási hiba:', error);
+      // Even if Firestore fails, allow access this session
+      setAccepted(true);
+    } finally {
+      setAccepting(false);
+    }
   };
 
   // Figyelmeztető képernyő
@@ -705,10 +720,13 @@ export default function HianycikkKeresoPage() {
 
             <div className="mt-6 space-y-3">
               <button
-                onClick={() => setAccepted(true)}
-                className="w-full py-3 rounded-xl font-semibold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] transition-all"
+                onClick={handleAcceptDisclaimer}
+                disabled={accepting}
+                className={`w-full py-3 rounded-xl font-semibold text-white transition-all ${
+                  accepting ? 'bg-emerald-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98]'
+                }`}
               >
-                Megnyitom
+                {accepting ? 'Feldolgozás...' : 'Elfogadom, megnyitom'}
               </button>
               <button
                 onClick={() => router.push('/')}

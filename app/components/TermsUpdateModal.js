@@ -10,7 +10,7 @@ import { db } from '@/lib/firebase';
  * Ha modositjuk a feltételeket, ezt az értéket növeljük,
  * és a felhasználókat újra elfogadásra kérjük.
  */
-export const CURRENT_TERMS_VERSION = '2026-02-23';
+export const CURRENT_TERMS_VERSION = '2026-03-04';
 
 export default function TermsUpdateModal() {
   const { user, userData } = useAuth();
@@ -75,7 +75,7 @@ export default function TermsUpdateModal() {
             Felhasználási feltételek módosultak
           </h2>
           <p style={{ fontSize: 13, color: darkMode ? '#9ca3af' : '#6b7280', marginTop: 4 }}>
-            Hatályos: 2026. február 23.
+            Hatályos: 2026. március 4.
           </p>
         </div>
 
@@ -96,6 +96,28 @@ export default function TermsUpdateModal() {
             A Pharmagister alkalmazás felhasználási feltételei az alábbi pontokban módosultak.
             Kérjük, olvasd el a változásokat, majd fogadd el a folytatáshoz.
           </p>
+
+          <hr style={{ border: 'none', borderTop: `1px solid ${darkMode ? '#374151' : '#e5e7eb'}`, margin: '16px 0' }} />
+
+          {/* Hiánycikk kereső blokk */}
+          <div style={{
+            padding: '16px 20px',
+            marginBottom: 20,
+            borderRadius: 12,
+            border: `2px solid ${darkMode ? '#059669' : '#10b981'}`,
+            backgroundColor: darkMode ? 'rgba(16,185,129,0.1)' : '#ecfdf5',
+          }}>
+            <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, color: darkMode ? '#6ee7b7' : '#059669' }}>
+              Új funkció: Hiánycikk kereső
+            </h3>
+            <p style={{ marginBottom: 0, fontSize: 14 }}>
+              A Hiánycikk kereső funkció kizárólag tájékoztató jellegű információmegosztást szolgál
+              a regisztrált gyógyszertárak és alkalmazottak között. Az oldalon nem történik értékesítés
+              vagy tranzakció, és a felhasználók közötti kapcsolatfelvétel minden esetben offline,
+              telefonon vagy emailben történik. A Pharmagister nem vállal felelősséget a hiánycikkek
+              elérhetőségéért vagy az abból származó esetleges következményekért.
+            </p>
+          </div>
 
           <hr style={{ border: 'none', borderTop: `1px solid ${darkMode ? '#374151' : '#e5e7eb'}`, margin: '16px 0' }} />
 
