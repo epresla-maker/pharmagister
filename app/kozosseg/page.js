@@ -819,113 +819,107 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate }) {
   const categoryData = CATEGORIES.find(c => c.id === post.category) || CATEGORIES[0];
 
   return (
-    <div className={`rounded-2xl border overflow-hidden transition-shadow hover:shadow-md ${
-      darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-    }`}>
+    <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
       {/* Header */}
-      <div className="px-4 pt-4 pb-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {/* Avatar */}
-            {post.isAnonymous ? (
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                darkMode ? 'bg-gradient-to-br from-gray-600 to-gray-700' : 'bg-gradient-to-br from-gray-200 to-gray-300'
-              }`}>
-                <Users className={`w-5 h-5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
-              </div>
-            ) : (
-              <img
-                src={post.authorData?.photoURL || '/default-avatar.svg'}
-                alt={post.authorData?.displayName || 'Felhasználó'}
-                className="w-10 h-10 rounded-full object-cover"
-              />
-            )}
-            <div>
-              <div className="flex items-center gap-2">
-                <span className={`font-semibold text-sm ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>
-                  {post.isAnonymous ? 'Anonim felhasználó' : (post.authorData?.displayName || 'Felhasználó')}
-                </span>
-                {isAdmin && post.isAnonymous && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 font-mono">
-                    {post.userId?.slice(0, 8)}
-                  </span>
-                )}
-              </div>
-              <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                {formatTime(post.createdAt)}
-              </p>
+      <div className="py-3 flex items-start justify-between px-3 sm:px-4">
+        <div className="flex gap-3">
+          {/* Avatar */}
+          {post.isAnonymous ? (
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+              darkMode ? 'bg-gradient-to-br from-gray-600 to-gray-700' : 'bg-gradient-to-br from-gray-200 to-gray-300'
+            }`}>
+              <Users className={`w-5 h-5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
             </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {/* Category badge */}
-            <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${categoryData.color}`}>
-              {categoryData.emoji} {categoryData.label}
-            </span>
-
-            {/* Menu */}
-            <div className="relative">
-              <button
-                onClick={() => setShowMenu(!showMenu)}
-                className={`p-1.5 rounded-full transition-colors ${
-                  darkMode ? 'hover:bg-gray-700 text-gray-400' : 'hover:bg-gray-100 text-gray-500'
-                }`}
-              >
-                <MoreHorizontal className="w-4 h-4" />
-              </button>
-              {showMenu && (
-                <div className={`absolute right-0 top-full mt-1 w-48 rounded-xl shadow-lg border z-10 overflow-hidden ${
-                  darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-200'
-                }`}>
-                  <button
-                    onClick={handleReport}
-                    className={`w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left ${
-                      darkMode ? 'hover:bg-gray-600 text-gray-300' : 'hover:bg-gray-50 text-gray-700'
-                    }`}
-                  >
-                    <Flag className="w-4 h-4" />
-                    Jelentés
-                  </button>
-                  {(isAdmin || post.userId === user?.uid) && (
-                    <button
-                      onClick={handleDelete}
-                      className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      Törlés
-                    </button>
-                  )}
-                </div>
+          ) : (
+            <img
+              src={post.authorData?.photoURL || '/default-avatar.svg'}
+              alt={post.authorData?.displayName || 'Felhaszn\u00e1l\u00f3'}
+              className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+            />
+          )}
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                {post.isAnonymous ? 'Anonim felhaszn\u00e1l\u00f3' : (post.authorData?.displayName || 'Felhaszn\u00e1l\u00f3')}
+              </span>
+              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${categoryData.color}`}>
+                {categoryData.emoji} {categoryData.label}
+              </span>
+              {isAdmin && post.isAnonymous && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 font-mono">
+                  {post.userId?.slice(0, 8)}
+                </span>
               )}
             </div>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {formatTime(post.createdAt)}
+            </p>
           </div>
+        </div>
+
+        {/* Menu */}
+        <div className="relative">
+          <button
+            onClick={() => setShowMenu(!showMenu)}
+            className={`p-2 rounded-full transition-colors ${
+              darkMode ? 'hover:bg-gray-700 text-gray-400' : 'hover:bg-gray-100 text-gray-500'
+            }`}
+          >
+            <MoreHorizontal className="w-5 h-5" />
+          </button>
+          {showMenu && (
+            <div className={`absolute right-0 top-full mt-1 w-48 rounded-lg shadow-lg border z-10 overflow-hidden ${
+              darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-200'
+            }`}>
+              <button
+                onClick={handleReport}
+                className={`w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left ${
+                  darkMode ? 'hover:bg-gray-600 text-gray-300' : 'hover:bg-gray-50 text-gray-700'
+                }`}
+              >
+                <Flag className="w-4 h-4" />
+                Jelent\u00e9s
+              </button>
+              {(isAdmin || post.userId === user?.uid) && (
+                <button
+                  onClick={handleDelete}
+                  className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  T\u00f6rl\u00e9s
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Content */}
-      {post.style ? (
-        <div
-          className="mx-4 mb-3 px-4 py-3 rounded-xl whitespace-pre-wrap leading-relaxed"
-          style={{
-            backgroundColor: post.style.backgroundColor,
-            color: post.style.textColor,
-            fontSize: `${post.style.fontSize || 16}px`,
-            fontFamily: getFontFamilyCSS(post.style.fontFamily || 'sans'),
-          }}
-        >
-          {post.text}
-        </div>
-      ) : (
-        <div className={`px-4 pb-3 text-sm leading-relaxed whitespace-pre-wrap ${
-          darkMode ? 'text-gray-200' : 'text-gray-800'
-        }`}>
-          {renderText(post.text)}
-        </div>
-      )}
+      <div className="pb-2">
+        {post.style ? (
+          <div
+            className="mx-3 sm:mx-4 p-4 rounded-xl whitespace-pre-wrap"
+            style={{
+              backgroundColor: post.style.backgroundColor,
+              color: post.style.textColor,
+              fontSize: `${post.style.fontSize || 16}px`,
+              fontFamily: getFontFamilyCSS(post.style.fontFamily || 'sans'),
+            }}
+          >
+            {post.text}
+          </div>
+        ) : (
+          <p className={`whitespace-pre-wrap px-3 sm:px-4 ${
+            darkMode ? 'text-white' : 'text-gray-900'
+          }`}>
+            {post.text}
+          </p>
+        )}
+      </div>
 
       {/* Tags */}
       {post.tags && post.tags.length > 0 && (
-        <div className="px-4 pb-3 flex flex-wrap gap-1.5">
+        <div className="px-3 sm:px-4 pb-2 flex flex-wrap gap-1.5">
           {post.tags.map((tag) => (
             <span key={tag} className={`text-xs px-2 py-0.5 rounded-full font-medium ${
               darkMode ? 'bg-blue-900/30 text-blue-400' : 'bg-blue-50 text-blue-600'
@@ -938,7 +932,7 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate }) {
 
       {/* Reactions summary */}
       {reactionSummary && (
-        <div className={`px-4 pb-2 flex items-center gap-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+        <div className={`px-3 sm:px-4 pb-1.5 flex items-center gap-1 text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
           <div className="flex -space-x-1">
             {Object.entries(reactionSummary)
               .sort((a, b) => b[1] - a[1])
@@ -953,8 +947,8 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate }) {
       )}
 
       {/* Action bar */}
-      <div className={`px-4 py-2 border-t flex items-center justify-between ${
-        darkMode ? 'border-gray-700' : 'border-gray-100'
+      <div className={`border-t py-2 flex items-center justify-center px-3 sm:px-4 ${
+        darkMode ? 'border-gray-700' : 'border-gray-200'
       }`}>
         {/* Reaction button */}
         <div className="relative"
@@ -1098,7 +1092,7 @@ export default function KozossegPage() {
   }
 
   return (
-    <div className={`min-h-screen pb-24 ${darkMode ? 'bg-gray-900' : 'bg-[#F0F2F5]'}`}>
+    <div className={`min-h-screen pb-24 ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
       {/* Header */}
       <div className={`sticky top-0 z-10 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b`}>
         <div className="flex items-center px-4 py-3">
@@ -1183,8 +1177,8 @@ export default function KozossegPage() {
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
           </div>
         ) : posts.length === 0 ? (
-          <div className={`text-center py-16 rounded-2xl border ${
-            darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+          <div className={`text-center py-16 ${
+            darkMode ? 'bg-gray-800' : 'bg-white'
           }`}>
             <MessageCircle className={`w-12 h-12 mx-auto mb-4 ${darkMode ? 'text-gray-600' : 'text-gray-300'}`} />
             <h3 className={`text-lg font-semibold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
