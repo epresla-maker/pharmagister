@@ -38,17 +38,15 @@ import {
   Flag,
   MoreHorizontal,
   Trash2,
-  Bold,
-  Italic,
-  List,
-  Link2,
   ChevronDown,
   ChevronUp,
   Hash,
   Users,
   Eye,
   EyeOff,
-  Shield
+  Shield,
+  Palette,
+  Type
 } from 'lucide-react';
 
 // ============================================
@@ -75,6 +73,37 @@ const REACTIONS = [
 
 const ADMIN_EMAIL = 'epresla@icloud.com';
 
+const COLOR_PRESETS = [
+  { name: 'Alapértelmezett', bg: '#ffffff', text: '#1f2937' },
+  { name: 'Sötét', bg: '#1a1a2e', text: '#e0e0e0' },
+  { name: 'Kék', bg: '#1e3a5f', text: '#ffffff' },
+  { name: 'Zöld', bg: '#1b4332', text: '#d8f3dc' },
+  { name: 'Lila', bg: '#3c096c', text: '#e0aaff' },
+  { name: 'Meleg', bg: '#7f5539', text: '#ffe8d6' },
+  { name: 'Piros', bg: '#6a040f', text: '#ffddd2' },
+  { name: 'Arany', bg: '#ffd60a', text: '#001d3d' },
+  { name: 'Narancs', bg: '#f48c06', text: '#ffffff' },
+  { name: 'Türkiz', bg: '#0a9396', text: '#ffffff' },
+];
+
+const FONT_OPTIONS = [
+  { value: 'sans', label: 'Sans-serif' },
+  { value: 'serif', label: 'Serif' },
+  { value: 'mono', label: 'Monospace' },
+  { value: 'cursive', label: 'Kézírásos' },
+];
+
+const FONT_SIZE_OPTIONS = [14, 16, 18, 20, 24, 28];
+
+const getFontFamilyCSS = (family) => {
+  switch (family) {
+    case 'serif': return 'Georgia, serif';
+    case 'mono': return 'monospace';
+    case 'cursive': return 'cursive';
+    default: return 'inherit';
+  }
+};
+
 // ============================================
 // POST CREATION MODAL
 // ============================================
@@ -86,21 +115,16 @@ function CreatePostModal({ darkMode, user, onClose, onSuccess }) {
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+  const [showStylePanel, setShowStylePanel] = useState(false);
+  const [style, setStyle] = useState({
+    backgroundColor: '#ffffff',
+    textColor: '#1f2937',
+    fontSize: 16,
+    fontFamily: 'sans',
+  });
   const textareaRef = useRef(null);
 
-  const insertFormatting = (prefix, suffix = prefix) => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selected = text.substring(start, end);
-    const newText = text.substring(0, start) + prefix + selected + suffix + text.substring(end);
-    setText(newText);
-    setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(start + prefix.length, end + prefix.length);
-    }, 0);
-  };
+  const hasCustomStyle = style.backgroundColor !== '#ffffff' || style.textColor !== '#1f2937' || style.fontSize !== 16 || style.fontFamily !== 'sans';
 
   const addTag = () => {
     const tag = tagInput.trim().replace(/^#/, '');
@@ -121,6 +145,7 @@ function CreatePostModal({ darkMode, user, onClose, onSuccess }) {
         tags,
         userId: user.uid,
         isAnonymous,
+        style: hasCustomStyle ? style : null,
         createdAt: serverTimestamp(),
         reactions: {},
         comments: [],
@@ -223,55 +248,144 @@ function CreatePostModal({ darkMode, user, onClose, onSuccess }) {
           )}
         </div>
 
-        {/* Formázás toolbar */}
-        <div className={`px-4 mt-3 flex items-center gap-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+        {/* Stílus gomb */}
+        <div className="px-4 mt-3">
           <button
             type="button"
-            onClick={() => insertFormatting('**')}
-            className={`p-2 rounded-lg transition-colors ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
-            title="Félkövér"
+            onClick={() => setShowStylePanel(!showStylePanel)}
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+              hasCustomStyle
+                ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md'
+                : darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
           >
-            <Bold className="w-4 h-4" />
+            <Palette className="w-4 h-4" />
+            <span>Stílus testreszabása</span>
+            {showStylePanel ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
-          <button
-            type="button"
-            onClick={() => insertFormatting('*')}
-            className={`p-2 rounded-lg transition-colors ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
-            title="Dőlt"
-          >
-            <Italic className="w-4 h-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => insertFormatting('\n- ', '')}
-            className={`p-2 rounded-lg transition-colors ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
-            title="Lista"
-          >
-            <List className="w-4 h-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => insertFormatting('[', '](url)')}
-            className={`p-2 rounded-lg transition-colors ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
-            title="Link"
-          >
-            <Link2 className="w-4 h-4" />
-          </button>
+
+          {showStylePanel && (
+            <div className={`mt-2 p-3 rounded-xl border space-y-4 ${
+              darkMode ? 'bg-gray-700/50 border-gray-600' : 'bg-gray-50 border-gray-200'
+            }`}>
+              {/* Színsémák */}
+              <div>
+                <p className={`text-xs font-semibold mb-2 uppercase tracking-wide ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  Színsémák
+                </p>
+                <div className="grid grid-cols-5 gap-1.5">
+                  {COLOR_PRESETS.map((preset) => (
+                    <button
+                      key={preset.name}
+                      type="button"
+                      onClick={() => setStyle(s => ({ ...s, backgroundColor: preset.bg, textColor: preset.text }))}
+                      className={`relative rounded-lg p-1 transition-all ${
+                        style.backgroundColor === preset.bg && style.textColor === preset.text
+                          ? 'ring-2 ring-blue-500 ring-offset-1 scale-105'
+                          : 'hover:scale-105'
+                      }`}
+                      title={preset.name}
+                    >
+                      <div
+                        className="w-full h-8 rounded-md border border-black/10 flex items-center justify-center"
+                        style={{ backgroundColor: preset.bg }}
+                      >
+                        <span style={{ color: preset.text, fontSize: '10px', fontWeight: 600 }}>Aa</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Egyéni színek */}
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <label className={`text-xs font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Háttér</label>
+                  <input
+                    type="color"
+                    value={style.backgroundColor}
+                    onChange={(e) => setStyle(s => ({ ...s, backgroundColor: e.target.value }))}
+                    className="w-8 h-8 rounded-lg cursor-pointer border-0"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className={`text-xs font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Szöveg</label>
+                  <input
+                    type="color"
+                    value={style.textColor}
+                    onChange={(e) => setStyle(s => ({ ...s, textColor: e.target.value }))}
+                    className="w-8 h-8 rounded-lg cursor-pointer border-0"
+                  />
+                </div>
+              </div>
+
+              {/* Betűtípus és méret */}
+              <div className="flex items-center gap-3">
+                <div className="flex-1">
+                  <label className={`text-xs font-medium mb-1 block ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    <Type className="w-3 h-3 inline mr-1" />Betűtípus
+                  </label>
+                  <select
+                    value={style.fontFamily}
+                    onChange={(e) => setStyle(s => ({ ...s, fontFamily: e.target.value }))}
+                    className={`w-full px-2 py-1.5 rounded-lg text-sm border ${
+                      darkMode ? 'bg-gray-600 border-gray-500 text-gray-200' : 'bg-white border-gray-300 text-gray-700'
+                    }`}
+                  >
+                    {FONT_OPTIONS.map(f => (
+                      <option key={f.value} value={f.value}>{f.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex-1">
+                  <label className={`text-xs font-medium mb-1 block ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    Betűméret
+                  </label>
+                  <select
+                    value={style.fontSize}
+                    onChange={(e) => setStyle(s => ({ ...s, fontSize: Number(e.target.value) }))}
+                    className={`w-full px-2 py-1.5 rounded-lg text-sm border ${
+                      darkMode ? 'bg-gray-600 border-gray-500 text-gray-200' : 'bg-white border-gray-300 text-gray-700'
+                    }`}
+                  >
+                    {FONT_SIZE_OPTIONS.map(size => (
+                      <option key={size} value={size}>{size}px</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Reset gomb */}
+              {hasCustomStyle && (
+                <button
+                  type="button"
+                  onClick={() => setStyle({ backgroundColor: '#ffffff', textColor: '#1f2937', fontSize: 16, fontFamily: 'sans' })}
+                  className={`text-xs px-3 py-1.5 rounded-lg transition-colors ${
+                    darkMode ? 'text-gray-400 hover:bg-gray-600' : 'text-gray-500 hover:bg-gray-200'
+                  }`}
+                >
+                  ↺ Alapértelmezés visszaállítása
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Szövegmező */}
-        <div className="px-4 mt-1">
+        {/* Szövegmező élő előnézettel */}
+        <div className="px-4 mt-3">
           <textarea
             ref={textareaRef}
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="Írd meg a gondolataidat..."
             rows={5}
-            className={`w-full px-4 py-3 rounded-xl border resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base ${
-              darkMode
-                ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-500'
-                : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400'
-            }`}
+            style={{
+              backgroundColor: style.backgroundColor,
+              color: style.textColor,
+              fontSize: `${style.fontSize}px`,
+              fontFamily: getFontFamilyCSS(style.fontFamily),
+            }}
+            className="w-full px-4 py-3 rounded-xl border resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
           <div className={`flex justify-end mt-1 text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
             {text.length} karakter
@@ -769,11 +883,25 @@ function PostCard({ post, darkMode, user, isAdmin, onUpdate }) {
       </div>
 
       {/* Content */}
-      <div className={`px-4 pb-3 text-sm leading-relaxed whitespace-pre-wrap ${
-        darkMode ? 'text-gray-200' : 'text-gray-800'
-      }`}>
-        {renderText(post.text)}
-      </div>
+      {post.style ? (
+        <div
+          className="mx-4 mb-3 px-4 py-3 rounded-xl whitespace-pre-wrap leading-relaxed"
+          style={{
+            backgroundColor: post.style.backgroundColor,
+            color: post.style.textColor,
+            fontSize: `${post.style.fontSize || 16}px`,
+            fontFamily: getFontFamilyCSS(post.style.fontFamily || 'sans'),
+          }}
+        >
+          {post.text}
+        </div>
+      ) : (
+        <div className={`px-4 pb-3 text-sm leading-relaxed whitespace-pre-wrap ${
+          darkMode ? 'text-gray-200' : 'text-gray-800'
+        }`}>
+          {renderText(post.text)}
+        </div>
+      )}
 
       {/* Tags */}
       {post.tags && post.tags.length > 0 && (
