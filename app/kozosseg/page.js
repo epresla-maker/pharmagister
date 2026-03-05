@@ -176,12 +176,12 @@ function CreatePostModal({ darkMode, user, onClose, onSuccess }) {
   const selectedCategory = CATEGORIES.find(c => c.id === category);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center pt-4 sm:pt-0">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
-      <div className={`relative w-full sm:max-w-lg mx-auto rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[85vh] sm:max-h-[90vh] ${
+      <div className={`relative w-full sm:max-w-lg mx-auto rounded-2xl shadow-2xl flex flex-col max-h-[92vh] sm:max-h-[90vh] mx-2 sm:mx-auto ${
         darkMode ? 'bg-gray-800' : 'bg-white'
       }`}>
         {/* Header */}
