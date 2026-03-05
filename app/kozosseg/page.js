@@ -107,7 +107,7 @@ const getFontFamilyCSS = (family) => {
 // ============================================
 // POST CREATION MODAL
 // ============================================
-function CreatePostModal({ darkMode, user, onClose, onSuccess }) {
+function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
   const [text, setText] = useState('');
   const [category, setCategory] = useState('altalanos');
   const [tags, setTags] = useState([]);
@@ -156,8 +156,8 @@ function CreatePostModal({ darkMode, user, onClose, onSuccess }) {
       // Ha nem anonim, mentsük el a szerző adatait
       if (!isAnonymous) {
         postData.authorData = {
-          displayName: user.displayName || 'Felhasználó',
-          photoURL: user.photoURL || null,
+          displayName: userData?.displayName || user.displayName || 'Felhasználó',
+          photoURL: userData?.photoURL || user.photoURL || null,
         };
       }
 
@@ -474,7 +474,7 @@ function CreatePostModal({ darkMode, user, onClose, onSuccess }) {
 // ============================================
 // COMMENT SECTION
 // ============================================
-function CommentSection({ postId, comments, darkMode, user, isAdmin, onUpdate }) {
+function CommentSection({ postId, comments, darkMode, user, userData, isAdmin, onUpdate }) {
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -504,8 +504,8 @@ function CommentSection({ postId, comments, darkMode, user, isAdmin, onUpdate })
 
       if (!isAnonComment) {
         newComment.authorData = {
-          displayName: user.displayName || 'Felhasználó',
-          photoURL: user.photoURL || null,
+          displayName: userData?.displayName || user.displayName || 'Felhasználó',
+          photoURL: userData?.photoURL || user.photoURL || null,
         };
       }
 
@@ -710,7 +710,7 @@ function CommentSection({ postId, comments, darkMode, user, isAdmin, onUpdate })
 // ============================================
 // SINGLE POST CARD
 // ============================================
-function PostCard({ post, darkMode, user, isAdmin, onUpdate }) {
+function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate }) {
   const [showReactions, setShowReactions] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const reactionTimeout = useRef(null);
@@ -1007,6 +1007,7 @@ function PostCard({ post, darkMode, user, isAdmin, onUpdate }) {
           comments={post.comments || []}
           darkMode={darkMode}
           user={user}
+          userData={userData}
           isAdmin={isAdmin}
           onUpdate={onUpdate}
         />
@@ -1207,6 +1208,7 @@ export default function KozossegPage() {
               post={post}
               darkMode={darkMode}
               user={user}
+              userData={userData}
               isAdmin={isAdmin}
               onUpdate={fetchPosts}
             />
@@ -1227,6 +1229,7 @@ export default function KozossegPage() {
         <CreatePostModal
           darkMode={darkMode}
           user={user}
+          userData={userData}
           onClose={() => setShowCreateModal(false)}
           onSuccess={fetchPosts}
         />
