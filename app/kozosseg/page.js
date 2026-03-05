@@ -83,7 +83,7 @@ function CreatePostModal({ darkMode, user, onClose, onSuccess }) {
   const [category, setCategory] = useState('altalanos');
   const [tags, setTags] = useState([]);
   const [tagInput, setTagInput] = useState('');
-  const [isAnonymous, setIsAnonymous] = useState(true);
+  const [isAnonymous, setIsAnonymous] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const textareaRef = useRef(null);
@@ -173,45 +173,19 @@ function CreatePostModal({ darkMode, user, onClose, onSuccess }) {
           </button>
         </div>
 
-        {/* Anonim / Nyilvános toggle */}
+        {/* Anonim checkbox */}
         <div className="mx-4 mt-3">
-          <button
-            type="button"
-            onClick={() => setIsAnonymous(!isAnonymous)}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all border ${
-              isAnonymous
-                ? darkMode ? 'bg-gray-700/50 border-gray-600 text-gray-300' : 'bg-gray-50 border-gray-200 text-gray-600'
-                : darkMode ? 'bg-blue-900/30 border-blue-700 text-blue-300' : 'bg-blue-50 border-blue-200 text-blue-700'
-            }`}
-          >
-            {isAnonymous ? (
-              <>
-                <EyeOff className="w-4 h-4" />
-                <div className="flex-1 text-left">
-                  <span className="font-semibold">Anonim</span>
-                  <span className="ml-1 font-normal opacity-75">– a neved nem jelenik meg</span>
-                </div>
-                <div className={`w-10 h-6 rounded-full relative transition-colors ${
-                  darkMode ? 'bg-gray-600' : 'bg-gray-300'
-                }`}>
-                  <div className="absolute left-1 top-1 w-4 h-4 rounded-full bg-white transition-transform" />
-                </div>
-              </>
-            ) : (
-              <>
-                <Eye className="w-4 h-4" />
-                <div className="flex-1 text-left">
-                  <span className="font-semibold">Nyilvános</span>
-                  <span className="ml-1 font-normal opacity-75">– a neved megjelenik</span>
-                </div>
-                <div className={`w-10 h-6 rounded-full relative transition-colors ${
-                  darkMode ? 'bg-blue-600' : 'bg-blue-500'
-                }`}>
-                  <div className="absolute right-1 top-1 w-4 h-4 rounded-full bg-white transition-transform" />
-                </div>
-              </>
-            )}
-          </button>
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isAnonymous}
+              onChange={(e) => setIsAnonymous(e.target.checked)}
+              className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+            />
+            <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+              Poszt küldése anonimként
+            </span>
+          </label>
         </div>
 
         {/* Kategória választó */}
