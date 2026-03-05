@@ -479,13 +479,33 @@ function CommentThread({ postId, comments, darkMode, user, userData, isAdmin, on
   const [submitting, setSubmitting] = useState(false);
   const [replyTo, setReplyTo] = useState(null); // comment id being replied to
   const [isAnonComment, setIsAnonComment] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const inputRef = useRef(null);
+  const containerRef = useRef(null);
 
   useEffect(() => {
     if (autoFocus) {
       setTimeout(() => inputRef.current?.focus(), 300);
     }
   }, [autoFocus]);
+
+  // Handle iOS keyboard pushing input out of view
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const onResize = () => {
+      const kbH = window.innerHeight - vv.height;
+      setKeyboardHeight(kbH > 0 ? kbH : 0);
+    };
+
+    vv.addEventListener('resize', onResize);
+    vv.addEventListener('scroll', onResize);
+    return () => {
+      vv.removeEventListener('resize', onResize);
+      vv.removeEventListener('scroll', onResize);
+    };
+  }, []);
 
   const handleAddComment = async () => {
     if (!commentText.trim() || submitting || !user) return;
@@ -550,7 +570,14 @@ function CommentThread({ postId, comments, darkMode, user, userData, isAdmin, on
   const replyingToComment = replyTo ? comments.find(c => c.id === replyTo) : null;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col" style={{ touchAction: 'pan-y' }}>
+    <div
+      ref={containerRef}
+      className="fixed inset-x-0 top-0 z-50 flex flex-col"
+      style={{
+        touchAction: 'pan-y',
+        height: keyboardHeight > 0 ? `calc(100% - ${keyboardHeight}px)` : '100%',
+      }}
+    >
       {/* Background */}
       <div className={`flex-1 flex flex-col ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
         {/* Header */}
