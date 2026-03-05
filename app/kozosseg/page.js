@@ -83,6 +83,7 @@ function CreatePostModal({ darkMode, user, onClose, onSuccess }) {
   const [category, setCategory] = useState('altalanos');
   const [tags, setTags] = useState([]);
   const [tagInput, setTagInput] = useState('');
+  const [isAnonymous, setIsAnonymous] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const textareaRef = useRef(null);
@@ -114,18 +115,28 @@ function CreatePostModal({ darkMode, user, onClose, onSuccess }) {
 
     setSubmitting(true);
     try {
-      await addDoc(collection(db, 'communityPosts'), {
+      const postData = {
         text: text.trim(),
         category,
         tags,
         userId: user.uid,
-        isAnonymous: true,
+        isAnonymous,
         createdAt: serverTimestamp(),
         reactions: {},
         comments: [],
         reportCount: 0,
         isHidden: false,
-      });
+      };
+
+      // Ha nem anonim, mentsük el a szerző adatait
+      if (!isAnonymous) {
+        postData.authorData = {
+          displayName: user.displayName || 'Felhasználó',
+          photoURL: user.photoURL || null,
+        };
+      }
+
+      await addDoc(collection(db, 'communityPosts'), postData);
 
       onSuccess();
       onClose();
@@ -162,12 +173,45 @@ function CreatePostModal({ darkMode, user, onClose, onSuccess }) {
           </button>
         </div>
 
-        {/* Anonim jelzés */}
-        <div className={`mx-4 mt-3 flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${
-          darkMode ? 'bg-gray-700/50 text-gray-400' : 'bg-gray-50 text-gray-500'
-        }`}>
-          <EyeOff className="w-3.5 h-3.5" />
-          <span>A posztod <strong>anonim</strong> – a neved nem jelenik meg nyilvánosan</span>
+        {/* Anonim / Nyilvános toggle */}
+        <div className="mx-4 mt-3">
+          <button
+            type="button"
+            onClick={() => setIsAnonymous(!isAnonymous)}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all border ${
+              isAnonymous
+                ? darkMode ? 'bg-gray-700/50 border-gray-600 text-gray-300' : 'bg-gray-50 border-gray-200 text-gray-600'
+                : darkMode ? 'bg-blue-900/30 border-blue-700 text-blue-300' : 'bg-blue-50 border-blue-200 text-blue-700'
+            }`}
+          >
+            {isAnonymous ? (
+              <>
+                <EyeOff className="w-4 h-4" />
+                <div className="flex-1 text-left">
+                  <span className="font-semibold">Anonim</span>
+                  <span className="ml-1 font-normal opacity-75">– a neved nem jelenik meg</span>
+                </div>
+                <div className={`w-10 h-6 rounded-full relative transition-colors ${
+                  darkMode ? 'bg-gray-600' : 'bg-gray-300'
+                }`}>
+                  <div className="absolute left-1 top-1 w-4 h-4 rounded-full bg-white transition-transform" />
+                </div>
+              </>
+            ) : (
+              <>
+                <Eye className="w-4 h-4" />
+                <div className="flex-1 text-left">
+                  <span className="font-semibold">Nyilvános</span>
+                  <span className="ml-1 font-normal opacity-75">– a neved megjelenik</span>
+                </div>
+                <div className={`w-10 h-6 rounded-full relative transition-colors ${
+                  darkMode ? 'bg-blue-600' : 'bg-blue-500'
+                }`}>
+                  <div className="absolute right-1 top-1 w-4 h-4 rounded-full bg-white transition-transform" />
+                </div>
+              </>
+            )}
+          </button>
         </div>
 
         {/* Kategória választó */}
@@ -299,8 +343,11 @@ function CreatePostModal({ darkMode, user, onClose, onSuccess }) {
           darkMode ? 'border-gray-700' : 'border-gray-200'
         }`}>
           <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-            <Shield className="w-3 h-3 inline mr-1" />
-            Anonim közzététel
+            {isAnonymous ? (
+              <><EyeOff className="w-3 h-3 inline mr-1" />Anonim közzététel</>
+            ) : (
+              <><Eye className="w-3 h-3 inline mr-1" />Nyilvános közzététel</>
+            )}
           </p>
           <button
             onClick={handleSubmit}
@@ -324,6 +371,7 @@ function CommentSection({ postId, comments, darkMode, user, isAdmin, onUpdate })
   const [commentText, setCommentText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [replyTo, setReplyTo] = useState(null);
+  const [isAnonComment, setIsAnonComment] = useState(true);
 
   const countAllComments = (cmts) => {
     let count = cmts?.length || 0;
@@ -341,10 +389,17 @@ function CommentSection({ postId, comments, darkMode, user, isAdmin, onUpdate })
         id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
         text: commentText.trim(),
         userId: user.uid,
-        isAnonymous: true,
+        isAnonymous: isAnonComment,
         createdAt: new Date().toISOString(),
         replies: [],
       };
+
+      if (!isAnonComment) {
+        newComment.authorData = {
+          displayName: user.displayName || 'Felhasználó',
+          photoURL: user.photoURL || null,
+        };
+      }
 
       if (replyTo) {
         // Reply to existing comment
@@ -405,15 +460,23 @@ function CommentSection({ postId, comments, darkMode, user, isAdmin, onUpdate })
             }`}>
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2">
-                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
-                    darkMode ? 'bg-gray-600 text-gray-300' : 'bg-gray-300 text-gray-600'
-                  }`}>
-                    <EyeOff className="w-3.5 h-3.5" />
-                  </div>
+                  {comment.isAnonymous !== false ? (
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                      darkMode ? 'bg-gray-600 text-gray-300' : 'bg-gray-300 text-gray-600'
+                    }`}>
+                      <EyeOff className="w-3.5 h-3.5" />
+                    </div>
+                  ) : (
+                    <img
+                      src={comment.authorData?.photoURL || '/default-avatar.svg'}
+                      alt=""
+                      className="w-7 h-7 rounded-full object-cover"
+                    />
+                  )}
                   <span className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                    Anonim felhasználó
+                    {comment.isAnonymous !== false ? 'Anonim felhasználó' : (comment.authorData?.displayName || 'Felhasználó')}
                   </span>
-                  {isAdmin && (
+                  {isAdmin && comment.isAnonymous !== false && (
                     <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400">
                       ID: {comment.userId?.slice(0, 6)}...
                     </span>
@@ -443,15 +506,19 @@ function CommentSection({ postId, comments, darkMode, user, isAdmin, onUpdate })
                   darkMode ? 'border-gray-600' : 'border-gray-200'
                 }`}>
                   <div className="flex items-center gap-2 mb-0.5">
-                    <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
-                      darkMode ? 'bg-gray-600 text-gray-400' : 'bg-gray-200 text-gray-500'
-                    }`}>
-                      <EyeOff className="w-2.5 h-2.5" />
-                    </div>
+                    {reply.isAnonymous !== false ? (
+                      <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                        darkMode ? 'bg-gray-600 text-gray-400' : 'bg-gray-200 text-gray-500'
+                      }`}>
+                        <EyeOff className="w-2.5 h-2.5" />
+                      </div>
+                    ) : (
+                      <img src={reply.authorData?.photoURL || '/default-avatar.svg'} alt="" className="w-5 h-5 rounded-full object-cover" />
+                    )}
                     <span className={`text-xs font-medium ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                      Anonim felhasználó
+                      {reply.isAnonymous !== false ? 'Anonim felhasználó' : (reply.authorData?.displayName || 'Felhasználó')}
                     </span>
-                    {isAdmin && (
+                    {isAdmin && reply.isAnonymous !== false && (
                       <span className="text-xs px-1.5 py-0.5 rounded-full bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400">
                         {reply.userId?.slice(0, 6)}
                       </span>
@@ -491,30 +558,38 @@ function CommentSection({ postId, comments, darkMode, user, isAdmin, onUpdate })
 
           {/* New comment input */}
           {!replyTo && (
-            <div className="flex gap-2">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                darkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-200 text-gray-500'
-              }`}>
-                <EyeOff className="w-4 h-4" />
-              </div>
-              <div className="flex-1 flex gap-2">
-                <input
-                  type="text"
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') handleAddComment(); }}
-                  placeholder="Anonim hozzászólás..."
-                  className={`flex-1 px-3 py-2 rounded-xl text-sm border ${
-                    darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-500' : 'bg-gray-50 border-gray-200 text-gray-900'
-                  }`}
-                />
+            <div className="space-y-2">
+              <div className="flex gap-2">
                 <button
-                  onClick={handleAddComment}
-                  disabled={!commentText.trim() || submitting}
-                  className="p-2 rounded-xl bg-blue-600 text-white disabled:bg-gray-400 transition-colors"
+                  onClick={() => setIsAnonComment(!isAnonComment)}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
+                    isAnonComment
+                      ? darkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-200 text-gray-500'
+                      : 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400'
+                  }`}
+                  title={isAnonComment ? 'Anonim – kattints a váltáshoz' : 'Nyilvános – kattints a váltáshoz'}
                 >
-                  <Send className="w-4 h-4" />
+                  {isAnonComment ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
+                <div className="flex-1 flex gap-2">
+                  <input
+                    type="text"
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleAddComment(); }}
+                    placeholder={isAnonComment ? 'Anonim hozzászólás...' : 'Hozzászólás a neveddel...'}
+                    className={`flex-1 px-3 py-2 rounded-xl text-sm border ${
+                      darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-500' : 'bg-gray-50 border-gray-200 text-gray-900'
+                    }`}
+                  />
+                  <button
+                    onClick={handleAddComment}
+                    disabled={!commentText.trim() || submitting}
+                    className="p-2 rounded-xl bg-blue-600 text-white disabled:bg-gray-400 transition-colors"
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -643,18 +718,26 @@ function PostCard({ post, darkMode, user, isAdmin, onUpdate }) {
       <div className="px-4 pt-4 pb-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {/* Anonymous avatar */}
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-              darkMode ? 'bg-gradient-to-br from-gray-600 to-gray-700' : 'bg-gradient-to-br from-gray-200 to-gray-300'
-            }`}>
-              <Users className={`w-5 h-5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
-            </div>
+            {/* Avatar */}
+            {post.isAnonymous ? (
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                darkMode ? 'bg-gradient-to-br from-gray-600 to-gray-700' : 'bg-gradient-to-br from-gray-200 to-gray-300'
+              }`}>
+                <Users className={`w-5 h-5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+              </div>
+            ) : (
+              <img
+                src={post.authorData?.photoURL || '/default-avatar.svg'}
+                alt={post.authorData?.displayName || 'Felhasználó'}
+                className="w-10 h-10 rounded-full object-cover"
+              />
+            )}
             <div>
               <div className="flex items-center gap-2">
                 <span className={`font-semibold text-sm ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>
-                  Anonim felhasználó
+                  {post.isAnonymous ? 'Anonim felhasználó' : (post.authorData?.displayName || 'Felhasználó')}
                 </span>
-                {isAdmin && (
+                {isAdmin && post.isAnonymous && (
                   <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 font-mono">
                     {post.userId?.slice(0, 8)}
                   </span>
