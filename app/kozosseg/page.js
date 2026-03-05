@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
@@ -1026,8 +1027,8 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate }) {
         </button>
       </div>
 
-      {/* Comment thread fullscreen */}
-      {showCommentThread && (
+      {/* Comment thread fullscreen - portal to body */}
+      {showCommentThread && typeof document !== 'undefined' && createPortal(
         <CommentThread
           postId={post.id}
           comments={post.comments || []}
@@ -1038,7 +1039,8 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate }) {
           onUpdate={onUpdate}
           onClose={() => { setShowCommentThread(false); setAutoFocusComment(false); }}
           autoFocus={autoFocusComment}
-        />
+        />,
+        document.body
       )}
     </div>
   );
