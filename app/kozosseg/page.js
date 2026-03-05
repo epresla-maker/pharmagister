@@ -474,12 +474,18 @@ function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
 // ============================================
 // COMMENT THREAD (FULLSCREEN)
 // ============================================
-function CommentThread({ postId, comments, darkMode, user, userData, isAdmin, onUpdate, onClose }) {
+function CommentThread({ postId, comments, darkMode, user, userData, isAdmin, onUpdate, onClose, autoFocus }) {
   const [commentText, setCommentText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [replyTo, setReplyTo] = useState(null); // comment id being replied to
   const [isAnonComment, setIsAnonComment] = useState(false);
   const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (autoFocus) {
+      setTimeout(() => inputRef.current?.focus(), 300);
+    }
+  }, [autoFocus]);
 
   const handleAddComment = async () => {
     if (!commentText.trim() || submitting || !user) return;
@@ -731,6 +737,7 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate }) {
   const [showReactions, setShowReactions] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showCommentThread, setShowCommentThread] = useState(false);
+  const [autoFocusComment, setAutoFocusComment] = useState(false);
 
   const userReaction = user ? post.reactions?.[user.uid] : null;
 
@@ -857,14 +864,14 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate }) {
           ) : (
             <img
               src={post.authorData?.photoURL || '/default-avatar.svg'}
-              alt={post.authorData?.displayName || 'Felhaszn\u00e1l\u00f3'}
+              alt={post.authorData?.displayName || 'Felhasználó'}
               className="w-10 h-10 rounded-full object-cover flex-shrink-0"
             />
           )}
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <span className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                {post.isAnonymous ? 'Anonim felhaszn\u00e1l\u00f3' : (post.authorData?.displayName || 'Felhaszn\u00e1l\u00f3')}
+                {post.isAnonymous ? 'Anonim felhasználó' : (post.authorData?.displayName || 'Felhasználó')}
               </span>
               <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${categoryData.color}`}>
                 {categoryData.emoji} {categoryData.label}
@@ -902,7 +909,7 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate }) {
                 }`}
               >
                 <Flag className="w-4 h-4" />
-                Jelent\u00e9s
+                Jelentés
               </button>
               {(isAdmin || post.userId === user?.uid) && (
                 <button
@@ -910,7 +917,7 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate }) {
                   className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                 >
                   <Trash2 className="w-4 h-4" />
-                  T\u00f6rl\u00e9s
+                  Törlés
                 </button>
               )}
             </div>
@@ -1011,15 +1018,28 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate }) {
           )}
         </div>
 
-        {/* Comment button */}
+        {/* Comment count button */}
+        {commentCount > 0 && (
+          <button
+            onClick={() => { setAutoFocusComment(false); setShowCommentThread(true); }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              darkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-50'
+            }`}
+          >
+            <MessageCircle className="w-4 h-4" />
+            <span>{commentCount} hozzászólás</span>
+          </button>
+        )}
+
+        {/* Reply button */}
         <button
-          onClick={() => setShowCommentThread(true)}
+          onClick={() => { setAutoFocusComment(true); setShowCommentThread(true); }}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
             darkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-50'
           }`}
         >
-          <MessageCircle className="w-4 h-4" />
-          <span>{commentCount > 0 ? `${commentCount} hozzászólás` : 'Hozzászólás'}</span>
+          <Send className="w-4 h-4" />
+          <span>Válasz</span>
         </button>
       </div>
 
@@ -1033,7 +1053,8 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate }) {
           userData={userData}
           isAdmin={isAdmin}
           onUpdate={onUpdate}
-          onClose={() => setShowCommentThread(false)}
+          onClose={() => { setShowCommentThread(false); setAutoFocusComment(false); }}
+          autoFocus={autoFocusComment}
         />
       )}
     </div>
