@@ -175,19 +175,34 @@ function CreatePostModal({ darkMode, user, onClose, onSuccess }) {
 
   const selectedCategory = CATEGORIES.find(c => c.id === category);
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
-      {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+  // Scrollba hozás amikor a textarea fókuszt kap (iOS billentyűzet)
+  const handleTextareaFocus = () => {
+    setTimeout(() => {
+      textareaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 300);
+  };
 
-      {/* Modal */}
-      <div className={`relative w-full sm:max-w-lg rounded-2xl shadow-2xl my-2 mx-2 sm:mx-auto ${
-        darkMode ? 'bg-gray-800' : 'bg-white'
-      }`}>
-        {/* Header - sticky */}
-        <div className={`sticky top-0 z-10 flex items-center justify-between px-4 py-3 border-b rounded-t-2xl ${
-          darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'
+  return (
+    <div className="fixed inset-0 z-50" style={{ touchAction: 'pan-y' }}>
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+
+      {/* Fullscreen scrollable wrapper */}
+      <div
+        className="absolute inset-0 overflow-y-scroll overscroll-contain"
+        style={{ WebkitOverflowScrolling: 'touch' }}
+      >
+        {/* Spacer top */}
+        <div className="h-2 sm:h-[10vh]" />
+
+        {/* Modal card */}
+        <div className={`relative w-[calc(100%-16px)] sm:max-w-lg mx-auto rounded-2xl shadow-2xl ${
+          darkMode ? 'bg-gray-800' : 'bg-white'
         }`}>
+          {/* Header */}
+          <div className={`flex items-center justify-between px-4 py-3 border-b ${
+            darkMode ? 'border-gray-700' : 'border-gray-200'
+          }`}>
           <h2 className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
             Új poszt létrehozása
           </h2>
@@ -377,8 +392,9 @@ function CreatePostModal({ darkMode, user, onClose, onSuccess }) {
             ref={textareaRef}
             value={text}
             onChange={(e) => setText(e.target.value)}
+            onFocus={handleTextareaFocus}
             placeholder="Írd meg a gondolataidat..."
-            rows={5}
+            rows={4}
             style={{
               backgroundColor: style.backgroundColor,
               color: style.textColor,
@@ -427,8 +443,8 @@ function CreatePostModal({ darkMode, user, onClose, onSuccess }) {
         </div>
 
         {/* Footer */}
-        <div className={`sticky bottom-0 flex items-center justify-between px-4 py-3 border-t rounded-b-2xl ${
-          darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'
+        <div className={`flex items-center justify-between px-4 py-3 border-t ${
+          darkMode ? 'border-gray-700' : 'border-gray-200'
         }`}>
           <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
             {isAnonymous ? (
@@ -446,7 +462,11 @@ function CreatePostModal({ darkMode, user, onClose, onSuccess }) {
             {submitting ? 'Közzététel...' : 'Közzététel'}
           </button>
         </div>
-      </div>
+        </div>{/* end modal card */}
+
+        {/* Bottom spacer for keyboard */}
+        <div className="h-[50vh]" />
+      </div>{/* end scrollable wrapper */}
     </div>
   );
 }
