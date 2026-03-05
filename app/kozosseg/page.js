@@ -551,7 +551,6 @@ function CommentThread({ postId, comments, darkMode, user, userData, isAdmin, on
 
   return (
     <div
-      ref={containerRef}
       className={`fixed inset-0 z-50 ${darkMode ? 'bg-gray-900' : 'bg-white'}`}
       style={{ height: '100dvh' }}
     >
