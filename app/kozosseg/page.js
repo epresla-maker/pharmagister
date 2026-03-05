@@ -181,11 +181,11 @@ function CreatePostModal({ darkMode, user, onClose, onSuccess }) {
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
-      <div className={`relative w-full sm:max-w-lg mx-auto rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden ${
+      <div className={`relative w-full sm:max-w-lg mx-auto rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[85vh] sm:max-h-[90vh] ${
         darkMode ? 'bg-gray-800' : 'bg-white'
       }`}>
         {/* Header */}
-        <div className={`flex items-center justify-between px-4 py-3 border-b ${
+        <div className={`flex-shrink-0 flex items-center justify-between px-4 py-3 border-b ${
           darkMode ? 'border-gray-700' : 'border-gray-200'
         }`}>
           <h2 className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
@@ -197,6 +197,9 @@ function CreatePostModal({ darkMode, user, onClose, onSuccess }) {
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {/* Scrollable content */}
+        <div className="flex-1 overflow-y-auto min-h-0">
 
         {/* Anonim checkbox */}
         <div className="mx-4 mt-3">
@@ -393,7 +396,7 @@ function CreatePostModal({ darkMode, user, onClose, onSuccess }) {
         </div>
 
         {/* Hashtag-ek */}
-        <div className="px-4 mt-2">
+        <div className="px-4 mt-2 pb-3">
           <div className="flex items-center gap-2 flex-wrap">
             {tags.map((tag) => (
               <span
@@ -426,8 +429,10 @@ function CreatePostModal({ darkMode, user, onClose, onSuccess }) {
           </div>
         </div>
 
+        </div>{/* end scrollable content */}
+
         {/* Footer */}
-        <div className={`flex items-center justify-between px-4 py-3 mt-3 border-t ${
+        <div className={`flex-shrink-0 flex items-center justify-between px-4 py-3 border-t ${
           darkMode ? 'border-gray-700' : 'border-gray-200'
         }`}>
           <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
