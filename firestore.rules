@@ -148,6 +148,14 @@ service cloud.firestore {
       allow update, delete: if isAuthenticated() && (resource.data.createdByUserId == request.auth.uid || isAdmin());
     }
     
+    // Community posts (Közösség - anonim posztok)
+    match /communityPosts/{postId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+    
     // Deny everything else by default (no wildcard catch-all)
   }
 }
