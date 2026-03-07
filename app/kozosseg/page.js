@@ -706,9 +706,13 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
     if (replyTo === comment.id) {
       setReplyTo(null);
       setReplyToComment(null);
+      setCommentText('');
     } else {
       setReplyTo(comment.id);
       setReplyToComment(comment);
+      // Pre-fill @mention like FB
+      const name = comment.isAnonymous !== false ? 'Anonim' : (comment.authorData?.displayName || 'Felhasználó');
+      setCommentText(name + ' ');
     }
     setTimeout(() => inputRef.current?.focus(), 100);
   };
@@ -940,28 +944,26 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
 
       {/* Fixed bottom input bar */}
       <div className={`border-t ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-        {/* Reply indicator */}
+        {/* Reply indicator - FB style */}
         {replyTo && replyToComment && (
-          <div className={`px-4 py-1.5 flex items-center justify-between border-b ${
-            darkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-100'
-          }`}>
-            <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-              Válasz: <span className="font-semibold">{replyingToName}</span>
+          <div className={`px-4 py-1.5 ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
+            <p className={`text-[13px] ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              Válasz <span className="font-semibold">{replyingToName}</span> számára
+              <span className="mx-1.5">·</span>
+              <button onClick={() => { setReplyTo(null); setReplyToComment(null); setCommentText(''); }} className="font-semibold">
+                Mégsem
+              </button>
             </p>
-            <button onClick={() => { setReplyTo(null); setReplyToComment(null); }}>
-              <X className="w-4 h-4 text-gray-400" />
-            </button>
           </div>
         )}
 
-        {/* Input row */}
+        {/* Input row - FB style */}
         <div className="px-3 py-2 flex items-center gap-2">
           {/* User avatar */}
           {isAnonComment ? (
             <button
               onClick={() => setIsAnonComment(false)}
               className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${darkMode ? 'bg-gray-700' : 'bg-gray-200'}`}
-              title="Anonim mód - koppints a váltáshoz"
             >
               <EyeOff className="w-4 h-4 text-gray-500" />
             </button>
@@ -969,7 +971,6 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
             <button
               onClick={() => setIsAnonComment(true)}
               className="flex-shrink-0"
-              title="Nyilvános mód - koppints az anonim váltáshoz"
             >
               {user?.photoURL || userData?.photoURL ? (
                 <img src={userData?.photoURL || user.photoURL} alt="" className="w-9 h-9 rounded-full object-cover" />
@@ -980,33 +981,42 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
               )}
             </button>
           )}
-          <div className="flex-1 relative">
+
+          {/* Input field with inline icons - FB style */}
+          <div className={`flex-1 flex items-center rounded-full ${
+            darkMode ? 'bg-gray-700' : 'bg-[#f0f2f5]'
+          }`}>
             <input
               ref={inputRef}
               type="text"
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') handleAddComment(); }}
-              placeholder={replyTo
-                ? `Válasz írása...`
-                : `Hozzászólás mint ${isAnonComment ? 'Anonim' : currentUserDisplayName}`
-              }
-              className={`w-full pl-4 pr-10 py-2.5 rounded-full text-[15px] ${
-                darkMode
-                  ? 'bg-gray-700 text-white placeholder-gray-500'
-                  : 'bg-[#f0f2f5] text-gray-900 placeholder-gray-500'
-              } focus:outline-none`}
+              placeholder={replyTo ? '' : `Hozzászólás mint ${isAnonComment ? 'Anonim' : currentUserDisplayName}`}
+              className={`flex-1 pl-4 pr-1 py-2.5 rounded-full text-[15px] bg-transparent ${
+                darkMode ? 'text-white placeholder-gray-500' : 'text-gray-900 placeholder-gray-500'
+              } focus:outline-none min-w-0`}
             />
-            {commentText.trim() && (
-              <button
-                onClick={handleAddComment}
-                disabled={submitting}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2"
-              >
-                <Send className={`w-5 h-5 ${submitting ? 'text-gray-400' : 'text-blue-600'}`} />
+            {/* Right side icons */}
+            <div className="flex items-center gap-0.5 pr-2 flex-shrink-0">
+              <button className={`p-1.5 rounded-full ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
               </button>
-            )}
+            </div>
           </div>
+
+          {/* Send button - always visible, FB blue circle */}
+          <button
+            onClick={handleAddComment}
+            disabled={!commentText.trim() || submitting}
+            className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
+              commentText.trim() && !submitting
+                ? 'bg-blue-600 text-white'
+                : darkMode ? 'bg-gray-700 text-gray-500' : 'bg-gray-200 text-gray-400'
+            }`}
+          >
+            <Send className="w-4 h-4" />
+          </button>
         </div>
 
         {/* Safe area spacer for iOS */}
