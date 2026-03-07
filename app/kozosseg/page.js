@@ -478,9 +478,33 @@ function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
 function CommentThread({ postId, comments, darkMode, user, userData, isAdmin, onUpdate, onClose, autoFocus }) {
   const [commentText, setCommentText] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [replyTo, setReplyTo] = useState(null); // comment id being replied to
+  const [replyTo, setReplyTo] = useState(null);
   const [isAnonComment, setIsAnonComment] = useState(false);
+  const [expandedReplies, setExpandedReplies] = useState({});
+  const [bottomOffset, setBottomOffset] = useState(0);
   const inputRef = useRef(null);
+  const containerRef = useRef(null);
+  const inputBarRef = useRef(null);
+
+  // VisualViewport API: keeps input above keyboard on mobile
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const onResize = () => {
+      const offset = window.innerHeight - vv.height - vv.offsetTop;
+      setBottomOffset(Math.max(0, offset));
+      // Scroll to keep input visible
+      setTimeout(() => {
+        inputBarRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }, 50);
+    };
+    vv.addEventListener('resize', onResize);
+    vv.addEventListener('scroll', onResize);
+    return () => {
+      vv.removeEventListener('resize', onResize);
+      vv.removeEventListener('scroll', onResize);
+    };
+  }, []);
 
   useEffect(() => {
     if (autoFocus) {
@@ -548,13 +572,49 @@ function CommentThread({ postId, comments, darkMode, user, userData, isAdmin, on
     setTimeout(() => inputRef.current?.focus(), 100);
   };
 
+  const toggleReplies = (commentId) => {
+    setExpandedReplies(prev => ({ ...prev, [commentId]: !prev[commentId] }));
+  };
+
   const replyingToComment = replyTo ? comments.find(c => c.id === replyTo) : null;
+  const replyingToName = replyingToComment
+    ? (replyingToComment.isAnonymous !== false ? 'Anonim felhasználó' : (replyingToComment.authorData?.displayName || 'Felhasználó'))
+    : '';
+
+  const renderAvatar = (item, size = 'md') => {
+    const sizeClass = size === 'sm' ? 'w-8 h-8' : 'w-10 h-10';
+    const iconSize = size === 'sm' ? 'w-3.5 h-3.5' : 'w-4 h-4';
+    if (item.isAnonymous !== false) {
+      return (
+        <div className={`${sizeClass} rounded-full flex items-center justify-center flex-shrink-0 ${
+          darkMode ? 'bg-gray-700' : 'bg-gray-200'
+        }`}>
+          <EyeOff className={`${iconSize} ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+        </div>
+      );
+    }
+    return (
+      <img
+        src={item.authorData?.photoURL || '/default-avatar.svg'}
+        alt=""
+        className={`${sizeClass} rounded-full object-cover flex-shrink-0`}
+      />
+    );
+  };
+
+  const getDisplayName = (item) => {
+    return item.isAnonymous !== false ? 'Anonim felhasználó' : (item.authorData?.displayName || 'Felhasználó');
+  };
 
   return (
-    <div className="fixed inset-0 z-50" style={{ overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
-      <div className={`min-h-full flex flex-col ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
+    <div
+      ref={containerRef}
+      className="fixed inset-0 z-50 flex flex-col"
+      style={{ height: '100dvh' }}
+    >
+      <div className={`flex-1 flex flex-col ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
         {/* Header */}
-        <div className={`sticky top-0 z-10 flex items-center px-4 py-3 border-b ${
+        <div className={`flex items-center px-4 py-3 border-b flex-shrink-0 ${
           darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'
         }`}>
           <button
@@ -568,8 +628,8 @@ function CommentThread({ postId, comments, darkMode, user, userData, isAdmin, on
           </h2>
         </div>
 
-        {/* Comments */}
-        <div className="flex-1">
+        {/* Comments - scrollable area */}
+        <div className="flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
           {(!comments || comments.length === 0) ? (
             <div className="flex flex-col items-center justify-center py-16">
               <MessageCircle className={`w-12 h-12 mb-3 ${darkMode ? 'text-gray-600' : 'text-gray-300'}`} />
@@ -578,136 +638,164 @@ function CommentThread({ postId, comments, darkMode, user, userData, isAdmin, on
               </p>
             </div>
           ) : (
-            <div className={`divide-y ${darkMode ? 'divide-gray-800' : 'divide-gray-100'}`}>
+            <div className="py-2">
               {comments.map((comment) => (
-                <div key={comment.id} className="px-4 py-3">
-                  <div className="flex items-center gap-2.5">
-                    {comment.isAnonymous !== false ? (
-                      <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${
-                        darkMode ? 'bg-gray-700' : 'bg-gray-200'
-                      }`}>
-                        <EyeOff className={`w-4 h-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
-                      </div>
-                    ) : (
-                      <img
-                        src={comment.authorData?.photoURL || '/default-avatar.svg'}
-                        alt=""
-                        className="w-9 h-9 rounded-full object-cover flex-shrink-0"
-                      />
-                    )}
+                <div key={comment.id} className="px-4 py-2">
+                  {/* Main comment */}
+                  <div className="flex gap-2.5">
+                    <div className="flex-shrink-0 pt-0.5">
+                      {renderAvatar(comment)}
+                    </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className={`font-semibold text-sm ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                          {comment.isAnonymous !== false ? 'Anonim felhasználó' : (comment.authorData?.displayName || 'Felhasználó')}
-                        </span>
-                        {isAdmin && comment.isAnonymous !== false && (
-                          <span className="text-xs px-1.5 py-0.5 rounded bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400 font-mono">
-                            {comment.userId?.slice(0, 6)}
+                      {/* Bubble */}
+                      <div className={`inline-block rounded-2xl px-3.5 py-2.5 max-w-full ${
+                        darkMode ? 'bg-gray-800' : 'bg-gray-100'
+                      }`}>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`font-semibold text-[13px] ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                            {getDisplayName(comment)}
                           </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-gray-500">{formatCommentTime(comment.createdAt)}</p>
-                    </div>
-                  </div>
-
-                  <p className={`mt-1.5 ml-[46px] text-sm ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>
-                    {comment.text}
-                  </p>
-
-                  <div className="ml-[46px] mt-1.5 flex items-center gap-4">
-                    <button
-                      onClick={() => handleReplyTap(comment.id)}
-                      className={`text-xs font-semibold ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}
-                    >
-                      Válasz
-                    </button>
-                    {comment.replies?.length > 0 && (
-                      <span className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                        {comment.replies.length} válasz
-                      </span>
-                    )}
-                  </div>
-
-                  {comment.replies?.length > 0 && (
-                    <div className="ml-[46px] mt-2 space-y-2.5">
-                      {comment.replies.map((reply) => (
-                        <div key={reply.id} className="flex gap-2.5">
-                          {reply.isAnonymous !== false ? (
-                            <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
-                              darkMode ? 'bg-gray-700' : 'bg-gray-200'
-                            }`}>
-                              <EyeOff className={`w-3 h-3 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
-                            </div>
-                          ) : (
-                            <img src={reply.authorData?.photoURL || '/default-avatar.svg'} alt="" className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
+                          {isAdmin && comment.isAnonymous !== false && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400 font-mono">
+                              {comment.userId?.slice(0, 6)}
+                            </span>
                           )}
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className={`font-semibold text-xs ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                                {reply.isAnonymous !== false ? 'Anonim felhasználó' : (reply.authorData?.displayName || 'Felhasználó')}
-                              </span>
-                              <span className="text-xs text-gray-500">{formatCommentTime(reply.createdAt)}</span>
-                            </div>
-                            <p className={`text-sm mt-0.5 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>{reply.text}</p>
-                          </div>
                         </div>
-                      ))}
+                        <p className={`text-sm mt-0.5 whitespace-pre-wrap break-words ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+                          {comment.text}
+                        </p>
+                      </div>
+
+                      {/* Time + Reply */}
+                      <div className="flex items-center gap-3 mt-1 ml-1">
+                        <span className="text-xs text-gray-500">{formatCommentTime(comment.createdAt)}</span>
+                        <button
+                          onClick={() => handleReplyTap(comment.id)}
+                          className={`text-xs font-bold ${
+                            replyTo === comment.id
+                              ? 'text-blue-600 dark:text-blue-400'
+                              : darkMode ? 'text-gray-400' : 'text-gray-500'
+                          }`}
+                        >
+                          Válasz
+                        </button>
+                      </div>
+
+                      {/* Replies section */}
+                      {comment.replies?.length > 0 && (
+                        <div className="mt-2">
+                          {/* Toggle replies */}
+                          {!expandedReplies[comment.id] && (
+                            <button
+                              onClick={() => toggleReplies(comment.id)}
+                              className={`text-xs font-bold mb-2 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}
+                            >
+                              {comment.replies.length} válasz megtekintése...
+                            </button>
+                          )}
+
+                          {expandedReplies[comment.id] && (
+                            <div className="space-y-2">
+                              {comment.replies.map((reply) => (
+                                <div key={reply.id} className="flex gap-2">
+                                  <div className="flex-shrink-0 pt-0.5">
+                                    {renderAvatar(reply, 'sm')}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className={`inline-block rounded-2xl px-3 py-2 max-w-full ${
+                                      darkMode ? 'bg-gray-800' : 'bg-gray-100'
+                                    }`}>
+                                      <span className={`font-semibold text-[13px] ${darkMode ? 'text-gray-200' : 'text-gray-900'}`}>
+                                        {getDisplayName(reply)}
+                                      </span>
+                                      <p className={`text-sm mt-0.5 whitespace-pre-wrap break-words ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                                        {reply.text}
+                                      </p>
+                                    </div>
+                                    <div className="flex items-center gap-3 mt-1 ml-1">
+                                      <span className="text-xs text-gray-500">{formatCommentTime(reply.createdAt)}</span>
+                                      <button
+                                        onClick={() => handleReplyTap(comment.id)}
+                                        className={`text-xs font-bold ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}
+                                      >
+                                        Válasz
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                              <button
+                                onClick={() => toggleReplies(comment.id)}
+                                className={`text-xs font-bold ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}
+                              >
+                                Válaszok elrejtése
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </div>
               ))}
             </div>
           )}
+          {/* Spacer so content isn't hidden behind fixed input */}
+          <div style={{ height: replyTo ? 100 : 60 }} />
         </div>
+      </div>
 
+      {/* Fixed bottom input bar */}
+      <div
+        ref={inputBarRef}
+        className={`flex-shrink-0 border-t ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}
+        style={{ paddingBottom: bottomOffset > 0 ? bottomOffset : 'max(8px, env(safe-area-inset-bottom))' }}
+      >
         {/* Reply indicator */}
         {replyTo && replyingToComment && (
-          <div className={`sticky bottom-[52px] px-4 py-2 flex items-center justify-between border-t ${
-            darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'
+          <div className={`px-4 py-2 flex items-center justify-between ${
+            darkMode ? 'bg-gray-800/90' : 'bg-gray-50'
           }`}>
             <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-              Válasz: <span className="font-medium">{replyingToComment.isAnonymous !== false ? 'Anonim felhasználó' : (replyingToComment.authorData?.displayName || 'Felhasználó')}</span>
+              Válasz <span className="font-bold">{replyingToName}</span> számára
             </p>
-            <button onClick={() => setReplyTo(null)} className="p-1">
-              <X className={`w-4 h-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+            <button onClick={() => setReplyTo(null)} className={`text-xs font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              Mégsem
             </button>
           </div>
         )}
 
-        {/* Input bar - sticky bottom */}
-        <div className={`sticky bottom-0 px-3 py-2 border-t ${
-          darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'
-        }`} style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIsAnonComment(!isAnonComment)}
-              className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
-                isAnonComment
-                  ? darkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-200 text-gray-500'
-                  : 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400'
-              }`}
-            >
-              {isAnonComment ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
-            <input
-              ref={inputRef}
-              type="text"
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleAddComment(); }}
-              placeholder={replyTo ? 'Válasz írása...' : (isAnonComment ? 'Anonim hozzászólás...' : 'Hozzászólás...')}
-              className={`flex-1 px-4 py-2.5 rounded-full text-sm border ${
-                darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-500' : 'bg-gray-100 border-gray-200 text-gray-900 placeholder-gray-400'
-              }`}
-            />
-            <button
-              onClick={handleAddComment}
-              disabled={!commentText.trim() || submitting}
-              className="w-9 h-9 rounded-full bg-blue-600 text-white disabled:bg-gray-400 flex items-center justify-center flex-shrink-0 transition-colors"
-            >
-              <Send className="w-4 h-4" />
-            </button>
-          </div>
+        {/* Input row */}
+        <div className="px-3 py-2 flex items-center gap-2">
+          <button
+            onClick={() => setIsAnonComment(!isAnonComment)}
+            className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
+              isAnonComment
+                ? darkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-200 text-gray-500'
+                : 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400'
+            }`}
+            title={isAnonComment ? 'Anonim mód' : 'Nyilvános mód'}
+          >
+            {isAnonComment ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </button>
+          <input
+            ref={inputRef}
+            type="text"
+            value={commentText}
+            onChange={(e) => setCommentText(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleAddComment(); }}
+            placeholder={replyTo ? 'Válasz írása...' : (isAnonComment ? 'Anonim hozzászólás...' : 'Hozzászólás...')}
+            className={`flex-1 px-4 py-2.5 rounded-full text-sm border ${
+              darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-500' : 'bg-gray-100 border-gray-200 text-gray-900 placeholder-gray-400'
+            }`}
+          />
+          <button
+            onClick={handleAddComment}
+            disabled={!commentText.trim() || submitting}
+            className="w-9 h-9 rounded-full bg-blue-600 text-white disabled:bg-gray-400 flex items-center justify-center flex-shrink-0 transition-colors"
+          >
+            <Send className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </div>
@@ -722,6 +810,22 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate }) {
   const [showMenu, setShowMenu] = useState(false);
   const [showCommentThread, setShowCommentThread] = useState(false);
   const [autoFocusComment, setAutoFocusComment] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (!showMenu) return;
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setShowMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [showMenu]);
 
   const userReaction = user ? post.reactions?.[user.uid] : null;
 
@@ -873,7 +977,7 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate }) {
         </div>
 
         {/* Menu */}
-        <div className="relative">
+        <div className="relative" ref={menuRef}>
           <button
             onClick={() => setShowMenu(!showMenu)}
             className={`p-2 rounded-full transition-colors ${
