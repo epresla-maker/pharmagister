@@ -663,10 +663,10 @@ function CommentThread({ postId, postText, comments, darkMode, user, userData, i
     const isTopLevel = depth === 0;
     const avatarSize = isTopLevel ? 'md' : 'sm';
     const totalReplies = countAllReplies(item);
-    const indent = Math.min(depth, 6); // Max vizuális behúzás 6 szint
+    const indent = Math.min(depth, 4); // Max vizuális behúzás 4 szint
 
     return (
-      <div key={item.id} style={{ marginLeft: depth > 0 ? `${indent * 16}px` : 0 }} className="py-1.5">
+      <div key={item.id} style={{ marginLeft: depth > 0 ? `${indent * 12}px` : 0 }} className="py-1.5">
         <div className="flex gap-2">
           <div className="flex-shrink-0 pt-0.5">
             {renderAvatar(item, avatarSize)}
