@@ -710,7 +710,7 @@ function CommentThread({ postId, postText, comments, darkMode, user, userData, i
 
                           {expandedReplies[comment.id] && (
                             <div className="space-y-2">
-                              {comment.replies.map((reply) => (
+                              {[...comment.replies].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).map((reply) => (
                                 <div key={reply.id} className="flex gap-2">
                                   <div className="flex-shrink-0 pt-0.5">
                                     {renderAvatar(reply, 'sm')}
