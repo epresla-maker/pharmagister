@@ -473,52 +473,31 @@ function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
 // ============================================
 // COMMENT THREAD (FULLSCREEN)
 // ============================================
-function CommentThread({ postId, comments, darkMode, user, userData, isAdmin, onUpdate, onClose, autoFocus }) {
+function CommentThread({ postId, postText, comments, darkMode, user, userData, isAdmin, onUpdate, onClose, autoFocus }) {
   const [commentText, setCommentText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [replyTo, setReplyTo] = useState(null);
   const [replyToSubName, setReplyToSubName] = useState(null);
   const [isAnonComment, setIsAnonComment] = useState(false);
   const [expandedReplies, setExpandedReplies] = useState({});
-  const [containerHeight, setContainerHeight] = useState('100%');
   const inputRef = useRef(null);
-  const containerRef = useRef(null);
+  const scrollRef = useRef(null);
 
-  // Dynamically track visible viewport height (handles keyboard on Android/iOS)
+  // Scroll input into view when keyboard opens
   useEffect(() => {
-    const update = () => {
-      const vv = window.visualViewport;
-      if (vv) {
-        setContainerHeight(`${vv.height}px`);
-        // On iOS, viewport might scroll, so adjust top position
-        if (containerRef.current) {
-          containerRef.current.style.top = `${vv.offsetTop}px`;
-        }
-      } else {
-        setContainerHeight(`${window.innerHeight}px`);
-      }
+    const handleFocus = () => {
+      setTimeout(() => {
+        inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 300);
     };
-
-    const vv = window.visualViewport;
-    if (vv) {
-      vv.addEventListener('resize', update);
-      vv.addEventListener('scroll', update);
-    }
-    window.addEventListener('resize', update);
-    update();
-
-    return () => {
-      if (vv) {
-        vv.removeEventListener('resize', update);
-        vv.removeEventListener('scroll', update);
-      }
-      window.removeEventListener('resize', update);
-    };
+    const el = inputRef.current;
+    if (el) el.addEventListener('focus', handleFocus);
+    return () => { if (el) el.removeEventListener('focus', handleFocus); };
   }, []);
 
   useEffect(() => {
     if (autoFocus) {
-      setTimeout(() => inputRef.current?.focus(), 300);
+      setTimeout(() => inputRef.current?.focus(), 400);
     }
   }, [autoFocus]);
 
@@ -637,29 +616,27 @@ function CommentThread({ postId, comments, darkMode, user, userData, isAdmin, on
   };
 
   return (
-    <div
-      ref={containerRef}
-      className="fixed left-0 z-50 flex flex-col w-full"
-      style={{ top: 0, height: containerHeight }}
+    <div className="fixed inset-0 z-50 overflow-y-auto" ref={scrollRef}
+      style={{ WebkitOverflowScrolling: 'touch' }}
     >
-      <div className={`flex-1 flex flex-col min-h-0 ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
+      <div className={`min-h-full flex flex-col ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
         {/* Header */}
-        <div className={`flex items-center px-4 py-3 border-b flex-shrink-0 ${
+        <div className={`sticky top-0 z-10 flex items-center px-4 py-3 border-b flex-shrink-0 ${
           darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'
         }`}>
           <button
             onClick={onClose}
-            className={`p-2 -ml-2 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+            className={`p-2 -ml-2 rounded-full flex-shrink-0 ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
           >
             <ArrowLeft className={`w-5 h-5 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`} />
           </button>
-          <h2 className={`text-lg font-bold ml-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-            Hozzászólások
-          </h2>
+          <p className={`text-sm font-medium ml-2 truncate ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+            {postText || 'Hozzászólások'}
+          </p>
         </div>
 
-        {/* Comments - scrollable area */}
-        <div className="flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+        {/* Comments */}
+        <div className="flex-1">
           {(!comments || comments.length === 0) ? (
             <div className="flex flex-col items-center justify-center py-16">
               <MessageCircle className={`w-12 h-12 mb-3 ${darkMode ? 'text-gray-600' : 'text-gray-300'}`} />
@@ -783,13 +760,14 @@ function CommentThread({ postId, comments, darkMode, user, userData, isAdmin, on
           {/* Spacer so content isn't hidden behind input */}
           <div className="h-4" />
         </div>
-      </div>
 
-      {/* Bottom input bar - part of flex, not fixed */}
-      <div
-        className={`flex-shrink-0 border-t ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}
-        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
-      >
+        {/* Input bar - at bottom of content flow, NOT fixed */}
+        <div
+          className={`sticky bottom-0 border-t ${
+            darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'
+          }`}
+          style={{ paddingBottom: 'env(safe-area-inset-bottom, 8px)' }}
+        >
         {/* Reply indicator */}
         {replyTo && replyingToComment && (
           <div className={`px-4 py-2 flex items-center justify-between ${
@@ -836,6 +814,7 @@ function CommentThread({ postId, comments, darkMode, user, userData, isAdmin, on
             <Send className="w-4 h-4" />
           </button>
         </div>
+      </div>
       </div>
     </div>
   );
@@ -1175,6 +1154,7 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate }) {
       {showCommentThread && typeof document !== 'undefined' && createPortal(
         <CommentThread
           postId={post.id}
+          postText={post.text}
           comments={post.comments || []}
           darkMode={darkMode}
           user={user}
