@@ -478,7 +478,6 @@ function CommentThread({ postId, postText, comments, darkMode, user, userData, i
   const [commentText, setCommentText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [replyTo, setReplyTo] = useState(null);
-  const [replyToSubName, setReplyToSubName] = useState(null);
   const [isAnonComment, setIsAnonComment] = useState(false);
   const [expandedReplies, setExpandedReplies] = useState({});
   const inputRef = useRef(null);
@@ -518,12 +517,19 @@ function CommentThread({ postId, postText, comments, darkMode, user, userData, i
       };
 
       if (replyTo) {
-        const updatedComments = comments.map(c => {
-          if (c.id === replyTo) {
-            return { ...c, replies: [...(c.replies || []), newComment] };
-          }
-          return c;
-        });
+        // Rekurzív keresés: a válasz bármilyen mélységben lévő kommenthez kerülhet
+        const addReplyRecursive = (items, targetId) => {
+          return items.map(item => {
+            if (item.id === targetId) {
+              return { ...item, replies: [...(item.replies || []), newComment] };
+            }
+            if (item.replies?.length > 0) {
+              return { ...item, replies: addReplyRecursive(item.replies, targetId) };
+            }
+            return item;
+          });
+        };
+        const updatedComments = addReplyRecursive(comments, replyTo);
         await updateDoc(postRef, { comments: updatedComments });
       } else {
         const updatedComments = [...(comments || []), newComment];
@@ -532,7 +538,6 @@ function CommentThread({ postId, postText, comments, darkMode, user, userData, i
 
       setCommentText('');
       setReplyTo(null);
-      setReplyToSubName(null);
       onUpdate();
     } catch (error) {
       console.error('Error adding comment:', error);
@@ -553,13 +558,11 @@ function CommentThread({ postId, postText, comments, darkMode, user, userData, i
     return `${date.toLocaleDateString('hu-HU')} ${hours}:${mins}`;
   };
 
-  const handleReplyTap = (commentId, replyAuthorName) => {
-    if (replyTo === commentId && !replyAuthorName) {
+  const handleReplyTap = (commentId) => {
+    if (replyTo === commentId) {
       setReplyTo(null);
-      setReplyToSubName(null);
     } else {
       setReplyTo(commentId);
-      setReplyToSubName(replyAuthorName || null);
     }
     setTimeout(() => inputRef.current?.focus(), 100);
   };
@@ -568,15 +571,32 @@ function CommentThread({ postId, postText, comments, darkMode, user, userData, i
     setExpandedReplies(prev => ({ ...prev, [commentId]: !prev[commentId] }));
   };
 
-  const replyingToComment = replyTo ? comments.find(c => c.id === replyTo) : null;
-  const replyingToName = replyToSubName
-    ? replyToSubName
-    : replyingToComment
-      ? (replyingToComment.isAnonymous !== false ? 'Anonim felhasználó' : (replyingToComment.authorData?.displayName || 'Felhasználó'))
-      : '';
+  // Rekurzív keresés komment megtalálásához bármilyen mélységben
+  const findCommentById = (items, targetId) => {
+    for (const item of items) {
+      if (item.id === targetId) return item;
+      if (item.replies?.length > 0) {
+        const found = findCommentById(item.replies, targetId);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
+  const replyingToComment = replyTo ? findCommentById(comments || [], replyTo) : null;
+  const replyingToName = replyingToComment
+    ? (replyingToComment.isAnonymous !== false ? 'Anonim felhasználó' : (replyingToComment.authorData?.displayName || 'Felhasználó'))
+    : '';
 
   // Sort comments: newest first
   const sortedComments = [...(comments || [])].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  // Rekurzív válasz-számláló
+  const countAllReplies = (item) => {
+    let count = item.replies?.length || 0;
+    item.replies?.forEach(r => { count += countAllReplies(r); });
+    return count;
+  };
 
   const renderAvatar = (item, size = 'md') => {
     const sizeClass = size === 'sm' ? 'w-8 h-8' : 'w-10 h-10';
@@ -608,6 +628,84 @@ function CommentThread({ postId, postText, comments, darkMode, user, userData, i
       return item.authorData.displayName;
     }
     return null;
+  };
+
+  // Rekurzív komment renderelés - 20 szint mélységig
+  const renderComment = (item, depth) => {
+    if (depth > 20) return null;
+    const isTopLevel = depth === 0;
+    const avatarSize = isTopLevel ? 'md' : 'sm';
+    const totalReplies = countAllReplies(item);
+    const indent = Math.min(depth, 6); // Max vizuális behúzás 6 szint
+
+    return (
+      <div key={item.id} style={{ marginLeft: depth > 0 ? `${indent * 16}px` : 0 }} className="py-1.5">
+        <div className="flex gap-2">
+          <div className="flex-shrink-0 pt-0.5">
+            {renderAvatar(item, avatarSize)}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className={`inline-block rounded-2xl px-3 py-2 max-w-full ${
+              darkMode ? 'bg-gray-800' : 'bg-gray-100'
+            }`}>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={`font-semibold text-[13px] ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                  {getDisplayName(item)}
+                </span>
+                {getAdminName(item) && (
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded ${darkMode ? 'bg-yellow-900/40 text-yellow-300' : 'bg-yellow-100 text-yellow-700'}`}>
+                    {getAdminName(item)}
+                  </span>
+                )}
+              </div>
+              <p className={`text-sm mt-0.5 whitespace-pre-wrap break-words ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+                {item.text}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 mt-1 ml-1">
+              <span className="text-xs text-gray-500">{formatCommentTime(item.createdAt)}</span>
+              <button
+                onClick={() => handleReplyTap(item.id)}
+                className={`text-xs font-bold ${
+                  replyTo === item.id
+                    ? 'text-blue-600 dark:text-blue-400'
+                    : darkMode ? 'text-gray-400' : 'text-gray-500'
+                }`}
+              >
+                Válasz
+              </button>
+            </div>
+
+            {/* Nested replies */}
+            {item.replies?.length > 0 && (
+              <div className="mt-1">
+                {!expandedReplies[item.id] ? (
+                  <button
+                    onClick={() => toggleReplies(item.id)}
+                    className={`text-xs font-bold ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}
+                  >
+                    {totalReplies} válasz megtekintése...
+                  </button>
+                ) : (
+                  <div>
+                    {[...item.replies].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).map(
+                      (reply) => renderComment(reply, depth + 1)
+                    )}
+                    <button
+                      onClick={() => toggleReplies(item.id)}
+                      className={`text-xs font-bold mt-1 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}
+                    >
+                      Válaszok elrejtése
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -652,115 +750,7 @@ function CommentThread({ postId, postText, comments, darkMode, user, userData, i
             </div>
           ) : (
             <div className="py-2">
-              {sortedComments.map((comment) => (
-                <div key={comment.id} className="px-4 py-2">
-                  {/* Main comment */}
-                  <div className="flex gap-2.5">
-                    <div className="flex-shrink-0 pt-0.5">
-                      {renderAvatar(comment)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      {/* Bubble */}
-                      <div className={`inline-block rounded-2xl px-3.5 py-2.5 max-w-full ${
-                        darkMode ? 'bg-gray-800' : 'bg-gray-100'
-                      }`}>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`font-semibold text-[13px] ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                            {getDisplayName(comment)}
-                          </span>
-                          {getAdminName(comment) && (
-                            <span className={`text-[11px] px-1.5 py-0.5 rounded ${darkMode ? 'bg-yellow-900/40 text-yellow-300' : 'bg-yellow-100 text-yellow-700'}`}>
-                              {getAdminName(comment)}
-                            </span>
-                          )}
-
-                        </div>
-                        <p className={`text-sm mt-0.5 whitespace-pre-wrap break-words ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>
-                          {comment.text}
-                        </p>
-                      </div>
-
-                      {/* Time + Reply */}
-                      <div className="flex items-center gap-3 mt-1 ml-1">
-                        <span className="text-xs text-gray-500">{formatCommentTime(comment.createdAt)}</span>
-                        <button
-                          onClick={() => handleReplyTap(comment.id)}
-                          className={`text-xs font-bold ${
-                            replyTo === comment.id && !replyToSubName
-                              ? 'text-blue-600 dark:text-blue-400'
-                              : darkMode ? 'text-gray-400' : 'text-gray-500'
-                          }`}
-                        >
-                          Válasz
-                        </button>
-                      </div>
-
-                      {/* Replies section */}
-                      {comment.replies?.length > 0 && (
-                        <div className="mt-2">
-                          {/* Toggle replies */}
-                          {!expandedReplies[comment.id] && (
-                            <button
-                              onClick={() => toggleReplies(comment.id)}
-                              className={`text-xs font-bold mb-2 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}
-                            >
-                              {comment.replies.length} válasz megtekintése...
-                            </button>
-                          )}
-
-                          {expandedReplies[comment.id] && (
-                            <div className="space-y-2">
-                              {[...comment.replies].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).map((reply) => (
-                                <div key={reply.id} className="flex gap-2">
-                                  <div className="flex-shrink-0 pt-0.5">
-                                    {renderAvatar(reply, 'sm')}
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <div className={`inline-block rounded-2xl px-3 py-2 max-w-full ${
-                                      darkMode ? 'bg-gray-800' : 'bg-gray-100'
-                                    }`}>
-                                      <span className={`font-semibold text-[13px] ${darkMode ? 'text-gray-200' : 'text-gray-900'}`}>
-                                        {getDisplayName(reply)}
-                                      </span>
-                                      {getAdminName(reply) && (
-                                        <span className={`text-[10px] px-1.5 py-0.5 rounded ${darkMode ? 'bg-yellow-900/40 text-yellow-300' : 'bg-yellow-100 text-yellow-700'}`}>
-                                          {getAdminName(reply)}
-                                        </span>
-                                      )}
-                                      <p className={`text-sm mt-0.5 whitespace-pre-wrap break-words ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                                        {reply.text}
-                                      </p>
-                                    </div>
-                                    <div className="flex items-center gap-3 mt-1 ml-1">
-                                      <span className="text-xs text-gray-500">{formatCommentTime(reply.createdAt)}</span>
-                                      <button
-                                        onClick={() => handleReplyTap(comment.id, getDisplayName(reply))}
-                                        className={`text-xs font-bold ${
-                                          replyTo === comment.id && replyToSubName === getDisplayName(reply)
-                                            ? 'text-blue-600 dark:text-blue-400'
-                                            : darkMode ? 'text-gray-400' : 'text-gray-500'
-                                        }`}
-                                      >
-                                        Válasz
-                                      </button>
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                              <button
-                                onClick={() => toggleReplies(comment.id)}
-                                className={`text-xs font-bold ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}
-                              >
-                                Válaszok elrejtése
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
+              {sortedComments.map((comment) => renderComment(comment, 0))}
             </div>
           )}
           </div>
@@ -777,7 +767,7 @@ function CommentThread({ postId, postText, comments, darkMode, user, userData, i
             <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
               Válasz <span className="font-bold">{replyingToName}</span> számára
             </p>
-            <button onClick={() => { setReplyTo(null); setReplyToSubName(null); }} className={`text-xs font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+            <button onClick={() => setReplyTo(null)} className={`text-xs font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
               Mégsem
             </button>
           </div>
@@ -855,7 +845,7 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate }) {
 
   const countAllComments = (cmts) => {
     let count = cmts?.length || 0;
-    cmts?.forEach(c => { count += (c.replies?.length || 0); });
+    cmts?.forEach(c => { count += countAllComments(c.replies); });
     return count;
   };
   const commentCount = countAllComments(post.comments);
