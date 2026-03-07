@@ -154,13 +154,11 @@ function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
         isHidden: false,
       };
 
-      // Ha nem anonim, mentsük el a szerző adatait
-      if (!isAnonymous) {
-        postData.authorData = {
-          displayName: userData?.displayName || user.displayName || 'Felhasználó',
-          photoURL: userData?.photoURL || user.photoURL || null,
-        };
-      }
+      // Mindig mentsük el a szerző adatait (admin használja anonim posztoknál)
+      postData.authorData = {
+        displayName: userData?.displayName || user.displayName || 'Felhasználó',
+        photoURL: userData?.photoURL || user.photoURL || null,
+      };
 
       await addDoc(collection(db, 'communityPosts'), postData);
 
@@ -539,12 +537,11 @@ function CommentThread({ postId, comments, darkMode, user, userData, isAdmin, on
         replies: [],
       };
 
-      if (!isAnonComment) {
-        newComment.authorData = {
-          displayName: userData?.displayName || user.displayName || 'Felhasználó',
-          photoURL: userData?.photoURL || user.photoURL || null,
-        };
-      }
+      // Mindig mentsük az authorData-t (admin használja anonim hozzászólásoknál)
+      newComment.authorData = {
+        displayName: userData?.displayName || user.displayName || 'Felhasználó',
+        photoURL: userData?.photoURL || user.photoURL || null,
+      };
 
       if (replyTo) {
         const updatedComments = comments.map(c => {
@@ -632,6 +629,13 @@ function CommentThread({ postId, comments, darkMode, user, userData, isAdmin, on
     return item.isAnonymous !== false ? 'Anonim felhasználó' : (item.authorData?.displayName || 'Felhasználó');
   };
 
+  const getAdminName = (item) => {
+    if (isAdmin && item.isAnonymous !== false && item.authorData?.displayName) {
+      return item.authorData.displayName;
+    }
+    return null;
+  };
+
   return (
     <div
       ref={containerRef}
@@ -681,6 +685,11 @@ function CommentThread({ postId, comments, darkMode, user, userData, isAdmin, on
                           <span className={`font-semibold text-[13px] ${darkMode ? 'text-white' : 'text-gray-900'}`}>
                             {getDisplayName(comment)}
                           </span>
+                          {getAdminName(comment) && (
+                            <span className={`text-[11px] px-1.5 py-0.5 rounded ${darkMode ? 'bg-yellow-900/40 text-yellow-300' : 'bg-yellow-100 text-yellow-700'}`}>
+                              {getAdminName(comment)}
+                            </span>
+                          )}
 
                         </div>
                         <p className={`text-sm mt-0.5 whitespace-pre-wrap break-words ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>
@@ -730,6 +739,11 @@ function CommentThread({ postId, comments, darkMode, user, userData, isAdmin, on
                                       <span className={`font-semibold text-[13px] ${darkMode ? 'text-gray-200' : 'text-gray-900'}`}>
                                         {getDisplayName(reply)}
                                       </span>
+                                      {getAdminName(reply) && (
+                                        <span className={`text-[10px] px-1.5 py-0.5 rounded ${darkMode ? 'bg-yellow-900/40 text-yellow-300' : 'bg-yellow-100 text-yellow-700'}`}>
+                                          {getAdminName(reply)}
+                                        </span>
+                                      )}
                                       <p className={`text-sm mt-0.5 whitespace-pre-wrap break-words ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                                         {reply.text}
                                       </p>
@@ -986,6 +1000,11 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate }) {
               <span className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
                 {post.isAnonymous ? 'Anonim felhasználó' : (post.authorData?.displayName || 'Felhasználó')}
               </span>
+              {isAdmin && post.isAnonymous && post.authorData?.displayName && (
+                <span className={`text-xs px-1.5 py-0.5 rounded ${darkMode ? 'bg-yellow-900/40 text-yellow-300' : 'bg-yellow-100 text-yellow-700'}`}>
+                  {post.authorData.displayName}
+                </span>
+              )}
               <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${categoryData.color}`}>
                 {categoryData.emoji} {categoryData.label}
               </span>
