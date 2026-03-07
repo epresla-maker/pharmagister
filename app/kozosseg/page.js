@@ -681,11 +681,7 @@ function CommentThread({ postId, comments, darkMode, user, userData, isAdmin, on
                           <span className={`font-semibold text-[13px] ${darkMode ? 'text-white' : 'text-gray-900'}`}>
                             {getDisplayName(comment)}
                           </span>
-                          {isAdmin && comment.isAnonymous !== false && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400 font-mono">
-                              {comment.userId?.slice(0, 6)}
-                            </span>
-                          )}
+
                         </div>
                         <p className={`text-sm mt-0.5 whitespace-pre-wrap break-words ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>
                           {comment.text}
@@ -993,11 +989,7 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate }) {
               <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${categoryData.color}`}>
                 {categoryData.emoji} {categoryData.label}
               </span>
-              {isAdmin && post.isAnonymous && (
-                <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 font-mono">
-                  {post.userId?.slice(0, 8)}
-                </span>
-              )}
+
             </div>
             <p className="text-xs text-gray-500 mt-0.5">
               {formatTime(post.createdAt)}
