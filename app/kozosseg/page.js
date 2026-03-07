@@ -480,19 +480,34 @@ function CommentThread({ postId, postText, comments, darkMode, user, userData, i
   const [replyToSubName, setReplyToSubName] = useState(null);
   const [isAnonComment, setIsAnonComment] = useState(false);
   const [expandedReplies, setExpandedReplies] = useState({});
+  const [viewHeight, setViewHeight] = useState(typeof window !== 'undefined' ? window.innerHeight : 800);
   const inputRef = useRef(null);
-  const scrollRef = useRef(null);
+  const containerRef = useRef(null);
 
-  // Scroll input into view when keyboard opens
+  // Track visible height via visualViewport + window resize
+  // Key: use explicit height instead of bottom:0 so iOS fixed positioning works with keyboard
   useEffect(() => {
-    const handleFocus = () => {
-      setTimeout(() => {
-        inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 300);
+    const update = () => {
+      const vv = window.visualViewport;
+      const h = vv ? vv.height : window.innerHeight;
+      setViewHeight(h);
     };
-    const el = inputRef.current;
-    if (el) el.addEventListener('focus', handleFocus);
-    return () => { if (el) el.removeEventListener('focus', handleFocus); };
+
+    update();
+    window.addEventListener('resize', update);
+    const vv = window.visualViewport;
+    if (vv) {
+      vv.addEventListener('resize', update);
+      vv.addEventListener('scroll', update);
+    }
+
+    return () => {
+      window.removeEventListener('resize', update);
+      if (vv) {
+        vv.removeEventListener('resize', update);
+        vv.removeEventListener('scroll', update);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -616,27 +631,31 @@ function CommentThread({ postId, postText, comments, darkMode, user, userData, i
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto" ref={scrollRef}
-      style={{ WebkitOverflowScrolling: 'touch' }}
+    <div
+      ref={containerRef}
+      className={`fixed top-0 left-0 right-0 z-50 flex flex-col ${darkMode ? 'bg-gray-900' : 'bg-white'}`}
+      style={{ height: viewHeight }}
     >
-      <div className={`min-h-full flex flex-col ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
-        {/* Header */}
-        <div className={`sticky top-0 z-10 flex items-center px-4 py-3 border-b flex-shrink-0 ${
-          darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'
-        }`}>
-          <button
-            onClick={onClose}
-            className={`p-2 -ml-2 rounded-full flex-shrink-0 ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
-          >
-            <ArrowLeft className={`w-5 h-5 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`} />
-          </button>
-          <p className={`text-sm font-medium ml-2 truncate ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-            {postText || 'Hozzászólások'}
-          </p>
-        </div>
+      {/* Header */}
+      <div className={`flex-shrink-0 flex items-center px-4 py-3 border-b ${
+        darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'
+      }`}>
+        <button
+          onClick={onClose}
+          className={`p-2 -ml-2 rounded-full flex-shrink-0 ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+        >
+          <ArrowLeft className={`w-5 h-5 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`} />
+        </button>
+        <p className={`text-sm font-medium ml-2 truncate ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+          {postText || 'Hozzászólások'}
+        </p>
+      </div>
 
-        {/* Comments */}
-        <div className="flex-1">
+      {/* Scrollable comments area */}
+      <div
+        className="flex-1 overflow-y-auto"
+        style={{ WebkitOverflowScrolling: 'touch' }}
+      >
           {(!comments || comments.length === 0) ? (
             <div className="flex flex-col items-center justify-center py-16">
               <MessageCircle className={`w-12 h-12 mb-3 ${darkMode ? 'text-gray-600' : 'text-gray-300'}`} />
@@ -757,17 +776,16 @@ function CommentThread({ postId, postText, comments, darkMode, user, userData, i
               ))}
             </div>
           )}
-          {/* Spacer so content isn't hidden behind input */}
+          {/* Spacer */}
           <div className="h-4" />
         </div>
 
-        {/* Input bar - at bottom of content flow, NOT fixed */}
-        <div
-          className={`sticky bottom-0 border-t ${
-            darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'
-          }`}
-          style={{ paddingBottom: 'env(safe-area-inset-bottom, 8px)' }}
-        >
+      {/* Input bar - flex-shrink-0, sits at bottom of flex column */}
+      <div
+        className={`flex-shrink-0 border-t ${
+          darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'
+        }`}
+      >
         {/* Reply indicator */}
         {replyTo && replyingToComment && (
           <div className={`px-4 py-2 flex items-center justify-between ${
@@ -814,7 +832,6 @@ function CommentThread({ postId, postText, comments, darkMode, user, userData, i
             <Send className="w-4 h-4" />
           </button>
         </div>
-      </div>
       </div>
     </div>
   );
