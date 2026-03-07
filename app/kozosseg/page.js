@@ -479,6 +479,7 @@ function CommentThread({ postId, comments, darkMode, user, userData, isAdmin, on
   const [commentText, setCommentText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [replyTo, setReplyTo] = useState(null);
+  const [replyToSubName, setReplyToSubName] = useState(null);
   const [isAnonComment, setIsAnonComment] = useState(false);
   const [expandedReplies, setExpandedReplies] = useState({});
   const [containerHeight, setContainerHeight] = useState('100%');
@@ -560,6 +561,7 @@ function CommentThread({ postId, comments, darkMode, user, userData, isAdmin, on
 
       setCommentText('');
       setReplyTo(null);
+      setReplyToSubName(null);
       onUpdate();
     } catch (error) {
       console.error('Error adding comment:', error);
@@ -575,11 +577,19 @@ function CommentThread({ postId, comments, darkMode, user, userData, isAdmin, on
     if (diff < 60) return 'most';
     if (diff < 3600) return `${Math.floor(diff / 60)} perce`;
     if (diff < 86400) return `${Math.floor(diff / 3600)} órája`;
-    return date.toLocaleDateString('hu-HU');
+    const hours = date.getHours().toString().padStart(2, '0');
+    const mins = date.getMinutes().toString().padStart(2, '0');
+    return `${date.toLocaleDateString('hu-HU')} ${hours}:${mins}`;
   };
 
-  const handleReplyTap = (commentId) => {
-    setReplyTo(replyTo === commentId ? null : commentId);
+  const handleReplyTap = (commentId, replyAuthorName) => {
+    if (replyTo === commentId && !replyAuthorName) {
+      setReplyTo(null);
+      setReplyToSubName(null);
+    } else {
+      setReplyTo(commentId);
+      setReplyToSubName(replyAuthorName || null);
+    }
     setTimeout(() => inputRef.current?.focus(), 100);
   };
 
@@ -588,9 +598,14 @@ function CommentThread({ postId, comments, darkMode, user, userData, isAdmin, on
   };
 
   const replyingToComment = replyTo ? comments.find(c => c.id === replyTo) : null;
-  const replyingToName = replyingToComment
-    ? (replyingToComment.isAnonymous !== false ? 'Anonim felhasználó' : (replyingToComment.authorData?.displayName || 'Felhasználó'))
-    : '';
+  const replyingToName = replyToSubName
+    ? replyToSubName
+    : replyingToComment
+      ? (replyingToComment.isAnonymous !== false ? 'Anonim felhasználó' : (replyingToComment.authorData?.displayName || 'Felhasználó'))
+      : '';
+
+  // Sort comments: newest first
+  const sortedComments = [...(comments || [])].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   const renderAvatar = (item, size = 'md') => {
     const sizeClass = size === 'sm' ? 'w-8 h-8' : 'w-10 h-10';
@@ -650,7 +665,7 @@ function CommentThread({ postId, comments, darkMode, user, userData, isAdmin, on
             </div>
           ) : (
             <div className="py-2">
-              {comments.map((comment) => (
+              {sortedComments.map((comment) => (
                 <div key={comment.id} className="px-4 py-2">
                   {/* Main comment */}
                   <div className="flex gap-2.5">
@@ -683,7 +698,7 @@ function CommentThread({ postId, comments, darkMode, user, userData, isAdmin, on
                         <button
                           onClick={() => handleReplyTap(comment.id)}
                           className={`text-xs font-bold ${
-                            replyTo === comment.id
+                            replyTo === comment.id && !replyToSubName
                               ? 'text-blue-600 dark:text-blue-400'
                               : darkMode ? 'text-gray-400' : 'text-gray-500'
                           }`}
@@ -726,8 +741,12 @@ function CommentThread({ postId, comments, darkMode, user, userData, isAdmin, on
                                     <div className="flex items-center gap-3 mt-1 ml-1">
                                       <span className="text-xs text-gray-500">{formatCommentTime(reply.createdAt)}</span>
                                       <button
-                                        onClick={() => handleReplyTap(comment.id)}
-                                        className={`text-xs font-bold ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}
+                                        onClick={() => handleReplyTap(comment.id, getDisplayName(reply))}
+                                        className={`text-xs font-bold ${
+                                          replyTo === comment.id && replyToSubName === getDisplayName(reply)
+                                            ? 'text-blue-600 dark:text-blue-400'
+                                            : darkMode ? 'text-gray-400' : 'text-gray-500'
+                                        }`}
                                       >
                                         Válasz
                                       </button>
@@ -769,7 +788,7 @@ function CommentThread({ postId, comments, darkMode, user, userData, isAdmin, on
             <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
               Válasz <span className="font-bold">{replyingToName}</span> számára
             </p>
-            <button onClick={() => setReplyTo(null)} className={`text-xs font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+            <button onClick={() => { setReplyTo(null); setReplyToSubName(null); }} className={`text-xs font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
               Mégsem
             </button>
           </div>
