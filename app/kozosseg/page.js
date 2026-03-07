@@ -497,37 +497,34 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
   const [editingText, setEditingText] = useState('');
   const inputRef = useRef(null);
   const commentsEndRef = useRef(null);
-  const containerRef = useRef(null);
+  const inputBarRef = useRef(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   const commentsColRef = collection(db, 'communityPosts', postId, 'comments');
 
-  // Track visual viewport for iOS keyboard - position container exactly at visible area
+  // Track keyboard height for iOS
   useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const update = () => {
+    const updateKeyboardHeight = () => {
       const vv = window.visualViewport;
       if (vv) {
-        el.style.height = `${vv.height}px`;
-        el.style.top = `${vv.offsetTop}px`;
-      } else {
-        el.style.height = `${window.innerHeight}px`;
-        el.style.top = '0px';
+        // Keyboard height = full window height minus visible viewport height
+        const kbHeight = window.innerHeight - vv.height;
+        setKeyboardHeight(kbHeight > 50 ? kbHeight : 0);
       }
     };
-    update();
+    updateKeyboardHeight();
     const vv = window.visualViewport;
     if (vv) {
-      vv.addEventListener('resize', update);
-      vv.addEventListener('scroll', update);
+      vv.addEventListener('resize', updateKeyboardHeight);
+      vv.addEventListener('scroll', updateKeyboardHeight);
     }
-    window.addEventListener('resize', update);
+    window.addEventListener('resize', updateKeyboardHeight);
     return () => {
       if (vv) {
-        vv.removeEventListener('resize', update);
-        vv.removeEventListener('scroll', update);
+        vv.removeEventListener('resize', updateKeyboardHeight);
+        vv.removeEventListener('scroll', updateKeyboardHeight);
       }
-      window.removeEventListener('resize', update);
+      window.removeEventListener('resize', updateKeyboardHeight);
     };
   }, []);
 
@@ -913,72 +910,78 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
   };
 
   return (
-    <div
-      ref={containerRef}
-      className={`fixed left-0 right-0 z-50 flex flex-col ${darkMode ? 'bg-gray-900' : 'bg-white'}`}
-      style={{ top: 0, height: '100dvh' }}
-    >
-      {/* Header */}
-      <div className={`flex items-center px-3 py-2.5 border-b ${
-        darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-      }`}>
-        <button
-          onClick={onClose}
-          className={`p-2 -ml-1 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
-        >
-          <ArrowLeft className={`w-5 h-5 ${darkMode ? 'text-white' : 'text-gray-900'}`} />
-        </button>
-        <h2 className={`ml-2 text-base font-bold truncate flex-1 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-          Hozzászólások
-        </h2>
-      </div>
-
-      {/* Post text preview */}
-      {postText && (
-        <div className={`px-4 py-3 border-b ${darkMode ? 'border-gray-800' : 'border-gray-100'}`}>
-          <p className={`text-sm line-clamp-3 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>{postText}</p>
+    <>
+      {/* Main container - fullscreen */}
+      <div className={`fixed inset-0 z-50 flex flex-col ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
+        {/* Header */}
+        <div className={`flex items-center px-3 py-2.5 border-b flex-shrink-0 ${
+          darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+        }`}>
+          <button
+            onClick={onClose}
+            className={`p-2 -ml-1 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+          >
+            <ArrowLeft className={`w-5 h-5 ${darkMode ? 'text-white' : 'text-gray-900'}`} />
+          </button>
+          <h2 className={`ml-2 text-base font-bold truncate flex-1 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+            Hozzászólások
+          </h2>
         </div>
-      )}
 
-      {/* Scrollable comments area */}
-      <div className="flex-1 overflow-y-auto overscroll-contain px-3" style={{ WebkitOverflowScrolling: 'touch' }}>
-        {initialLoading ? (
-          <div className="flex justify-center py-16">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
-          </div>
-        ) : rootComments.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <MessageCircle className={`w-14 h-14 mb-3 ${darkMode ? 'text-gray-700' : 'text-gray-200'}`} />
-            <p className={`text-sm ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-              Légy az első hozzászóló!
-            </p>
-          </div>
-        ) : (
-          <div className="py-1">
-            {rootComments.map((comment) => renderComment(comment, 0))}
-            {hasMore && (
-              <button
-                onClick={loadMore}
-                disabled={loadingMore}
-                className={`w-full py-3 text-[13px] font-semibold transition-colors ${
-                  darkMode ? 'text-blue-400' : 'text-blue-600'
-                }`}
-              >
-                {loadingMore ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" />
-                    Betöltés...
-                  </span>
-                ) : 'Korábbi hozzászólások...'}
-              </button>
-            )}
+        {/* Post text preview */}
+        {postText && (
+          <div className={`px-4 py-3 border-b flex-shrink-0 ${darkMode ? 'border-gray-800' : 'border-gray-100'}`}>
+            <p className={`text-sm line-clamp-3 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>{postText}</p>
           </div>
         )}
-        <div ref={commentsEndRef} />
+
+        {/* Scrollable comments area - with bottom padding for input bar */}
+        <div 
+          className="flex-1 overflow-y-auto overscroll-contain px-3" 
+          style={{ WebkitOverflowScrolling: 'touch', paddingBottom: keyboardHeight > 0 ? '70px' : '140px' }}
+        >
+          {initialLoading ? (
+            <div className="flex justify-center py-16">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+            </div>
+          ) : rootComments.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <MessageCircle className={`w-14 h-14 mb-3 ${darkMode ? 'text-gray-700' : 'text-gray-200'}`} />
+              <p className={`text-sm ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                Légy az első hozzászóló!
+              </p>
+            </div>
+          ) : (
+            <div className="py-1">
+              {rootComments.map((comment) => renderComment(comment, 0))}
+              {hasMore && (
+                <button
+                  onClick={loadMore}
+                  disabled={loadingMore}
+                  className={`w-full py-3 text-[13px] font-semibold transition-colors ${
+                    darkMode ? 'text-blue-400' : 'text-blue-600'
+                  }`}
+                >
+                  {loadingMore ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" />
+                      Betöltés...
+                    </span>
+                  ) : 'Korábbi hozzászólások...'}
+                </button>
+              )}
+            </div>
+          )}
+          <div ref={commentsEndRef} />
+        </div>
       </div>
 
-      {/* Fixed bottom input bar */}
-      <div className={`border-t ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+      {/* Input bar - SEPARATE fixed element that moves with keyboard */}
+      <div 
+        ref={inputBarRef}
+        className={`fixed left-0 right-0 z-[60] border-t ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
+        style={{ bottom: keyboardHeight }}
+      >
         {/* Reply indicator - FB style */}
         {replyTo && replyToComment && (
           <div className={`px-4 py-1.5 ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
@@ -1027,18 +1030,6 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') handleAddComment(); }}
-              onFocus={() => {
-                setTimeout(() => {
-                  inputRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-                  // Force viewport update on focus
-                  const vv = window.visualViewport;
-                  const el = containerRef.current;
-                  if (vv && el) {
-                    el.style.height = `${vv.height}px`;
-                    el.style.top = `${vv.offsetTop}px`;
-                  }
-                }, 300);
-              }}
               placeholder={replyTo ? '' : `Hozzászólás mint ${isAnonComment ? 'Anonim' : currentUserDisplayName}`}
               className={`flex-1 pl-4 pr-1 py-2.5 rounded-full text-[15px] bg-transparent ${
                 darkMode ? 'text-white placeholder-gray-500' : 'text-gray-900 placeholder-gray-500'
@@ -1052,7 +1043,6 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
             </div>
           </div>
 
-          {/* Send button - always visible, FB blue circle */}
           <button
             onClick={handleAddComment}
             disabled={!commentText.trim() || submitting}
@@ -1066,10 +1056,10 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
           </button>
         </div>
 
-        {/* Safe area spacer for iOS */}
-        <div className="pb-[env(safe-area-inset-bottom)]" />
+        {/* Safe area spacer for iOS - only when keyboard is closed */}
+        {keyboardHeight === 0 && <div className="pb-[env(safe-area-inset-bottom)]" />}
       </div>
-    </div>
+    </>
   );
 }
 
