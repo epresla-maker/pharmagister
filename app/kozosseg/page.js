@@ -497,15 +497,23 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
   const [editingText, setEditingText] = useState('');
   const inputRef = useRef(null);
   const commentsEndRef = useRef(null);
-  const [viewHeight, setViewHeight] = useState(typeof window !== 'undefined' ? window.innerHeight : 0);
+  const containerRef = useRef(null);
 
   const commentsColRef = collection(db, 'communityPosts', postId, 'comments');
 
-  // Track visual viewport for iOS keyboard
+  // Track visual viewport for iOS keyboard - position container exactly at visible area
   useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
     const update = () => {
-      const h = window.visualViewport?.height || window.innerHeight;
-      setViewHeight(h);
+      const vv = window.visualViewport;
+      if (vv) {
+        el.style.height = `${vv.height}px`;
+        el.style.top = `${vv.offsetTop}px`;
+      } else {
+        el.style.height = `${window.innerHeight}px`;
+        el.style.top = '0px';
+      }
     };
     update();
     const vv = window.visualViewport;
@@ -906,8 +914,9 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
 
   return (
     <div
-      className={`fixed top-0 left-0 right-0 z-50 flex flex-col ${darkMode ? 'bg-gray-900' : 'bg-white'}`}
-      style={{ height: viewHeight ? `${viewHeight}px` : '100dvh' }}
+      ref={containerRef}
+      className={`fixed left-0 right-0 z-50 flex flex-col ${darkMode ? 'bg-gray-900' : 'bg-white'}`}
+      style={{ top: 0, height: '100dvh' }}
     >
       {/* Header */}
       <div className={`flex items-center px-3 py-2.5 border-b ${
@@ -1019,7 +1028,16 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
               onChange={(e) => setCommentText(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') handleAddComment(); }}
               onFocus={() => {
-                setTimeout(() => inputRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 300);
+                setTimeout(() => {
+                  inputRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                  // Force viewport update on focus
+                  const vv = window.visualViewport;
+                  const el = containerRef.current;
+                  if (vv && el) {
+                    el.style.height = `${vv.height}px`;
+                    el.style.top = `${vv.offsetTop}px`;
+                  }
+                }, 300);
               }}
               placeholder={replyTo ? '' : `Hozzászólás mint ${isAnonComment ? 'Anonim' : currentUserDisplayName}`}
               className={`flex-1 pl-4 pr-1 py-2.5 rounded-full text-[15px] bg-transparent ${
