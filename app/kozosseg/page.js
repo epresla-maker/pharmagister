@@ -47,7 +47,8 @@ import {
   EyeOff,
   Shield,
   Palette,
-  Type
+  Type,
+  Pencil
 } from 'lucide-react';
 
 // ============================================
@@ -480,6 +481,8 @@ function CommentThread({ postId, postText, comments, darkMode, user, userData, i
   const [replyTo, setReplyTo] = useState(null);
   const [isAnonComment, setIsAnonComment] = useState(false);
   const [expandedReplies, setExpandedReplies] = useState({});
+  const [editingId, setEditingId] = useState(null);
+  const [editingText, setEditingText] = useState('');
   const inputRef = useRef(null);
 
   // Scrollba hozás amikor az input fókuszt kap (iOS billentyűzet)
@@ -543,6 +546,30 @@ function CommentThread({ postId, postText, comments, darkMode, user, userData, i
       console.error('Error adding comment:', error);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleEditComment = async (commentId, newText) => {
+    if (!newText.trim()) return;
+    try {
+      const postRef = doc(db, 'communityPosts', postId);
+      const updateTextRecursive = (items) => {
+        return items.map(item => {
+          if (item.id === commentId) {
+            return { ...item, text: newText.trim() };
+          }
+          if (item.replies?.length > 0) {
+            return { ...item, replies: updateTextRecursive(item.replies) };
+          }
+          return item;
+        });
+      };
+      await updateDoc(postRef, { comments: updateTextRecursive(comments) });
+      setEditingId(null);
+      setEditingText('');
+      onUpdate();
+    } catch (error) {
+      console.error('Error editing comment:', error);
     }
   };
 
@@ -645,37 +672,76 @@ function CommentThread({ postId, postText, comments, darkMode, user, userData, i
             {renderAvatar(item, avatarSize)}
           </div>
           <div className="flex-1 min-w-0">
-            <div className={`inline-block rounded-2xl px-3 py-2 max-w-full ${
-              darkMode ? 'bg-gray-800' : 'bg-gray-100'
-            }`}>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className={`font-semibold text-[13px] ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                  {getDisplayName(item)}
-                </span>
-                {getAdminName(item) && (
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded ${darkMode ? 'bg-yellow-900/40 text-yellow-300' : 'bg-yellow-100 text-yellow-700'}`}>
-                    {getAdminName(item)}
-                  </span>
-                )}
+            {editingId === item.id ? (
+              <div>
+                <input
+                  type="text"
+                  value={editingText}
+                  onChange={(e) => setEditingText(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleEditComment(item.id, editingText); }}
+                  autoFocus
+                  className={`w-full px-3 py-2 rounded-2xl text-sm border ${
+                    darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'
+                  }`}
+                />
+                <div className="flex gap-2 mt-1 ml-1">
+                  <button
+                    onClick={() => { setEditingId(null); setEditingText(''); }}
+                    className={`text-xs font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}
+                  >
+                    Mégsem
+                  </button>
+                  <button
+                    onClick={() => handleEditComment(item.id, editingText)}
+                    className="text-xs font-bold text-blue-600"
+                  >
+                    Mentés
+                  </button>
+                </div>
               </div>
-              <p className={`text-sm mt-0.5 whitespace-pre-wrap break-words ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>
-                {item.text}
-              </p>
-            </div>
+            ) : (
+              <>
+                <div className={`inline-block rounded-2xl px-3 py-2 max-w-full ${
+                  darkMode ? 'bg-gray-800' : 'bg-gray-100'
+                }`}>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`font-semibold text-[13px] ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                      {getDisplayName(item)}
+                    </span>
+                    {getAdminName(item) && (
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded ${darkMode ? 'bg-yellow-900/40 text-yellow-300' : 'bg-yellow-100 text-yellow-700'}`}>
+                        {getAdminName(item)}
+                      </span>
+                    )}
+                  </div>
+                  <p className={`text-sm mt-0.5 whitespace-pre-wrap break-words ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+                    {item.text}
+                  </p>
+                </div>
 
-            <div className="flex items-center gap-3 mt-1 ml-1">
-              <span className="text-xs text-gray-500">{formatCommentTime(item.createdAt)}</span>
-              <button
-                onClick={() => handleReplyTap(item.id)}
-                className={`text-xs font-bold ${
-                  replyTo === item.id
-                    ? 'text-blue-600 dark:text-blue-400'
-                    : darkMode ? 'text-gray-400' : 'text-gray-500'
-                }`}
-              >
-                Válasz
-              </button>
-            </div>
+                <div className="flex items-center gap-3 mt-1 ml-1">
+                  <span className="text-xs text-gray-500">{formatCommentTime(item.createdAt)}</span>
+                  <button
+                    onClick={() => handleReplyTap(item.id)}
+                    className={`text-xs font-bold ${
+                      replyTo === item.id
+                        ? 'text-blue-600 dark:text-blue-400'
+                        : darkMode ? 'text-gray-400' : 'text-gray-500'
+                    }`}
+                  >
+                    Válasz
+                  </button>
+                  {(isAdmin || item.userId === user?.uid) && (
+                    <button
+                      onClick={() => { setEditingId(item.id); setEditingText(item.text); }}
+                      className={`text-xs font-bold ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}
+                    >
+                      Szerkesztés
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
 
             {/* Nested replies */}
             {item.replies?.length > 0 && (
@@ -824,6 +890,9 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate }) {
   const [showMenu, setShowMenu] = useState(false);
   const [showCommentThread, setShowCommentThread] = useState(false);
   const [autoFocusComment, setAutoFocusComment] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState('');
+  const [editSubmitting, setEditSubmitting] = useState(false);
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -908,6 +977,26 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate }) {
       onUpdate();
     } catch (error) {
       console.error('Error deleting post:', error);
+    }
+  };
+
+  const handleStartEdit = () => {
+    setEditText(post.text);
+    setIsEditing(true);
+    setShowMenu(false);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editText.trim() || editSubmitting) return;
+    setEditSubmitting(true);
+    try {
+      await updateDoc(doc(db, 'communityPosts', post.id), { text: editText.trim() });
+      setIsEditing(false);
+      onUpdate();
+    } catch (error) {
+      console.error('Error editing post:', error);
+    } finally {
+      setEditSubmitting(false);
     }
   };
 
@@ -1016,6 +1105,17 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate }) {
               </button>
               {(isAdmin || post.userId === user?.uid) && (
                 <button
+                  onClick={handleStartEdit}
+                  className={`w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left ${
+                    darkMode ? 'hover:bg-gray-600 text-gray-300' : 'hover:bg-gray-50 text-gray-700'
+                  }`}
+                >
+                  <Pencil className="w-4 h-4" />
+                  Szerkesztés
+                </button>
+              )}
+              {(isAdmin || post.userId === user?.uid) && (
+                <button
                   onClick={handleDelete}
                   className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                 >
@@ -1030,7 +1130,35 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate }) {
 
       {/* Content */}
       <div className="pb-2">
-        {post.style ? (
+        {isEditing ? (
+          <div className="px-3 sm:px-4">
+            <textarea
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
+              rows={4}
+              className={`w-full px-4 py-3 rounded-xl border resize-none text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'
+              }`}
+            />
+            <div className="flex gap-2 mt-2 justify-end">
+              <button
+                onClick={() => setIsEditing(false)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium ${
+                  darkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'
+                }`}
+              >
+                Mégsem
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                disabled={!editText.trim() || editSubmitting}
+                className="px-3 py-1.5 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-400"
+              >
+                {editSubmitting ? 'Mentés...' : 'Mentés'}
+              </button>
+            </div>
+          </div>
+        ) : post.style ? (
           <div
             className="mx-3 sm:mx-4 p-4 rounded-xl whitespace-pre-wrap"
             style={{
