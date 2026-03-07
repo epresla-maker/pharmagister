@@ -19,7 +19,9 @@ import {
   serverTimestamp,
   limit,
   startAfter,
-  getDoc
+  getDoc,
+  increment,
+  setDoc
 } from 'firebase/firestore';
 import {
   ArrowLeft,
@@ -151,7 +153,7 @@ function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
         style: hasCustomStyle ? style : null,
         createdAt: serverTimestamp(),
         reactions: {},
-        comments: [],
+        commentCount: 0,
         reportCount: 0,
         isHidden: false,
       };
@@ -473,17 +475,30 @@ function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
 }
 
 // ============================================
-// COMMENT THREAD (FULLSCREEN)
+// COMMENT THREAD (FULLSCREEN) - Subcollection based
 // ============================================
-function CommentThread({ postId, postText, comments, darkMode, user, userData, isAdmin, onUpdate, onClose, autoFocus }) {
+const COMMENTS_PER_PAGE = 10;
+
+function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, onUpdate, onClose, autoFocus }) {
+  const [rootComments, setRootComments] = useState([]);
+  const [repliesMap, setRepliesMap] = useState({}); // { commentId: [replies] }
+  const [expandedReplies, setExpandedReplies] = useState({});
+  const [loadingReplies, setLoadingReplies] = useState({});
+  const [lastDoc, setLastDoc] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [commentText, setCommentText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [replyTo, setReplyTo] = useState(null);
+  const [replyToComment, setReplyToComment] = useState(null);
   const [isAnonComment, setIsAnonComment] = useState(false);
-  const [expandedReplies, setExpandedReplies] = useState({});
   const [editingId, setEditingId] = useState(null);
   const [editingText, setEditingText] = useState('');
   const inputRef = useRef(null);
+  const scrollContainerRef = useRef(null);
+
+  const commentsRef = collection(db, 'communityPosts', postId, 'comments');
 
   // Scrollba hozás amikor az input fókuszt kap (iOS billentyűzet)
   const handleInputFocus = () => {
@@ -498,49 +513,114 @@ function CommentThread({ postId, postText, comments, darkMode, user, userData, i
     }
   }, [autoFocus]);
 
+  // Load root comments (parentCommentId == null)
+  const loadRootComments = useCallback(async (afterDoc = null) => {
+    try {
+      let q;
+      if (afterDoc) {
+        q = query(commentsRef, where('parentCommentId', '==', null), orderBy('createdAt', 'desc'), startAfter(afterDoc), limit(COMMENTS_PER_PAGE));
+      } else {
+        q = query(commentsRef, where('parentCommentId', '==', null), orderBy('createdAt', 'desc'), limit(COMMENTS_PER_PAGE));
+      }
+      const snapshot = await getDocs(q);
+      const newComments = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      if (afterDoc) {
+        setRootComments(prev => [...prev, ...newComments]);
+      } else {
+        setRootComments(newComments);
+      }
+
+      setLastDoc(snapshot.docs[snapshot.docs.length - 1] || null);
+      setHasMore(snapshot.docs.length === COMMENTS_PER_PAGE);
+    } catch (error) {
+      console.error('Error loading root comments:', error);
+    } finally {
+      setInitialLoading(false);
+      setLoadingMore(false);
+    }
+  }, [postId]);
+
+  // Initial load
+  useEffect(() => {
+    loadRootComments();
+  }, [loadRootComments]);
+
+  // Load more (infinite scroll / button)
+  const loadMore = async () => {
+    if (!hasMore || loadingMore || !lastDoc) return;
+    setLoadingMore(true);
+    await loadRootComments(lastDoc);
+  };
+
+  // Load replies for a specific comment
+  const loadReplies = async (commentId) => {
+    setLoadingReplies(prev => ({ ...prev, [commentId]: true }));
+    try {
+      const q = query(commentsRef, where('parentCommentId', '==', commentId), orderBy('createdAt', 'asc'));
+      const snapshot = await getDocs(q);
+      const replies = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      setRepliesMap(prev => ({ ...prev, [commentId]: replies }));
+    } catch (error) {
+      console.error('Error loading replies:', error);
+    } finally {
+      setLoadingReplies(prev => ({ ...prev, [commentId]: false }));
+    }
+  };
+
+  // Toggle replies visibility
+  const toggleReplies = async (commentId) => {
+    if (expandedReplies[commentId]) {
+      setExpandedReplies(prev => ({ ...prev, [commentId]: false }));
+    } else {
+      setExpandedReplies(prev => ({ ...prev, [commentId]: true }));
+      // Load replies if not already loaded
+      if (!repliesMap[commentId]) {
+        await loadReplies(commentId);
+      }
+    }
+  };
+
+  // Add comment
   const handleAddComment = async () => {
     if (!commentText.trim() || submitting || !user) return;
     setSubmitting(true);
 
     try {
-      const postRef = doc(db, 'communityPosts', postId);
       const newComment = {
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+        parentCommentId: replyTo || null,
         text: commentText.trim(),
         userId: user.uid,
         isAnonymous: isAnonComment,
-        createdAt: new Date().toISOString(),
-        replies: [],
+        authorData: {
+          displayName: userData?.displayName || user.displayName || 'Felhasználó',
+          photoURL: userData?.photoURL || user.photoURL || null,
+        },
+        createdAt: serverTimestamp(),
+        replyCount: 0,
       };
 
-      // Mindig mentsük az authorData-t (admin használja anonim hozzászólásoknál)
-      newComment.authorData = {
-        displayName: userData?.displayName || user.displayName || 'Felhasználó',
-        photoURL: userData?.photoURL || user.photoURL || null,
-      };
+      await addDoc(commentsRef, newComment);
 
+      // Update post commentCount
+      const postRef = doc(db, 'communityPosts', postId);
+      await updateDoc(postRef, { commentCount: increment(1) });
+
+      // If reply, increment parent's replyCount
       if (replyTo) {
-        // Rekurzív keresés: a válasz bármilyen mélységben lévő kommenthez kerülhet
-        const addReplyRecursive = (items, targetId) => {
-          return items.map(item => {
-            if (item.id === targetId) {
-              return { ...item, replies: [...(item.replies || []), newComment] };
-            }
-            if (item.replies?.length > 0) {
-              return { ...item, replies: addReplyRecursive(item.replies, targetId) };
-            }
-            return item;
-          });
-        };
-        const updatedComments = addReplyRecursive(comments, replyTo);
-        await updateDoc(postRef, { comments: updatedComments });
+        const parentRef = doc(db, 'communityPosts', postId, 'comments', replyTo);
+        await updateDoc(parentRef, { replyCount: increment(1) });
+        // Reload replies for the parent
+        await loadReplies(replyTo);
+        setExpandedReplies(prev => ({ ...prev, [replyTo]: true }));
       } else {
-        const updatedComments = [...(comments || []), newComment];
-        await updateDoc(postRef, { comments: updatedComments });
+        // Reload root comments
+        await loadRootComments();
       }
 
       setCommentText('');
       setReplyTo(null);
+      setReplyToComment(null);
       onUpdate();
     } catch (error) {
       console.error('Error adding comment:', error);
@@ -549,32 +629,35 @@ function CommentThread({ postId, postText, comments, darkMode, user, userData, i
     }
   };
 
+  // Edit comment
   const handleEditComment = async (commentId, newText) => {
     if (!newText.trim()) return;
     try {
-      const postRef = doc(db, 'communityPosts', postId);
-      const updateTextRecursive = (items) => {
-        return items.map(item => {
-          if (item.id === commentId) {
-            return { ...item, text: newText.trim() };
-          }
-          if (item.replies?.length > 0) {
-            return { ...item, replies: updateTextRecursive(item.replies) };
-          }
-          return item;
-        });
-      };
-      await updateDoc(postRef, { comments: updateTextRecursive(comments) });
+      const commentRef = doc(db, 'communityPosts', postId, 'comments', commentId);
+      await updateDoc(commentRef, { text: newText.trim() });
       setEditingId(null);
       setEditingText('');
-      onUpdate();
+      // Refresh: find which list contains this comment and reload
+      // Check if it's a root comment
+      if (rootComments.find(c => c.id === commentId)) {
+        await loadRootComments();
+      } else {
+        // Find in repliesMap and reload parent
+        for (const [parentId, replies] of Object.entries(repliesMap)) {
+          if (replies.find(r => r.id === commentId)) {
+            await loadReplies(parentId);
+            break;
+          }
+        }
+      }
     } catch (error) {
       console.error('Error editing comment:', error);
     }
   };
 
-  const formatCommentTime = (dateStr) => {
-    const date = new Date(dateStr);
+  const formatCommentTime = (timestamp) => {
+    if (!timestamp) return '';
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
     const now = new Date();
     const diff = Math.floor((now - date) / 1000);
     if (diff < 60) return 'most';
@@ -585,44 +668,15 @@ function CommentThread({ postId, postText, comments, darkMode, user, userData, i
     return `${date.toLocaleDateString('hu-HU')} ${hours}:${mins}`;
   };
 
-  const handleReplyTap = (commentId) => {
-    if (replyTo === commentId) {
+  const handleReplyTap = (comment) => {
+    if (replyTo === comment.id) {
       setReplyTo(null);
+      setReplyToComment(null);
     } else {
-      setReplyTo(commentId);
+      setReplyTo(comment.id);
+      setReplyToComment(comment);
     }
     setTimeout(() => inputRef.current?.focus(), 100);
-  };
-
-  const toggleReplies = (commentId) => {
-    setExpandedReplies(prev => ({ ...prev, [commentId]: !prev[commentId] }));
-  };
-
-  // Rekurzív keresés komment megtalálásához bármilyen mélységben
-  const findCommentById = (items, targetId) => {
-    for (const item of items) {
-      if (item.id === targetId) return item;
-      if (item.replies?.length > 0) {
-        const found = findCommentById(item.replies, targetId);
-        if (found) return found;
-      }
-    }
-    return null;
-  };
-
-  const replyingToComment = replyTo ? findCommentById(comments || [], replyTo) : null;
-  const replyingToName = replyingToComment
-    ? (replyingToComment.isAnonymous !== false ? 'Anonim felhasználó' : (replyingToComment.authorData?.displayName || 'Felhasználó'))
-    : '';
-
-  // Sort comments: newest first
-  const sortedComments = [...(comments || [])].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-  // Rekurzív válasz-számláló
-  const countAllReplies = (item) => {
-    let count = item.replies?.length || 0;
-    item.replies?.forEach(r => { count += countAllReplies(r); });
-    return count;
   };
 
   const renderAvatar = (item, size = 'md') => {
@@ -657,13 +711,20 @@ function CommentThread({ postId, postText, comments, darkMode, user, userData, i
     return null;
   };
 
-  // Rekurzív komment renderelés - 20 szint mélységig
+  const replyingToName = replyToComment
+    ? (replyToComment.isAnonymous !== false ? 'Anonim felhasználó' : (replyToComment.authorData?.displayName || 'Felhasználó'))
+    : '';
+
+  // Render a single comment with lazy-loaded replies
   const renderComment = (item, depth) => {
     if (depth > 20) return null;
     const isTopLevel = depth === 0;
     const avatarSize = isTopLevel ? 'md' : 'sm';
-    const totalReplies = countAllReplies(item);
-    const indent = Math.min(depth, 3); // Max vizuális behúzás 3 szint
+    const indent = Math.min(depth, 3);
+    const replies = repliesMap[item.id] || [];
+    const replyCount = item.replyCount || 0;
+    const isExpanded = expandedReplies[item.id];
+    const isLoading = loadingReplies[item.id];
 
     return (
       <div key={item.id} style={{ marginLeft: depth > 0 ? `${indent * 8}px` : 0 }} className="py-1.5 overflow-hidden">
@@ -722,7 +783,7 @@ function CommentThread({ postId, postText, comments, darkMode, user, userData, i
                 <div className="flex items-center gap-3 mt-1 ml-1">
                   <span className="text-xs text-gray-500">{formatCommentTime(item.createdAt)}</span>
                   <button
-                    onClick={() => handleReplyTap(item.id)}
+                    onClick={() => handleReplyTap(item)}
                     className={`text-xs font-bold ${
                       replyTo === item.id
                         ? 'text-blue-600 dark:text-blue-400'
@@ -743,20 +804,22 @@ function CommentThread({ postId, postText, comments, darkMode, user, userData, i
               </>
             )}
 
-            {/* Nested replies */}
-            {item.replies?.length > 0 && (
+            {/* Nested replies - lazy loaded */}
+            {replyCount > 0 && (
               <div className="mt-1">
-                {!expandedReplies[item.id] ? (
+                {!isExpanded ? (
                   <button
                     onClick={() => toggleReplies(item.id)}
                     className={`text-xs font-bold ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}
                   >
-                    {totalReplies} válasz megtekintése...
+                    {isLoading ? 'Betöltés...' : `${replyCount} válasz megtekintése...`}
                   </button>
                 ) : (
                   <div>
-                    {[...item.replies].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).map(
-                      (reply) => renderComment(reply, depth + 1)
+                    {isLoading ? (
+                      <p className={`text-xs py-2 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Betöltés...</p>
+                    ) : (
+                      replies.map((reply) => renderComment(reply, depth + 1))
                     )}
                     <button
                       onClick={() => toggleReplies(item.id)}
@@ -781,6 +844,7 @@ function CommentThread({ postId, postText, comments, darkMode, user, userData, i
 
       {/* Fullscreen scrollable wrapper */}
       <div
+        ref={scrollContainerRef}
         className="absolute inset-0 overflow-y-scroll overscroll-contain"
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
@@ -807,72 +871,88 @@ function CommentThread({ postId, postText, comments, darkMode, user, userData, i
 
           {/* Comments section */}
           <div className="px-4 py-2">
-          {(!comments || comments.length === 0) ? (
-            <div className="flex flex-col items-center justify-center py-16">
-              <MessageCircle className={`w-12 h-12 mb-3 ${darkMode ? 'text-gray-600' : 'text-gray-300'}`} />
-              <p className={`text-sm ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                Még nincsenek hozzászólások
-              </p>
-            </div>
-          ) : (
-            <div className="py-2">
-              {sortedComments.map((comment) => renderComment(comment, 0))}
-            </div>
-          )}
+            {initialLoading ? (
+              <div className="flex justify-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+              </div>
+            ) : rootComments.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16">
+                <MessageCircle className={`w-12 h-12 mb-3 ${darkMode ? 'text-gray-600' : 'text-gray-300'}`} />
+                <p className={`text-sm ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                  Még nincsenek hozzászólások
+                </p>
+              </div>
+            ) : (
+              <div className="py-2">
+                {rootComments.map((comment) => renderComment(comment, 0))}
+                {/* Load more button */}
+                {hasMore && (
+                  <button
+                    onClick={loadMore}
+                    disabled={loadingMore}
+                    className={`w-full py-3 text-sm font-medium rounded-lg mt-2 transition-colors ${
+                      darkMode ? 'text-blue-400 hover:bg-gray-700' : 'text-blue-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    {loadingMore ? 'Betöltés...' : 'Korábbi hozzászólások betöltése...'}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Input bar */}
           <div className={`border-t ${
             darkMode ? 'border-gray-700' : 'border-gray-200'
           }`}>
-        {/* Reply indicator */}
-        {replyTo && replyingToComment && (
-          <div className={`px-4 py-2 flex items-center justify-between ${
-            darkMode ? 'bg-gray-800/90' : 'bg-gray-50'
-          }`}>
-            <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-              Válasz <span className="font-bold">{replyingToName}</span> számára
-            </p>
-            <button onClick={() => setReplyTo(null)} className={`text-xs font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-              Mégsem
-            </button>
-          </div>
-        )}
+            {/* Reply indicator */}
+            {replyTo && replyToComment && (
+              <div className={`px-4 py-2 flex items-center justify-between ${
+                darkMode ? 'bg-gray-800/90' : 'bg-gray-50'
+              }`}>
+                <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  Válasz <span className="font-bold">{replyingToName}</span> számára
+                </p>
+                <button onClick={() => { setReplyTo(null); setReplyToComment(null); }} className={`text-xs font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  Mégsem
+                </button>
+              </div>
+            )}
 
-        {/* Input row */}
-        <div className="px-3 py-2 flex items-center gap-2">
-          <button
-            onClick={() => setIsAnonComment(!isAnonComment)}
-            className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
-              isAnonComment
-                ? darkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-200 text-gray-500'
-                : 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400'
-            }`}
-            title={isAnonComment ? 'Anonim mód' : 'Nyilvános mód'}
-          >
-            {isAnonComment ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-          </button>
-          <input
-            ref={inputRef}
-            type="text"
-            value={commentText}
-            onChange={(e) => setCommentText(e.target.value)}
-            onFocus={handleInputFocus}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleAddComment(); }}
-            placeholder={replyTo ? 'Válasz írása...' : (isAnonComment ? 'Anonim hozzászólás...' : 'Hozzászólás...')}
-            className={`flex-1 px-4 py-2.5 rounded-full text-sm border ${
-              darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-500' : 'bg-gray-100 border-gray-200 text-gray-900 placeholder-gray-400'
-            }`}
-          />
-          <button
-            onClick={handleAddComment}
-            disabled={!commentText.trim() || submitting}
-            className="w-9 h-9 rounded-full bg-blue-600 text-white disabled:bg-gray-400 flex items-center justify-center flex-shrink-0 transition-colors"
-          >
-            <Send className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
+            {/* Input row */}
+            <div className="px-3 py-2 flex items-center gap-2">
+              <button
+                onClick={() => setIsAnonComment(!isAnonComment)}
+                className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
+                  isAnonComment
+                    ? darkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-200 text-gray-500'
+                    : 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400'
+                }`}
+                title={isAnonComment ? 'Anonim mód' : 'Nyilvános mód'}
+              >
+                {isAnonComment ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+              <input
+                ref={inputRef}
+                type="text"
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                onFocus={handleInputFocus}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleAddComment(); }}
+                placeholder={replyTo ? 'Válasz írása...' : (isAnonComment ? 'Anonim hozzászólás...' : 'Hozzászólás...')}
+                className={`flex-1 px-4 py-2.5 rounded-full text-sm border ${
+                  darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-500' : 'bg-gray-100 border-gray-200 text-gray-900 placeholder-gray-400'
+                }`}
+              />
+              <button
+                onClick={handleAddComment}
+                disabled={!commentText.trim() || submitting}
+                className="w-9 h-9 rounded-full bg-blue-600 text-white disabled:bg-gray-400 flex items-center justify-center flex-shrink-0 transition-colors"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
         </div>{/* end modal card */}
 
         {/* Bottom spacer for keyboard */}
@@ -912,12 +992,7 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate }) {
 
   const userReaction = user ? post.reactions?.[user.uid] : null;
 
-  const countAllComments = (cmts) => {
-    let count = cmts?.length || 0;
-    cmts?.forEach(c => { count += countAllComments(c.replies); });
-    return count;
-  };
-  const commentCount = countAllComments(post.comments);
+  const commentCount = post.commentCount || 0;
 
   const getReactionSummary = () => {
     if (!post.reactions || Object.keys(post.reactions).length === 0) return null;
@@ -1279,7 +1354,6 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate }) {
         <CommentThread
           postId={post.id}
           postText={post.text}
-          comments={post.comments || []}
           darkMode={darkMode}
           user={user}
           userData={userData}
