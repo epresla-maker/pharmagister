@@ -481,28 +481,39 @@ function CommentThread({ postId, comments, darkMode, user, userData, isAdmin, on
   const [replyTo, setReplyTo] = useState(null);
   const [isAnonComment, setIsAnonComment] = useState(false);
   const [expandedReplies, setExpandedReplies] = useState({});
-  const [bottomOffset, setBottomOffset] = useState(0);
+  const [containerHeight, setContainerHeight] = useState('100%');
   const inputRef = useRef(null);
   const containerRef = useRef(null);
-  const inputBarRef = useRef(null);
 
-  // VisualViewport API: keeps input above keyboard on mobile
+  // Dynamically track visible viewport height (handles keyboard on Android/iOS)
   useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-    const onResize = () => {
-      const offset = window.innerHeight - vv.height - vv.offsetTop;
-      setBottomOffset(Math.max(0, offset));
-      // Scroll to keep input visible
-      setTimeout(() => {
-        inputBarRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-      }, 50);
+    const update = () => {
+      const vv = window.visualViewport;
+      if (vv) {
+        setContainerHeight(`${vv.height}px`);
+        // On iOS, viewport might scroll, so adjust top position
+        if (containerRef.current) {
+          containerRef.current.style.top = `${vv.offsetTop}px`;
+        }
+      } else {
+        setContainerHeight(`${window.innerHeight}px`);
+      }
     };
-    vv.addEventListener('resize', onResize);
-    vv.addEventListener('scroll', onResize);
+
+    const vv = window.visualViewport;
+    if (vv) {
+      vv.addEventListener('resize', update);
+      vv.addEventListener('scroll', update);
+    }
+    window.addEventListener('resize', update);
+    update();
+
     return () => {
-      vv.removeEventListener('resize', onResize);
-      vv.removeEventListener('scroll', onResize);
+      if (vv) {
+        vv.removeEventListener('resize', update);
+        vv.removeEventListener('scroll', update);
+      }
+      window.removeEventListener('resize', update);
     };
   }, []);
 
@@ -609,10 +620,10 @@ function CommentThread({ postId, comments, darkMode, user, userData, isAdmin, on
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 z-50 flex flex-col"
-      style={{ height: '100dvh' }}
+      className="fixed left-0 z-50 flex flex-col w-full"
+      style={{ top: 0, height: containerHeight }}
     >
-      <div className={`flex-1 flex flex-col ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
+      <div className={`flex-1 flex flex-col min-h-0 ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
         {/* Header */}
         <div className={`flex items-center px-4 py-3 border-b flex-shrink-0 ${
           darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'
@@ -740,16 +751,15 @@ function CommentThread({ postId, comments, darkMode, user, userData, isAdmin, on
               ))}
             </div>
           )}
-          {/* Spacer so content isn't hidden behind fixed input */}
-          <div style={{ height: replyTo ? 100 : 60 }} />
+          {/* Spacer so content isn't hidden behind input */}
+          <div className="h-4" />
         </div>
       </div>
 
-      {/* Fixed bottom input bar */}
+      {/* Bottom input bar - part of flex, not fixed */}
       <div
-        ref={inputBarRef}
         className={`flex-shrink-0 border-t ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}
-        style={{ paddingBottom: bottomOffset > 0 ? bottomOffset : 'max(8px, env(safe-area-inset-bottom))' }}
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       >
         {/* Reply indicator */}
         {replyTo && replyingToComment && (
