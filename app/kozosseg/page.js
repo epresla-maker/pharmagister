@@ -497,8 +497,31 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
   const [editingText, setEditingText] = useState('');
   const inputRef = useRef(null);
   const commentsEndRef = useRef(null);
+  const [viewHeight, setViewHeight] = useState(typeof window !== 'undefined' ? window.innerHeight : 0);
 
   const commentsColRef = collection(db, 'communityPosts', postId, 'comments');
+
+  // Track visual viewport for iOS keyboard
+  useEffect(() => {
+    const update = () => {
+      const h = window.visualViewport?.height || window.innerHeight;
+      setViewHeight(h);
+    };
+    update();
+    const vv = window.visualViewport;
+    if (vv) {
+      vv.addEventListener('resize', update);
+      vv.addEventListener('scroll', update);
+    }
+    window.addEventListener('resize', update);
+    return () => {
+      if (vv) {
+        vv.removeEventListener('resize', update);
+        vv.removeEventListener('scroll', update);
+      }
+      window.removeEventListener('resize', update);
+    };
+  }, []);
 
   useEffect(() => {
     if (autoFocus) {
@@ -882,7 +905,10 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
   };
 
   return (
-    <div className={`fixed inset-0 z-50 flex flex-col ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
+    <div
+      className={`fixed top-0 left-0 right-0 z-50 flex flex-col ${darkMode ? 'bg-gray-900' : 'bg-white'}`}
+      style={{ height: viewHeight ? `${viewHeight}px` : '100dvh' }}
+    >
       {/* Header */}
       <div className={`flex items-center px-3 py-2.5 border-b ${
         darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
@@ -992,6 +1018,9 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') handleAddComment(); }}
+              onFocus={() => {
+                setTimeout(() => inputRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 300);
+              }}
               placeholder={replyTo ? '' : `Hozzászólás mint ${isAnonComment ? 'Anonim' : currentUserDisplayName}`}
               className={`flex-1 pl-4 pr-1 py-2.5 rounded-full text-[15px] bg-transparent ${
                 darkMode ? 'text-white placeholder-gray-500' : 'text-gray-900 placeholder-gray-500'
