@@ -494,8 +494,8 @@ export default function ModernServiceFeed() {
             <span>Hiánycikk kereső</span>
           </button>
 
-          {/* Közösség gomb - egyelőre csak admin */}
-          {user?.email === 'epresla@icloud.com' && (
+          {/* Közösség gomb - admin és adminka */}
+          {(user?.email === 'epresla@icloud.com' || user?.email === 'etinatina22@gmail.com') && (
             <button
               onClick={() => router.push('/kozosseg')}
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg font-medium transition-colors"

@@ -73,6 +73,7 @@ const REACTIONS = [
 ];
 
 const ADMIN_EMAIL = 'epresla@icloud.com';
+const ADMINKA_EMAIL = 'etinatina22@gmail.com';
 
 const COLOR_PRESETS = [
   { name: 'Alapértelmezett', bg: '#ffffff', text: '#1f2937' },
@@ -1189,6 +1190,7 @@ export default function KozossegPage() {
   const [showFilters, setShowFilters] = useState(false);
 
   const isAdmin = user?.email === ADMIN_EMAIL;
+  const isAdminka = user?.email === ADMINKA_EMAIL;
 
   // Fetch posts
   const fetchPosts = useCallback(async () => {
@@ -1234,7 +1236,7 @@ export default function KozossegPage() {
     );
   }
 
-  if (!user || !isAdmin) {
+  if (!user || (!isAdmin && !isAdminka)) {
     return (
       <div className={`min-h-screen flex items-center justify-center ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
         <div className={`text-center p-8 rounded-2xl ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
@@ -1368,7 +1370,7 @@ export default function KozossegPage() {
               darkMode={darkMode}
               user={user}
               userData={userData}
-              isAdmin={isAdmin}
+              isAdmin={isAdmin || isAdminka}
               onUpdate={fetchPosts}
             />
           ))
