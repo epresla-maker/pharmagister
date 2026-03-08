@@ -139,7 +139,7 @@ function NewChatContent() {
     <RouteGuard>
       <div className={`min-h-screen flex flex-col ${darkMode ? 'bg-black' : 'bg-gray-100'}`}>
         {/* Header - same style as chat page */}
-        <div className={`${darkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'} border-b px-4 py-3 sticky top-0 z-10`}>
+        <div className={`${darkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'} border-b px-4 py-3 sticky top-0 z-10 pt-safe-small`}>
           <div className="max-w-4xl mx-auto flex items-center gap-3">
             <button
               onClick={() => router.back()}

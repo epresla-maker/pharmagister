@@ -943,7 +943,7 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
       style={{ height: '100dvh' }}
     >
       {/* Header */}
-      <div className={`flex items-center px-3 py-2.5 border-b flex-shrink-0 ${
+      <div className={`flex items-center px-3 py-2.5 border-b flex-shrink-0 pt-safe-small ${
         darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
       }`}>
         <button
@@ -1609,7 +1609,7 @@ export default function KozossegPage() {
   return (
     <div className={`min-h-screen pb-24 ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
       {/* Header */}
-      <div className={`sticky top-0 z-10 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b`}>
+      <div className={`sticky top-0 z-10 pt-safe-small ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b`}>
         <div className="flex items-center px-4 py-3">
           <button
             onClick={() => router.back()}

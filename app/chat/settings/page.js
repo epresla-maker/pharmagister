@@ -83,7 +83,7 @@ export default function ChatSettingsPage() {
   return (
     <div className={`min-h-screen pb-40 ${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'}`}>
       {/* Header */}
-      <div className={`sticky top-0 z-10 ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-300'} border-b`}>
+      <div className={`sticky top-0 z-10 pt-safe-small ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-300'} border-b`}>
         <div className="flex items-center gap-4 p-4">
           <button
             onClick={() => router.back()}

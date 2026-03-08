@@ -131,7 +131,7 @@ export default function ProfileEditPage() {
     <RouteGuard>
       <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-[#F9FAFB]'} pb-24`}>
         {/* Header */}
-        <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-[#E5E7EB]'} border-b px-4 py-3 sticky top-0 z-10`}>
+        <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-[#E5E7EB]'} border-b px-4 py-3 sticky top-0 z-10 pt-safe-small`}>
           <div className="flex items-center gap-3">
             <button 
               onClick={() => router.back()}

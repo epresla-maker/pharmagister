@@ -13,7 +13,7 @@ export default function HirekPage() {
     <RouteGuard>
       <div className="min-h-screen bg-gray-100 dark:bg-gray-900 pb-[40px]">
         {/* Sticky Header */}
-        <div className="sticky top-0 bg-purple-400 dark:bg-purple-500 border-b border-purple-500 dark:border-purple-600 z-10 shadow-lg">
+        <div className="sticky top-0 bg-purple-400 dark:bg-purple-500 border-b border-purple-500 dark:border-purple-600 z-10 shadow-lg pt-safe-small">
           <div className="max-w-xl mx-auto px-4 py-3">
             {/* Vissza gomb */}
             <button
