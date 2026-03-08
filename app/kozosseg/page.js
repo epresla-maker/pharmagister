@@ -505,11 +505,20 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
 
   // When showInput changes, scroll to input and focus
   useEffect(() => {
-    if (showInput && inlineInputRef.current) {
-      setTimeout(() => {
-        inlineInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        inputRef.current?.focus();
-      }, 100);
+    if (showInput) {
+      // Wait for DOM to render, then scroll
+      const doScroll = () => {
+        requestAnimationFrame(() => {
+          if (inlineInputRef.current) {
+            inlineInputRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+          if (inputRef.current) {
+            inputRef.current.focus();
+          }
+        });
+      };
+      // Extra delay for iOS rendering
+      setTimeout(doScroll, 150);
     }
   }, [showInput, replyTo]);
 
