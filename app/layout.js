@@ -20,7 +20,7 @@ export const viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
-  interactiveWidget: "resizes-content",
+  interactiveWidget: "resizes-visual",
 };
 
 export default function RootLayout({ children }) {
