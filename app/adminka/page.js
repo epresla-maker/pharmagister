@@ -2,7 +2,7 @@
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { ArrowLeft, Key, BarChart3, TestTube, Smartphone } from "lucide-react";
+import { ArrowLeft, Key, BarChart3, TestTube, Smartphone, ClipboardList, FileText, Users, Building2, Mail, ListChecks } from "lucide-react";
 
 // Adminka szerepkörű felhasználók
 const ADMINKA_EMAILS = ['etinatina22@gmail.com'];
@@ -48,6 +48,36 @@ export default function AdminkaPage() {
 
         {/* Menu Cards */}
         <div className="space-y-4">
+          <button
+            onClick={() => router.push('/admin/approvals')}
+            className="w-full bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow text-left"
+          >
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-orange-100 rounded-xl">
+                <ClipboardList className="w-8 h-8 text-orange-600" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">📋 NNK Jóváhagyások</h2>
+                <p className="text-sm text-gray-500">NNK jóváhagyási kérelmek megtekintése (csak olvasás)</p>
+              </div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => router.push('/admin/posts')}
+            className="w-full bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow text-left"
+          >
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-green-100 rounded-xl">
+                <FileText className="w-8 h-8 text-green-600" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">📝 Posztok kezelése</h2>
+                <p className="text-sm text-gray-500">Posztok megtekintése (csak olvasás)</p>
+              </div>
+            </div>
+          </button>
+
           <button
             onClick={() => router.push('/adminka/password-activations')}
             className="w-full bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow text-left"
@@ -104,6 +134,66 @@ export default function AdminkaPage() {
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">📱 Mobil alkalmazások</h2>
                 <p className="text-sm text-gray-500">Letölthető iOS és Android verziók</p>
+              </div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => router.push('/admin/users')}
+            className="w-full bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow text-left"
+          >
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-pink-100 rounded-xl">
+                <Users className="w-8 h-8 text-pink-600" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">👥 Felhasználók kezelése</h2>
+                <p className="text-sm text-gray-500">Regisztrált felhasználók megtekintése (csak olvasás)</p>
+              </div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => router.push('/admin/pharmacies')}
+            className="w-full bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow text-left"
+          >
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-emerald-100 rounded-xl">
+                <Building2 className="w-8 h-8 text-emerald-600" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">🏥 Gyógyszertárak kezelése</h2>
+                <p className="text-sm text-gray-500">Gyógyszertárak megtekintése (csak olvasás)</p>
+              </div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => router.push('/admin/email')}
+            className="w-full bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow text-left"
+          >
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-red-100 rounded-xl">
+                <Mail className="w-8 h-8 text-red-600" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">✉️ Email küldés</h2>
+                <p className="text-sm text-gray-500">Email küldés megtekintése (csak olvasás)</p>
+              </div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => router.push('/admin/demands')}
+            className="w-full bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow text-left"
+          >
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-violet-100 rounded-xl">
+                <ListChecks className="w-8 h-8 text-violet-600" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">📋 Igények kezelése</h2>
+                <p className="text-sm text-gray-500">Igények megtekintése (csak olvasás)</p>
               </div>
             </div>
           </button>

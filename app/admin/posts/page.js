@@ -29,9 +29,14 @@ const FONT_OPTIONS = [
 
 const FONT_SIZE_OPTIONS = [14, 16, 18, 20, 24, 28, 32];
 
+const ADMIN_EMAILS = ['epresla@icloud.com'];
+const ADMINKA_EMAILS = ['etinatina22@gmail.com'];
+const ALL_ADMIN_EMAILS = [...ADMIN_EMAILS, ...ADMINKA_EMAILS];
+
 export default function AdminPostsPage() {
   const { user, userData } = useAuth();
   const router = useRouter();
+  const isAdmin = user && ADMIN_EMAILS.includes(user.email);
   const [postText, setPostText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [posts, setPosts] = useState([]);
@@ -64,7 +69,7 @@ export default function AdminPostsPage() {
 
   // Ellenőrizzük hogy admin-e
   useEffect(() => {
-    if (user && userData && user.email !== 'epresla@icloud.com') {
+    if (user && userData && !ALL_ADMIN_EMAILS.includes(user.email)) {
       router.push('/');
     }
   }, [user, userData, router]);
@@ -218,7 +223,7 @@ export default function AdminPostsPage() {
     return dateB - dateA;
   });
 
-  if (!user || user.email !== 'epresla@icloud.com') {
+  if (!user || !ALL_ADMIN_EMAILS.includes(user.email)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -245,6 +250,7 @@ export default function AdminPostsPage() {
           </div>
 
           {/* Új poszt létrehozása - Professzionális szerkesztő */}
+          {isAdmin && (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="flex items-center justify-between">
               <label className="block text-sm font-medium text-gray-700">
@@ -506,6 +512,7 @@ export default function AdminPostsPage() {
               )}
             </div>
           </form>
+          )}
         </div>
 
         {/* Létező posztok listája */}
@@ -609,6 +616,8 @@ export default function AdminPostsPage() {
                   )}
 
                   {/* Törlés/Elrejtés gomb */}
+                  {isAdmin && (
+                  <>
                   {post.source === 'rss' ? (
                     <button
                       onClick={() => handleHideRssPost(post.id)}
@@ -625,6 +634,8 @@ export default function AdminPostsPage() {
                       <Trash2 size={16} />
                       Poszt törlése
                     </button>
+                  )}
+                  </>
                   )}
                 </div>
               ))

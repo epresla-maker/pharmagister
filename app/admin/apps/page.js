@@ -6,7 +6,7 @@ import { ArrowLeft, Smartphone, Download, Bot } from "lucide-react";
 import Link from "next/link";
 
 const ADMIN_EMAILS = ['epresla@icloud.com'];
-const ADMINKA_EMAILS = ['adminka@pharmagister.hu'];
+const ADMINKA_EMAILS = ['etinatina22@gmail.com'];
 
 // Ezeket a linkeket cseréld ki a tényleges Cloudinary/tárolt fájl URL-ekre
 const APP_DOWNLOADS = {

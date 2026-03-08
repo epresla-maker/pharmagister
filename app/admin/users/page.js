@@ -10,6 +10,8 @@ import {
 } from "lucide-react";
 
 const ADMIN_EMAILS = ['epresla@icloud.com'];
+const ADMINKA_EMAILS = ['etinatina22@gmail.com'];
+const ALL_ADMIN_EMAILS = [...ADMIN_EMAILS, ...ADMINKA_EMAILS];
 
 export default function AdminUsersPage() {
   const { user, loading } = useAuth();
@@ -21,14 +23,14 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     if (!loading) {
-      if (!user || !ADMIN_EMAILS.includes(user.email)) {
+      if (!user || !ALL_ADMIN_EMAILS.includes(user.email)) {
         router.push('/login');
       }
     }
   }, [user, loading, router]);
 
   useEffect(() => {
-    if (user && ADMIN_EMAILS.includes(user.email)) {
+    if (user && ALL_ADMIN_EMAILS.includes(user.email)) {
       loadData();
     }
   }, [user]);
@@ -126,7 +128,7 @@ export default function AdminUsersPage() {
     });
   }, [filteredUsers]);
 
-  if (loading || !user || !ADMIN_EMAILS.includes(user.email)) {
+  if (loading || !user || !ALL_ADMIN_EMAILS.includes(user.email)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-xl">Betöltés...</div>

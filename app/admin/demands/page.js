@@ -36,6 +36,8 @@ import {
 } from "lucide-react";
 
 const ADMIN_EMAILS = ["epresla@icloud.com"];
+const ADMINKA_EMAILS = ['etinatina22@gmail.com'];
+const ALL_ADMIN_EMAILS = [...ADMIN_EMAILS, ...ADMINKA_EMAILS];
 
 function parseDate(val) {
   if (!val) return null;
@@ -402,7 +404,7 @@ function DemandCard({ demand, applications, creatorData, onDelete }) {
           )}
 
           {/* Törlés gomb */}
-          {!demand.deletedAt && (
+          {!demand.deletedAt && onDelete && (
             <div className="border-t border-gray-200 pt-3">
               <button
                 onClick={(e) => {
@@ -439,6 +441,8 @@ export default function AdminDemandsPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
 
+  const isAdmin = user && ADMIN_EMAILS.includes(user.email);
+
   const [demands, setDemands] = useState([]);
   const [applications, setApplications] = useState([]);
   const [creatorMap, setCreatorMap] = useState({});
@@ -449,14 +453,14 @@ export default function AdminDemandsPage() {
 
   // Auth guard
   useEffect(() => {
-    if (!loading && (!user || !ADMIN_EMAILS.includes(user.email))) {
+    if (!loading && (!user || !ALL_ADMIN_EMAILS.includes(user.email))) {
       router.push("/login");
     }
   }, [user, loading, router]);
 
   // Load data
   useEffect(() => {
-    if (!user || !ADMIN_EMAILS.includes(user.email)) return;
+    if (!user || !ALL_ADMIN_EMAILS.includes(user.email)) return;
     loadData();
   }, [user]);
 
@@ -670,7 +674,7 @@ export default function AdminDemandsPage() {
                 demand={demand}
                 applications={applications}
                 creatorData={creatorMap[demand.pharmacyId || demand.createdBy]}
-                onDelete={setDeleteTarget}
+                onDelete={isAdmin ? setDeleteTarget : null}
               />
             ))}
           </div>

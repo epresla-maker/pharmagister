@@ -7,6 +7,8 @@ import { db } from "@/lib/firebase";
 import { Mail, Users, Search, X, ChevronDown, ChevronUp, Send, ArrowLeft, CheckCircle, AlertCircle, Clock, Eye, EyeOff } from "lucide-react";
 
 const ADMIN_EMAILS = ['epresla@icloud.com'];
+const ADMINKA_EMAILS = ['etinatina22@gmail.com'];
+const ALL_ADMIN_EMAILS = [...ADMIN_EMAILS, ...ADMINKA_EMAILS];
 
 // Email vázlat sablon - ITT TUDOD MÓDOSÍTANI AZ EMAIL SZÖVEGÉT
 const generateInactiveUserEmail = (name, keepLink, deleteLink) => {
@@ -60,6 +62,8 @@ export default function AdminEmailPage() {
   const [expandedEmail, setExpandedEmail] = useState(null);
   const [activeTab, setActiveTab] = useState('compose'); // 'compose' | 'sent' | 'tokens'
 
+  const isAdmin = user && ADMIN_EMAILS.includes(user.email);
+
   // Token generation state
   const [generatingTokens, setGeneratingTokens] = useState(false);
   const [generatedTokens, setGeneratedTokens] = useState([]);
@@ -75,14 +79,14 @@ export default function AdminEmailPage() {
 
   useEffect(() => {
     if (!loading) {
-      if (!user || !ADMIN_EMAILS.includes(user.email)) {
+      if (!user || !ALL_ADMIN_EMAILS.includes(user.email)) {
         router.push('/login');
       }
     }
   }, [user, loading, router]);
 
   useEffect(() => {
-    if (user && ADMIN_EMAILS.includes(user.email)) {
+    if (user && ALL_ADMIN_EMAILS.includes(user.email)) {
       loadUsers();
       loadSentEmails();
     }
@@ -350,7 +354,7 @@ export default function AdminEmailPage() {
     }
   };
 
-  if (loading || !user || !ADMIN_EMAILS.includes(user.email)) {
+  if (loading || !user || !ALL_ADMIN_EMAILS.includes(user.email)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-xl">Betöltés...</div>
@@ -593,6 +597,7 @@ export default function AdminEmailPage() {
         )}
 
         {/* Send button */}
+        {isAdmin && (
         <div className="flex justify-end">
           <button
             onClick={sendEmail}
@@ -612,6 +617,7 @@ export default function AdminEmailPage() {
             )}
           </button>
         </div>
+        )}
         </>)}
 
         {/* TOKEN GENERATION TAB */}
@@ -758,6 +764,7 @@ export default function AdminEmailPage() {
               )}
 
               {/* Generate button */}
+              {isAdmin && (
               <button
                 onClick={generateTokens}
                 disabled={generatingTokens || (tokenTarget === 'custom' && tokenSelectedUsers.length === 0)}
@@ -779,6 +786,7 @@ export default function AdminEmailPage() {
                   </>
                 )}
               </button>
+              )}
             </div>
 
             {/* Generated tokens list */}
@@ -859,6 +867,7 @@ export default function AdminEmailPage() {
                         Minden felhasználó személyre szabott emailt kap az egyedi linkjeivel.
                       </p>
                     </div>
+                    {isAdmin && (
                     <button
                       onClick={sendBulkTokenEmails}
                       disabled={bulkSending}
@@ -876,6 +885,7 @@ export default function AdminEmailPage() {
                         </>
                       )}
                     </button>
+                    )}
                   </div>
 
                   {/* Progresszió */}

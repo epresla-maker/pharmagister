@@ -7,6 +7,8 @@ import { db } from "@/lib/firebase";
 import { Users, Building2, Pill, UserCog } from "lucide-react";
 
 const ADMIN_EMAILS = ['epresla@icloud.com'];
+const ADMINKA_EMAILS = ['etinatina22@gmail.com'];
+const ALL_ADMIN_EMAILS = [...ADMIN_EMAILS, ...ADMINKA_EMAILS];
 
 export default function AdminPage() {
   const { user, userData, loading } = useAuth();
@@ -15,16 +17,19 @@ export default function AdminPage() {
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [roleStats, setRoleStats] = useState({ gyogyszeresz: 0, gyogyszertar: 0, szakasszisztens: 0 });
 
+  const isAdmin = user && ADMIN_EMAILS.includes(user.email);
+  const isAdminka = user && ADMINKA_EMAILS.includes(user.email);
+
   useEffect(() => {
     if (!loading) {
-      if (!user || !ADMIN_EMAILS.includes(user.email)) {
+      if (!user || !ALL_ADMIN_EMAILS.includes(user.email)) {
         router.push('/login');
       }
     }
   }, [user, loading, router]);
 
   useEffect(() => {
-    if (user && ADMIN_EMAILS.includes(user.email)) {
+    if (user && ALL_ADMIN_EMAILS.includes(user.email)) {
       loadUsers();
     }
   }, [user]);
@@ -91,7 +96,7 @@ export default function AdminPage() {
     }
   };
 
-  if (loading || !user || !ADMIN_EMAILS.includes(user.email)) {
+  if (loading || !user || !ALL_ADMIN_EMAILS.includes(user.email)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-xl">Betöltés...</div>
@@ -218,12 +223,14 @@ export default function AdminPage() {
                         </button>
                         <div className="text-xs text-gray-500 break-all mt-0.5">{u.email}</div>
                       </div>
+                      {isAdmin && (
                       <button
                         onClick={() => deleteUser(u.id)}
                         className="text-red-600 hover:text-red-800 text-lg flex-shrink-0"
                       >
                         🗑
                       </button>
+                      )}
                     </div>
                     <div className="flex gap-2 flex-wrap">
                       {u.pharmagisterRole && (
@@ -284,12 +291,14 @@ export default function AdminPage() {
                           {u.createdAt ? new Date(u.createdAt).toLocaleDateString('hu-HU') : '-'}
                         </td>
                         <td className="py-3 px-4">
+                          {isAdmin && (
                           <button
                             onClick={() => deleteUser(u.id)}
                             className="text-red-600 hover:text-red-800 text-sm"
                           >
                             Törlés
                           </button>
+                          )}
                         </td>
                       </tr>
                     ))}
