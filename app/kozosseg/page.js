@@ -503,7 +503,7 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
 
   const commentsColRef = collection(db, 'communityPosts', postId, 'comments');
 
-  // When showInput changes, scroll to input and focus
+  // When showInput changes, scroll so input bottom is at viewport center
   useEffect(() => {
     if (showInput) {
       // First focus to trigger keyboard
@@ -511,12 +511,33 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
         if (inputRef.current) {
           inputRef.current.focus();
         }
-        // Then wait for keyboard to fully open, then scroll
+        // Wait for keyboard to fully open, then position input
         setTimeout(() => {
-          if (inlineInputRef.current) {
-            inlineInputRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          if (inlineInputRef.current && scrollContainerRef.current) {
+            const container = scrollContainerRef.current;
+            const inputBox = inlineInputRef.current;
+            
+            // Get visible viewport height (above keyboard)
+            const viewportHeight = window.visualViewport?.height || window.innerHeight;
+            const viewportCenter = viewportHeight / 2;
+            
+            // Get input box position relative to container
+            const inputRect = inputBox.getBoundingClientRect();
+            const containerRect = container.getBoundingClientRect();
+            
+            // Input bottom position relative to container top
+            const inputBottomInContainer = inputRect.bottom - containerRect.top + container.scrollTop;
+            
+            // We want input bottom at viewport center
+            // So scroll position should be: inputBottomInContainer - viewportCenter
+            const targetScroll = inputBottomInContainer - viewportCenter;
+            
+            container.scrollTo({
+              top: Math.max(0, targetScroll),
+              behavior: 'smooth'
+            });
           }
-        }, 350); // Wait for iOS keyboard animation
+        }, 400); // Wait for iOS keyboard animation
       }, 100);
     }
   }, [showInput, replyTo]);
