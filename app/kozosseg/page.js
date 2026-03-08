@@ -497,36 +497,8 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
   const [editingText, setEditingText] = useState('');
   const inputRef = useRef(null);
   const commentsEndRef = useRef(null);
-  const inputBarRef = useRef(null);
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   const commentsColRef = collection(db, 'communityPosts', postId, 'comments');
-
-  // Track keyboard height for iOS
-  useEffect(() => {
-    const updateKeyboardHeight = () => {
-      const vv = window.visualViewport;
-      if (vv) {
-        // Keyboard height = full window height minus visible viewport height
-        const kbHeight = window.innerHeight - vv.height;
-        setKeyboardHeight(kbHeight > 50 ? kbHeight : 0);
-      }
-    };
-    updateKeyboardHeight();
-    const vv = window.visualViewport;
-    if (vv) {
-      vv.addEventListener('resize', updateKeyboardHeight);
-      vv.addEventListener('scroll', updateKeyboardHeight);
-    }
-    window.addEventListener('resize', updateKeyboardHeight);
-    return () => {
-      if (vv) {
-        vv.removeEventListener('resize', updateKeyboardHeight);
-        vv.removeEventListener('scroll', updateKeyboardHeight);
-      }
-      window.removeEventListener('resize', updateKeyboardHeight);
-    };
-  }, []);
 
   useEffect(() => {
     if (autoFocus) {
@@ -913,78 +885,71 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
   };
 
   return (
-    <>
-      {/* Main container - fullscreen */}
-      <div className={`fixed inset-0 z-50 flex flex-col ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
-        {/* Header */}
-        <div className={`flex items-center px-3 py-2.5 border-b flex-shrink-0 ${
-          darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-        }`}>
-          <button
-            onClick={onClose}
-            className={`p-2 -ml-1 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
-          >
-            <ArrowLeft className={`w-5 h-5 ${darkMode ? 'text-white' : 'text-gray-900'}`} />
-          </button>
-          <h2 className={`ml-2 text-base font-bold truncate flex-1 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-            Hozzászólások
-          </h2>
-        </div>
-
-        {/* Post text preview */}
-        {postText && (
-          <div className={`px-4 py-3 border-b flex-shrink-0 ${darkMode ? 'border-gray-800' : 'border-gray-100'}`}>
-            <p className={`text-sm line-clamp-3 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>{postText}</p>
-          </div>
-        )}
-
-        {/* Scrollable comments area - with bottom padding for input bar */}
-        <div 
-          className="flex-1 overflow-y-auto overscroll-contain px-3" 
-          style={{ WebkitOverflowScrolling: 'touch', paddingBottom: keyboardHeight > 0 ? '70px' : '140px' }}
+    <div className={`fixed inset-0 z-50 flex flex-col ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
+      {/* Header */}
+      <div className={`flex items-center px-3 py-2.5 border-b flex-shrink-0 ${
+        darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+      }`}>
+        <button
+          onClick={onClose}
+          className={`p-2 -ml-1 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
         >
-          {initialLoading ? (
-            <div className="flex justify-center py-16">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
-            </div>
-          ) : rootComments.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20">
-              <MessageCircle className={`w-14 h-14 mb-3 ${darkMode ? 'text-gray-700' : 'text-gray-200'}`} />
-              <p className={`text-sm ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                Légy az első hozzászóló!
-              </p>
-            </div>
-          ) : (
-            <div className="py-1">
-              {rootComments.map((comment) => renderComment(comment, 0))}
-              {hasMore && (
-                <button
-                  onClick={loadMore}
-                  disabled={loadingMore}
-                  className={`w-full py-3 text-[13px] font-semibold transition-colors ${
-                    darkMode ? 'text-blue-400' : 'text-blue-600'
-                  }`}
-                >
-                  {loadingMore ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" />
-                      Betöltés...
-                    </span>
-                  ) : 'Korábbi hozzászólások...'}
-                </button>
-              )}
-            </div>
-          )}
-          <div ref={commentsEndRef} />
-        </div>
+          <ArrowLeft className={`w-5 h-5 ${darkMode ? 'text-white' : 'text-gray-900'}`} />
+        </button>
+        <h2 className={`ml-2 text-base font-bold truncate flex-1 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+          Hozzászólások
+        </h2>
       </div>
 
-      {/* Input bar - SEPARATE fixed element that moves with keyboard */}
+      {/* Post text preview */}
+      {postText && (
+        <div className={`px-4 py-3 border-b flex-shrink-0 ${darkMode ? 'border-gray-800' : 'border-gray-100'}`}>
+          <p className={`text-sm line-clamp-3 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>{postText}</p>
+        </div>
+      )}
+
+      {/* Scrollable comments area */}
       <div 
-        ref={inputBarRef}
-        className={`fixed left-0 right-0 z-[60] border-t ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
-        style={{ bottom: keyboardHeight }}
+        className="flex-1 overflow-y-auto overscroll-contain px-3" 
+        style={{ WebkitOverflowScrolling: 'touch' }}
       >
+        {initialLoading ? (
+          <div className="flex justify-center py-16">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+          </div>
+        ) : rootComments.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <MessageCircle className={`w-14 h-14 mb-3 ${darkMode ? 'text-gray-700' : 'text-gray-200'}`} />
+            <p className={`text-sm ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+              Légy az első hozzászóló!
+            </p>
+          </div>
+        ) : (
+          <div className="py-1">
+            {rootComments.map((comment) => renderComment(comment, 0))}
+            {hasMore && (
+              <button
+                onClick={loadMore}
+                disabled={loadingMore}
+                className={`w-full py-3 text-[13px] font-semibold transition-colors ${
+                  darkMode ? 'text-blue-400' : 'text-blue-600'
+                }`}
+              >
+                {loadingMore ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" />
+                    Betöltés...
+                  </span>
+                ) : 'Korábbi hozzászólások...'}
+              </button>
+            )}
+          </div>
+        )}
+        <div ref={commentsEndRef} />
+      </div>
+
+      {/* Input bar - part of flex layout, sits at bottom */}
+      <div className={`flex-shrink-0 border-t ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
         {/* Reply indicator - FB style */}
         {replyTo && replyToComment && (
           <div className={`px-4 py-1.5 ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
@@ -1000,28 +965,33 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
 
         {/* Input row - FB style */}
         <div className="px-3 py-2 flex items-center gap-2">
-          {/* User avatar */}
-          {isAnonComment ? (
-            <button
-              onClick={() => setIsAnonComment(false)}
-              className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${darkMode ? 'bg-gray-700' : 'bg-gray-200'}`}
-            >
-              <EyeOff className="w-4 h-4 text-gray-500" />
-            </button>
-          ) : (
-            <button
-              onClick={() => setIsAnonComment(true)}
-              className="flex-shrink-0"
-            >
-              {user?.photoURL || userData?.photoURL ? (
-                <img src={userData?.photoURL || user.photoURL} alt="" className="w-9 h-9 rounded-full object-cover" />
-              ) : (
-                <div className={`w-9 h-9 rounded-full flex items-center justify-center ${darkMode ? 'bg-blue-900/40' : 'bg-blue-100'}`}>
-                  <span className="text-sm font-bold text-blue-600">{currentUserDisplayName.charAt(0)}</span>
-                </div>
-              )}
-            </button>
-          )}
+          {/* Anonymity toggle - clear and obvious */}
+          <button
+            onClick={() => setIsAnonComment(!isAnonComment)}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full flex-shrink-0 transition-colors ${
+              isAnonComment 
+                ? darkMode ? 'bg-purple-900/50 border border-purple-500' : 'bg-purple-100 border border-purple-300'
+                : darkMode ? 'bg-gray-700 border border-gray-600' : 'bg-gray-100 border border-gray-200'
+            }`}
+          >
+            {isAnonComment ? (
+              <>
+                <EyeOff className={`w-4 h-4 ${darkMode ? 'text-purple-300' : 'text-purple-600'}`} />
+                <span className={`text-xs font-medium ${darkMode ? 'text-purple-300' : 'text-purple-600'}`}>Anonim</span>
+              </>
+            ) : (
+              <>
+                {user?.photoURL || userData?.photoURL ? (
+                  <img src={userData?.photoURL || user.photoURL} alt="" className="w-5 h-5 rounded-full object-cover" />
+                ) : (
+                  <div className={`w-5 h-5 rounded-full flex items-center justify-center ${darkMode ? 'bg-blue-900/40' : 'bg-blue-200'}`}>
+                    <span className="text-[10px] font-bold text-blue-600">{currentUserDisplayName.charAt(0)}</span>
+                  </div>
+                )}
+                <span className={`text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>Nevedben</span>
+              </>
+            )}
+          </button>
 
           {/* Input field with inline icons - FB style */}
           <div className={`flex-1 flex items-center rounded-full ${
@@ -1059,10 +1029,10 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
           </button>
         </div>
 
-        {/* Safe area spacer for iOS - only when keyboard is closed */}
-        {keyboardHeight === 0 && <div className="pb-[env(safe-area-inset-bottom)]" />}
+        {/* Safe area spacer for iOS */}
+        <div className="pb-[env(safe-area-inset-bottom)]" />
       </div>
-    </>
+    </div>
   );
 }
 
