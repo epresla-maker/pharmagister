@@ -506,19 +506,18 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
   // When showInput changes, scroll to input and focus
   useEffect(() => {
     if (showInput) {
-      // Wait for DOM to render, then scroll
-      const doScroll = () => {
-        requestAnimationFrame(() => {
+      // First focus to trigger keyboard
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+        }
+        // Then wait for keyboard to fully open, then scroll
+        setTimeout(() => {
           if (inlineInputRef.current) {
             inlineInputRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
           }
-          if (inputRef.current) {
-            inputRef.current.focus();
-          }
-        });
-      };
-      // Extra delay for iOS rendering
-      setTimeout(doScroll, 150);
+        }, 350); // Wait for iOS keyboard animation
+      }, 100);
     }
   }, [showInput, replyTo]);
 
