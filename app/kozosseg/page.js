@@ -893,12 +893,15 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
                     ) : (
                       replies.map((reply) => renderComment(reply, depth + 1))
                     )}
-                    <button
-                      onClick={() => toggleReplies(item.id)}
-                      className="text-[12px] font-semibold text-gray-500 ml-2 py-0.5"
-                    >
-                      Válaszok elrejtése
-                    </button>
+                    {/* Only show hide button for root level comments (depth 0) */}
+                    {depth === 0 && replies.length > 0 && (
+                      <button
+                        onClick={() => toggleReplies(item.id)}
+                        className="text-[12px] font-semibold text-gray-500 ml-2 py-0.5"
+                      >
+                        Válaszok elrejtése
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
