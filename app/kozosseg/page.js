@@ -1600,16 +1600,16 @@ export default function KozossegPage() {
     );
   }
 
-  if (!user || (!isAdmin && !isAdminka)) {
+  if (!user) {
     return (
       <div className={`min-h-screen flex items-center justify-center ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
         <div className={`text-center p-8 rounded-2xl ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
           <Shield className={`w-12 h-12 mx-auto mb-4 ${darkMode ? 'text-gray-600' : 'text-gray-300'}`} />
           <h2 className={`text-lg font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-            Hamarosan elérhető
+            Bejelentkezés szükséges
           </h2>
           <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-            Ez a funkció jelenleg fejlesztés alatt áll.
+            A posztok megtekintéséhez jelentkezz be.
           </p>
           <button
             onClick={() => router.back()}
