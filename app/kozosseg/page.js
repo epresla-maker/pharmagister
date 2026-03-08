@@ -495,38 +495,26 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
   const [isAnonComment, setIsAnonComment] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editingText, setEditingText] = useState('');
+  const [showInput, setShowInput] = useState(false); // Show inline input
   const inputRef = useRef(null);
-  const commentsEndRef = useRef(null);
+  const inlineInputRef = useRef(null);
   const scrollContainerRef = useRef(null);
 
   const commentsColRef = collection(db, 'communityPosts', postId, 'comments');
 
-  // Scroll comments when viewport resizes (keyboard opens)
+  // When showInput changes, scroll to input and focus
   useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-    
-    let prevHeight = vv.height;
-    const onResize = () => {
-      // Keyboard opened if viewport got smaller
-      if (vv.height < prevHeight - 100) {
-        setTimeout(() => {
-          scrollContainerRef.current?.scrollTo({
-            top: scrollContainerRef.current.scrollHeight,
-            behavior: 'smooth'
-          });
-        }, 50);
-      }
-      prevHeight = vv.height;
-    };
-    
-    vv.addEventListener('resize', onResize);
-    return () => vv.removeEventListener('resize', onResize);
-  }, []);
+    if (showInput && inlineInputRef.current) {
+      setTimeout(() => {
+        inlineInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }, [showInput, replyTo]);
 
   useEffect(() => {
     if (autoFocus) {
-      setTimeout(() => inputRef.current?.focus(), 400);
+      setShowInput(true);
     }
   }, [autoFocus]);
 
@@ -644,6 +632,7 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
     setCommentText('');
     setReplyTo(null);
     setReplyToComment(null);
+    setShowInput(false);
 
     try {
       const newComment = {
@@ -727,18 +716,20 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
   };
 
   const handleReplyTap = (comment) => {
-    if (replyTo === comment.id) {
+    if (replyTo === comment.id && showInput) {
+      // Toggle off
       setReplyTo(null);
       setReplyToComment(null);
       setCommentText('');
+      setShowInput(false);
     } else {
       setReplyTo(comment.id);
       setReplyToComment(comment);
       // Pre-fill @mention like FB
       const name = comment.isAnonymous !== false ? 'Anonim' : (comment.authorData?.displayName || 'Felhasználó');
       setCommentText(name + ' ');
+      setShowInput(true);
     }
-    setTimeout(() => inputRef.current?.focus(), 100);
   };
 
   const renderAvatar = (item, size = 'md') => {
@@ -973,93 +964,128 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
             )}
           </div>
         )}
-        <div ref={commentsEndRef} />
-      </div>
 
-      {/* Input bar - part of flex layout, sits at bottom */}
-      <div className={`flex-shrink-0 border-t ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-        {/* Reply indicator - FB style */}
-        {replyTo && replyToComment && (
-          <div className={`px-4 py-1.5 ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
-            <p className={`text-[13px] ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-              Válasz <span className="font-semibold">{replyingToName}</span> számára
-              <span className="mx-1.5">·</span>
-              <button onClick={() => { setReplyTo(null); setReplyToComment(null); setCommentText(''); }} className="font-semibold">
-                Mégsem
-              </button>
-            </p>
-          </div>
-        )}
-
-        {/* Input row - FB style */}
-        <div className="px-3 py-2 flex items-center gap-2">
-          {/* Anonymity toggle - clear and obvious */}
-          <button
-            onClick={() => setIsAnonComment(!isAnonComment)}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full flex-shrink-0 transition-colors ${
-              isAnonComment 
-                ? darkMode ? 'bg-purple-900/50 border border-purple-500' : 'bg-purple-100 border border-purple-300'
-                : darkMode ? 'bg-gray-700 border border-gray-600' : 'bg-gray-100 border border-gray-200'
+        {/* Inline input - appears in scroll area */}
+        {showInput && (
+          <div 
+            ref={inlineInputRef}
+            className={`mx-2 my-3 p-3 rounded-2xl border ${
+              darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-lg'
             }`}
           >
-            {isAnonComment ? (
-              <>
-                <EyeOff className={`w-4 h-4 ${darkMode ? 'text-purple-300' : 'text-purple-600'}`} />
-                <span className={`text-xs font-medium ${darkMode ? 'text-purple-300' : 'text-purple-600'}`}>Anonim</span>
-              </>
-            ) : (
-              <>
-                {user?.photoURL || userData?.photoURL ? (
-                  <img src={userData?.photoURL || user.photoURL} alt="" className="w-5 h-5 rounded-full object-cover" />
-                ) : (
-                  <div className={`w-5 h-5 rounded-full flex items-center justify-center ${darkMode ? 'bg-blue-900/40' : 'bg-blue-200'}`}>
-                    <span className="text-[10px] font-bold text-blue-600">{currentUserDisplayName.charAt(0)}</span>
-                  </div>
-                )}
-                <span className={`text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>Nevedben</span>
-              </>
+            {/* Reply indicator */}
+            {replyTo && replyToComment && (
+              <div className={`mb-2 pb-2 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                <p className={`text-[13px] ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  Válasz <span className="font-semibold">{replyingToName}</span> számára
+                  <span className="mx-1.5">·</span>
+                  <button 
+                    onClick={() => { setReplyTo(null); setReplyToComment(null); setCommentText(''); setShowInput(false); }} 
+                    className="font-semibold text-blue-600"
+                  >
+                    Mégsem
+                  </button>
+                </p>
+              </div>
             )}
-          </button>
 
-          {/* Input field with inline icons - FB style */}
-          <div className={`flex-1 flex items-center rounded-full ${
-            darkMode ? 'bg-gray-700' : 'bg-[#f0f2f5]'
-          }`}>
-            <input
-              ref={inputRef}
-              type="text"
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleAddComment(); }}
-              placeholder={replyTo ? '' : `Hozzászólás mint ${isAnonComment ? 'Anonim' : currentUserDisplayName}`}
-              className={`flex-1 pl-4 pr-1 py-2.5 rounded-full text-[15px] bg-transparent ${
-                darkMode ? 'text-white placeholder-gray-500' : 'text-gray-900 placeholder-gray-500'
-              } focus:outline-none min-w-0`}
-            />
-            {/* Right side icons */}
-            <div className="flex items-center gap-0.5 pr-2 flex-shrink-0">
-              <button className={`p-1.5 rounded-full ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+            {/* Anonymity toggle */}
+            <div className="flex items-center gap-2 mb-2">
+              <button
+                onClick={() => setIsAnonComment(!isAnonComment)}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full flex-shrink-0 transition-colors ${
+                  isAnonComment 
+                    ? darkMode ? 'bg-purple-900/50 border border-purple-500' : 'bg-purple-100 border border-purple-300'
+                    : darkMode ? 'bg-gray-700 border border-gray-600' : 'bg-gray-100 border border-gray-200'
+                }`}
+              >
+                {isAnonComment ? (
+                  <>
+                    <EyeOff className={`w-4 h-4 ${darkMode ? 'text-purple-300' : 'text-purple-600'}`} />
+                    <span className={`text-xs font-medium ${darkMode ? 'text-purple-300' : 'text-purple-600'}`}>Anonim</span>
+                  </>
+                ) : (
+                  <>
+                    {user?.photoURL || userData?.photoURL ? (
+                      <img src={userData?.photoURL || user.photoURL} alt="" className="w-5 h-5 rounded-full object-cover" />
+                    ) : (
+                      <div className={`w-5 h-5 rounded-full flex items-center justify-center ${darkMode ? 'bg-blue-900/40' : 'bg-blue-200'}`}>
+                        <span className="text-[10px] font-bold text-blue-600">{currentUserDisplayName.charAt(0)}</span>
+                      </div>
+                    )}
+                    <span className={`text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>Nevedben</span>
+                  </>
+                )}
+              </button>
+              {!replyTo && (
+                <button 
+                  onClick={() => { setShowInput(false); setCommentText(''); }}
+                  className={`ml-auto text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}
+                >
+                  Bezárás
+                </button>
+              )}
+            </div>
+
+            {/* Input row */}
+            <div className="flex items-center gap-2">
+              <div className={`flex-1 flex items-center rounded-full ${
+                darkMode ? 'bg-gray-700' : 'bg-[#f0f2f5]'
+              }`}>
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleAddComment(); }}
+                  placeholder={replyTo ? '' : `Hozzászólás mint ${isAnonComment ? 'Anonim' : currentUserDisplayName}`}
+                  className={`flex-1 pl-4 pr-1 py-2.5 rounded-full text-[15px] bg-transparent ${
+                    darkMode ? 'text-white placeholder-gray-500' : 'text-gray-900 placeholder-gray-500'
+                  } focus:outline-none min-w-0`}
+                />
+              </div>
+              <button
+                onClick={handleAddComment}
+                disabled={!commentText.trim() || submitting}
+                className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
+                  commentText.trim() && !submitting
+                    ? 'bg-blue-600 text-white'
+                    : darkMode ? 'bg-gray-700 text-gray-500' : 'bg-gray-200 text-gray-400'
+                }`}
+              >
+                <Send className="w-4 h-4" />
               </button>
             </div>
           </div>
+        )}
 
-          <button
-            onClick={handleAddComment}
-            disabled={!commentText.trim() || submitting}
-            className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
-              commentText.trim() && !submitting
-                ? 'bg-blue-600 text-white'
-                : darkMode ? 'bg-gray-700 text-gray-500' : 'bg-gray-200 text-gray-400'
-            }`}
-          >
-            <Send className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Safe area spacer for iOS */}
-        <div className="pb-[env(safe-area-inset-bottom)]" />
+        <div ref={commentsEndRef} />
       </div>
+
+      {/* Bottom bar - New comment button (only when input not visible) */}
+      {!showInput && (
+        <div className={`flex-shrink-0 border-t ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+          <div className="px-3 py-2">
+            <button
+              onClick={() => { setReplyTo(null); setReplyToComment(null); setCommentText(''); setShowInput(true); }}
+              className={`w-full py-3 rounded-full text-[15px] font-medium ${
+                darkMode ? 'bg-gray-700 text-gray-300' : 'bg-[#f0f2f5] text-gray-500'
+              }`}
+            >
+              Hozzászólás írása...
+            </button>
+          </div>
+          {/* Safe area spacer for iOS */}
+          <div className="pb-[env(safe-area-inset-bottom)]" />
+        </div>
+      )}
+
+      {/* Safe area when input is visible */}
+      {showInput && (
+        <div className={`flex-shrink-0 ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
+          <div className="pb-[env(safe-area-inset-bottom)]" />
+        </div>
+      )}
     </div>
   );
 }
