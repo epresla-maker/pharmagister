@@ -1463,7 +1463,7 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate }) {
 
           {/* Reaction picker */}
           {showReactions && (
-            <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 flex gap-1 p-2 rounded-2xl shadow-xl border z-20 ${
+            <div className={`absolute bottom-full left-0 mb-2 flex gap-1 p-2 rounded-2xl shadow-xl border z-20 ${
               darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-200'
             }`}>
               {REACTIONS.map((r) => (
