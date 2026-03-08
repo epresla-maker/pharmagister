@@ -996,33 +996,28 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
               </div>
             )}
 
-            {/* Anonymity toggle */}
+            {/* Anonymity checkbox */}
             <div className="flex items-center gap-2 mb-2">
               <button
                 onClick={() => setIsAnonComment(!isAnonComment)}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full flex-shrink-0 transition-colors ${
-                  isAnonComment 
-                    ? darkMode ? 'bg-purple-900/50 border border-purple-500' : 'bg-purple-100 border border-purple-300'
-                    : darkMode ? 'bg-gray-700 border border-gray-600' : 'bg-gray-100 border border-gray-200'
-                }`}
+                className="flex items-center gap-2 py-1"
               >
-                {isAnonComment ? (
-                  <>
-                    <EyeOff className={`w-4 h-4 ${darkMode ? 'text-purple-300' : 'text-purple-600'}`} />
-                    <span className={`text-xs font-medium ${darkMode ? 'text-purple-300' : 'text-purple-600'}`}>Anonim</span>
-                  </>
-                ) : (
-                  <>
-                    {user?.photoURL || userData?.photoURL ? (
-                      <img src={userData?.photoURL || user.photoURL} alt="" className="w-5 h-5 rounded-full object-cover" />
-                    ) : (
-                      <div className={`w-5 h-5 rounded-full flex items-center justify-center ${darkMode ? 'bg-blue-900/40' : 'bg-blue-200'}`}>
-                        <span className="text-[10px] font-bold text-blue-600">{currentUserDisplayName.charAt(0)}</span>
-                      </div>
-                    )}
-                    <span className={`text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>Nevedben</span>
-                  </>
-                )}
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                  isAnonComment
+                    ? 'bg-purple-600 border-purple-600'
+                    : darkMode ? 'border-gray-500 bg-transparent' : 'border-gray-400 bg-transparent'
+                }`}>
+                  {isAnonComment && (
+                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </div>
+                <span className={`text-[13px] ${
+                  isAnonComment
+                    ? darkMode ? 'text-purple-300 font-medium' : 'text-purple-600 font-medium'
+                    : darkMode ? 'text-gray-400' : 'text-gray-500'
+                }`}>Anonim</span>
               </button>
               <button 
                 onClick={() => { setShowInput(false); setCommentText(''); setReplyTo(null); setReplyToComment(null); }}
