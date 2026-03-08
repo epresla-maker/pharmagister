@@ -1634,7 +1634,7 @@ export default function KozossegPage() {
             <ArrowLeft className={`w-5 h-5 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`} />
           </button>
           <h1 className={`text-lg font-bold ml-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-            Közösség
+            Posztok
           </h1>
           <div className="ml-auto flex items-center gap-2">
             <button
