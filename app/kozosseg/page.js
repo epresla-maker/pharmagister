@@ -499,6 +499,7 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
   const inputRef = useRef(null);
   const inlineInputRef = useRef(null);
   const scrollContainerRef = useRef(null);
+  const commentsEndRef = useRef(null);
 
   const commentsColRef = collection(db, 'communityPosts', postId, 'comments');
 
