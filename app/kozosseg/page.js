@@ -503,41 +503,11 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
 
   const commentsColRef = collection(db, 'communityPosts', postId, 'comments');
 
-  // When showInput changes, scroll so input bottom is at viewport center
+  // Focus input when shown
   useEffect(() => {
     if (showInput) {
-      // First focus to trigger keyboard
       setTimeout(() => {
-        if (inputRef.current) {
-          inputRef.current.focus();
-        }
-        // Wait for keyboard to fully open, then position input
-        setTimeout(() => {
-          if (inlineInputRef.current && scrollContainerRef.current) {
-            const container = scrollContainerRef.current;
-            const inputBox = inlineInputRef.current;
-            
-            // Get visible viewport height (above keyboard)
-            const viewportHeight = window.visualViewport?.height || window.innerHeight;
-            const viewportCenter = viewportHeight / 2;
-            
-            // Get input box position relative to container
-            const inputRect = inputBox.getBoundingClientRect();
-            const containerRect = container.getBoundingClientRect();
-            
-            // Input bottom position relative to container top
-            const inputBottomInContainer = inputRect.bottom - containerRect.top + container.scrollTop;
-            
-            // We want input bottom at viewport center
-            // So scroll position should be: inputBottomInContainer - viewportCenter
-            const targetScroll = inputBottomInContainer - viewportCenter;
-            
-            container.scrollTo({
-              top: Math.max(0, targetScroll),
-              behavior: 'smooth'
-            });
-          }
-        }, 400); // Wait for iOS keyboard animation
+        inputRef.current?.focus();
       }, 100);
     }
   }, [showInput, replyTo]);
@@ -995,12 +965,19 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
           </div>
         )}
 
-        {/* Inline input - appears in scroll area */}
-        {showInput && (
+        <div ref={commentsEndRef} />
+      </div>
+
+      {/* Fixed overlay input - always centered on visible viewport */}
+      {showInput && (
+        <div 
+          className="fixed left-0 right-0 z-[60] px-3"
+          style={{ bottom: '50%' }}
+        >
           <div 
             ref={inlineInputRef}
-            className={`mx-2 my-3 p-3 rounded-2xl border ${
-              darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-lg'
+            className={`p-3 rounded-2xl border shadow-2xl ${
+              darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
             }`}
           >
             {/* Reply indicator */}
@@ -1047,14 +1024,12 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
                   </>
                 )}
               </button>
-              {!replyTo && (
-                <button 
-                  onClick={() => { setShowInput(false); setCommentText(''); }}
-                  className={`ml-auto text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}
-                >
-                  Bezárás
-                </button>
-              )}
+              <button 
+                onClick={() => { setShowInput(false); setCommentText(''); setReplyTo(null); setReplyToComment(null); }}
+                className={`ml-auto text-xs font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}
+              >
+                ✕ Bezárás
+              </button>
             </div>
 
             {/* Input row */}
@@ -1087,10 +1062,8 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
               </button>
             </div>
           </div>
-        )}
-
-        <div ref={commentsEndRef} />
-      </div>
+        </div>
+      )}
 
       {/* Bottom bar - New comment button (only when input not visible) */}
       {!showInput && (
@@ -1105,14 +1078,6 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
               Hozzászólás írása...
             </button>
           </div>
-          {/* Safe area spacer for iOS */}
-          <div className="pb-[env(safe-area-inset-bottom)]" />
-        </div>
-      )}
-
-      {/* Safe area when input is visible */}
-      {showInput && (
-        <div className={`flex-shrink-0 ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
           <div className="pb-[env(safe-area-inset-bottom)]" />
         </div>
       )}
