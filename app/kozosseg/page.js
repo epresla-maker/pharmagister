@@ -701,6 +701,38 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
     }
   };
 
+  // Delete comment
+  const handleDeleteComment = async (comment) => {
+    if (!confirm('Biztosan törölni szeretnéd ezt a hozzászólást?')) return;
+    try {
+      const commentRef = doc(db, 'communityPosts', postId, 'comments', comment.id);
+      await deleteDoc(commentRef);
+
+      // Update local state
+      if (!comment.parentCommentId) {
+        setRootComments(prev => prev.filter(c => c.id !== comment.id));
+      } else {
+        setRepliesMap(prev => {
+          const updated = { ...prev };
+          for (const [parentId, replies] of Object.entries(updated)) {
+            updated[parentId] = replies.filter(r => r.id !== comment.id);
+          }
+          return updated;
+        });
+        // Decrement parent replyCount
+        const parentRef = doc(db, 'communityPosts', postId, 'comments', comment.parentCommentId);
+        await updateDoc(parentRef, { replyCount: increment(-1) }).catch(() => {});
+      }
+
+      // Decrement post commentCount
+      const postRef = doc(db, 'communityPosts', postId);
+      await updateDoc(postRef, { commentCount: increment(-1) });
+      onUpdate();
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+    }
+  };
+
   const formatCommentTime = (timestamp) => {
     if (!timestamp) return 'most';
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
@@ -812,6 +844,12 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
                     className="text-xs font-semibold text-blue-600"
                   >
                     Mentés
+                  </button>
+                  <button
+                    onClick={() => { setEditingId(null); setEditingText(''); handleDeleteComment(item); }}
+                    className="text-xs font-semibold text-red-500"
+                  >
+                    Törlés
                   </button>
                 </div>
               </div>
