@@ -37,8 +37,8 @@ const config: CapacitorConfig = {
       overlaysWebView: false
     },
     Keyboard: {
-      // Use None so we can manually handle keyboard positioning
-      resize: KeyboardResize.None,
+      // Proper keyboard handling for Android
+      resize: KeyboardResize.Body,
       style: KeyboardStyle.Dark
     }
   }
