@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { db } from '@/lib/firebase';
+import { Capacitor } from '@capacitor/core';
+import { Keyboard } from '@capacitor/keyboard';
 import {
   collection,
   query,
@@ -495,10 +497,37 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
   const [isAnonComment, setIsAnonComment] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editingText, setEditingText] = useState('');
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const inputRef = useRef(null);
   const commentsEndRef = useRef(null);
+  const scrollContainerRef = useRef(null);
 
   const commentsColRef = collection(db, 'communityPosts', postId, 'comments');
+
+  // Listen to Capacitor Keyboard events for iOS
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    
+    const showListener = Keyboard.addListener('keyboardWillShow', (info) => {
+      setKeyboardHeight(info.keyboardHeight);
+      // Scroll to keep input visible
+      setTimeout(() => {
+        scrollContainerRef.current?.scrollTo({
+          top: scrollContainerRef.current.scrollHeight,
+          behavior: 'smooth'
+        });
+      }, 100);
+    });
+    
+    const hideListener = Keyboard.addListener('keyboardWillHide', () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showListener.then(h => h.remove());
+      hideListener.then(h => h.remove());
+    };
+  }, []);
 
   useEffect(() => {
     if (autoFocus) {
@@ -885,7 +914,10 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
   };
 
   return (
-    <div className={`fixed inset-0 z-50 flex flex-col ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
+    <div 
+      className={`fixed inset-0 z-50 flex flex-col ${darkMode ? 'bg-gray-900' : 'bg-white'}`}
+      style={{ paddingBottom: keyboardHeight }}
+    >
       {/* Header */}
       <div className={`flex items-center px-3 py-2.5 border-b flex-shrink-0 ${
         darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
@@ -910,6 +942,7 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
 
       {/* Scrollable comments area */}
       <div 
+        ref={scrollContainerRef}
         className="flex-1 overflow-y-auto overscroll-contain px-3" 
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
@@ -1029,8 +1062,8 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
           </button>
         </div>
 
-        {/* Safe area spacer for iOS */}
-        <div className="pb-[env(safe-area-inset-bottom)]" />
+        {/* Safe area spacer for iOS - only when keyboard closed */}
+        {keyboardHeight === 0 && <div className="pb-[env(safe-area-inset-bottom)]" />}
       </div>
     </div>
   );
