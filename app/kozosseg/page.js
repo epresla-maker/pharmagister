@@ -1130,6 +1130,7 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate }) {
   const [editText, setEditText] = useState('');
   const [editSubmitting, setEditSubmitting] = useState(false);
   const menuRef = useRef(null);
+  const reactionsRef = useRef(null);
 
   useEffect(() => {
     if (!showMenu) return;
@@ -1145,6 +1146,21 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate }) {
       document.removeEventListener('touchstart', handleClickOutside);
     };
   }, [showMenu]);
+
+  useEffect(() => {
+    if (!showReactions) return;
+    const handleClickOutside = (e) => {
+      if (reactionsRef.current && !reactionsRef.current.contains(e.target)) {
+        setShowReactions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [showReactions]);
 
   const userReaction = user ? post.reactions?.[user.uid] : null;
 
@@ -1444,7 +1460,7 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate }) {
         darkMode ? 'border-gray-700' : 'border-gray-200'
       }`}>
         {/* Reaction button */}
-        <div className="relative">
+        <div className="relative" ref={reactionsRef}>
           <button
             onClick={() => userReaction ? handleReaction(userReaction) : setShowReactions(!showReactions)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
