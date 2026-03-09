@@ -1680,25 +1680,31 @@ export default function KozossegPage() {
       <div className={`p-3 border-b ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
         <div className="max-w-xl mx-auto flex gap-2 overflow-x-auto">
           <button
-            onClick={() => router.push('/pharmagister/allando-keres')}
-            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg text-xs font-medium transition-colors"
-          >
-            <Search className="w-4 h-4" />
-            <span>Állást keres</span>
-          </button>
-          <button
-            onClick={() => router.push('/hirek')}
-            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-medium transition-colors"
-          >
-            <Newspaper className="w-4 h-4" />
-            <span>Hírek</span>
-          </button>
-          <button
             onClick={() => router.push('/hianycikk-kereso')}
-            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-lg text-xs font-medium transition-colors"
+            className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+              darkMode ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
             <span>Hiánycikk kereső</span>
+          </button>
+          <button
+            onClick={() => router.push('/pm-hirfolyam')}
+            className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+              darkMode ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <Newspaper className="w-4 h-4" />
+            <span>PM hírfolyam</span>
+          </button>
+          <button
+            onClick={() => router.push('/pharmagister/allando-keres')}
+            className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+              darkMode ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <Search className="w-4 h-4" />
+            <span>Állást keres</span>
           </button>
         </div>
       </div>
