@@ -49,7 +49,7 @@ function BottomNavigation({ isVisible = true }) {
     {
       icon: Home,
       label: 'Főoldal',
-      path: '/',
+      path: '/kozosseg',
       badge: 0
     },
     {

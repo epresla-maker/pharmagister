@@ -1625,16 +1625,10 @@ export default function KozossegPage() {
   return (
     <div className={`min-h-screen pb-24 ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
       {/* Header */}
-      <div className={`sticky top-0 z-10 pt-safe-small ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b`}>
-        <div className="flex items-center px-4 py-3">
-          <button
-            onClick={() => router.back()}
-            className={`p-2 -ml-2 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
-          >
-            <ArrowLeft className={`w-5 h-5 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`} />
-          </button>
-          <h1 className={`text-lg font-bold ml-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-            Posztok
+      <div className={`sticky top-0 z-10 pt-safe-small ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b shadow-sm`}>
+        <div className="max-w-xl mx-auto px-4 py-3 flex items-center justify-between min-h-[56px] relative">
+          <h1 className="absolute left-1/2 -translate-x-1/2 text-lg sm:text-xl font-bold flex items-center gap-1 flex-shrink-0">
+            <span className="text-green-600 text-lg sm:text-xl">Pharmagister</span>
           </h1>
           <div className="ml-auto flex items-center gap-2">
             <button
