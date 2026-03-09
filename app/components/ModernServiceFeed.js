@@ -460,53 +460,6 @@ export default function ModernServiceFeed() {
         </div>
       )}
 
-      {/* Gombok: Állandóra keres + Hírek */}
-      <div className="bg-white dark:bg-gray-800 p-3 border-b border-gray-200 dark:border-gray-700">
-        <div className="space-y-3">
-          {/* Állandóra keres gomb */}
-          <button
-            onClick={() => router.push('/pharmagister/allando-keres')}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg font-medium transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <span>Állást keres</span>
-          </button>
-
-          {/* Hírek gomb */}
-          <button
-            onClick={() => router.push('/hirek')}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors"
-          >
-            <Newspaper className="w-5 h-5" />
-            <span>Hírek</span>
-          </button>
-
-          {/* Hiánycikk kereső gomb */}
-          <button
-            onClick={() => router.push('/hianycikk-kereso')}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-lg font-medium transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-            </svg>
-            <span>Hiánycikk kereső</span>
-          </button>
-
-          {/* Posztok gomb */}
-          <button
-            onClick={() => router.push('/kozosseg')}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg font-medium transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            <span>Posztok</span>
-          </button>
-        </div>
-      </div>
-
       {/* Posts Feed */}
       {posts.length === 0 ? (
         <div className="bg-white dark:bg-gray-800 p-12 text-center">

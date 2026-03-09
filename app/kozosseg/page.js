@@ -1698,6 +1698,15 @@ export default function KozossegPage() {
             <span>PM hírfolyam</span>
           </button>
           <button
+            onClick={() => router.push('/hirek')}
+            className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+              darkMode ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <Newspaper className="w-4 h-4" />
+            <span>Hírek</span>
+          </button>
+          <button
             onClick={() => router.push('/pharmagister/allando-keres')}
             className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
               darkMode ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
