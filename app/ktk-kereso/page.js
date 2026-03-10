@@ -13,13 +13,11 @@ import {
   Building2,
   ChevronDown,
   ChevronUp,
-  Phone,
-  Mail,
-  User,
   Filter,
   X,
   GraduationCap,
-  Loader2
+  Loader2,
+  ExternalLink
 } from 'lucide-react';
 
 const SZAKMACSOPORTOK = {
@@ -160,35 +158,7 @@ function KtkCard({ item, darkMode }) {
               <DetailRow darkMode={darkMode} label="Helyszín" value={item.helyszin} />
             )}
 
-            {/* Kapcsolattartó 1 */}
-            {item.kapcsolattarto_neve && (
-              <div className={`rounded-lg p-3 ${darkMode ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
-                <p className={`text-xs font-semibold mb-1.5 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Kapcsolattartó
-                </p>
-                <div className="space-y-1">
-                  <ContactLine darkMode={darkMode} icon={User} value={`${item.kapcsolattarto_neve}${item.kapcsolattarto_beosztas ? ` – ${item.kapcsolattarto_beosztas}` : ''}`} />
-                  {item.kapcsolattarto_email && <ContactLine darkMode={darkMode} icon={Mail} value={item.kapcsolattarto_email} href={`mailto:${item.kapcsolattarto_email}`} />}
-                  {item.kapcsolattarto_telefon && <ContactLine darkMode={darkMode} icon={Phone} value={item.kapcsolattarto_telefon} href={`tel:${item.kapcsolattarto_telefon.replace(/\s/g, '')}`} />}
-                  {item.kapcsolattarto_mobil && <ContactLine darkMode={darkMode} icon={Phone} value={item.kapcsolattarto_mobil} href={`tel:${item.kapcsolattarto_mobil.replace(/\s/g, '')}`} />}
-                </div>
-              </div>
-            )}
 
-            {/* Kapcsolattartó 2 */}
-            {item.kapcsolattarto2_neve && (
-              <div className={`rounded-lg p-3 ${darkMode ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
-                <p className={`text-xs font-semibold mb-1.5 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  2. Kapcsolattartó
-                </p>
-                <div className="space-y-1">
-                  <ContactLine darkMode={darkMode} icon={User} value={`${item.kapcsolattarto2_neve}${item.kapcsolattarto2_beosztas ? ` – ${item.kapcsolattarto2_beosztas}` : ''}`} />
-                  {item.kapcsolattarto2_email && <ContactLine darkMode={darkMode} icon={Mail} value={item.kapcsolattarto2_email} href={`mailto:${item.kapcsolattarto2_email}`} />}
-                  {item.kapcsolattarto2_telefon && <ContactLine darkMode={darkMode} icon={Phone} value={item.kapcsolattarto2_telefon} href={`tel:${item.kapcsolattarto2_telefon.replace(/\s/g, '')}`} />}
-                  {item.kapcsolattarto2_mobil && <ContactLine darkMode={darkMode} icon={Phone} value={item.kapcsolattarto2_mobil} href={`tel:${item.kapcsolattarto2_mobil.replace(/\s/g, '')}`} />}
-                </div>
-              </div>
-            )}
           </div>
         </div>
       )}
@@ -205,21 +175,6 @@ function DetailRow({ darkMode, label, value }) {
       <p className={`text-xs ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>{value}</p>
     </div>
   );
-}
-
-function ContactLine({ darkMode, icon: Icon, value, href }) {
-  const content = (
-    <div className="flex items-center gap-1.5">
-      <Icon className={`w-3 h-3 flex-shrink-0 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`} />
-      <span className={`text-xs ${href ? (darkMode ? 'text-purple-400' : 'text-purple-600') : (darkMode ? 'text-gray-300' : 'text-gray-600')}`}>
-        {value}
-      </span>
-    </div>
-  );
-  if (href) {
-    return <a href={href} className="block hover:underline">{content}</a>;
-  }
-  return content;
 }
 
 // Admin e-mail címek
@@ -339,6 +294,15 @@ export default function KtkKeresoPage() {
             <p className="text-purple-100 text-xs mt-1">
               {loading ? 'Betöltés...' : `${filtered.length} továbbképzés`}
             </p>
+            <a
+              href="https://enk.okfo.gov.hu/hirek-es-aktualitasok/tajekoztato-a-szaftex-portal-mukodeserol"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-[10px] text-purple-200 hover:text-white mt-1 transition-colors"
+            >
+              <ExternalLink className="w-3 h-3" />
+              Forrás: OKFO SZAFTEX
+            </a>
           </div>
         </div>
 
