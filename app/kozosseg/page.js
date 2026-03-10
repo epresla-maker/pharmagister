@@ -52,7 +52,8 @@ import {
   Type,
   Pencil,
   Newspaper,
-  Search
+  Search,
+  GraduationCap
 } from 'lucide-react';
 
 // ============================================
@@ -1714,6 +1715,15 @@ export default function KozossegPage() {
           >
             <Search className="w-4 h-4" />
             <span>Állást keres</span>
+          </button>
+          <button
+            onClick={() => router.push('/ktk-kereso')}
+            className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+              darkMode ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <GraduationCap className="w-4 h-4" />
+            <span>KTK kereső</span>
           </button>
         </div>
       </div>
