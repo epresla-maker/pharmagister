@@ -35,10 +35,14 @@ export async function POST(request) {
     }
 
     // Upload to Cloudinary with unsigned upload preset
+    const folder = formData.get('folder') || 'profiles';
+    const allowedFolders = ['profiles', 'posts'];
+    const uploadFolder = allowedFolders.includes(folder) ? folder : 'profiles';
+
     const uploadFormData = new FormData();
     uploadFormData.append('file', file);
     uploadFormData.append('upload_preset', 'pharmagister_profiles');
-    uploadFormData.append('folder', 'profiles');
+    uploadFormData.append('folder', uploadFolder);
 
     const response = await fetch(
       `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,

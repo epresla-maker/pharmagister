@@ -53,6 +53,7 @@ import {
   Pencil,
   Newspaper,
   Search,
+  ImagePlus,
   GraduationCap
 } from 'lucide-react';
 
@@ -130,7 +131,33 @@ function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
     fontSize: 16,
     fontFamily: 'sans',
   });
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [imageUploading, setImageUploading] = useState(false);
   const textareaRef = useRef(null);
+  const imageInputRef = useRef(null);
+
+  const handleImageSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('Csak képfájlok engedélyezettek.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Maximum 5MB méretű kép engedélyezett.');
+      return;
+    }
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const removeImage = () => {
+    setImageFile(null);
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImagePreview(null);
+    if (imageInputRef.current) imageInputRef.current.value = '';
+  };
 
   const hasCustomStyle = style.backgroundColor !== '#ffffff' || style.textColor !== '#1f2937' || style.fontSize !== 16 || style.fontFamily !== 'sans';
 
@@ -147,6 +174,39 @@ function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
 
     setSubmitting(true);
     try {
+      let imageUrl = null;
+
+      // Kép feltöltése ha van
+      if (imageFile) {
+        setImageUploading(true);
+        try {
+          const token = await user.getIdToken();
+          const formData = new FormData();
+          formData.append('file', imageFile);
+          formData.append('userId', user.uid);
+          formData.append('folder', 'posts');
+
+          const uploadRes = await fetch('/api/upload', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: formData,
+          });
+          const uploadData = await uploadRes.json();
+          if (uploadRes.ok && uploadData.url) {
+            imageUrl = uploadData.url;
+          } else {
+            throw new Error(uploadData.error || 'Kép feltöltés sikertelen');
+          }
+        } catch (uploadError) {
+          console.error('Image upload error:', uploadError);
+          alert('Hiba a kép feltöltésekor: ' + uploadError.message);
+          setSubmitting(false);
+          setImageUploading(false);
+          return;
+        }
+        setImageUploading(false);
+      }
+
       const postData = {
         text: text.trim(),
         category,
@@ -154,6 +214,7 @@ function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
         userId: user.uid,
         isAnonymous,
         style: hasCustomStyle ? style : null,
+        imageUrl,
         createdAt: serverTimestamp(),
         reactions: {},
         commentCount: 0,
@@ -414,6 +475,44 @@ function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
           </div>
         </div>
 
+        {/* Kép feltöltés */}
+        <div className="px-4 mt-3">
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleImageSelect}
+            className="hidden"
+          />
+          {imagePreview ? (
+            <div className="relative inline-block">
+              <img
+                src={imagePreview}
+                alt="Előnézet"
+                className="max-h-48 rounded-xl object-cover border"
+              />
+              <button
+                type="button"
+                onClick={removeImage}
+                className="absolute top-1.5 right-1.5 p-1 rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => imageInputRef.current?.click()}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <ImagePlus className="w-4 h-4" />
+              <span>Kép hozzáadása</span>
+            </button>
+          )}
+        </div>
+
         {/* Hashtag-ek */}
         <div className="px-4 mt-2 pb-3">
           <div className="flex items-center gap-2 flex-wrap">
@@ -461,11 +560,11 @@ function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
           </p>
           <button
             onClick={handleSubmit}
-            disabled={!text.trim() || submitting}
+            disabled={!text.trim() || submitting || imageUploading}
             className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl font-medium text-sm transition-colors"
           >
             <Send className="w-4 h-4" />
-            {submitting ? 'Közzététel...' : 'Közzététel'}
+            {imageUploading ? 'Kép feltöltése...' : submitting ? 'Közzététel...' : 'Közzététel'}
           </button>
         </div>
         </div>{/* end modal card */}
@@ -1426,6 +1525,18 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate }) {
           }`}>
             {post.text}
           </p>
+        )}
+
+        {/* Poszt kép */}
+        {post.imageUrl && (
+          <div className="px-3 sm:px-4 pt-2">
+            <img
+              src={post.imageUrl}
+              alt="Poszt kép"
+              className="w-full max-h-96 object-cover rounded-xl cursor-pointer"
+              onClick={() => window.open(post.imageUrl, '_blank')}
+            />
+          </div>
         )}
       </div>
 
