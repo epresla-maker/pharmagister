@@ -170,7 +170,7 @@ function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
   };
 
   const handleSubmit = async () => {
-    if (!text.trim() || submitting) return;
+    if ((!text.trim() && !imageFile) || submitting) return;
 
     setSubmitting(true);
     try {
@@ -560,7 +560,7 @@ function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
           </p>
           <button
             onClick={handleSubmit}
-            disabled={!text.trim() || submitting || imageUploading}
+            disabled={(!text.trim() && !imageFile) || submitting || imageUploading}
             className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl font-medium text-sm transition-colors"
           >
             <Send className="w-4 h-4" />
