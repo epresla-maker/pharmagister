@@ -130,6 +130,19 @@ function KtkCard({ item, darkMode }) {
           </div>
         )}
 
+        {/* SZAFTEX link */}
+        <a
+          href="https://enk.okfo.gov.hu/hirek-es-aktualitasok/tajekoztato-a-szaftex-portal-mukodeserol"
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`inline-flex items-center gap-1 text-xs font-medium transition-colors ${
+            darkMode ? 'text-purple-400 hover:text-purple-300' : 'text-purple-600 hover:text-purple-700'
+          }`}
+        >
+          <ExternalLink className="w-3.5 h-3.5" />
+          Elérhetőség: OKFO SZAFTEX
+        </a>
+
         {/* Expand button */}
         <button
           onClick={() => setExpanded(!expanded)}
