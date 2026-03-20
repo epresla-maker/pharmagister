@@ -206,7 +206,14 @@ export default function KtkKeresoPage() {
   const [sortOrder, setSortOrder] = useState('asc');
 
   const [showFilters, setShowFilters] = useState(false);
+  const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
   const debounceRef = useRef(null);
+
+  // Disclaimer ellenőrzés
+  useEffect(() => {
+    const accepted = sessionStorage.getItem('ktk-disclaimer-accepted');
+    if (accepted) setDisclaimerAccepted(true);
+  }, []);
 
   // Admin hozzáférés ellenőrzés
   useEffect(() => {
@@ -294,6 +301,52 @@ export default function KtkKeresoPage() {
 
   return (
     <RouteGuard>
+      {/* Figyelmeztető disclaimer modal */}
+      {!disclaimerAccepted && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className={`max-w-md w-full rounded-2xl shadow-2xl p-6 ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
+            <div className="flex items-center gap-2 mb-4">
+              <svg className="w-6 h-6 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.27 16.5c-.77.833.192 2.5 1.732 2.5Z" /></svg>
+              <h2 className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Fontos figyelmeztetés</h2>
+            </div>
+            <div className={`text-sm space-y-3 mb-6 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+              <p>
+                A KTK Továbbképzés Kereső kizárólag <strong>tájékoztató jellegű</strong> információkat tartalmaz. 
+                Az adatok az OKFO SZAFTEX portáljáról származnak.
+              </p>
+              <p>
+                A Pharmagister <strong>nem vállal felelősséget</strong> az itt megjelenő adatok pontosságáért, 
+                teljességéért és naprakészségéért. A továbbképzésekkel kapcsolatos hivatalos információkért 
+                kérjük, forduljon közvetlenül az OKFO-hoz vagy a szervező intézményhez.
+              </p>
+              <p>
+                A megjelenített adatok nem minősülnek hivatalos tájékoztatásnak, és nem helyettesítik 
+                a SZAFTEX portálon elérhető eredeti információkat.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => router.push('/')}
+                className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-colors ${
+                  darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Vissza
+              </button>
+              <button
+                onClick={() => {
+                  sessionStorage.setItem('ktk-disclaimer-accepted', '1');
+                  setDisclaimerAccepted(true);
+                }}
+                className="flex-1 py-2.5 px-4 rounded-xl text-sm font-medium bg-purple-600 text-white hover:bg-purple-700 transition-colors"
+              >
+                Elfogadom, tovább
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="min-h-screen bg-gray-100 dark:bg-gray-900 pb-[40px]">
         {/* Sticky Header */}
         <div className="sticky top-0 bg-purple-400 dark:bg-purple-500 border-b border-purple-500 dark:border-purple-600 z-10 shadow-lg pt-safe-small">
