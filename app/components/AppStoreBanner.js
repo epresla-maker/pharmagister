@@ -109,12 +109,15 @@ export default function AppStoreBanner() {
       setPlatform('desktop');
     }
 
-    // A felső banner mindig megjelenik böngészőben
-    setShowBanner(true);
+    // Banner: csak ha ebben a session-ben még nem zárták be
+    const bannerDismissed = sessionStorage.getItem('app-banner-dismissed');
+    if (!bannerDismissed) {
+      setShowBanner(true);
+    }
 
     // A nagy modal csak akkor, ha ebben a session-ben még nem zárták be
     const modalDismissed = sessionStorage.getItem('app-modal-dismissed');
-    if (!modalDismissed) {
+    if (!modalDismissed && !bannerDismissed) {
       const timer = setTimeout(() => setShowModal(true), 2000);
       return () => clearTimeout(timer);
     }
