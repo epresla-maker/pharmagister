@@ -1,0 +1,29 @@
+1. A ZÁRT TESZTELÉSRŐL
+
+Milyen tesztszolgáltatót használtál?
+Külső tesztszolgáltatót nem vettünk igénybe. A Google Play zárt tesztelési sávját használtuk, 12+ tesztelővel, 14 napon át (2026. márc. 4–18.). A tesztelők gyógyszerészek és patikai dolgozók voltak, akik a célcsoportot képviselik.
+
+Mennyire volt könnyű tesztelőt toborozni?
+Nem volt se nehéz, se könnyű
+
+Milyen elköteleződést mutattak a tesztelők?
+A tesztelők aktívan használták a fő funkciókat: közösségi hírfolyam, hiánycikk kereső, helyettesítési igények. Valós szakemberek voltak, a webes verziót már ismerték, így az alkalmazást a célnak megfelelően tesztelték. Az iOS verzió már átment az Apple review-n és elérhető az App Store-ban.
+
+2. AZ ALKALMAZÁSODRÓL
+
+Kikből áll az alkalmazás célközönsége?
+Gyógyszerészek, patikai szakasszisztensek és gyógyszertár-tulajdonosok Magyarországon. Az app a gyógyszertári szakma közösségi platformja, ahol helyettesítési igényeket hirdetnek, hiánycikkeket keresnek, és szakmai tapasztalatot cserélnek egymással.
+
+Mutasd be, hogyan nyújt értéket az alkalmazásod a felhasználóknak
+Valós szakmai problémát old meg: gyógyszertárak gyorsan találnak helyettesítőt, a hiánycikk keresővel látják, hol érhető el egy készítmény, és a közösségi fórumon szakmai kérdésekben segítik egymást. Az iOS verzió már elérhető az App Store-ban, aktív felhasználói bázissal.
+
+Várhatóan hányan fogják telepíteni az első évben?
+0–10 000
+
+3. KÉSZENLÉTED AZ ÉLES KIADÁSRA
+
+Milyen módosításokat hajtottál végre a zárt tesztelés tapasztalatai alapján?
+Javítottuk a push értesítések megbízhatóságát, optimalizáltuk a mobil UI-t (safe area kezelés, billentyűzet viselkedés), és finomhangoltuk a betöltési időket. Hozzáadtuk a hiánycikk kereső funkciót a tesztelők kérésére, valamint javítottunk több kisebb UX problémát a közösségi hírfolyamban.
+
+Miért döntöttél úgy, hogy az alkalmazás készen áll az éles kiadásra?
+Az iOS verzió már sikeresen átment az Apple review-n és él az App Store-ban aktív felhasználókkal. A zárt tesztelés 14 napja alatt nem merült fel kritikus hiba. A fő funkciók (közösség, hiánycikk kereső, helyettesítés) stabilan működnek, a webes platform pedig több hónapja élesben fut.

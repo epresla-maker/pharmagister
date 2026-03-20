@@ -258,8 +258,12 @@ export default function PharmaCalendar({ pharmaRole }) {
       const feedPostsSnapshot = await getDocs(feedPostsQuery);
       await Promise.all(feedPostsSnapshot.docs.map(doc => deleteDoc(doc.ref)));
       
-      // Igény törlése
-      await deleteDoc(doc(db, 'pharmaDemands', demandId));
+      // Soft delete: mark as deleted instead of removing
+      await updateDoc(doc(db, 'pharmaDemands', demandId), {
+        status: 'deleted',
+        deletedAt: serverTimestamp(),
+        deletedBy: user.uid
+      });
       await loadDemands();
       alert('Igény sikeresen törölve!');
     } catch (error) {

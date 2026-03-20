@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, deleteDoc, doc, setDoc, getDocs } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, deleteDoc, doc, setDoc, getDocs, updateDoc } from 'firebase/firestore';
 import { Trash2, Send, EyeOff, Eye, Palette, Type, Image, ChevronDown, ChevronUp, X } from 'lucide-react';
 
 // Előre definiált színsémák
@@ -175,9 +175,13 @@ export default function AdminPostsPage() {
       // Poszt törlése a serviceFeedPosts-ból
       await deleteDoc(doc(db, 'serviceFeedPosts', postId));
       
-      // Ha pharma demand volt, töröljük a pharmaDemands-ból is
+      // Ha pharma demand volt, soft delete a pharmaDemands-ból
       if (postType === 'pharmaDemand' && pharmaDemandId) {
-        await deleteDoc(doc(db, 'pharmaDemands', pharmaDemandId));
+        await updateDoc(doc(db, 'pharmaDemands', pharmaDemandId), {
+          status: 'deleted',
+          deletedAt: serverTimestamp(),
+          deletedBy: user.uid
+        });
       }
       
       alert('✅ Poszt törölve!');

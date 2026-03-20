@@ -524,11 +524,15 @@ export default function AdminDemandsPage() {
         }
       }
 
-      // Delete the demand
-      await deleteDoc(doc(db, "pharmaDemands", deleteTarget.id));
+      // Soft delete: mark as deleted instead of removing
+      await updateDoc(doc(db, "pharmaDemands", deleteTarget.id), {
+        status: 'deleted',
+        deletedAt: serverTimestamp(),
+        deletedBy: 'admin'
+      });
 
       // Refresh
-      setDemands((prev) => prev.filter((d) => d.id !== deleteTarget.id));
+      setDemands((prev) => prev.map((d) => d.id === deleteTarget.id ? { ...d, status: 'deleted', deletedAt: new Date() } : d));
       setApplications((prev) => prev.filter((a) => a.demandId !== deleteTarget.id));
       setDeleteTarget(null);
     } catch (e) {

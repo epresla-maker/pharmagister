@@ -80,8 +80,8 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
         ...doc.data()
       }))
       .filter(demand => {
-        // Csak olyan igényeket tartunk meg, amelyek dátuma ma vagy jövőbeli
-        return demand.date >= todayStr;
+        // Csak olyan igényeket tartunk meg, amelyek dátuma ma vagy jövőbeli és nem töröltek
+        return demand.date >= todayStr && demand.status !== 'deleted';
       });
 
     // Jelentkezések betöltése minden igényhez
@@ -312,7 +312,7 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
   };
 
   const handleDeleteDemand = async (demandId) => {
-    if (!confirm('Biztosan törlöd ezt az igényt? Ez a művelet nem vonható vissza!')) return;
+    if (!confirm('Biztosan törlöd ezt az igényt?')) return;
 
     try {
       // Töröljük az igényhez tartozó jelentkezéseket is
@@ -331,8 +331,12 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
       const feedPostsSnapshot = await getDocs(feedPostsQuery);
       await Promise.all(feedPostsSnapshot.docs.map(doc => deleteDoc(doc.ref)));
       
-      // Igény törlése
-      await deleteDoc(doc(db, 'pharmaDemands', demandId));
+      // Soft delete: mark as deleted instead of removing
+      await updateDoc(doc(db, 'pharmaDemands', demandId), {
+        status: 'deleted',
+        deletedAt: serverTimestamp(),
+        deletedBy: user.uid
+      });
       
       alert('Igény sikeresen törölve!');
       await loadData();
