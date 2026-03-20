@@ -96,17 +96,21 @@ function KtkCard({ item, darkMode }) {
         )}
 
         {/* Dátum */}
-        {item.kezdes_idopontja && (
-          <div className="flex items-center gap-2 mb-2">
-            <Calendar className={`w-4 h-4 flex-shrink-0 ${darkMode ? 'text-purple-400' : 'text-purple-600'}`} />
-            <span className={`text-xs ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-              {item.kezdes_idopontja}
-              {item.befejezes_idopontja && item.befejezes_idopontja !== item.kezdes_idopontja
-                ? ` – ${item.befejezes_idopontja}`
-                : ''}
-            </span>
-          </div>
-        )}
+        {item.kezdes_idopontja && (() => {
+          const isPast = item.ktk_statusz === 'MEGHIRDETVE' && item.kezdes_idopontja < new Date().toISOString().slice(0, 10);
+          return (
+            <div className="flex items-center gap-2 mb-2">
+              <Calendar className={`w-4 h-4 flex-shrink-0 ${isPast ? 'text-red-500' : darkMode ? 'text-purple-400' : 'text-purple-600'}`} />
+              <span className={`text-xs ${isPast ? 'text-red-500 font-semibold' : darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                {item.kezdes_idopontja}
+                {item.befejezes_idopontja && item.befejezes_idopontja !== item.kezdes_idopontja
+                  ? ` – ${item.befejezes_idopontja}`
+                  : ''}
+                {isPast && ' ⚠️ Már elkezdődött'}
+              </span>
+            </div>
+          );
+        })()}
 
         {/* Szakmacsoportok chips */}
         {szakmak.length > 0 && (
