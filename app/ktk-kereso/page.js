@@ -106,7 +106,7 @@ function KtkCard({ item, darkMode }) {
                 {item.befejezes_idopontja && item.befejezes_idopontja !== item.kezdes_idopontja
                   ? ` – ${item.befejezes_idopontja}`
                   : ''}
-                {isPast && ' ⚠️ Már elkezdődött'}
+                {isPast && ' ⚠️'}
               </span>
             </div>
           );
