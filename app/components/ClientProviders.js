@@ -12,7 +12,7 @@ const StartupRedirect = lazy(() => import('./StartupRedirect'));
 const PushNotificationSetup = lazy(() => import('./PushNotificationSetup'));
 const PushNotificationBanner = lazy(() => import('./PushNotificationBanner'));
 const GlobalBottomNav = lazy(() => import('./GlobalBottomNav'));
-const PWAInstallBanner = lazy(() => import('./PWAInstallBanner'));
+const AppStoreBanner = lazy(() => import('./AppStoreBanner'));
 const OfflineBanner = lazy(() => import('./OfflineBanner'));
 const TermsUpdateModal = lazy(() => import('./TermsUpdateModal'));
 
@@ -48,7 +48,7 @@ function ClientProviders({ children }) {
           {/* Bottom nav and install banner - lazy loaded */}
           <Suspense fallback={<EmptyFallback />}>
             <GlobalBottomNav />
-            <PWAInstallBanner />
+            <AppStoreBanner />
           </Suspense>
         </ToastProvider>
       </ThemeProvider>
