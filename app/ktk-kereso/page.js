@@ -225,15 +225,10 @@ export default function KtkKeresoPage() {
     if (accepted) setDisclaimerAccepted(true);
   }, []);
 
-  // Admin hozzáférés ellenőrzés + látogatás rögzítés
+  // Látogatás rögzítés + admin statisztika
   useEffect(() => {
     if (!authLoading && user) {
       const isAdmin = ADMIN_EMAILS.includes(user.email);
-      const isAdminka = ADMINKA_EMAILS.includes(user.email);
-      if (!isAdmin && !isAdminka) {
-        router.replace('/');
-        return;
-      }
       // Látogatás rögzítés (egyszer per pageload)
       if (!visitTracked.current) {
         visitTracked.current = true;
@@ -332,11 +327,6 @@ export default function KtkKeresoPage() {
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
       </div>
     );
-  }
-
-  // Ha nem admin, ne mutassunk semmit (redirect történik)
-  if (!ADMIN_EMAILS.includes(user?.email) && !ADMINKA_EMAILS.includes(user?.email)) {
-    return null;
   }
 
   return (
