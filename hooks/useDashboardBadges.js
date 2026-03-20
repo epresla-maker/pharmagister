@@ -1,8 +1,8 @@
 // hooks/useDashboardBadges.js
-// Hybrid: Real-time for messages, polling for others
+// Polling-based badge counts (optimized: getCountFromServer instead of onSnapshot)
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, getCountFromServer, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, getDocs, getCountFromServer } from 'firebase/firestore';
 
 const POLL_INTERVAL = 120000; // 2 perc
 
@@ -19,55 +19,6 @@ export function useDashboardBadges(user, userData) {
   
   const isMountedRef = useRef(true);
 
-  // Real-time listener a chatekhez
-  useEffect(() => {
-    if (!user) return;
-
-    const chatsQuery = query(
-      collection(db, 'chats'),
-      where('members', 'array-contains', user.uid)
-    );
-    
-    const unsub = onSnapshot(chatsQuery, (snapshot) => {
-      let unreadCount = 0;
-      snapshot.docs.forEach(chatDoc => {
-        const data = chatDoc.data();
-        const isGhost = data.lastMessageSenderId === null;
-        const isArchived = data.archivedBy?.includes(user.uid);
-        const isDeleted = data.deletedBy?.includes(user.uid);
-        
-        if (isGhost || isArchived || isDeleted) return;
-        
-        const readBy = data.readBy || [];
-        if (!readBy.includes(user.uid) && data.lastMessageSenderId !== user.uid) {
-          unreadCount++;
-        }
-      });
-      setBadges(prev => ({ ...prev, messages: unreadCount }));
-    }, () => {});
-
-    return () => unsub();
-  }, [user]);
-
-  // Real-time listener az értesítésekhez is
-  useEffect(() => {
-    if (!user) return;
-
-    const notificationsQuery = query(
-      collection(db, 'notifications'),
-      where('userId', '==', user.uid),
-      where('read', '==', false)
-    );
-    
-    const unsub = onSnapshot(notificationsQuery, (snapshot) => {
-      // Üzenet értesítések kiszűrése - azok az Üzenetek badge-en látszanak
-      const notifCount = snapshot.docs.filter(doc => doc.data().type !== 'new_message').length;
-      setBadges(prev => ({ ...prev, notifications: notifCount }));
-    }, () => {});
-
-    return () => unsub();
-  }, [user]);
-
   // Stabilize userData dependency to avoid re-triggers on reference changes
   const userDataKey = user ? JSON.stringify({
     friendRequests: (userData?.friendRequests || []).length,
@@ -78,17 +29,47 @@ export function useDashboardBadges(user, userData) {
     zipCodes: userData?.zipCodes?.join(',') || ''
   }) : '';
 
-  // Polling a többi badge-hez (ritkább) - értesítések már real-time
-  const fetchOtherBadges = useCallback(async () => {
+  // Minden badge polling-gal, getCountFromServer-rel ahol lehet
+  const fetchAllBadges = useCallback(async () => {
     if (!user || !userData || !isMountedRef.current) return;
 
     try {
-      // userData-ból
+      // --- Üzenetek (chats) badge: olvasatlan chatok száma ---
+      // getCountFromServer nem tudja a komplex logikát (readBy, ghost, archived stb.)
+      // ezért getDocs-szal kérdezzük, de EGYSZER, 2 percenként (nem onSnapshot)
+      const chatsQuery = query(
+        collection(db, 'chats'),
+        where('members', 'array-contains', user.uid)
+      );
+      const chatsSnapshot = await getDocs(chatsQuery);
+      let unreadCount = 0;
+      chatsSnapshot.docs.forEach(chatDoc => {
+        const data = chatDoc.data();
+        const isGhost = data.lastMessageSenderId === null;
+        const isArchived = data.archivedBy?.includes(user.uid);
+        const isDeleted = data.deletedBy?.includes(user.uid);
+        if (isGhost || isArchived || isDeleted) return;
+        const readBy = data.readBy || [];
+        if (!readBy.includes(user.uid) && data.lastMessageSenderId !== user.uid) {
+          unreadCount++;
+        }
+      });
+
+      // --- Értesítések badge: olvasatlan, nem-üzenet értesítések száma ---
+      const notificationsQuery = query(
+        collection(db, 'notifications'),
+        where('userId', '==', user.uid),
+        where('read', '==', false)
+      );
+      const notifsSnapshot = await getDocs(notificationsQuery);
+      const notifCount = notifsSnapshot.docs.filter(d => d.data().type !== 'new_message').length;
+
+      // --- userData-ból ---
       const requestsCount = (userData.friendRequests || []).length;
       const friendsCount = (userData.friends || []).length;
       const followingCount = (userData.following || []).length;
 
-      // Timemagister
+      // --- Timemagister ---
       let timeMagisterCount = 0;
       if (userData.status === 'Full Tag') {
         const appointmentsQuery = query(
@@ -100,7 +81,7 @@ export function useDashboardBadges(user, userData) {
         timeMagisterCount = appCount.data().count;
       }
 
-      // Pharmagister
+      // --- Pharmagister ---
       let pharmaMagisterCount = 0;
       if ((userData.pharmagisterRole === 'pharmacist' || userData.pharmagisterRole === 'assistant') 
           && userData.zipCodes?.length > 0) {
@@ -114,14 +95,15 @@ export function useDashboardBadges(user, userData) {
       }
 
       if (isMountedRef.current) {
-        setBadges(prev => ({
-          ...prev,
+        setBadges({
+          messages: unreadCount,
+          notifications: notifCount,
           requests: requestsCount,
           friends: friendsCount,
           following: followingCount,
           timemagister: timeMagisterCount,
           pharmagister: pharmaMagisterCount
-        }));
+        });
       }
     } catch (error) {
       // Silent fail
@@ -132,16 +114,16 @@ export function useDashboardBadges(user, userData) {
     isMountedRef.current = true;
     if (!user || !userDataKey) return;
 
-    fetchOtherBadges();
-    const interval = setInterval(fetchOtherBadges, POLL_INTERVAL);
+    fetchAllBadges();
+    const interval = setInterval(fetchAllBadges, POLL_INTERVAL);
 
     return () => {
       isMountedRef.current = false;
       clearInterval(interval);
     };
-  }, [user, userDataKey, fetchOtherBadges]);
+  }, [user, userDataKey, fetchAllBadges]);
 
-  const refreshBadges = useCallback(() => fetchOtherBadges(), [fetchOtherBadges]);
+  const refreshBadges = useCallback(() => fetchAllBadges(), [fetchAllBadges]);
 
   return { badges, refreshBadges };
 }
