@@ -377,7 +377,7 @@ export default function KtkKeresoPage() {
               className="inline-flex items-center gap-1 text-[10px] text-purple-200 hover:text-white mt-1 transition-colors"
             >
               <ExternalLink className="w-3 h-3" />
-              Forrás: OKFO SZAFTEX
+              Forrás: OKFO SZAFTEX (Teljes KTK_03.16.xls)
             </a>
           </div>
         </div>
