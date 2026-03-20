@@ -35,7 +35,7 @@ import {
   Zap,
   Angry,
   X,
-  Filter,
+
   Tag,
   AlertTriangle,
   Flag,
@@ -1664,8 +1664,7 @@ export default function KozossegPage() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [activeFilter, setActiveFilter] = useState('all');
-  const [showFilters, setShowFilters] = useState(false);
+  const activeFilter = 'all';
 
   const isAdmin = user?.email === ADMIN_EMAIL;
   const isAdminka = user?.email === ADMINKA_EMAIL;
@@ -1727,52 +1726,12 @@ export default function KozossegPage() {
     <div className={`min-h-screen pb-24 ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
       {/* Header */}
       <div className={`sticky top-0 z-10 pt-safe-small ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b shadow-sm`}>
-        <div className="max-w-xl mx-auto px-4 py-3 flex items-center justify-between min-h-[56px] relative">
-          <h1 className="absolute left-1/2 -translate-x-1/2 text-lg sm:text-xl font-bold flex items-center gap-1 flex-shrink-0">
+        <div className="max-w-xl mx-auto px-4 py-3 flex items-center justify-center min-h-[56px]">
+          <h1 className="text-lg sm:text-xl font-bold flex items-center gap-1">
             <span className="text-green-600 text-lg sm:text-xl">Pharmagister</span>
           </h1>
-          <div className="ml-auto flex items-center gap-2">
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={`p-2 rounded-full transition-colors ${
-                showFilters || activeFilter !== 'all'
-                  ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400'
-                  : darkMode ? 'hover:bg-gray-700 text-gray-400' : 'hover:bg-gray-100 text-gray-500'
-              }`}
-            >
-              <Filter className="w-5 h-5" />
-            </button>
-          </div>
         </div>
 
-        {/* Filter bar */}
-        {showFilters && (
-          <div className={`px-4 pb-3 flex gap-1.5 overflow-x-auto ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-            <button
-              onClick={() => setActiveFilter('all')}
-              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                activeFilter === 'all'
-                  ? 'bg-blue-600 text-white'
-                  : darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              Mind
-            </button>
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => setActiveFilter(cat.id)}
-                className={`flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                  activeFilter === cat.id
-                    ? 'bg-blue-600 text-white'
-                    : darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {cat.emoji} {cat.label}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* Navigációs gombok */}
