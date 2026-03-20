@@ -44,7 +44,7 @@ export default function AppStoreBanner() {
       || window.navigator.standalone;
     if (standalone) return;
 
-    if (pathname === '/maintenance' || pathname === '/login' || pathname === '/register') return;
+    if (pathname === '/maintenance') return;
 
     const lastDismissed = localStorage.getItem('app-store-banner-dismissed');
     if (lastDismissed) {
