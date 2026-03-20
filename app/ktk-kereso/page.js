@@ -202,7 +202,7 @@ export default function KtkKeresoPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedTerm, setDebouncedTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('MEGHIRDETVE');
   const [sortOrder, setSortOrder] = useState('asc');
 
   const [showFilters, setShowFilters] = useState(false);
@@ -283,7 +283,7 @@ export default function KtkKeresoPage() {
     return result;
   }, [data, debouncedTerm, statusFilter, sortOrder]);
 
-  const activeFilterCount = statusFilter ? 1 : 0;
+  const activeFilterCount = statusFilter !== 'MEGHIRDETVE' ? 1 : 0;
 
   // Loading state
   if (authLoading) {
@@ -361,7 +361,7 @@ export default function KtkKeresoPage() {
             <div className="flex items-center gap-2">
               <GraduationCap className="w-6 h-6 text-white" />
               <h1 className="text-xl font-bold text-white">
-                KTK Továbbképzés Kereső
+                Kötelező továbbképzés kereső
               </h1>
             </div>
             <p className="text-purple-100 text-[11px] mt-0.5">
@@ -455,10 +455,10 @@ export default function KtkKeresoPage() {
               {/* Clear filters */}
               {activeFilterCount > 0 && (
                 <button
-                  onClick={() => setStatusFilter('')}
+                  onClick={() => setStatusFilter('MEGHIRDETVE')}
                   className={`text-xs font-medium ${darkMode ? 'text-purple-400' : 'text-purple-600'}`}
                 >
-                  Szűrő törlése
+                  Alapértelmezés
                 </button>
               )}
             </div>

@@ -1780,7 +1780,7 @@ export default function KozossegPage() {
             }`}
           >
             <GraduationCap className="w-4 h-4 flex-shrink-0" />
-            <span>KTK kereső</span>
+            <span>Kötelező továbbképzés kereső</span>
           </button>
         </div>
       </div>
