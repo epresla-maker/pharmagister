@@ -33,6 +33,11 @@ for _, row in data.iterrows():
     records.append(record)
 
 print(f"Total records: {len(records)}")
+
+# Csak a 8-as szakmacsoportot tartalmazó rekordok
+records = [r for r in records if r.get('szakmacsoportok') and '8' in [s.strip() for s in r['szakmacsoportok'].split(',')]]
+print(f"Filtered to szakmacsoport 8: {len(records)} records")
+
 print(json.dumps(records[0], indent=2, ensure_ascii=False))
 
 with open('/Users/epresl/Desktop/pharmagister/public/ktk-data.json', 'w', encoding='utf-8') as f:

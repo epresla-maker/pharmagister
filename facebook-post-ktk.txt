@@ -1,0 +1,20 @@
+Új funkció a Pharmagisterben: Kötelező továbbképzés kereső
+
+Elindítottuk a Kötelező továbbképzés keresőt a Pharmagister platformon, amely elsősorban a gyógyszertári szakma dolgozóinak készült.
+
+Mit tud?
+- Egy helyen kereshetsz az OKFO SZAFTEX portálon meghirdetett kötelező továbbképzések között
+- Szűrhetsz státusz szerint (meghirdetve, lezajlott, megtelt, elmarad)
+- Kereső: program neve, szervező intézmény, helyszín alapján
+- Dátum szerinti rendezés
+- Közvetlen link az OKFO SZAFTEX portálra minden képzésnél
+- Ahol a képzés kezdési dátuma már elmúlt, de a státusz még "meghirdetve", azt külön jelöljük
+
+Kinek szól?
+A 8. Gyógyszertári ellátás szakmacsoport továbbképzéseit tartalmazza, tehát gyógyszerészeknek, patikai szakasszisztenseknek és gyógyszertári dolgozóknak.
+
+Fontos: az adatok tájékoztató jellegűek, az OKFO SZAFTEX portáljáról származnak. A hivatalos információkért mindig a SZAFTEX portált vagy a szervező intézményt keresd.
+
+A funkció a Pharmagister webes felületén és az alkalmazásban is elérhető a Közösség oldalon a "Kötelező továbbképzés kereső" gombbal.
+
+Próbáld ki: https://pharmagister.hu
