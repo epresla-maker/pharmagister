@@ -4,7 +4,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { MessageCircle, Bell, Settings, LayoutGrid, Home } from 'lucide-react';
-import { useDashboardBadges } from '@/hooks/useDashboardBadges';
+import { useBadges } from '@/context/BadgesContext';
 
 // Memoized NavItem to prevent re-renders when other badges change
 const NavItem = memo(function NavItem({ item, isActive, darkMode, onClick }) {
@@ -42,7 +42,7 @@ function BottomNavigation({ isVisible = true }) {
   const pathname = usePathname();
   const { user, userData, loading } = useAuth();
   const { darkMode } = useTheme();
-  const { badges } = useDashboardBadges(user, userData);
+  const { badges } = useBadges();
 
   // Memoize nav items to prevent recreation on every render
   const navItems = useMemo(() => [

@@ -3,6 +3,7 @@ import { memo, Suspense, lazy } from 'react';
 import { AuthProvider } from '@/context/AuthContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { ToastProvider } from '@/context/ToastContext';
+import { BadgesProvider } from '@/context/BadgesContext';
 import ErrorBoundary from './ErrorBoundary';
 
 // Lazy load non-critical components to reduce initial bundle
@@ -37,6 +38,7 @@ function ClientProviders({ children }) {
       </Suspense>
       
       <ThemeProvider>
+        <BadgesProvider>
         <ToastProvider>
           <Suspense fallback={<EmptyFallback />}>
             <OfflineBanner />
@@ -51,6 +53,7 @@ function ClientProviders({ children }) {
             <AppStoreBanner />
           </Suspense>
         </ToastProvider>
+        </BadgesProvider>
       </ThemeProvider>
     </AuthProvider>
     </ErrorBoundary>

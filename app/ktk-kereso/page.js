@@ -233,13 +233,7 @@ export default function KtkKeresoPage() {
       if (!visitTracked.current) {
         visitTracked.current = true;
         const counterRef = doc(db, 'stats', 'ktk-kereso');
-        getDoc(counterRef).then(snap => {
-          if (snap.exists()) {
-            updateDoc(counterRef, { visitCount: increment(1) });
-          } else {
-            setDoc(counterRef, { visitCount: 1 });
-          }
-        });
+        setDoc(counterRef, { visitCount: increment(1) }, { merge: true });
         addDoc(collection(db, 'stats', 'ktk-kereso', 'visits'), {
           email: user.email,
           timestamp: Timestamp.now()

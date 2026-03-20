@@ -5,7 +5,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import RouteGuard from '@/app/components/RouteGuard';
 import PharmaNavbar from '@/app/components/PharmaNavbar';
-import { useDashboardBadges } from '@/hooks/useDashboardBadges';
+import { useBadges } from '@/context/BadgesContext';
 import { db } from '@/lib/firebase';
 
 function PharmagisterContent() {
@@ -18,7 +18,8 @@ function PharmagisterContent() {
   const [showInstallButton, setShowInstallButton] = useState(false);
   
   // ✅ Használjuk a közös badges hook-ot a duplikált listener helyett
-  const { notifications: unreadCount } = useDashboardBadges(user, userData);
+  const { badges } = useBadges();
+  const unreadCount = badges.notifications;
   
   // Az aktív tab a query paraméterből jön (alapértelmezett: 'calendar')
   const activeTab = searchParams.get('tab') || 'calendar';

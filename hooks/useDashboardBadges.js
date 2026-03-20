@@ -68,6 +68,16 @@ export function useDashboardBadges(user, userData) {
     return () => unsub();
   }, [user]);
 
+  // Stabilize userData dependency to avoid re-triggers on reference changes
+  const userDataKey = user ? JSON.stringify({
+    friendRequests: (userData?.friendRequests || []).length,
+    friends: (userData?.friends || []).length,
+    following: (userData?.following || []).length,
+    status: userData?.status,
+    pharmagisterRole: userData?.pharmagisterRole,
+    zipCodes: userData?.zipCodes?.join(',') || ''
+  }) : '';
+
   // Polling a többi badge-hez (ritkább) - értesítések már real-time
   const fetchOtherBadges = useCallback(async () => {
     if (!user || !userData || !isMountedRef.current) return;
@@ -116,11 +126,11 @@ export function useDashboardBadges(user, userData) {
     } catch (error) {
       // Silent fail
     }
-  }, [user, userData]);
+  }, [user, userDataKey]);
 
   useEffect(() => {
     isMountedRef.current = true;
-    if (!user || !userData) return;
+    if (!user || !userDataKey) return;
 
     fetchOtherBadges();
     const interval = setInterval(fetchOtherBadges, POLL_INTERVAL);
@@ -129,7 +139,7 @@ export function useDashboardBadges(user, userData) {
       isMountedRef.current = false;
       clearInterval(interval);
     };
-  }, [user, userData, fetchOtherBadges]);
+  }, [user, userDataKey, fetchOtherBadges]);
 
   const refreshBadges = useCallback(() => fetchOtherBadges(), [fetchOtherBadges]);
 

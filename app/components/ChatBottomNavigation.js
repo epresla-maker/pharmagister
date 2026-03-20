@@ -1,35 +1,16 @@
 "use client";
-import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
 import { Bell, Menu, Home } from 'lucide-react';
-import { useDashboardBadges } from '@/hooks/useDashboardBadges';
-import { db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { useBadges } from '@/context/BadgesContext';
 
 export default function ChatBottomNavigation({ isVisible = true, onMenuOpen }) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, userData } = useAuth();
-  const { badges } = useDashboardBadges(user, userData);
-  const [darkMode, setDarkMode] = useState(false);
-
-  // Load dark mode setting
-  useEffect(() => {
-    if (!user) return;
-    const loadDarkMode = async () => {
-      try {
-        const userDoc = await getDoc(doc(db, "users", user.uid));
-        if (userDoc.exists()) {
-          const isDark = userDoc.data().chatSettings?.darkMode ?? false;
-          setDarkMode(isDark);
-        }
-      } catch (error) {
-        console.error("Error loading dark mode:", error);
-      }
-    };
-    loadDarkMode();
-  }, [user]);
+  const { badges } = useBadges();
+  const { darkMode } = useTheme();
 
   const navItems = [
     {
