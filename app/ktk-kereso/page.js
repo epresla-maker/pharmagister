@@ -190,6 +190,7 @@ export default function KtkKeresoPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedTerm, setDebouncedTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [sortOrder, setSortOrder] = useState('asc');
 
   const [showFilters, setShowFilters] = useState(false);
   const debounceRef = useRef(null);
@@ -230,9 +231,9 @@ export default function KtkKeresoPage() {
     };
   }, [searchTerm]);
 
-  // Filter data
+  // Filter & sort data
   const filtered = useMemo(() => {
-    return data.filter(item => {
+    const result = data.filter(item => {
       // Text search
       if (debouncedTerm) {
         const searchFields = [
@@ -251,7 +252,16 @@ export default function KtkKeresoPage() {
 
       return true;
     });
-  }, [data, debouncedTerm, statusFilter]);
+
+    // Sort by date
+    result.sort((a, b) => {
+      const dateA = a.kezdes_idopontja || '';
+      const dateB = b.kezdes_idopontja || '';
+      return sortOrder === 'asc' ? dateA.localeCompare(dateB) : dateB.localeCompare(dateA);
+    });
+
+    return result;
+  }, [data, debouncedTerm, statusFilter, sortOrder]);
 
   const activeFilterCount = statusFilter ? 1 : 0;
 
@@ -387,6 +397,18 @@ export default function KtkKeresoPage() {
               )}
             </div>
           )}
+
+          {/* Rendezés gomb */}
+          <button
+            onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+              darkMode ? 'bg-gray-800 border border-gray-700 text-gray-300 hover:bg-gray-700' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            <Calendar className="w-4 h-4" />
+            Dátum: {sortOrder === 'asc' ? 'legkorábbi elöl' : 'legkésőbbi elöl'}
+            {sortOrder === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+          </button>
         </div>
 
         {/* Results */}
