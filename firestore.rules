@@ -141,6 +141,17 @@ service cloud.firestore {
       allow write: if isAdmin() || isAuthenticated();
     }
     
+    // KTK kereső stats
+    match /stats/{statId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+      
+      match /visits/{visitId} {
+        allow read: if isAdmin();
+        allow create: if isAuthenticated();
+      }
+    }
+    
     // Shortage items (Hiánycikk kereső) - anyone authenticated can read, create own entries
     match /shortage_items/{itemId} {
       allow read: if isAuthenticated();

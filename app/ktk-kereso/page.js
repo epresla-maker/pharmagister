@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import RouteGuard from '@/app/components/RouteGuard';
+import { db } from '@/lib/firebase';
+import { doc, getDoc, setDoc, updateDoc, increment, collection, addDoc, Timestamp, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import {
   ArrowLeft,
   Search,
@@ -207,7 +209,11 @@ export default function KtkKeresoPage() {
 
   const [showFilters, setShowFilters] = useState(false);
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
+  const [visitCount, setVisitCount] = useState(null);
+  const [recentVisits, setRecentVisits] = useState([]);
+  const [showVisitLog, setShowVisitLog] = useState(false);
   const debounceRef = useRef(null);
+  const visitTracked = useRef(false);
 
   // Disclaimer ellenőrzés
   useEffect(() => {
@@ -215,13 +221,43 @@ export default function KtkKeresoPage() {
     if (accepted) setDisclaimerAccepted(true);
   }, []);
 
-  // Admin hozzáférés ellenőrzés
+  // Admin hozzáférés ellenőrzés + látogatás rögzítés
   useEffect(() => {
     if (!authLoading && user) {
       const isAdmin = ADMIN_EMAILS.includes(user.email);
       const isAdminka = ADMINKA_EMAILS.includes(user.email);
       if (!isAdmin && !isAdminka) {
         router.replace('/');
+        return;
+      }
+      // Látogatás rögzítés (egyszer per pageload)
+      if (!visitTracked.current) {
+        visitTracked.current = true;
+        const counterRef = doc(db, 'stats', 'ktk-kereso');
+        getDoc(counterRef).then(snap => {
+          if (snap.exists()) {
+            updateDoc(counterRef, { visitCount: increment(1) });
+          } else {
+            setDoc(counterRef, { visitCount: 1 });
+          }
+        });
+        addDoc(collection(db, 'stats', 'ktk-kereso', 'visits'), {
+          email: user.email,
+          timestamp: Timestamp.now()
+        });
+      }
+      // Admin: statisztika lekérés
+      if (isAdmin) {
+        getDoc(doc(db, 'stats', 'ktk-kereso')).then(snap => {
+          if (snap.exists()) setVisitCount(snap.data().visitCount || 0);
+        });
+        getDocs(query(
+          collection(db, 'stats', 'ktk-kereso', 'visits'),
+          orderBy('timestamp', 'desc'),
+          limit(20)
+        )).then(snap => {
+          setRecentVisits(snap.docs.map(d => d.data()));
+        });
       }
     }
   }, [user, authLoading, router]);
@@ -379,8 +415,39 @@ export default function KtkKeresoPage() {
               <ExternalLink className="w-3 h-3" />
               Forrás: OKFO SZAFTEX (Teljes KTK_03.16.xls)
             </a>
+            {ADMIN_EMAILS.includes(user?.email) && visitCount !== null && (
+              <button
+                onClick={() => setShowVisitLog(!showVisitLog)}
+                className="inline-flex items-center gap-1 text-[10px] text-purple-200 hover:text-white mt-1 transition-colors"
+              >
+                👁 {visitCount} megtekintés
+              </button>
+            )}
           </div>
         </div>
+
+        {/* Visit log for admin */}
+        {showVisitLog && ADMIN_EMAILS.includes(user?.email) && (
+          <div className="max-w-xl mx-auto px-4 pt-3">
+            <div className={`rounded-xl p-3 text-xs ${darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'}`}>
+              <p className={`font-semibold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Utolsó 20 megtekintés</p>
+              {recentVisits.length === 0 ? (
+                <p className={darkMode ? 'text-gray-400' : 'text-gray-500'}>Nincs adat</p>
+              ) : (
+                <div className="space-y-1">
+                  {recentVisits.map((v, i) => (
+                    <div key={i} className={`flex justify-between ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                      <span>{v.email}</span>
+                      <span className={darkMode ? 'text-gray-500' : 'text-gray-400'}>
+                        {v.timestamp?.toDate?.() ? v.timestamp.toDate().toLocaleString('hu-HU') : '-'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Search + Filters */}
         <div className="max-w-xl mx-auto px-4 pt-4 space-y-3">
