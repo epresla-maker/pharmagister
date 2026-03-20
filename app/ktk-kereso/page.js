@@ -84,11 +84,11 @@ function KtkCard({ item, darkMode }) {
         )}
 
         {/* Helyszín */}
-        {item.tovabbkepzes_cime && (
+        {(item.tovabbkepzes_varos || item.tovabbkepzes_cime) && (
           <div className="flex items-center gap-2 mb-1.5">
             <MapPin className={`w-4 h-4 flex-shrink-0 ${darkMode ? 'text-purple-400' : 'text-purple-600'}`} />
             <span className={`text-xs ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-              {item.tovabbkepzes_cime}
+              {[item.tovabbkepzes_varos, item.tovabbkepzes_cime].filter(Boolean).join(' – ')}
             </span>
           </div>
         )}

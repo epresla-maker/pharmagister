@@ -1,11 +1,11 @@
 import pandas as pd
 import json
 
-df = pd.read_excel('/Users/epresl/Desktop/Teljes KTK_03.05.xls', sheet_name='KTK', header=None)
+df = pd.read_excel('/Users/epresl/Downloads/Teljes KTK_03.16..xls', sheet_name='KTK', header=None)
 
 columns = [
     'nyilvantartasi_szam', 'fantazia_nev', 'program_megnevezes', 'kulso_azonosito',
-    'ktk_statusz', 'szervezo_akkreditacio', 'tovabbkepzes_cime', 'helyszin',
+    'ktk_statusz', 'szervezo_akkreditacio', 'tovabbkepzes_varos', 'tovabbkepzes_cime', 'helyszin',
     'szervezo_megnevezes', 'szakmacsoportok', 'kezdes_idopontja', 'befejezes_idopontja',
     'kapcsolattarto_neve', 'kapcsolattarto_beosztas', 'kapcsolattarto_email',
     'kapcsolattarto_telefon', 'kapcsolattarto_mobil',
