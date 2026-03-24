@@ -81,7 +81,9 @@ export default function ProfilePage() {
   }
 
   const isSubstitute = profileData.pharmagisterRole === 'pharmacist' || profileData.pharmagisterRole === 'assistant';
-  const roleLabel = profileData.pharmagisterRole === 'pharmacist' ? 'Gyógyszerész' : 
+  const isProfileAdmin = profileData.email === 'epresla@icloud.com';
+  const roleLabel = isProfileAdmin ? 'Admin' :
+                    profileData.pharmagisterRole === 'pharmacist' ? 'Gyógyszerész' : 
                     profileData.pharmagisterRole === 'assistant' ? 'Szakasszisztens' : 'Gyógyszertár';
   
   // Ellenőrizzük, hogy saját profilunkat nézzük-e
