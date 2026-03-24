@@ -20,8 +20,9 @@ import {
   where,
   deleteField
 } from 'firebase/firestore';
-import { Star, MessageCircle, Share2, Send, MoreHorizontal, X, Heart, Laugh, Frown, Angry, Zap, Image as ImageIcon, ImagePlus, RefreshCw, Trash2, Edit3, Newspaper } from 'lucide-react';
+import { Star, MessageCircle, Share2, Send, MoreHorizontal, X, Heart, Laugh, Frown, Angry, Zap, Image as ImageIcon, ImagePlus, RefreshCw, Trash2, Edit3, Newspaper, Flag } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { createNotificationWithPush } from '@/lib/notifications';
 
 const REACTIONS = [
   { type: 'like', emoji: '⭐', icon: Star, label: 'Tetszik', color: 'text-yellow-500' },
@@ -908,8 +909,8 @@ export default function ModernServiceFeed() {
                   </div>
                 </div>
                 
-                {/* Három pont menü - csak saját posztokhoz */}
-                {user && post.userId === user.uid && post.postType === 'userPost' && (
+                {/* Három pont menü - mindenki számára (jelentés), szerkesztés/törlés csak sajáthoz */}
+                {user && (
                   <div className="relative">
                     <button
                       onClick={() => setOpenMenuPostId(openMenuPostId === post.id ? null : post.id)}
@@ -922,24 +923,56 @@ export default function ModernServiceFeed() {
                     {openMenuPostId === post.id && (
                       <div className="absolute right-0 top-10 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50 min-w-[150px]">
                         <button
-                          onClick={() => startEditing(post)}
+                          onClick={async () => {
+                            setOpenMenuPostId(null);
+                            try {
+                              await addDoc(collection(db, 'reports'), {
+                                type: 'serviceFeedPost',
+                                postId: post.id,
+                                reportedBy: user.uid,
+                                reason: 'Nem megfelelő tartalom',
+                                createdAt: serverTimestamp(),
+                              });
+                              await createNotificationWithPush({
+                                userId: 'AcBMMwkqMvWAjrodNPPBjFdjjhw2',
+                                type: 'content_report',
+                                title: '⚠️ Jelentés érkezett',
+                                message: `Hírfolyam poszt jelentés érkezett.`,
+                                url: '/admin/posts'
+                              }).catch(() => {});
+                              alert('Jelentés elküldve. Köszönjük!');
+                            } catch (error) {
+                              console.error('Error reporting post:', error);
+                            }
+                          }}
                           className="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
                         >
-                          <Edit3 size={16} />
-                          <span>Szerkesztés</span>
+                          <Flag size={16} />
+                          <span>Jelentés</span>
                         </button>
-                        <button
-                          onClick={() => handleDeletePost(post.id)}
-                          disabled={deleting === post.id}
-                          className="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600"
-                        >
-                          {deleting === post.id ? (
-                            <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
-                          ) : (
-                            <Trash2 size={16} />
-                          )}
-                          <span>Törlés</span>
-                        </button>
+                        {post.userId === user.uid && post.postType === 'userPost' && (
+                          <>
+                            <button
+                              onClick={() => startEditing(post)}
+                              className="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+                            >
+                              <Edit3 size={16} />
+                              <span>Szerkesztés</span>
+                            </button>
+                            <button
+                              onClick={() => handleDeletePost(post.id)}
+                              disabled={deleting === post.id}
+                              className="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600"
+                            >
+                              {deleting === post.id ? (
+                                <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                              ) : (
+                                <Trash2 size={16} />
+                              )}
+                              <span>Törlés</span>
+                            </button>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>

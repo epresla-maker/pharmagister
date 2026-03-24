@@ -1,14 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRSSFeed } from '@/hooks/useRSSFeed';
 import { useAuth } from '@/context/AuthContext';
-import { ExternalLink, Calendar, User, AlertCircle, MessageCircle, Send } from 'lucide-react';
+import { ExternalLink, Calendar, User, AlertCircle, MessageCircle, Send, MoreHorizontal, Flag } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { hu } from 'date-fns/locale';
 import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useEffect } from 'react';
+import { createNotificationWithPush } from '@/lib/notifications';
 
 function RSSComments({ postId }) {
   const { user, userData } = useAuth();
@@ -16,6 +17,51 @@ function RSSComments({ postId }) {
   const [newComment, setNewComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [showComments, setShowComments] = useState(false);
+  const [reportComment, setReportComment] = useState(null);
+  const [reportSubmitting, setReportSubmitting] = useState(false);
+  const longPressTimer = useRef(null);
+
+  const handleLongPressStart = (comment) => {
+    longPressTimer.current = setTimeout(() => {
+      setReportComment(comment);
+    }, 500);
+  };
+
+  const handleLongPressEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
+  const handleReportComment = async () => {
+    if (!user || !reportComment) return;
+    setReportSubmitting(true);
+    try {
+      await addDoc(collection(db, 'reports'), {
+        type: 'rssComment',
+        postId: postId,
+        commentId: reportComment.id,
+        commentText: reportComment.text,
+        reportedBy: user.uid,
+        reason: 'Nem megfelelő tartalom',
+        createdAt: serverTimestamp(),
+      });
+      await createNotificationWithPush({
+        userId: 'AcBMMwkqMvWAjrodNPPBjFdjjhw2',
+        type: 'content_report',
+        title: '⚠️ Hozzászólás jelentés',
+        message: `Hír hozzászólás jelentés érkezett.`,
+        url: '/admin/posts'
+      }).catch(() => {});
+      setReportComment(null);
+      alert('Jelentés elküldve. Köszönjük!');
+    } catch (error) {
+      console.error('Error reporting comment:', error);
+    } finally {
+      setReportSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     if (!postId) return;
@@ -110,7 +156,14 @@ function RSSComments({ postId }) {
           {comments.length > 0 ? (
             <div className="space-y-3">
               {comments.map((comment) => (
-                <div key={comment.id} className="flex gap-2">
+                <div
+                  key={comment.id}
+                  className="flex gap-2"
+                  onTouchStart={() => handleLongPressStart(comment)}
+                  onTouchEnd={handleLongPressEnd}
+                  onTouchMove={handleLongPressEnd}
+                  onContextMenu={(e) => { e.preventDefault(); setReportComment(comment); }}
+                >
                   <img
                     src={comment.userPhoto || '/default-avatar.svg'}
                     alt={comment.userName}
@@ -142,6 +195,50 @@ function RSSComments({ postId }) {
               Még nincs hozzászólás
             </p>
           )}
+
+          {/* Report comment overlay */}
+          {reportComment && (
+            <div 
+              className="fixed inset-0 z-[60] flex items-center justify-center px-4"
+              onClick={() => setReportComment(null)}
+            >
+              <div className="fixed inset-0 bg-black/40" />
+              <div 
+                onClick={(e) => e.stopPropagation()}
+                className="relative w-full max-w-sm p-4 rounded-2xl border shadow-2xl bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Flag size={20} className="text-red-500" />
+                    <span className="font-semibold text-gray-900 dark:text-white">Hozzászólás jelentése</span>
+                  </div>
+                  <button 
+                    onClick={() => setReportComment(null)}
+                    className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    <MoreHorizontal size={20} className="text-gray-500 rotate-90" />
+                  </button>
+                </div>
+
+                <div className="rounded-xl px-3 py-2 mb-4 bg-gray-100 dark:bg-gray-700">
+                  <p className="text-xs font-semibold mb-1 text-gray-500">
+                    {reportComment.userName || 'Felhasználó'}
+                  </p>
+                  <p className="text-sm line-clamp-3 text-gray-700 dark:text-gray-300">
+                    {reportComment.text}
+                  </p>
+                </div>
+
+                <button
+                  onClick={handleReportComment}
+                  disabled={reportSubmitting}
+                  className="w-full py-2.5 rounded-xl bg-red-600 text-white font-semibold text-sm hover:bg-red-700 transition-colors disabled:opacity-50"
+                >
+                  {reportSubmitting ? 'Küldés...' : 'Jelentés küldése'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -150,8 +247,10 @@ function RSSComments({ postId }) {
 
 export default function RSSFeedDisplay() {
   const { rssPosts, loading, error, refetch } = useRSSFeed();
+  const { user } = useAuth();
   const [hiddenRssIds, setHiddenRssIds] = useState(new Set());
   const [loadingHidden, setLoadingHidden] = useState(true);
+  const [openMenuPostId, setOpenMenuPostId] = useState(null);
 
   // Rejtett RSS hírek betöltése
   useEffect(() => {
@@ -260,6 +359,52 @@ export default function RSSFeedDisplay() {
                   </div>
                 )}
               </div>
+
+              {/* Három pont menü - Jelentés */}
+              {user && (
+                <div className="relative flex-shrink-0">
+                  <button
+                    onClick={() => setOpenMenuPostId(openMenuPostId === post.id ? null : post.id)}
+                    className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <MoreHorizontal size={20} className="text-gray-500" />
+                  </button>
+
+                  {openMenuPostId === post.id && (
+                    <div className="absolute right-0 top-10 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50 min-w-[150px]">
+                      <button
+                        onClick={async () => {
+                          setOpenMenuPostId(null);
+                          try {
+                            await addDoc(collection(db, 'reports'), {
+                              type: 'rssPost',
+                              postId: post.id,
+                              postTitle: post.title,
+                              reportedBy: user.uid,
+                              reason: 'Nem megfelelő tartalom',
+                              createdAt: serverTimestamp(),
+                            });
+                            await createNotificationWithPush({
+                              userId: 'AcBMMwkqMvWAjrodNPPBjFdjjhw2',
+                              type: 'content_report',
+                              title: '⚠️ Jelentés érkezett',
+                              message: `Hír poszt jelentés érkezett: ${post.title}`,
+                              url: '/admin/posts'
+                            }).catch(() => {});
+                            alert('Jelentés elküldve. Köszönjük!');
+                          } catch (error) {
+                            console.error('Error reporting post:', error);
+                          }
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+                      >
+                        <Flag size={16} />
+                        <span>Jelentés</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

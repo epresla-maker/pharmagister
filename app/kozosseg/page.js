@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { db } from '@/lib/firebase';
+import { createNotificationWithPush } from '@/lib/notifications';
 import {
   collection,
   query,
@@ -598,12 +599,58 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
   const [editingId, setEditingId] = useState(null);
   const [editingText, setEditingText] = useState('');
   const [showInput, setShowInput] = useState(false); // Show inline input
+  const [reportComment, setReportComment] = useState(null); // Comment being reported
+  const [reportSubmitting, setReportSubmitting] = useState(false);
+  const longPressTimer = useRef(null);
   const inputRef = useRef(null);
   const inlineInputRef = useRef(null);
   const scrollContainerRef = useRef(null);
   const commentsEndRef = useRef(null);
 
   const commentsColRef = collection(db, 'communityPosts', postId, 'comments');
+
+  // Long press handlers for comment reporting
+  const handleLongPressStart = (item) => {
+    longPressTimer.current = setTimeout(() => {
+      setReportComment(item);
+    }, 500);
+  };
+
+  const handleLongPressEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
+  const handleReportComment = async () => {
+    if (!user || !reportComment) return;
+    setReportSubmitting(true);
+    try {
+      await addDoc(collection(db, 'reports'), {
+        type: 'comment',
+        postId: postId,
+        commentId: reportComment.id,
+        commentText: reportComment.text,
+        reportedBy: user.uid,
+        reason: 'Nem megfelelő tartalom',
+        createdAt: serverTimestamp(),
+      });
+      await createNotificationWithPush({
+        userId: 'AcBMMwkqMvWAjrodNPPBjFdjjhw2',
+        type: 'content_report',
+        title: '⚠️ Hozzászólás jelentés',
+        message: `Hozzászólás jelentés érkezett.`,
+        url: '/admin/posts'
+      }).catch(() => {});
+      setReportComment(null);
+      alert('Jelentés elküldve. Köszönjük!');
+    } catch (error) {
+      console.error('Error reporting comment:', error);
+    } finally {
+      setReportSubmitting(false);
+    }
+  };
 
   // Focus input when shown
   useEffect(() => {
@@ -921,7 +968,13 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
           <div className="flex-shrink-0 pt-0.5">
             {renderAvatar(item, avatarSize)}
           </div>
-          <div className="flex-1 min-w-0">
+          <div
+            className="flex-1 min-w-0"
+            onTouchStart={() => handleLongPressStart(item)}
+            onTouchEnd={handleLongPressEnd}
+            onTouchMove={handleLongPressEnd}
+            onContextMenu={(e) => { e.preventDefault(); setReportComment(item); }}
+          >
             {editingId === item.id ? (
               <div>
                 <input
@@ -1200,6 +1253,52 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
         </div>
       )}
 
+      {/* Report comment overlay */}
+      {reportComment && (
+        <div 
+          className="fixed inset-0 z-[60] flex items-center justify-center px-4"
+          onClick={() => setReportComment(null)}
+        >
+          <div className="fixed inset-0 bg-black/40" />
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className={`relative w-full max-w-sm p-4 rounded-2xl border shadow-2xl ${
+              darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Flag className={`w-5 h-5 text-red-500`} />
+                <span className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Hozzászólás jelentése</span>
+              </div>
+              <button 
+                onClick={() => setReportComment(null)}
+                className={`p-1 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            <div className={`rounded-xl px-3 py-2 mb-4 ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+              <p className={`text-xs font-semibold mb-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                {reportComment.isAnonymous !== false ? 'Anonim' : (reportComment.authorData?.displayName || 'Felhasználó')}
+              </p>
+              <p className={`text-sm line-clamp-3 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                {reportComment.text}
+              </p>
+            </div>
+
+            <button
+              onClick={handleReportComment}
+              disabled={reportSubmitting}
+              className="w-full py-2.5 rounded-xl bg-red-600 text-white font-semibold text-sm hover:bg-red-700 transition-colors disabled:opacity-50"
+            >
+              {reportSubmitting ? 'Küldés...' : 'Jelentés küldése'}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Bottom bar - New comment button (only when input not visible) */}
       {!showInput && (
         <div className={`flex-shrink-0 border-t ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
@@ -1312,6 +1411,13 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate }) {
         reason: 'Nem megfelelő tartalom',
         createdAt: serverTimestamp(),
       });
+      await createNotificationWithPush({
+        userId: 'AcBMMwkqMvWAjrodNPPBjFdjjhw2',
+        type: 'content_report',
+        title: '⚠️ Jelentés érkezett',
+        message: `Közösségi poszt jelentés érkezett.`,
+        url: '/admin/posts'
+      }).catch(() => {});
       alert('Jelentés elküldve. Köszönjük!');
     } catch (error) {
       console.error('Error reporting post:', error);

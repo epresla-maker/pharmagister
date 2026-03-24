@@ -25,7 +25,7 @@ export default function StartupRedirect() {
     }
 
     // Ne irányítsuk át ha publikus oldalon van (még nem lépett be, vagy token link)
-    const publicRoutes = ['/login', '/register', '/verify-email', '/privacy', '/forgot-password', '/set-password', '/account-action', '/maintenance'];
+    const publicRoutes = ['/login', '/register', '/verify-email', '/privacy', '/forgot-password', '/set-password', '/account-action', '/maintenance', '/child-safety'];
     if (publicRoutes.some(route => pathname?.startsWith(route))) {
       return;
     }
