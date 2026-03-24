@@ -23,6 +23,7 @@ import {
 import { Star, MessageCircle, Share2, Send, MoreHorizontal, X, Heart, Laugh, Frown, Angry, Zap, Image as ImageIcon, ImagePlus, RefreshCw, Trash2, Edit3, Newspaper, Flag } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { createNotificationWithPush } from '@/lib/notifications';
+import ReportModal from '@/app/components/ReportModal';
 
 const REACTIONS = [
   { type: 'like', emoji: '⭐', icon: Star, label: 'Tetszik', color: 'text-yellow-500' },
@@ -64,6 +65,7 @@ export default function ModernServiceFeed() {
   const [editText, setEditText] = useState('');
   const [deleting, setDeleting] = useState(null);
   const [showPostEditor, setShowPostEditor] = useState(false);
+  const [reportModalData, setReportModalData] = useState(null);
   const [postStyle, setPostStyle] = useState({
     backgroundColor: '#ffffff',
     textColor: '#000000',
@@ -575,28 +577,15 @@ export default function ModernServiceFeed() {
                         {openMenuPostId === post.id && (
                           <div className="absolute right-0 top-10 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50 min-w-[150px]">
                             <button
-                              onClick={async () => {
+                              onClick={() => {
                                 setOpenMenuPostId(null);
-                                try {
-                                  await addDoc(collection(db, 'reports'), {
-                                    type: 'pharmaDemandPost',
-                                    postId: post.id,
-                                    reportedBy: user.uid,
-                                    reason: 'Nem megfelelő tartalom',
-                                    createdAt: serverTimestamp(),
-                                  });
-                                  await createNotificationWithPush({
-                                    userId: 'AcBMMwkqMvWAjrodNPPBjFdjjhw2',
-                                    type: 'content_report',
-                                    title: '⚠️ Hirdetés jelentés',
-                                    message: `Gyógyszertári hirdetés jelentve: "${(post.pharmacyName || '').substring(0, 80)}"`,
-                                    data: { url: '/' },
-                                    url: '/'
-                                  }).catch(() => {});
-                                  alert('Jelentés elküldve. Köszönjük!');
-                                } catch (error) {
-                                  console.error('Error reporting post:', error);
-                                }
+                                setReportModalData({
+                                  reportType: 'pharmaDemandPost',
+                                  reportedUserId: post.userId || null,
+                                  reportedUserName: post.pharmacyName || 'Felhasználó',
+                                  itemId: post.id,
+                                  itemContent: post.pharmacyName || '',
+                                });
                               }}
                               className="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
                             >
@@ -805,28 +794,15 @@ export default function ModernServiceFeed() {
                           {openMenuPostId === post.id && (
                             <div className="absolute right-0 top-10 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50 min-w-[150px]">
                               <button
-                                onClick={async () => {
+                                onClick={() => {
                                   setOpenMenuPostId(null);
-                                  try {
-                                    await addDoc(collection(db, 'reports'), {
-                                      type: post.postType,
-                                      postId: post.id,
-                                      reportedBy: user.uid,
-                                      reason: 'Nem megfelelő tartalom',
-                                      createdAt: serverTimestamp(),
-                                    });
-                                    await createNotificationWithPush({
-                                      userId: 'AcBMMwkqMvWAjrodNPPBjFdjjhw2',
-                                      type: 'content_report',
-                                      title: '⚠️ Szolgáltató poszt jelentés',
-                                      message: `Szolgáltató poszt jelentve: "${(post.text || post.authorData?.displayName || '').substring(0, 80)}"`,
-                                      data: { url: '/' },
-                                      url: '/'
-                                    }).catch(() => {});
-                                    alert('Jelentés elküldve. Köszönjük!');
-                                  } catch (error) {
-                                    console.error('Error reporting post:', error);
-                                  }
+                                  setReportModalData({
+                                    reportType: 'serviceFeedPost',
+                                    reportedUserId: post.userId || null,
+                                    reportedUserName: post.authorData?.displayName || 'Felhasználó',
+                                    itemId: post.id,
+                                    itemContent: post.text || post.authorData?.displayName || '',
+                                  });
                                 }}
                                 className="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
                               >
@@ -1013,28 +989,15 @@ export default function ModernServiceFeed() {
                     {openMenuPostId === post.id && (
                       <div className="absolute right-0 top-10 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50 min-w-[150px]">
                         <button
-                          onClick={async () => {
+                          onClick={() => {
                             setOpenMenuPostId(null);
-                            try {
-                              await addDoc(collection(db, 'reports'), {
-                                type: 'serviceFeedPost',
-                                postId: post.id,
-                                reportedBy: user.uid,
-                                reason: 'Nem megfelelő tartalom',
-                                createdAt: serverTimestamp(),
-                              });
-                              await createNotificationWithPush({
-                                userId: 'AcBMMwkqMvWAjrodNPPBjFdjjhw2',
-                                type: 'content_report',
-                                title: '⚠️ Hírfolyam poszt jelentés',
-                                message: `Hírfolyam poszt jelentve: "${(post.title || post.text || '').substring(0, 80)}"`,
-                                data: { url: '/' },
-                                url: '/'
-                              }).catch(() => {});
-                              alert('Jelentés elküldve. Köszönjük!');
-                            } catch (error) {
-                              console.error('Error reporting post:', error);
-                            }
+                            setReportModalData({
+                              reportType: 'serviceFeedPost',
+                              reportedUserId: post.userId || null,
+                              reportedUserName: post.authorData?.displayName || 'Felhasználó',
+                              itemId: post.id,
+                              itemContent: post.title || post.text || '',
+                            });
                           }}
                           className="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
                         >
@@ -1295,6 +1258,17 @@ export default function ModernServiceFeed() {
           Elérted a hírfolyam végét
         </div>
       )}
+
+      {/* Report modal */}
+      <ReportModal
+        isOpen={!!reportModalData}
+        onClose={() => setReportModalData(null)}
+        reportType={reportModalData?.reportType || 'serviceFeedPost'}
+        reportedUserId={reportModalData?.reportedUserId}
+        reportedUserName={reportModalData?.reportedUserName}
+        itemId={reportModalData?.itemId}
+        itemContent={reportModalData?.itemContent}
+      />
     </div>
   );
 }

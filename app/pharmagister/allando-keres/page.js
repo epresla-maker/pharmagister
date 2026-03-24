@@ -22,6 +22,7 @@ import {
   where
 } from 'firebase/firestore';
 import { Star, Send, MoreHorizontal, X, Heart, Laugh, Frown, Angry, Zap, ImagePlus, RefreshCw, Trash2, Edit3, Flag } from 'lucide-react';
+import ReportModal from '@/app/components/ReportModal';
 
 const PAGE_SIZE = 20;
 
@@ -53,6 +54,7 @@ function AllandoKeresContent() {
 
   // Edit/Delete state
   const [openMenuPostId, setOpenMenuPostId] = useState(null);
+  const [reportModalData, setReportModalData] = useState(null);
   const [editingPost, setEditingPost] = useState(null);
   const [editText, setEditText] = useState('');
   const [deleting, setDeleting] = useState(null);
@@ -627,28 +629,15 @@ function AllandoKeresContent() {
                           {openMenuPostId === post.id && (
                             <div className={`absolute right-0 top-10 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg shadow-lg border py-1 z-50 min-w-[150px]`}>
                               <button
-                                onClick={async () => {
+                                onClick={() => {
                                   setOpenMenuPostId(null);
-                                  try {
-                                    await addDoc(collection(db, 'reports'), {
-                                      type: 'allandoKeresPost',
-                                      postId: post.id,
-                                      reportedBy: user.uid,
-                                      reason: 'Nem megfelelő tartalom',
-                                      createdAt: serverTimestamp(),
-                                    });
-                                    await createNotificationWithPush({
-                                      userId: 'AcBMMwkqMvWAjrodNPPBjFdjjhw2',
-                                      type: 'content_report',
-                                      title: '⚠️ Állandó keres jelentés',
-                                      message: `Állandó keres poszt jelentve: "${(post.title || post.text || '').substring(0, 80)}"`,
-                                      data: { url: '/pharmagister/allando-keres' },
-                                      url: '/pharmagister/allando-keres'
-                                    }).catch(() => {});
-                                    alert('Jelentés elküldve. Köszönjük!');
-                                  } catch (error) {
-                                    console.error('Error reporting post:', error);
-                                  }
+                                  setReportModalData({
+                                    reportType: 'allandoKeresPost',
+                                    reportedUserId: post.userId || null,
+                                    reportedUserName: post.authorData?.displayName || 'Felhasználó',
+                                    itemId: post.id,
+                                    itemContent: post.title || post.text || '',
+                                  });
                                 }}
                                 className={`w-full flex items-center gap-3 px-4 py-2 text-left ${darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}
                               >
@@ -790,6 +779,17 @@ function AllandoKeresContent() {
             />
           </div>
         )}
+
+        {/* Report modal */}
+        <ReportModal
+          isOpen={!!reportModalData}
+          onClose={() => setReportModalData(null)}
+          reportType={reportModalData?.reportType || 'allandoKeresPost'}
+          reportedUserId={reportModalData?.reportedUserId}
+          reportedUserName={reportModalData?.reportedUserName}
+          itemId={reportModalData?.itemId}
+          itemContent={reportModalData?.itemContent}
+        />
       </div>
     </RouteGuard>
   );

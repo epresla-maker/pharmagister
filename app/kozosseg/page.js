@@ -57,6 +57,7 @@ import {
   ImagePlus,
   GraduationCap
 } from 'lucide-react';
+import ReportModal from '@/app/components/ReportModal';
 
 // ============================================
 // CONSTANTS
@@ -600,7 +601,7 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
   const [editingText, setEditingText] = useState('');
   const [showInput, setShowInput] = useState(false); // Show inline input
   const [reportComment, setReportComment] = useState(null); // Comment being reported
-  const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const longPressTimer = useRef(null);
   const inputRef = useRef(null);
   const inlineInputRef = useRef(null);
@@ -613,6 +614,7 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
   const handleLongPressStart = (item) => {
     longPressTimer.current = setTimeout(() => {
       setReportComment(item);
+      setShowReportModal(true);
     }, 500);
   };
 
@@ -620,36 +622,6 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
-    }
-  };
-
-  const handleReportComment = async () => {
-    if (!user || !reportComment) return;
-    setReportSubmitting(true);
-    try {
-      await addDoc(collection(db, 'reports'), {
-        type: 'comment',
-        postId: postId,
-        commentId: reportComment.id,
-        commentText: reportComment.text,
-        reportedBy: user.uid,
-        reason: 'Nem megfelelő tartalom',
-        createdAt: serverTimestamp(),
-      });
-      await createNotificationWithPush({
-        userId: 'AcBMMwkqMvWAjrodNPPBjFdjjhw2',
-        type: 'content_report',
-        title: '⚠️ Hozzászólás jelentés',
-        message: `Közösségi hozzászólás jelentés: "${reportComment.text?.substring(0, 80) || ''}"`,
-        data: { url: '/kozosseg' },
-        url: '/kozosseg'
-      }).catch(() => {});
-      setReportComment(null);
-      alert('Jelentés elküldve. Köszönjük!');
-    } catch (error) {
-      console.error('Error reporting comment:', error);
-    } finally {
-      setReportSubmitting(false);
     }
   };
 
@@ -1254,51 +1226,16 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
         </div>
       )}
 
-      {/* Report comment overlay */}
-      {reportComment && (
-        <div 
-          className="fixed inset-0 z-[60] flex items-center justify-center px-4"
-          onClick={() => setReportComment(null)}
-        >
-          <div className="fixed inset-0 bg-black/40" />
-          <div 
-            onClick={(e) => e.stopPropagation()}
-            className={`relative w-full max-w-sm p-4 rounded-2xl border shadow-2xl ${
-              darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-            }`}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Flag className={`w-5 h-5 text-red-500`} />
-                <span className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Hozzászólás jelentése</span>
-              </div>
-              <button 
-                onClick={() => setReportComment(null)}
-                className={`p-1 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
-              >
-                <X className="w-5 h-5 text-gray-500" />
-              </button>
-            </div>
-
-            <div className={`rounded-xl px-3 py-2 mb-4 ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
-              <p className={`text-xs font-semibold mb-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                {reportComment.isAnonymous !== false ? 'Anonim' : (reportComment.authorData?.displayName || 'Felhasználó')}
-              </p>
-              <p className={`text-sm line-clamp-3 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                {reportComment.text}
-              </p>
-            </div>
-
-            <button
-              onClick={handleReportComment}
-              disabled={reportSubmitting}
-              className="w-full py-2.5 rounded-xl bg-red-600 text-white font-semibold text-sm hover:bg-red-700 transition-colors disabled:opacity-50"
-            >
-              {reportSubmitting ? 'Küldés...' : 'Jelentés küldése'}
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Report comment modal */}
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => { setShowReportModal(false); setReportComment(null); }}
+        reportType="comment"
+        reportedUserId={reportComment?.authorId || null}
+        reportedUserName={reportComment?.isAnonymous !== false ? 'Anonim' : (reportComment?.authorData?.displayName || 'Felhasználó')}
+        itemId={reportComment?.id}
+        itemContent={reportComment?.text}
+      />
 
       {/* Bottom bar - New comment button (only when input not visible) */}
       {!showInput && (
@@ -1331,6 +1268,7 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState('');
   const [editSubmitting, setEditSubmitting] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const menuRef = useRef(null);
   const reactionsRef = useRef(null);
 
@@ -1401,29 +1339,10 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate }) {
     }
   };
 
-  const handleReport = async () => {
+  const handleReport = () => {
     if (!user) return;
     setShowMenu(false);
-    try {
-      await addDoc(collection(db, 'reports'), {
-        type: 'communityPost',
-        postId: post.id,
-        reportedBy: user.uid,
-        reason: 'Nem megfelelő tartalom',
-        createdAt: serverTimestamp(),
-      });
-      await createNotificationWithPush({
-        userId: 'AcBMMwkqMvWAjrodNPPBjFdjjhw2',
-        type: 'content_report',
-        title: '⚠️ Közösségi poszt jelentés',
-        message: `Közösségi poszt jelentve: "${(post.text || '').substring(0, 80)}"`,
-        data: { url: '/kozosseg' },
-        url: '/kozosseg'
-      }).catch(() => {});
-      alert('Jelentés elküldve. Köszönjük!');
-    } catch (error) {
-      console.error('Error reporting post:', error);
-    }
+    setShowReportModal(true);
   };
 
   const handleDelete = async () => {
@@ -1758,6 +1677,17 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate }) {
         />,
         document.body
       )}
+
+      {/* Report modal */}
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        reportType="communityPost"
+        reportedUserId={post.userId}
+        reportedUserName={post.isAnonymous ? 'Anonim' : (post.authorName || 'Felhasználó')}
+        itemId={post.id}
+        itemContent={post.text}
+      />
     </div>
   );
 }

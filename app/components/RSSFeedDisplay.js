@@ -10,6 +10,7 @@ import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, getDoc
 import { db } from '@/lib/firebase';
 import { useEffect } from 'react';
 import { createNotificationWithPush } from '@/lib/notifications';
+import ReportModal from '@/app/components/ReportModal';
 
 function RSSComments({ postId }) {
   const { user, userData } = useAuth();
@@ -18,12 +19,13 @@ function RSSComments({ postId }) {
   const [submitting, setSubmitting] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [reportComment, setReportComment] = useState(null);
-  const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const longPressTimer = useRef(null);
 
   const handleLongPressStart = (comment) => {
     longPressTimer.current = setTimeout(() => {
       setReportComment(comment);
+      setShowReportModal(true);
     }, 500);
   };
 
@@ -31,36 +33,6 @@ function RSSComments({ postId }) {
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
-    }
-  };
-
-  const handleReportComment = async () => {
-    if (!user || !reportComment) return;
-    setReportSubmitting(true);
-    try {
-      await addDoc(collection(db, 'reports'), {
-        type: 'rssComment',
-        postId: postId,
-        commentId: reportComment.id,
-        commentText: reportComment.text,
-        reportedBy: user.uid,
-        reason: 'Nem megfelelő tartalom',
-        createdAt: serverTimestamp(),
-      });
-      await createNotificationWithPush({
-        userId: 'AcBMMwkqMvWAjrodNPPBjFdjjhw2',
-        type: 'content_report',
-        title: '⚠️ Hír hozzászólás jelentés',
-        message: `Hír hozzászólás jelentve: "${reportComment.text?.substring(0, 80) || ''}"`,
-        data: { url: '/kozosseg' },
-        url: '/kozosseg'
-      }).catch(() => {});
-      setReportComment(null);
-      alert('Jelentés elküldve. Köszönjük!');
-    } catch (error) {
-      console.error('Error reporting comment:', error);
-    } finally {
-      setReportSubmitting(false);
     }
   };
 
@@ -163,7 +135,7 @@ function RSSComments({ postId }) {
                   onTouchStart={() => handleLongPressStart(comment)}
                   onTouchEnd={handleLongPressEnd}
                   onTouchMove={handleLongPressEnd}
-                  onContextMenu={(e) => { e.preventDefault(); setReportComment(comment); }}
+                  onContextMenu={(e) => { e.preventDefault(); setReportComment(comment); setShowReportModal(true); }}
                 >
                   <img
                     src={comment.userPhoto || '/default-avatar.svg'}
@@ -197,49 +169,16 @@ function RSSComments({ postId }) {
             </p>
           )}
 
-          {/* Report comment overlay */}
-          {reportComment && (
-            <div 
-              className="fixed inset-0 z-[60] flex items-center justify-center px-4"
-              onClick={() => setReportComment(null)}
-            >
-              <div className="fixed inset-0 bg-black/40" />
-              <div 
-                onClick={(e) => e.stopPropagation()}
-                className="relative w-full max-w-sm p-4 rounded-2xl border shadow-2xl bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <Flag size={20} className="text-red-500" />
-                    <span className="font-semibold text-gray-900 dark:text-white">Hozzászólás jelentése</span>
-                  </div>
-                  <button 
-                    onClick={() => setReportComment(null)}
-                    className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-                  >
-                    <MoreHorizontal size={20} className="text-gray-500 rotate-90" />
-                  </button>
-                </div>
-
-                <div className="rounded-xl px-3 py-2 mb-4 bg-gray-100 dark:bg-gray-700">
-                  <p className="text-xs font-semibold mb-1 text-gray-500">
-                    {reportComment.userName || 'Felhasználó'}
-                  </p>
-                  <p className="text-sm line-clamp-3 text-gray-700 dark:text-gray-300">
-                    {reportComment.text}
-                  </p>
-                </div>
-
-                <button
-                  onClick={handleReportComment}
-                  disabled={reportSubmitting}
-                  className="w-full py-2.5 rounded-xl bg-red-600 text-white font-semibold text-sm hover:bg-red-700 transition-colors disabled:opacity-50"
-                >
-                  {reportSubmitting ? 'Küldés...' : 'Jelentés küldése'}
-                </button>
-              </div>
-            </div>
-          )}
+          {/* Report comment modal */}
+          <ReportModal
+            isOpen={showReportModal}
+            onClose={() => { setShowReportModal(false); setReportComment(null); }}
+            reportType="rssComment"
+            reportedUserId={reportComment?.userId || null}
+            reportedUserName={reportComment?.userName || 'Felhasználó'}
+            itemId={reportComment?.id}
+            itemContent={reportComment?.text}
+          />
         </div>
       )}
     </div>
@@ -252,6 +191,7 @@ export default function RSSFeedDisplay() {
   const [hiddenRssIds, setHiddenRssIds] = useState(new Set());
   const [loadingHidden, setLoadingHidden] = useState(true);
   const [openMenuPostId, setOpenMenuPostId] = useState(null);
+  const [reportModalData, setReportModalData] = useState(null);
 
   // Rejtett RSS hírek betöltése
   useEffect(() => {
@@ -374,29 +314,15 @@ export default function RSSFeedDisplay() {
                   {openMenuPostId === post.id && (
                     <div className="absolute right-0 top-10 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50 min-w-[150px]">
                       <button
-                        onClick={async () => {
+                        onClick={() => {
                           setOpenMenuPostId(null);
-                          try {
-                            await addDoc(collection(db, 'reports'), {
-                              type: 'rssPost',
-                              postId: post.id,
-                              postTitle: post.title,
-                              reportedBy: user.uid,
-                              reason: 'Nem megfelelő tartalom',
-                              createdAt: serverTimestamp(),
-                            });
-                            await createNotificationWithPush({
-                              userId: 'AcBMMwkqMvWAjrodNPPBjFdjjhw2',
-                              type: 'content_report',
-                              title: '⚠️ Hír poszt jelentés',
-                              message: `Hír poszt jelentve: "${(post.title || '').substring(0, 80)}"`,
-                              data: { url: '/kozosseg' },
-                              url: '/kozosseg'
-                            }).catch(() => {});
-                            alert('Jelentés elküldve. Köszönjük!');
-                          } catch (error) {
-                            console.error('Error reporting post:', error);
-                          }
+                          setReportModalData({
+                            reportType: 'rssPost',
+                            reportedUserId: null,
+                            reportedUserName: post.source || 'Hírforrás',
+                            itemId: post.id,
+                            itemContent: post.title || '',
+                          });
                         }}
                         className="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
                       >
@@ -468,6 +394,17 @@ export default function RSSFeedDisplay() {
           <RSSComments postId={post.id} />
         </div>
       ))}
+
+      {/* Report modal */}
+      <ReportModal
+        isOpen={!!reportModalData}
+        onClose={() => setReportModalData(null)}
+        reportType={reportModalData?.reportType || 'rssPost'}
+        reportedUserId={reportModalData?.reportedUserId}
+        reportedUserName={reportModalData?.reportedUserName}
+        itemId={reportModalData?.itemId}
+        itemContent={reportModalData?.itemContent}
+      />
     </div>
   );
 }
