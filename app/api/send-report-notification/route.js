@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
+import webpush from 'web-push';
 import { verifyAuth } from '@/lib/apiAuth';
 import { escapeHtml } from '@/lib/sanitize';
+import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
+
+const ADMIN_UID = 'AcBMMwkqMvWAjrodNPPBjFdjjhw2';
 
 export async function POST(request) {
   try {
@@ -12,6 +16,81 @@ export async function POST(request) {
     }
 
     const { reportType, reportedUserName, reason, details } = await request.json();
+
+    // === 1. In-app notification Firestore-ba ===
+    try {
+      const admin = getFirebaseAdmin();
+      const db = admin.firestore();
+      const notifMessage = `${reason} – ${reportedUserName || reportType}`;
+      await db.collection('notifications').add({
+        userId: ADMIN_UID,
+        type: 'content_report',
+        title: 'Új bejelentés érkezett',
+        message: notifMessage,
+        read: false,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        url: '/admin',
+      });
+      console.log('[Report API] Firestore notification created for admin');
+    } catch (notifErr) {
+      console.error('[Report API] Firestore notification failed:', notifErr);
+    }
+
+    // === 2. Push notification küldése admin-nak ===
+    try {
+      const admin = getFirebaseAdmin();
+      const db = admin.firestore();
+
+      let VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      let VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
+
+      if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+        VAPID_PUBLIC_KEY = VAPID_PUBLIC_KEY.trim().replace(/=+$/, '');
+        VAPID_PRIVATE_KEY = VAPID_PRIVATE_KEY.trim().replace(/=+$/, '');
+
+        webpush.setVapidDetails(
+          'mailto:epresla@icloud.com',
+          VAPID_PUBLIC_KEY,
+          VAPID_PRIVATE_KEY
+        );
+
+        const subsSnapshot = await db.collection('pushSubscriptions')
+          .where('userId', '==', ADMIN_UID)
+          .get();
+
+        const notifMessage = `${reason} – ${reportedUserName || reportType}`;
+        const payload = JSON.stringify({
+          title: 'Új bejelentés érkezett',
+          body: notifMessage,
+          icon: '/icons/icon-192x192.png',
+          badge: '/icons/icon-72x72.png',
+          tag: `content_report-${Date.now()}`,
+          url: '/admin'
+        });
+
+        let sent = 0;
+        for (const subDoc of subsSnapshot.docs) {
+          const sub = subDoc.data();
+          try {
+            await webpush.sendNotification({
+              endpoint: sub.endpoint,
+              keys: sub.keys
+            }, payload);
+            sent++;
+          } catch (pushErr) {
+            console.error('[Report API] Push send error:', pushErr.statusCode || pushErr.message);
+            if (pushErr.statusCode === 404 || pushErr.statusCode === 410) {
+              await subDoc.ref.delete();
+            }
+          }
+        }
+        console.log(`[Report API] Push sent to ${sent}/${subsSnapshot.size} subscriptions`);
+      }
+    } catch (pushErr) {
+      console.error('[Report API] Push notification failed:', pushErr);
+    }
+
+    // === 3. Email értesítés ===
 
     // SMTP transporter
     const transporter = nodemailer.createTransport({

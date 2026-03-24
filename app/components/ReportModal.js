@@ -4,9 +4,6 @@ import { useTheme } from '@/context/ThemeContext';
 import { doc, setDoc, collection } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
-import { createNotificationWithPush } from '@/lib/notifications';
-
-const ADMIN_UID = 'AcBMMwkqMvWAjrodNPPBjFdjjhw2';
 
 // --- Jelentési kategóriák ---
 const reportCategories = {
@@ -215,6 +212,9 @@ export default function ReportModal({
     setLoading(true);
 
     try {
+      const idToken = await user.getIdToken();
+
+      // 1. Report mentése Firestore-ba
       const reportRef = doc(collection(db, 'reports'));
       await setDoc(reportRef, {
         reporterId: user.uid,
@@ -230,35 +230,7 @@ export default function ReportModal({
         createdAt: new Date().toISOString(),
       });
 
-      // Push + in-app értesítés adminnak
-      const notifMessage = `${selectedCategory.label} – ${reportedUserName || reportType}${itemContent ? `: "${(itemContent).substring(0, 60)}"` : ''}`;
-      await createNotificationWithPush({
-        userId: ADMIN_UID,
-        type: 'content_report',
-        title: 'Új bejelentés érkezett',
-        message: notifMessage,
-        data: { url: '/admin' },
-        url: '/admin'
-      }).catch(() => {});
-
-      // Push notification küldése autentikált API hívással
-      const idToken = await user.getIdToken();
-      await fetch('/api/send-push', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`
-        },
-        body: JSON.stringify({
-          userId: ADMIN_UID,
-          title: 'Új bejelentés érkezett',
-          body: notifMessage,
-          url: '/admin',
-          tag: `content_report-${Date.now()}`
-        })
-      }).catch(() => {});
-
-      // Email értesítés küldése adminnak
+      // 2. Szerver-oldali értesítések (push + in-app + email) - egy API hívással
       await fetch('/api/send-report-notification', {
         method: 'POST',
         headers: {
