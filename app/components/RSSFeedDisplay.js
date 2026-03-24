@@ -50,9 +50,10 @@ function RSSComments({ postId }) {
       await createNotificationWithPush({
         userId: 'AcBMMwkqMvWAjrodNPPBjFdjjhw2',
         type: 'content_report',
-        title: '⚠️ Hozzászólás jelentés',
-        message: `Hír hozzászólás jelentés érkezett.`,
-        url: '/admin/posts'
+        title: '⚠️ Hír hozzászólás jelentés',
+        message: `Hír hozzászólás jelentve: "${reportComment.text?.substring(0, 80) || ''}"`,
+        data: { url: '/kozosseg' },
+        url: '/kozosseg'
       }).catch(() => {});
       setReportComment(null);
       alert('Jelentés elküldve. Köszönjük!');
@@ -387,9 +388,10 @@ export default function RSSFeedDisplay() {
                             await createNotificationWithPush({
                               userId: 'AcBMMwkqMvWAjrodNPPBjFdjjhw2',
                               type: 'content_report',
-                              title: '⚠️ Jelentés érkezett',
-                              message: `Hír poszt jelentés érkezett: ${post.title}`,
-                              url: '/admin/posts'
+                              title: '⚠️ Hír poszt jelentés',
+                              message: `Hír poszt jelentve: "${(post.title || '').substring(0, 80)}"`,
+                              data: { url: '/kozosseg' },
+                              url: '/kozosseg'
                             }).catch(() => {});
                             alert('Jelentés elküldve. Köszönjük!');
                           } catch (error) {

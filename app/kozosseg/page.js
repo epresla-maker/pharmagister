@@ -640,8 +640,9 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
         userId: 'AcBMMwkqMvWAjrodNPPBjFdjjhw2',
         type: 'content_report',
         title: '⚠️ Hozzászólás jelentés',
-        message: `Hozzászólás jelentés érkezett.`,
-        url: '/admin/posts'
+        message: `Közösségi hozzászólás jelentés: "${reportComment.text?.substring(0, 80) || ''}"`,
+        data: { url: '/kozosseg' },
+        url: '/kozosseg'
       }).catch(() => {});
       setReportComment(null);
       alert('Jelentés elküldve. Köszönjük!');
@@ -1414,9 +1415,10 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate }) {
       await createNotificationWithPush({
         userId: 'AcBMMwkqMvWAjrodNPPBjFdjjhw2',
         type: 'content_report',
-        title: '⚠️ Jelentés érkezett',
-        message: `Közösségi poszt jelentés érkezett.`,
-        url: '/admin/posts'
+        title: '⚠️ Közösségi poszt jelentés',
+        message: `Közösségi poszt jelentve: "${(post.text || '').substring(0, 80)}"`,
+        data: { url: '/kozosseg' },
+        url: '/kozosseg'
       }).catch(() => {});
       alert('Jelentés elküldve. Köszönjük!');
     } catch (error) {

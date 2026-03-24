@@ -640,9 +640,10 @@ function AllandoKeresContent() {
                                     await createNotificationWithPush({
                                       userId: 'AcBMMwkqMvWAjrodNPPBjFdjjhw2',
                                       type: 'content_report',
-                                      title: '⚠️ Jelentés érkezett',
-                                      message: `Állandó keres poszt jelentés érkezett.`,
-                                      url: '/admin/posts'
+                                      title: '⚠️ Állandó keres jelentés',
+                                      message: `Állandó keres poszt jelentve: "${(post.title || post.text || '').substring(0, 80)}"`,
+                                      data: { url: '/pharmagister/allando-keres' },
+                                      url: '/pharmagister/allando-keres'
                                     }).catch(() => {});
                                     alert('Jelentés elküldve. Köszönjük!');
                                   } catch (error) {

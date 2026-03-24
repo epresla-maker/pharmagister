@@ -936,9 +936,10 @@ export default function ModernServiceFeed() {
                               await createNotificationWithPush({
                                 userId: 'AcBMMwkqMvWAjrodNPPBjFdjjhw2',
                                 type: 'content_report',
-                                title: '⚠️ Jelentés érkezett',
-                                message: `Hírfolyam poszt jelentés érkezett.`,
-                                url: '/admin/posts'
+                                title: '⚠️ Hírfolyam poszt jelentés',
+                                message: `Hírfolyam poszt jelentve: "${(post.title || post.text || '').substring(0, 80)}"`,
+                                data: { url: '/' },
+                                url: '/'
                               }).catch(() => {});
                               alert('Jelentés elküldve. Köszönjük!');
                             } catch (error) {

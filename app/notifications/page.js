@@ -91,6 +91,8 @@ export default function NotificationsPage() {
         return '🔔';
       case 'new_message':
         return '💬';
+      case 'content_report':
+        return '🚩';
       default:
         return '📢';
     }
@@ -111,6 +113,8 @@ export default function NotificationsPage() {
         return 'bg-orange-50 border-orange-200';
       case 'new_demand':
         return 'bg-cyan-50 border-cyan-200';
+      case 'content_report':
+        return 'bg-red-50 border-red-200';
       default:
         return 'bg-blue-50 border-blue-200';
     }
@@ -136,6 +140,10 @@ export default function NotificationsPage() {
     // Admin jóváhagyási kérelem - approvals oldalra
     else if (notification.type === 'admin_approval_request') {
       router.push('/admin/approvals');
+    }
+    // Jelentés értesítés - navigálás a megfelelő oldalra
+    else if (notification.type === 'content_report' && notification.url) {
+      router.push(notification.url);
     }
     // Ha van url a notification data-ban
     else if (notification.url) {
