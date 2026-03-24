@@ -8,6 +8,7 @@ import {
   User, 
   Bell, 
   Shield, 
+  ShieldCheck,
   HelpCircle, 
   LogOut, 
   ChevronRight,
@@ -156,6 +157,13 @@ export default function SettingsPage() {
           onClick: () => router.push('/privacy-policy'),
           color: 'text-blue-600',
           bgColor: darkMode ? 'bg-blue-900/30' : 'bg-blue-100'
+        },
+        {
+          icon: ShieldCheck,
+          label: 'Child Safety Policy',
+          onClick: () => router.push('/child-safety'),
+          color: 'text-green-600',
+          bgColor: darkMode ? 'bg-green-900/30' : 'bg-green-100'
         }
       ]
     }
