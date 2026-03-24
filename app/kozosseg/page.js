@@ -1714,7 +1714,8 @@ function AnonSettingsModal({ isOpen, onClose, darkMode, hideAnon, onToggle }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50" onClick={onClose}>
       <div
-        className={`w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl shadow-xl ${darkMode ? 'bg-gray-800' : 'bg-white'} p-6`}
+        className={`w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl shadow-xl ${darkMode ? 'bg-gray-800' : 'bg-white'} p-6 pb-safe-bottom mb-[env(safe-area-inset-bottom)]`}
+        style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 80px))' }}
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
@@ -1729,7 +1730,7 @@ function AnonSettingsModal({ isOpen, onClose, darkMode, hideAnon, onToggle }) {
           Ez egy anonim poszt. A szerző személyazonosságát nem lehet megtekinteni.
         </p>
         <div className={`flex items-center justify-between p-4 rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
-          <div>
+          <div className="mr-3">
             <p className={`font-medium text-sm ${darkMode ? 'text-white' : 'text-gray-900'}`}>Anonim posztok elrejtése</p>
             <p className={`text-xs mt-0.5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Nem látod az anonim posztokat a hírfolyamban</p>
           </div>
