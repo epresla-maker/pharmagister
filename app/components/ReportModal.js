@@ -231,17 +231,34 @@ export default function ReportModal({
       });
 
       // Push + in-app értesítés adminnak
+      const notifMessage = `${selectedCategory.label} – ${reportedUserName || reportType}${itemContent ? `: "${(itemContent).substring(0, 60)}"` : ''}`;
       await createNotificationWithPush({
         userId: ADMIN_UID,
         type: 'content_report',
         title: 'Új bejelentés érkezett',
-        message: `${selectedCategory.label} – ${reportedUserName || reportType}${itemContent ? `: "${(itemContent).substring(0, 60)}"` : ''}`,
+        message: notifMessage,
         data: { url: '/admin' },
         url: '/admin'
       }).catch(() => {});
 
-      // Email értesítés küldése adminnak
+      // Push notification küldése autentikált API hívással
       const idToken = await user.getIdToken();
+      await fetch('/api/send-push', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
+        body: JSON.stringify({
+          userId: ADMIN_UID,
+          title: 'Új bejelentés érkezett',
+          body: notifMessage,
+          url: '/admin',
+          tag: `content_report-${Date.now()}`
+        })
+      }).catch(() => {});
+
+      // Email értesítés küldése adminnak
       await fetch('/api/send-report-notification', {
         method: 'POST',
         headers: {
