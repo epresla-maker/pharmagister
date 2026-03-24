@@ -14,7 +14,8 @@ import {
   ChevronRight,
   Lock,
   Trash2,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  Newspaper
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
@@ -124,6 +125,13 @@ export default function SettingsPage() {
           onClick: () => router.push('/settings/notifications'),
           color: 'text-orange-600',
           bgColor: 'bg-orange-100'
+        },
+        {
+          icon: Newspaper,
+          label: 'Hírfolyam beállítások',
+          onClick: () => router.push('/settings/feed'),
+          color: 'text-purple-600',
+          bgColor: darkMode ? 'bg-purple-900/30' : 'bg-purple-100'
         }
       ]
     },

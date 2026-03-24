@@ -1260,8 +1260,7 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
 // ============================================
 // SINGLE POST CARD
 // ============================================
-function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonClick }) {
-  const postRouter = useRouter();
+function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonClick, compactView, hideReactions }) {
   const [showReactions, setShowReactions] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showCommentThread, setShowCommentThread] = useState(false);
@@ -1273,9 +1272,8 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonCli
   const handleAuthorClick = () => {
     if (post.isAnonymous) {
       if (onAnonClick) onAnonClick();
-    } else if (post.userId) {
-      postRouter.push(`/profil/${post.userId}`);
     }
+    // Profil megtekintés egyelőre kikapcsolva
   };
   const [showReportModal, setShowReportModal] = useState(false);
   const menuRef = useRef(null);
@@ -1431,13 +1429,14 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonCli
       <div className="py-3 flex items-start justify-between px-3 sm:px-4">
         <div className="flex gap-3">
           {/* Avatar */}
-          <button onClick={handleAuthorClick} className="flex-shrink-0">
           {post.isAnonymous ? (
+            <button onClick={handleAuthorClick} className="flex-shrink-0">
             <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
               darkMode ? 'bg-gradient-to-br from-gray-600 to-gray-700' : 'bg-gradient-to-br from-gray-200 to-gray-300'
             }`}>
               <Users className={`w-5 h-5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
             </div>
+            </button>
           ) : (
             <img
               src={post.authorData?.photoURL || '/default-avatar.svg'}
@@ -1445,14 +1444,19 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonCli
               className="w-10 h-10 rounded-full object-cover flex-shrink-0"
             />
           )}
-          </button>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <button onClick={handleAuthorClick} className="text-left">
-              <span className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'} hover:underline`}>
-                {post.isAnonymous ? 'Anonim felhasználó' : (post.authorData?.displayName || 'Felhasználó')}
-              </span>
-              </button>
+              {post.isAnonymous ? (
+                <button onClick={handleAuthorClick} className="text-left">
+                  <span className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                    Anonim felhasználó
+                  </span>
+                </button>
+              ) : (
+                <span className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                  {post.authorData?.displayName || 'Felhasználó'}
+                </span>
+              )}
               {isAdmin && post.isAnonymous && post.authorData?.displayName && (
                 <span className={`text-xs px-1.5 py-0.5 rounded ${darkMode ? 'bg-yellow-900/40 text-yellow-300' : 'bg-yellow-100 text-yellow-700'}`}>
                   {post.authorData.displayName}
@@ -1594,7 +1598,7 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonCli
       )}
 
       {/* Reactions summary */}
-      {reactionSummary && (
+      {!hideReactions && reactionSummary && (
         <div className={`px-3 sm:px-4 pb-1.5 flex items-center gap-1 text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
           <div className="flex -space-x-1">
             {Object.entries(reactionSummary)
@@ -1760,6 +1764,8 @@ export default function KozossegPage() {
   const [blockedUserIds, setBlockedUserIds] = useState([]);
   const [hideAnonymous, setHideAnonymous] = useState(false);
   const [showAnonModal, setShowAnonModal] = useState(false);
+  const [compactView, setCompactView] = useState(false);
+  const [hideReactions, setHideReactions] = useState(false);
   const activeFilter = 'all';
 
   const isAdmin = user?.email === ADMIN_EMAIL;
@@ -1780,8 +1786,11 @@ export default function KozossegPage() {
     const loadPref = async () => {
       try {
         const prefDoc = await getDoc(doc(db, 'userSettings', user.uid));
-        if (prefDoc.exists() && prefDoc.data().hideAnonymousPosts) {
-          setHideAnonymous(true);
+        if (prefDoc.exists()) {
+          const data = prefDoc.data();
+          if (data.hideAnonymousPosts) setHideAnonymous(true);
+          if (data.compactView) setCompactView(true);
+          if (data.hideReactions) setHideReactions(true);
         }
       } catch (e) { console.error('Error loading user settings:', e); }
     };
@@ -1979,6 +1988,8 @@ export default function KozossegPage() {
               isAdmin={isAdmin || isAdminka}
               onUpdate={fetchPosts}
               onAnonClick={() => setShowAnonModal(true)}
+              compactView={compactView}
+              hideReactions={hideReactions}
             />
           ))
         )}
