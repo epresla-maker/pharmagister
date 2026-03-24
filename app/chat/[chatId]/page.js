@@ -22,6 +22,8 @@ import {
   deleteDoc,
   where
 } from "firebase/firestore";
+import ReportModal from "@/app/components/ReportModal";
+import BlockUserModal from "@/app/components/BlockUserModal";
 
 // --- Segédfüggvény az üzenetek időbélyegének formázásához ---
 function formatMessageTimestamp(date) {
@@ -107,7 +109,11 @@ export default function ChatRoomPage() {
   const [replyTo, setReplyTo] = useState(null); // { id, text, senderId, senderName } - Az üzenet amire válaszolunk
   const [selectedMessageData, setSelectedMessageData] = useState(null); // A kiválasztott üzenet teljes adatai a popup-hoz
   
-
+  // --- JELENTÉS ÉS LETILTÁS ÁLLAPOTOK ---
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportMessageData, setReportMessageData] = useState(null); // { id, text } - a jelentett üzenet
+  const [showBlockModal, setShowBlockModal] = useState(false);
+  const [isPartnerBlocked, setIsPartnerBlocked] = useState(false);
   
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -375,7 +381,19 @@ export default function ChatRoomPage() {
       }
     });
 
-    // 4. Jelöljük olvasottnak a chatet amikor megnyitjuk - AZONNAL
+    // 4. Letiltás állapot ellenőrzése
+    const checkBlockStatus = async () => {
+      if (!user || !partnerId) return;
+      try {
+        const blockDoc = await getDoc(doc(db, 'blockedUsers', `${user.uid}_${partnerId}`));
+        setIsPartnerBlocked(blockDoc.exists());
+      } catch (err) {
+        console.error('Error checking block status:', err);
+      }
+    };
+    if (partnerId) checkBlockStatus();
+
+    // 5. Jelöljük olvasottnak a chatet amikor megnyitjuk - AZONNAL
     const markChatAsRead = async () => {
       try {
         console.log(`📖 Marking chat ${chatId} as read for user ${user.uid}`);
@@ -854,8 +872,8 @@ export default function ChatRoomPage() {
             />
           )}
           
-          <div>
-            <h1 className={`text-xl font-bold ${darkMode ? 'text-gray-900' : 'text-gray-900'}`}>
+          <div className="flex-1 min-w-0">
+            <h1 className={`text-xl font-bold truncate ${darkMode ? 'text-gray-900' : 'text-gray-900'}`}>
               {partnerData.name}
               {chatDemandInfo && (
                 <span className={`ml-2 text-sm font-normal ${darkMode ? 'text-gray-600' : 'text-gray-500'}`}>
@@ -863,7 +881,43 @@ export default function ChatRoomPage() {
                 </span>
               )}
             </h1>
-{/* Online státusz eltávolítva */}
+          </div>
+
+          {/* Jelentés és Letiltás gombok */}
+          <div className="flex items-center gap-1 ml-2">
+            {/* Jelentés gomb */}
+            <button
+              onClick={() => {
+                setReportMessageData(null);
+                setShowReportModal(true);
+              }}
+              className={`p-2 rounded-full transition-colors ${
+                darkMode 
+                  ? 'text-gray-600 hover:text-red-500 hover:bg-[#a5d6a7]' 
+                  : 'text-gray-500 hover:text-red-500 hover:bg-gray-100'
+              }`}
+              title="Felhasználó jelentése"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v1.5M3 21v-6m0 0 2.77-.693a9 9 0 0 1 6.208.682l.108.054a9 9 0 0 0 6.086.71l3.114-.732a48.524 48.524 0 0 1-.005-10.499l-3.11.732a9 9 0 0 1-6.085-.711l-.108-.054a9 9 0 0 0-6.208-.682L3 4.5M3 15V4.5" />
+              </svg>
+            </button>
+            {/* Letiltás gomb */}
+            <button
+              onClick={() => setShowBlockModal(true)}
+              className={`p-2 rounded-full transition-colors ${
+                isPartnerBlocked
+                  ? 'text-orange-500 hover:bg-[#a5d6a7]'
+                  : darkMode 
+                    ? 'text-gray-600 hover:text-orange-500 hover:bg-[#a5d6a7]' 
+                    : 'text-gray-500 hover:text-orange-500 hover:bg-gray-100'
+              }`}
+              title={isPartnerBlocked ? 'Tiltás feloldása' : 'Felhasználó letiltása'}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636" />
+              </svg>
+            </button>
           </div>
         </div>
       </header>
@@ -998,6 +1052,40 @@ export default function ChatRoomPage() {
                   <span>Válasz</span>
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => {
+                    setReportMessageData({
+                      id: selectedMessageData.id,
+                      text: selectedMessageData.text || (selectedMessageData.imageUrl ? '📷 Kép' : selectedMessageData.audioUrl ? '🎤 Hangüzenet' : '')
+                    });
+                    setShowReportModal(true);
+                    setShowMessageMenu(null);
+                    setShowReactionPicker(null);
+                    setHighlightedMessage(null);
+                    setSelectedMessageData(null);
+                  }}
+                  className={`w-full px-5 py-3 text-left ${darkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-gray-900'} transition-colors flex items-center justify-between border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}
+                >
+                  <span>Jelentés</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v1.5M3 21v-6m0 0 2.77-.693a9 9 0 0 1 6.208.682l.108.054a9 9 0 0 0 6.086.71l3.114-.732a48.524 48.524 0 0 1-.005-10.499l-3.11.732a9 9 0 0 1-6.085-.711l-.108-.054a9 9 0 0 0-6.208-.682L3 4.5M3 15V4.5" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => {
+                    setShowBlockModal(true);
+                    setShowMessageMenu(null);
+                    setShowReactionPicker(null);
+                    setHighlightedMessage(null);
+                    setSelectedMessageData(null);
+                  }}
+                  className={`w-full px-5 py-3 text-left ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors flex items-center justify-between border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'} ${isPartnerBlocked ? 'text-green-400' : 'text-orange-400'}`}
+                >
+                  <span>{isPartnerBlocked ? 'Tiltás feloldása' : 'Letiltás'}</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636" />
                   </svg>
                 </button>
                 <button
@@ -1411,6 +1499,30 @@ export default function ChatRoomPage() {
           </div>
         </div>
       </div>
+
+      {/* Jelentés modal */}
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => {
+          setShowReportModal(false);
+          setReportMessageData(null);
+        }}
+        reportType="message"
+        reportedUserId={partnerId}
+        reportedUserName={partnerData.name}
+        itemId={reportMessageData?.id || chatId}
+        itemContent={reportMessageData?.text || `Chat beszélgetés: ${partnerData.name}`}
+      />
+
+      {/* Letiltás modal */}
+      <BlockUserModal
+        isOpen={showBlockModal}
+        onClose={() => setShowBlockModal(false)}
+        targetUserId={partnerId}
+        targetUserName={partnerData.name}
+        isCurrentlyBlocked={isPartnerBlocked}
+        onBlockChange={(blocked) => setIsPartnerBlocked(blocked)}
+      />
     </main>
   );
 }

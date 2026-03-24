@@ -22,6 +22,8 @@ import {
   updateDoc, 
   arrayUnion, 
 } from "firebase/firestore";
+import ReportModal from "@/app/components/ReportModal";
+import BlockUserModal from "@/app/components/BlockUserModal";
 
 // --- Segédfüggvény az idő formázásához ---
 function formatChatTimestamp(date) {
@@ -87,7 +89,7 @@ async function fetchFriendData(friendIds) {
 // =================================================================
 // --- Megerősítő Modal a Törléshez ---
 // =================================================================
-function DeleteConfirmModal({ isOpen, onClose, onArchive, onDelete, chatName, darkMode }) {
+function DeleteConfirmModal({ isOpen, onClose, onArchive, onDelete, onReport, onBlock, chatName, darkMode }) {
   if (!isOpen) return null;
   
   return (
@@ -132,6 +134,34 @@ function DeleteConfirmModal({ isOpen, onClose, onArchive, onDelete, chatName, da
             Végleges törlés
           </button>
           
+          {/* Jelentés */}
+          <button
+            onClick={onReport}
+            className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-medium transition-colors
+              ${darkMode 
+                ? 'bg-yellow-900/50 text-yellow-400 hover:bg-yellow-900' 
+                : 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100'}`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v1.5M3 21v-6m0 0 2.77-.693a9 9 0 0 1 6.208.682l.108.054a9 9 0 0 0 6.086.71l3.114-.732a48.524 48.524 0 0 1-.005-10.499l-3.11.732a9 9 0 0 1-6.085-.711l-.108-.054a9 9 0 0 0-6.208-.682L3 4.5M3 15V4.5" />
+            </svg>
+            Felhasználó jelentése
+          </button>
+          
+          {/* Letiltás */}
+          <button
+            onClick={onBlock}
+            className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-medium transition-colors
+              ${darkMode 
+                ? 'bg-orange-900/50 text-orange-400 hover:bg-orange-900' 
+                : 'bg-orange-50 text-orange-600 hover:bg-orange-100'}`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636" />
+            </svg>
+            Felhasználó letiltása
+          </button>
+          
           {/* Mégse */}
           <button
             onClick={onClose}
@@ -151,7 +181,7 @@ function DeleteConfirmModal({ isOpen, onClose, onArchive, onDelete, chatName, da
 // =================================================================
 // --- Chat Elem Komponens (törlés gombbal) ---
 // =================================================================
-function ChatItem({ chat, onArchive, onDelete, onNavigate, isUnread, darkMode, demandInfo }) {
+function ChatItem({ chat, onArchive, onDelete, onNavigate, onReport, onBlock, isUnread, darkMode, demandInfo }) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   
   const handleDeleteClick = (e) => {
@@ -237,6 +267,14 @@ function ChatItem({ chat, onArchive, onDelete, onNavigate, isUnread, darkMode, d
         onClose={() => setShowDeleteModal(false)}
         onArchive={handleArchive}
         onDelete={handleDelete}
+        onReport={() => {
+          setShowDeleteModal(false);
+          onReport(chat.otherUserId, chat.otherUserName);
+        }}
+        onBlock={() => {
+          setShowDeleteModal(false);
+          onBlock(chat.otherUserId, chat.otherUserName);
+        }}
         chatName={chat.otherUserName}
         darkMode={darkMode}
       />
@@ -264,6 +302,12 @@ export default function ChatListPage() {
   const autoStartProcessedRef = useRef(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  
+  // Jelentés és letiltás állapotok
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [showBlockModal, setShowBlockModal] = useState(false);
+  const [reportTarget, setReportTarget] = useState(null); // { userId, userName }
+  const [blockTarget, setBlockTarget] = useState(null); // { userId, userName, isBlocked }
   
   // Olvasatlan üzenetek számolása
   const unreadMessagesCount = chats.filter(chat => chat.isUnread).length;
@@ -369,6 +413,7 @@ export default function ChatListPage() {
           lastMessageAt: chat.lastMessageAt?.toDate(),
           isUnread: isUnread,
           demandInfo: demandInfo,
+          otherUserId: otherUserId,
         };
       });
       
@@ -792,6 +837,14 @@ export default function ChatListPage() {
                   onArchive={handleArchive}
                   onDelete={handleDelete}
                   onNavigate={handleNavigate}
+                  onReport={(userId, userName) => {
+                    setReportTarget({ userId, userName });
+                    setShowReportModal(true);
+                  }}
+                  onBlock={(userId, userName) => {
+                    setBlockTarget({ userId, userName, isBlocked: false });
+                    setShowBlockModal(true);
+                  }}
                   isUnread={chat.isUnread}
                   darkMode={darkMode}
                   demandInfo={chat.demandInfo}
@@ -900,6 +953,36 @@ export default function ChatListPage() {
       <ChatBottomNavigation 
         isVisible={true} 
         onMenuOpen={() => setIsMenuOpen(true)} 
+      />
+
+      {/* Jelentés modal */}
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => {
+          setShowReportModal(false);
+          setReportTarget(null);
+        }}
+        reportType="user"
+        reportedUserId={reportTarget?.userId}
+        reportedUserName={reportTarget?.userName}
+        itemId={null}
+        itemContent={null}
+      />
+
+      {/* Letiltás modal */}
+      <BlockUserModal
+        isOpen={showBlockModal}
+        onClose={() => {
+          setShowBlockModal(false);
+          setBlockTarget(null);
+        }}
+        targetUserId={blockTarget?.userId}
+        targetUserName={blockTarget?.userName}
+        isCurrentlyBlocked={blockTarget?.isBlocked || false}
+        onBlockChange={() => {
+          setShowBlockModal(false);
+          setBlockTarget(null);
+        }}
       />
     </div>
   );
