@@ -99,6 +99,11 @@ service cloud.firestore {
       allow delete: if isAuthenticated() && resource.data.blockerId == request.auth.uid;
     }
     
+    // User settings - users can manage their own settings
+    match /userSettings/{userId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+    }
+    
     // Állandóra keres posts
     match /allandoKeresPosts/{postId} {
       allow read: if isAuthenticated();

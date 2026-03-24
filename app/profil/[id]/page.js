@@ -27,6 +27,18 @@ export default function ProfilePage() {
     loadProfile();
   }, [userId]);
 
+  // Load block status
+  useEffect(() => {
+    if (!user || !userId || user.uid === userId) return;
+    const checkBlock = async () => {
+      try {
+        const blockDoc = await getDoc(doc(db, 'blockedUsers', `${user.uid}_${userId}`));
+        setIsBlocked(blockDoc.exists());
+      } catch (e) {}
+    };
+    checkBlock();
+  }, [user, userId]);
+
   const loadProfile = async () => {
     if (!userId) return;
     

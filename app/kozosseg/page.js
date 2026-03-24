@@ -1260,7 +1260,8 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
 // ============================================
 // SINGLE POST CARD
 // ============================================
-function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate }) {
+function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonClick }) {
+  const postRouter = useRouter();
   const [showReactions, setShowReactions] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showCommentThread, setShowCommentThread] = useState(false);
@@ -1268,6 +1269,14 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState('');
   const [editSubmitting, setEditSubmitting] = useState(false);
+
+  const handleAuthorClick = () => {
+    if (post.isAnonymous) {
+      if (onAnonClick) onAnonClick();
+    } else if (post.userId) {
+      postRouter.push(`/profil/${post.userId}`);
+    }
+  };
   const [showReportModal, setShowReportModal] = useState(false);
   const menuRef = useRef(null);
   const reactionsRef = useRef(null);
@@ -1422,6 +1431,7 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate }) {
       <div className="py-3 flex items-start justify-between px-3 sm:px-4">
         <div className="flex gap-3">
           {/* Avatar */}
+          <button onClick={handleAuthorClick} className="flex-shrink-0">
           {post.isAnonymous ? (
             <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
               darkMode ? 'bg-gradient-to-br from-gray-600 to-gray-700' : 'bg-gradient-to-br from-gray-200 to-gray-300'
@@ -1435,11 +1445,14 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate }) {
               className="w-10 h-10 rounded-full object-cover flex-shrink-0"
             />
           )}
+          </button>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <span className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+              <button onClick={handleAuthorClick} className="text-left">
+              <span className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'} hover:underline`}>
                 {post.isAnonymous ? 'Anonim felhasználó' : (post.authorData?.displayName || 'Felhasználó')}
               </span>
+              </button>
               {isAdmin && post.isAnonymous && post.authorData?.displayName && (
                 <span className={`text-xs px-1.5 py-0.5 rounded ${darkMode ? 'bg-yellow-900/40 text-yellow-300' : 'bg-yellow-100 text-yellow-700'}`}>
                   {post.authorData.displayName}
@@ -1695,6 +1708,47 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate }) {
 // ============================================
 // MAIN PAGE
 // ============================================
+// Anonim posztok elrejtése modal
+function AnonSettingsModal({ isOpen, onClose, darkMode, hideAnon, onToggle }) {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50" onClick={onClose}>
+      <div
+        className={`w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl shadow-xl ${darkMode ? 'bg-gray-800' : 'bg-white'} p-6`}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h3 className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+            Anonim felhasználó
+          </h3>
+          <button onClick={onClose} className={`p-1 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}>
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <p className={`text-sm mb-5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+          Ez egy anonim poszt. A szerző személyazonosságát nem lehet megtekinteni.
+        </p>
+        <div className={`flex items-center justify-between p-4 rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+          <div>
+            <p className={`font-medium text-sm ${darkMode ? 'text-white' : 'text-gray-900'}`}>Anonim posztok elrejtése</p>
+            <p className={`text-xs mt-0.5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Nem látod az anonim posztokat a hírfolyamban</p>
+          </div>
+          <button
+            onClick={onToggle}
+            className={`relative w-12 h-7 rounded-full transition-colors flex-shrink-0 ${
+              hideAnon ? 'bg-purple-600' : darkMode ? 'bg-gray-600' : 'bg-gray-300'
+            }`}
+          >
+            <div className={`absolute top-0.5 w-6 h-6 rounded-full bg-white shadow transition-transform ${
+              hideAnon ? 'translate-x-5' : 'translate-x-0.5'
+            }`} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function KozossegPage() {
   const router = useRouter();
   const { user, userData, loading: authLoading } = useAuth();
@@ -1702,10 +1756,47 @@ export default function KozossegPage() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [blockedUserIds, setBlockedUserIds] = useState([]);
+  const [hideAnonymous, setHideAnonymous] = useState(false);
+  const [showAnonModal, setShowAnonModal] = useState(false);
   const activeFilter = 'all';
 
   const isAdmin = user?.email === ADMIN_EMAIL;
   const isAdminka = user?.email === ADMINKA_EMAIL;
+
+  // Load blocked users & anon pref
+  useEffect(() => {
+    if (!user) return;
+    // Load blocked users
+    const loadBlocked = async () => {
+      try {
+        const q = query(collection(db, 'blockedUsers'), where('blockerId', '==', user.uid));
+        const snap = await getDocs(q);
+        setBlockedUserIds(snap.docs.map(d => d.data().blockedUserId));
+      } catch (e) { console.error('Error loading blocked users:', e); }
+    };
+    // Load hideAnonymous preference
+    const loadPref = async () => {
+      try {
+        const prefDoc = await getDoc(doc(db, 'userSettings', user.uid));
+        if (prefDoc.exists() && prefDoc.data().hideAnonymousPosts) {
+          setHideAnonymous(true);
+        }
+      } catch (e) { console.error('Error loading user settings:', e); }
+    };
+    loadBlocked();
+    loadPref();
+  }, [user]);
+
+  const toggleHideAnonymous = async () => {
+    const newVal = !hideAnonymous;
+    setHideAnonymous(newVal);
+    if (user) {
+      try {
+        await setDoc(doc(db, 'userSettings', user.uid), { hideAnonymousPosts: newVal }, { merge: true });
+      } catch (e) { console.error('Error saving anon pref:', e); }
+    }
+  };
 
   // Fetch posts
   const fetchPosts = useCallback(async () => {
@@ -1741,6 +1832,13 @@ export default function KozossegPage() {
   useEffect(() => {
     fetchPosts();
   }, [fetchPosts]);
+
+  // Filter posts client-side: blocked users + anonymous
+  const filteredPosts = posts.filter(p => {
+    if (blockedUserIds.includes(p.userId)) return false;
+    if (hideAnonymous && p.isAnonymous) return false;
+    return true;
+  });
 
   // Auth guard - only admin can see for now
   if (authLoading) {
@@ -1850,7 +1948,7 @@ export default function KozossegPage() {
           <div className="flex justify-center py-12">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
           </div>
-        ) : posts.length === 0 ? (
+        ) : filteredPosts.length === 0 ? (
           <div className={`text-center py-16 ${
             darkMode ? 'bg-gray-800' : 'bg-white'
           }`}>
@@ -1870,7 +1968,7 @@ export default function KozossegPage() {
             </button>
           </div>
         ) : (
-          posts.map((post) => (
+          filteredPosts.map((post) => (
             <PostCard
               key={post.id}
               post={post}
@@ -1879,6 +1977,7 @@ export default function KozossegPage() {
               userData={userData}
               isAdmin={isAdmin || isAdminka}
               onUpdate={fetchPosts}
+              onAnonClick={() => setShowAnonModal(true)}
             />
           ))
         )}
@@ -1902,6 +2001,15 @@ export default function KozossegPage() {
           onSuccess={fetchPosts}
         />
       )}
+
+      {/* Anon settings modal */}
+      <AnonSettingsModal
+        isOpen={showAnonModal}
+        onClose={() => setShowAnonModal(false)}
+        darkMode={darkMode}
+        hideAnon={hideAnonymous}
+        onToggle={toggleHideAnonymous}
+      />
     </div>
   );
 }
