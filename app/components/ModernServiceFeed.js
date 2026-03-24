@@ -562,6 +562,51 @@ export default function ModernServiceFeed() {
                     <div className={`px-3 py-1.5 rounded-full text-xs font-semibold ${colorScheme.badge}`}>
                       {isPharmacist ? 'Gyógyszerész' : 'Szakasszisztens'}
                     </div>
+
+                    {/* Jelentés menü */}
+                    {user && (
+                      <div className="relative">
+                        <button
+                          onClick={() => setOpenMenuPostId(openMenuPostId === post.id ? null : post.id)}
+                          className="p-1 rounded-full hover:bg-black/10 dark:hover:bg-white/10"
+                        >
+                          <MoreHorizontal size={20} className="text-gray-500" />
+                        </button>
+                        {openMenuPostId === post.id && (
+                          <div className="absolute right-0 top-10 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50 min-w-[150px]">
+                            <button
+                              onClick={async () => {
+                                setOpenMenuPostId(null);
+                                try {
+                                  await addDoc(collection(db, 'reports'), {
+                                    type: 'pharmaDemandPost',
+                                    postId: post.id,
+                                    reportedBy: user.uid,
+                                    reason: 'Nem megfelelő tartalom',
+                                    createdAt: serverTimestamp(),
+                                  });
+                                  await createNotificationWithPush({
+                                    userId: 'AcBMMwkqMvWAjrodNPPBjFdjjhw2',
+                                    type: 'content_report',
+                                    title: '⚠️ Hirdetés jelentés',
+                                    message: `Gyógyszertári hirdetés jelentve: "${(post.pharmacyName || '').substring(0, 80)}"`,
+                                    data: { url: '/' },
+                                    url: '/'
+                                  }).catch(() => {});
+                                  alert('Jelentés elküldve. Köszönjük!');
+                                } catch (error) {
+                                  console.error('Error reporting post:', error);
+                                }
+                              }}
+                              className="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+                            >
+                              <Flag size={16} />
+                              <span>Jelentés</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -735,7 +780,7 @@ export default function ModernServiceFeed() {
                         {post.serviceCategory || 'Szolgáltató'}
                       </p>
                     </div>
-                    <div className="ml-auto">
+                    <div className="ml-auto flex items-center gap-2">
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                         post.postType === 'newProvider' 
                           ? 'bg-cyan-500 text-white' 
@@ -747,6 +792,51 @@ export default function ModernServiceFeed() {
                         {post.postType === 'providerWorkPost' && '📸 Munka'}
                         {post.postType === 'availableSlot' && '📅 Szabad időpont'}
                       </span>
+
+                      {/* Jelentés menü */}
+                      {user && (
+                        <div className="relative">
+                          <button
+                            onClick={() => setOpenMenuPostId(openMenuPostId === post.id ? null : post.id)}
+                            className="p-1 rounded-full hover:bg-black/10 dark:hover:bg-white/10"
+                          >
+                            <MoreHorizontal size={20} className="text-gray-500" />
+                          </button>
+                          {openMenuPostId === post.id && (
+                            <div className="absolute right-0 top-10 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50 min-w-[150px]">
+                              <button
+                                onClick={async () => {
+                                  setOpenMenuPostId(null);
+                                  try {
+                                    await addDoc(collection(db, 'reports'), {
+                                      type: post.postType,
+                                      postId: post.id,
+                                      reportedBy: user.uid,
+                                      reason: 'Nem megfelelő tartalom',
+                                      createdAt: serverTimestamp(),
+                                    });
+                                    await createNotificationWithPush({
+                                      userId: 'AcBMMwkqMvWAjrodNPPBjFdjjhw2',
+                                      type: 'content_report',
+                                      title: '⚠️ Szolgáltató poszt jelentés',
+                                      message: `Szolgáltató poszt jelentve: "${(post.text || post.authorData?.displayName || '').substring(0, 80)}"`,
+                                      data: { url: '/' },
+                                      url: '/'
+                                    }).catch(() => {});
+                                    alert('Jelentés elküldve. Köszönjük!');
+                                  } catch (error) {
+                                    console.error('Error reporting post:', error);
+                                  }
+                                }}
+                                className="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+                              >
+                                <Flag size={16} />
+                                <span>Jelentés</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <p className="text-xs text-gray-500 mt-2">{formatTime(post.createdAt)}</p>
