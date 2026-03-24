@@ -8,6 +8,8 @@ import { doc, getDoc, updateDoc, arrayUnion, arrayRemove, Timestamp, collection,
 import { db } from '@/lib/firebase';
 import { createNotificationWithPush } from '@/lib/notifications';
 import { MessageCircle } from 'lucide-react';
+
+const ADMIN_EMAIL = 'epresla@icloud.com';
 import ResponseRateBar from '@/app/components/ResponseRateBar';
 
 export default function DemandDetailPage() {
@@ -95,29 +97,31 @@ export default function DemandDetailPage() {
       return;
     }
 
-    // Check if user has pharmagister role
-    if (!userData.pharmagisterRole || userData.pharmagisterRole === 'pharmacy') {
+    // Check if user has pharmagister role (admin bypasses)
+    const isAdminUser = user?.email === ADMIN_EMAIL;
+    if (!isAdminUser && (!userData.pharmagisterRole || userData.pharmagisterRole === 'pharmacy')) {
       alert('Csak gyógyszerészek és szakasszisztensek jelentkezhetnek!');
       return;
     }
 
-    // Check if profile is complete
-    if (!userData.pharmaProfileComplete) {
+    // Check if profile is complete (admin bypasses)
+    if (!isAdminUser && !userData.pharmaProfileComplete) {
       alert('Kérlek először töltsd ki a profilodat!');
       return;
     }
 
-    // Check if user's role matches the demand position
+    // Check if user's role matches the demand position (admin bypasses)
     const userRole = userData.pharmagisterRole; // 'pharmacist' or 'assistant'
     const demandPosition = demand.position; // 'pharmacist' or 'assistant'
     
     console.log('🔍 Szerepkör ellenőrzés:', {
       userRole,
       demandPosition,
-      matches: userRole === demandPosition
+      matches: userRole === demandPosition,
+      isAdmin: isAdminUser
     });
     
-    if (userRole !== demandPosition) {
+    if (!isAdminUser && userRole !== demandPosition) {
       const userRoleLabel = userRole === 'pharmacist' ? 'gyógyszerész' : 'szakasszisztens';
       const demandPositionLabel = demandPosition === 'pharmacist' ? 'gyógyszerész' : 'szakasszisztens';
       console.log('❌ Szerepkör nem egyezik! User:', userRoleLabel, '| Demand:', demandPositionLabel);
@@ -311,13 +315,14 @@ export default function DemandDetailPage() {
 
   const isOwnDemand = user?.uid === demand.pharmacyId;
   const isPendingApproval = userData?.pharmaPendingApproval && !userData?.pharmaProfileComplete;
-  const roleMatches = userData?.pharmagisterRole === demand.position;
-  const canApply = userData?.pharmagisterRole && 
-                   userData.pharmagisterRole !== 'pharmacy' &&
+  const isAdminBypass = user?.email === ADMIN_EMAIL;
+  const roleMatches = isAdminBypass || userData?.pharmagisterRole === demand.position;
+  const canApply = (isAdminBypass || (userData?.pharmagisterRole && 
+                   userData.pharmagisterRole !== 'pharmacy')) &&
                    !isOwnDemand &&
                    demand.status === 'open' &&
                    roleMatches &&
-                   !isPendingApproval;
+                   (isAdminBypass || !isPendingApproval);
   
   // Debug log
   console.log('🔍 Demand Detail Debug:', {

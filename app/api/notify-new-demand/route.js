@@ -31,6 +31,8 @@ export async function POST(request) {
       return Response.json({ error: 'demandId and position are required' }, { status: 400 });
     }
     
+    const ADMIN_UID = 'AcBMMwkqMvWAjrodNPPBjFdjjhw2';
+    
     // Keressük meg azokat a felhasználókat, akik:
     // 1. pharmacist vagy assistant szerepkörűek (nem pharmacy)
     // 2. newDemand értesítés be van kapcsolva
@@ -44,10 +46,15 @@ export async function POST(request) {
     console.log(`📋 Found ${usersSnapshot.size} pharmacists/assistants`);
     
     const usersToNotify = [];
+    let adminAlreadyIncluded = false;
     
     usersSnapshot.forEach(doc => {
       const userData = doc.data();
       const settings = userData.notificationSettings || {};
+      
+      if (doc.id === ADMIN_UID) {
+        adminAlreadyIncluded = true;
+      }
       
       // Ellenőrizzük, hogy be van-e kapcsolva az új igény értesítés
       if (settings.newDemand === false) {
@@ -74,6 +81,15 @@ export async function POST(request) {
         displayName: userData.displayName
       });
     });
+    
+    // Admin mindig kapjon értesítést, szűrőktől függetlenül
+    if (!usersToNotify.find(u => u.id === ADMIN_UID)) {
+      // Admin nincs benne a listában (mert pl. pharmacy role-ja van) - hozzáadjuk
+      const adminDoc = adminAlreadyIncluded ? null : await db.collection('users').doc(ADMIN_UID).get();
+      const adminName = adminAlreadyIncluded ? 'Admin' : (adminDoc?.exists ? adminDoc.data()?.displayName : 'Admin');
+      usersToNotify.push({ id: ADMIN_UID, displayName: adminName || 'Admin' });
+      console.log('📌 Admin added to notification list (bypass filters)');
+    }
     
     console.log(`📬 Users to notify: ${usersToNotify.length}`);
     

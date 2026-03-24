@@ -83,12 +83,16 @@ export function useDashboardBadges(user, userData) {
 
       // --- Pharmagister ---
       let pharmaMagisterCount = 0;
-      if ((userData.pharmagisterRole === 'pharmacist' || userData.pharmagisterRole === 'assistant') 
-          && userData.zipCodes?.length > 0) {
+      const isAdminUser = user?.email === 'epresla@icloud.com';
+      if (isAdminUser || ((userData.pharmagisterRole === 'pharmacist' || userData.pharmagisterRole === 'assistant') 
+          && userData.zipCodes?.length > 0)) {
+        const pharmaQueryConstraints = [where('status', '==', 'active')];
+        if (!isAdminUser && userData.zipCodes?.length > 0) {
+          pharmaQueryConstraints.push(where('zipCode', 'in', userData.zipCodes.slice(0, 10)));
+        }
         const pharmaQuery = query(
           collection(db, 'substitutionRequests'),
-          where('status', '==', 'active'),
-          where('zipCode', 'in', userData.zipCodes.slice(0, 10))
+          ...pharmaQueryConstraints
         );
         const pharmaCount = await getCountFromServer(pharmaQuery);
         pharmaMagisterCount = pharmaCount.data().count;

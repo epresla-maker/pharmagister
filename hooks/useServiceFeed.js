@@ -43,9 +43,11 @@ export function useServiceFeed({ userData }) {
   // Get user's accessible modules
   const getUserModules = useCallback(() => {
     const modules = [];
-    if (userData?.pharmagisterRole) modules.push('pharmagister');
-    if (userData?.tutomagisterRole) modules.push('tutomagister');
-    if (userData?.beautyRole) modules.push('beauty');
+    // Admin gets access to ALL modules
+    const isAdmin = userData?.email === 'epresla@icloud.com';
+    if (isAdmin || userData?.pharmagisterRole) modules.push('pharmagister');
+    if (isAdmin || userData?.tutomagisterRole) modules.push('tutomagister');
+    if (isAdmin || userData?.beautyRole) modules.push('beauty');
     return modules;
   }, [userData]);
 
