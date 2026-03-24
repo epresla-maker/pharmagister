@@ -4,6 +4,9 @@ import { useTheme } from '@/context/ThemeContext';
 import { doc, setDoc, collection } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
+import { createNotificationWithPush } from '@/lib/notifications';
+
+const ADMIN_UID = 'AcBMMwkqMvWAjrodNPPBjFdjjhw2';
 
 // --- Jelentési kategóriák ---
 const reportCategories = {
@@ -227,6 +230,16 @@ export default function ReportModal({
         createdAt: new Date().toISOString(),
       });
 
+      // Push + in-app értesítés adminnak
+      await createNotificationWithPush({
+        userId: ADMIN_UID,
+        type: 'content_report',
+        title: 'Új bejelentés érkezett',
+        message: `${selectedCategory.label} – ${reportedUserName || reportType}${itemContent ? `: "${(itemContent).substring(0, 60)}"` : ''}`,
+        data: { url: '/admin' },
+        url: '/admin'
+      }).catch(() => {});
+
       // Email értesítés küldése adminnak
       const idToken = await user.getIdToken();
       await fetch('/api/send-report-notification', {
@@ -241,7 +254,7 @@ export default function ReportModal({
           reason: selectedCategory.label,
           details,
         })
-      });
+      }).catch(() => {});
 
       setStep('success');
       setTimeout(() => {
