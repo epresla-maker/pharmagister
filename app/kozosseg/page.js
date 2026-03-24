@@ -1272,8 +1272,9 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonCli
   const handleAuthorClick = () => {
     if (post.isAnonymous) {
       if (onAnonClick) onAnonClick();
+    } else if (post.userId) {
+      postRouter.push(`/profil/${post.userId}`);
     }
-    // Profil megtekintés egyelőre kikapcsolva
   };
   const [showReportModal, setShowReportModal] = useState(false);
   const menuRef = useRef(null);
