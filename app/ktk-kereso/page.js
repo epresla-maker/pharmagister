@@ -208,7 +208,7 @@ export default function KtkKeresoPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedTerm, setDebouncedTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('MEGHIRDETVE');
+  const [statusFilter, setStatusFilter] = useState('');
   const [sortOrder, setSortOrder] = useState('asc');
 
   const [showFilters, setShowFilters] = useState(false);
@@ -257,7 +257,7 @@ export default function KtkKeresoPage() {
 
   // Load data
   useEffect(() => {
-    fetch('/ktk-data.json')
+    fetch('/ktk-data.json', { cache: 'no-store' })
       .then(res => res.json())
       .then(items => {
         setData(items);
@@ -312,7 +312,7 @@ export default function KtkKeresoPage() {
     return result;
   }, [data, debouncedTerm, statusFilter, sortOrder]);
 
-  const activeFilterCount = statusFilter !== 'MEGHIRDETVE' ? 1 : 0;
+  const activeFilterCount = statusFilter ? 1 : 0;
 
   // Loading state
   if (authLoading) {
@@ -401,7 +401,7 @@ export default function KtkKeresoPage() {
               className="inline-flex items-center gap-1 text-[10px] text-purple-200 hover:text-white mt-1 transition-colors"
             >
               <ExternalLink className="w-3 h-3" />
-              Forrás: OKFO SZAFTEX (Teljes KTK_03.16.xls)
+              Forrás: OKFO SZAFTEX (Teljes KTK_03.31..xlsx)
             </a>
             {ADMIN_EMAILS.includes(user?.email) && visitCount !== null && (
               <button
@@ -510,7 +510,7 @@ export default function KtkKeresoPage() {
               {/* Clear filters */}
               {activeFilterCount > 0 && (
                 <button
-                  onClick={() => setStatusFilter('MEGHIRDETVE')}
+                  onClick={() => setStatusFilter('')}
                   className={`text-xs font-medium ${darkMode ? 'text-purple-400' : 'text-purple-600'}`}
                 >
                   Alapértelmezés

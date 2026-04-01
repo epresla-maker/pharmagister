@@ -1,7 +1,7 @@
 import pandas as pd
 import json
 
-df = pd.read_excel('/Users/epresl/Downloads/Teljes KTK_03.16..xls', sheet_name='KTK', header=None)
+df = pd.read_excel('/Users/epresl/Downloads/Teljes KTK_03.31..xlsx', sheet_name='KTK', header=None)
 
 columns = [
     'nyilvantartasi_szam', 'fantazia_nev', 'program_megnevezes', 'kulso_azonosito',

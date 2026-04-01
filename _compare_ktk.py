@@ -11,7 +11,7 @@ old_ids = set(r.get('nyilvantartasi_szam') for r in old_8 if r.get('nyilvantarta
 print(f'Régi adat (03.05): {len(old_data)} összes, {len(old_8)} db 8-as szakmacsoport')
 
 # Új Excel betöltése
-df = pd.read_excel('/Users/epresl/Downloads/Teljes KTK_03.16..xls', sheet_name='KTK', header=None)
+df = pd.read_excel('/Users/epresl/Downloads/Teljes KTK_03.31..xlsx', sheet_name='KTK', header=None)
 columns = [
     'nyilvantartasi_szam', 'fantazia_nev', 'program_megnevezes', 'kulso_azonosito',
     'ktk_statusz', 'szervezo_akkreditacio', 'tovabbkepzes_varos', 'tovabbkepzes_cime', 'helyszin',
