@@ -1928,15 +1928,15 @@ export default function KozossegPage() {
         </div>
 
         {/* Create post prompt */}
-        <div className="mx-4 rounded-2xl p-4 bg-white/75 backdrop-blur-sm shadow-sm">
+        <div className="mx-4 rounded-2xl p-4 bg-white/30 backdrop-blur-[2px] shadow-sm">
           <button
             onClick={() => setShowCreateModal(true)}
             className="w-full flex items-center gap-3"
           >
-            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-white/80">
-              <Users className="w-5 h-5 text-gray-500" />
+            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-white/40">
+              <Users className="w-5 h-5 text-gray-600" />
             </div>
-            <div className="flex-1 text-left px-4 py-2.5 rounded-full bg-white/80 text-gray-400">
+            <div className="flex-1 text-left px-4 py-2.5 rounded-full bg-white/40 text-gray-600">
               Írj valamit...
             </div>
           </button>
