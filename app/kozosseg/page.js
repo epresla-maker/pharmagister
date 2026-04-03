@@ -1929,15 +1929,6 @@ export default function KozossegPage() {
 
         {/* Create post prompt - with bunny head overlay */}
         <div className="mx-4 relative">
-          {/* Bunny head that appears in front of input */}
-          <div 
-            className="absolute left-1/2 -translate-x-1/2 -top-12 w-24 h-20 z-10 pointer-events-none"
-            style={{
-              backgroundImage: "url('/IMG_7719.PNG')",
-              backgroundSize: '400% 400%',
-              backgroundPosition: '50% 28%',
-            }}
-          />
           <div className="rounded-2xl p-4 bg-white/75 backdrop-blur-sm shadow-sm relative">
             <button
               onClick={() => setShowCreateModal(true)}
@@ -1950,6 +1941,15 @@ export default function KozossegPage() {
                 Írj valamit...
               </div>
             </button>
+            {/* Bunny head that appears in front of input */}
+            <div 
+              className="absolute left-1/2 -translate-x-1/2 -top-8 w-20 h-16 z-20 pointer-events-none"
+              style={{
+                backgroundImage: "url('/IMG_7719.PNG')",
+                backgroundSize: '500% 500%',
+                backgroundPosition: '50% 25%',
+              }}
+            />
           </div>
         </div>
       </div>
