@@ -61,7 +61,16 @@ export async function POST(request) {
     const admin = getFirebaseAdmin();
     const db = admin.firestore();
     
-    const { userId, title, body, url, tag } = await request.json();
+    const {
+      userId,
+      title,
+      body,
+      url,
+      tag,
+      type,
+      createInAppNotification = true,
+      notificationData,
+    } = await request.json();
     
     console.log('📋 Request data:', { userId, title, hasBody: !!body, url, tag });
 
@@ -81,13 +90,40 @@ export async function POST(request) {
       return Response.json({ success: true, sent: 0, message: 'No subscriptions found' });
     }
 
+    const normalizedTitle = title || 'Pharmagister';
+    const normalizedBody = body || 'Új értesítésed érkezett!';
+    const normalizedUrl = url || '/notifications';
+    const normalizedTag = tag || 'pharmagister-notification';
+    const normalizedType = type || (String(normalizedTag).startsWith('chat-') ? 'new_message' : 'system');
+
+    if (createInAppNotification) {
+      await db.collection('notifications').add({
+        userId,
+        type: normalizedType,
+        title: normalizedTitle,
+        message: normalizedBody,
+        read: false,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        data: {
+          url: normalizedUrl,
+          ...(notificationData && typeof notificationData === 'object' ? notificationData : {}),
+        },
+      });
+    }
+
+    const unreadSnapshot = await db.collection('notifications')
+      .where('userId', '==', userId)
+      .where('read', '==', false)
+      .get();
+    const badgeCount = unreadSnapshot.docs.filter(d => d.data()?.type !== 'new_message').length;
+
     const payload = JSON.stringify({
-      title: title || 'Pharmagister',
-      body: body || 'Új értesítésed érkezett!',
+      title: normalizedTitle,
+      body: normalizedBody,
       icon: '/icons/icon-192x192.png',
       badge: '/icons/icon-72x72.png',
-      tag: tag || 'pharmagister-notification',
-      url: url || '/notifications'
+      tag: normalizedTag,
+      url: normalizedUrl
     });
 
     const results = [];
@@ -118,21 +154,21 @@ export async function POST(request) {
           const message = {
             token: subscription.token,
             notification: {
-              title: title || 'Pharmagister',
-              body: body || 'Új értesítésed érkezett!',
+              title: normalizedTitle,
+              body: normalizedBody,
             },
             data: {
-              url: url || '/notifications',
-              tag: tag || 'pharmagister-notification'
+              url: normalizedUrl,
+              tag: normalizedTag
             },
             apns: {
               payload: {
                 aps: {
                   alert: {
-                    title: title || 'Pharmagister',
-                    body: body || 'Új értesítésed érkezett!',
+                    title: normalizedTitle,
+                    body: normalizedBody,
                   },
-                  badge: 1,
+                  badge: badgeCount,
                   sound: 'default'
                 }
               }

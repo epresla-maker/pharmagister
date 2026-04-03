@@ -62,6 +62,31 @@ async function sendTestPush() {
   }
   
   const now = new Date().toLocaleTimeString("hu-HU");
+  const title = "🧪 Teszt értesítés";
+  const body = `Ez egy teszt push! (${now})`;
+
+  // In-app notification létrehozása, hogy az Értesítések oldalon is megjelenjen.
+  await db.collection("notifications").add({
+    userId,
+    type: "system",
+    title,
+    message: body,
+    read: false,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    data: {
+      source: "send-test-push",
+      url: "/notifications",
+    },
+  });
+
+  // Badge számot ne fixen 1-re küldjük, hanem valós olvasatlan darabszámra.
+  const unreadSnap = await db
+    .collection("notifications")
+    .where("userId", "==", userId)
+    .where("read", "==", false)
+    .get();
+  const badgeCount = unreadSnap.docs.filter((d) => d.data()?.type !== "new_message").length;
+
   let successCount = 0;
   let failCount = 0;
   
@@ -84,8 +109,8 @@ async function sendTestPush() {
         const message = {
           token: sub.token,
           notification: {
-            title: "🧪 Teszt értesítés",
-            body: `Ez egy teszt push! (${now})`,
+            title,
+            body,
           },
           data: {
             url: "/notifications",
@@ -95,10 +120,10 @@ async function sendTestPush() {
             payload: {
               aps: {
                 alert: {
-                  title: "🧪 Teszt értesítés",
-                  body: `Ez egy teszt push! (${now})`,
+                  title,
+                  body,
                 },
-                badge: 1,
+                badge: badgeCount,
                 sound: "default",
               },
             },
@@ -112,8 +137,8 @@ async function sendTestPush() {
         // ===== Web Push via VAPID =====
         console.log(`🌐 Sending web push to ${doc.id}...`);
         const payload = JSON.stringify({
-          title: "🧪 Teszt értesítés",
-          body: `Ez egy teszt push notification! (${now})`,
+          title,
+          body,
           icon: "/icons/icon-192x192.png",
           badge: "/icons/badge-monochrome.png",
           tag: "test-" + Date.now(),

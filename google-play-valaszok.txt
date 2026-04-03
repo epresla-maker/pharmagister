@@ -1,29 +1,89 @@
-1. A ZÁRT TESZTELÉSRŐL
+GOOGLE PLAY - JAVITASI MINTAK 2026-03
 
-Milyen tesztszolgáltatót használtál?
-Külső tesztszolgáltatót nem vettünk igénybe. A Google Play zárt tesztelési sávját használtuk, 12+ tesztelővel, 14 napon át (2026. márc. 4–18.). A tesztelők gyógyszerészek és patikai dolgozók voltak, akik a célcsoportot képviselik.
+1) METADATA POLICY JAVITAS (HU-HU)
 
-Mennyire volt könnyű tesztelőt toborozni?
-Nem volt se nehéz, se könnyű
+Elutasitott mondat:
+"A Pharmagister Magyarorszag elso szakmai platformja gyogyszertarak es gyogyszereszek szamara, amely egyszeruve teszi a helyettesitesek megszervezeset."
 
-Milyen elköteleződést mutattak a tesztelők?
-A tesztelők aktívan használták a fő funkciókat: közösségi hírfolyam, hiánycikk kereső, helyettesítési igények. Valós szakemberek voltak, a webes verziót már ismerték, így az alkalmazást a célnak megfelelően tesztelték. Az iOS verzió már átment az Apple review-n és elérhető az App Store-ban.
+Javasolt csere:
+"A Pharmagister szakmai platform gyogyszertarak, gyogyszereszek es patikai dolgozok szamara. Az alkalmazasban helyettesitesi igenyek es allaskeresek oszthatok meg, valamint hianycikk-informaciok es szakmai bejegyzesek erhetok el."
 
-2. AZ ALKALMAZÁSODRÓL
+Rovid leiras minta (max 80 karakter):
+"Szakmai platform gyogyszertari helyettesiteshez es hianycikk-informaciokhoz."
 
-Kikből áll az alkalmazás célközönsége?
-Gyógyszerészek, patikai szakasszisztensek és gyógyszertár-tulajdonosok Magyarországon. Az app a gyógyszertári szakma közösségi platformja, ahol helyettesítési igényeket hirdetnek, hiánycikkeket keresnek, és szakmai tapasztalatot cserélnek egymással.
+Teljes leiras minta (hu-HU, Play-kompatibilis):
+"A Pharmagister gyogyszertaraknak, gyogyszereszeknek es patikai dolgozoknak keszult szakmai alkalmazas.
 
-Mutasd be, hogyan nyújt értéket az alkalmazásod a felhasználóknak
-Valós szakmai problémát old meg: gyógyszertárak gyorsan találnak helyettesítőt, a hiánycikk keresővel látják, hol érhető el egy készítmény, és a közösségi fórumon szakmai kérdésekben segítik egymást. Az iOS verzió már elérhető az App Store-ban, aktív felhasználói bázissal.
+Fobb funkciok:
+- Helyettesitesi igenyek kozzetetele es kovetese
+- Jelentkezes helyettesitesi feladatokra
+- Hianycikk informaciok megosztasa es keresese
+- Szakmai kozossegi feed es uzenetkuldes
 
-Várhatóan hányan fogják telepíteni az első évben?
-0–10 000
+Az alkalmazas celja, hogy a gyogyszertari mindennapi szervezesi feladatokat egyszerubb attekinteni es gyorsabban kezelni.
 
-3. KÉSZENLÉTED AZ ÉLES KIADÁSRA
+Fontos: az alkalmazasban megjeleno informaciok tajekoztato jelleguek."
 
-Milyen módosításokat hajtottál végre a zárt tesztelés tapasztalatai alapján?
-Javítottuk a push értesítések megbízhatóságát, optimalizáltuk a mobil UI-t (safe area kezelés, billentyűzet viselkedés), és finomhangoltuk a betöltési időket. Hozzáadtuk a hiánycikk kereső funkciót a tesztelők kérésére, valamint javítottunk több kisebb UX problémát a közösségi hírfolyamban.
+2) PLAY CONSOLE REQUIREMENTS - APP ACCESS JAVITAS
 
-Miért döntöttél úgy, hogy az alkalmazás készen áll az éles kiadásra?
-Az iOS verzió már sikeresen átment az Apple review-n és él az App Store-ban aktív felhasználókkal. A zárt tesztelés 14 napja alatt nem merült fel kritikus hiba. A fő funkciók (közösség, hiánycikk kereső, helyettesítés) stabilan működnek, a webes platform pedig több hónapja élesben fut.
+A reviewer login hiba oka: korabban megadott belepesi adatok nem voltak ellenorizhetoen aktivak.
+
+2026-03-26-an ellenorzott, mukodo tesztfiokok:
+- teszt.patika@pharmagister.hu
+- teszt.gyogyszeresz@pharmagister.hu
+- teszt.asszisztens@pharmagister.hu
+- jelszo mindegyiknel: PlayStore2026!
+
+Ezeket a fiokokat a kovetkezo script letrehozza vagy frissiti:
+node create-test-users-playstore.js
+
+Play Console / App access mezobe javasolt instrukcio:
+"A bejelentkezes kotelezo az alkalmazas teljes funkcionalitasanak eleresehez.
+
+Belepesi adatok:
+1. Gyogyszertar fiok
+Email: teszt.patika@pharmagister.hu
+Jelszo: PlayStore2026!
+
+2. Gyogyszeresz fiok
+Email: teszt.gyogyszeresz@pharmagister.hu
+Jelszo: PlayStore2026!
+
+3. Szakasszisztens fiok
+Email: teszt.asszisztens@pharmagister.hu
+Jelszo: PlayStore2026!
+
+Ellenorzesi lepesek:
+- Jelentkezzen be barmelyik fiokkal.
+- Nyissa meg a Kozosseg oldalt (feed).
+- Nyissa meg a Helyettesites modul oldalat.
+- Nyissa meg a Hianycikk kereso oldalat.
+- Nyisson meg egy profilt es inditson uzenetet.
+
+Ha valamelyik fiokkal nem sikerul a belepes, kerjuk probalja a masik ket fiokot. Mindharom fiok aktiv tesztfiok." 
+
+3) ZART TESZTELESHEZ HASZNALHATO VALASZOK
+
+Milyen tesztszolgaltatot hasznaltal?
+Kulso tesztszolgaltatot nem vettunk igenybe. A Google Play zart tesztelesi savjat hasznaltuk 12+ tesztelovel, 14 napon at (2026. marc. 4-18.).
+
+Mennyire volt konnyu tesztelot toborozni?
+Nem volt se nehez, se konnyu.
+
+Milyen elkotelezodest mutattak a tesztelok?
+A tesztelok aktivan hasznaltak a fo funkciokat: kozossegi hírfolyam, hianycikk kereso, helyettesitesi igenyek kezelese.
+
+Kikbol all az alkalmazas celkozonsege?
+Gyogyszereszek, patikai szakasszisztensek es gyogyszertar-tulajdonosok Magyarorszagon.
+
+Mutasd be, hogyan nyujt erteket az alkalmazasod a felhasznaloknak
+A Pharmagister a gyogyszertari szervezesi feladatokban segit: helyettesitesi igenyek kezelese, szakmai informaciomegosztas es hianycikk-informaciok keresese egy feluleten.
+
+Varhatoan hanyan fogjak telepiteni az elso evben?
+0-10 000
+
+Milyen modositasokat hajtottal vegre a zart teszteles tapasztalatai alapjan?
+Javitottuk a push ertesitesek megbizhatosagat, optimalizaltuk a mobil UI-t (safe area, billentyuzet viselkedes), es finomhangoltuk a betoltest.
+
+Miert dontottel ugy, hogy az alkalmazas keszen all az eles kiadasra?
+A zart teszteles idoszaka alatt nem jelentkezett kritikus hiba. A fo funkciok stabilan mukodnek, es a tesztelok visszajelzesei alapjan a mindennapi hasznalat tamogatott.
