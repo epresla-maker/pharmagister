@@ -33,12 +33,12 @@ export function useDashboardBadges(user, userData) {
   }) : '';
 
   // Minden badge polling-gal, getCountFromServer-rel ahol lehet
-  const fetchAllBadges = useCallback(async () => {
+  const fetchAllBadges = useCallback(async (force = false) => {
     if (!user || !userData || !isMountedRef.current) return;
     if (inFlightRef.current) return;
 
     const now = Date.now();
-    if (now - lastFetchAtRef.current < MIN_FETCH_GAP) return;
+    if (!force && now - lastFetchAtRef.current < MIN_FETCH_GAP) return;
     lastFetchAtRef.current = now;
     inFlightRef.current = true;
 
@@ -146,7 +146,7 @@ export function useDashboardBadges(user, userData) {
     };
   }, [user, userDataKey, fetchAllBadges]);
 
-  const refreshBadges = useCallback(() => fetchAllBadges(), [fetchAllBadges]);
+  const refreshBadges = useCallback((force = false) => fetchAllBadges(force), [fetchAllBadges]);
 
   return { badges, refreshBadges };
 }

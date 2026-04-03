@@ -60,7 +60,7 @@ export default function NotificationsPage() {
           batch.update(doc(db, 'notifications', notification.id), { read: true });
         }
         await batch.commit(); // Egyetlen write művelet!
-        refreshBadges();
+        await refreshBadges(true);
       }
     } catch (error) {
       console.error('❌ Error loading notifications:', error);
@@ -75,7 +75,7 @@ export default function NotificationsPage() {
     try {
       await deleteDoc(doc(db, 'notifications', notificationId));
       setNotifications(notifications.filter(n => n.id !== notificationId));
-      await refreshBadges();
+      await refreshBadges(true);
       console.log(`✅ Törölve: ${notificationId}`);
     } catch (error) {
       console.error('❌ Error deleting notification:', error);
