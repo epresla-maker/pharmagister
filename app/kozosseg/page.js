@@ -1871,70 +1871,60 @@ export default function KozossegPage() {
 
   return (
     <div className={`min-h-screen pb-24 ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
-      {/* Header */}
-      <div className={`sticky top-0 z-10 pt-safe-small border-b shadow-sm ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-        <div
-          className="max-w-xl mx-auto px-4 py-3 flex items-center justify-center min-h-[56px] bg-center bg-cover"
-          style={{
-            backgroundImage: "url('/IMG_7719.PNG')",
-            backgroundPosition: 'center 35%'
-          }}
-        >
+      {/* Header + Navigációs gombok háttérképpel */}
+      <div
+        className="pt-safe-small border-b shadow-sm bg-cover bg-center"
+        style={{
+          backgroundImage: "url('/IMG_7719.PNG')",
+          backgroundPosition: 'center 30%'
+        }}
+      >
+        {/* Pharmagister felirat */}
+        <div className="max-w-xl mx-auto px-4 py-3 flex items-center justify-center min-h-[56px]">
           <h1 className="text-lg sm:text-xl font-bold flex items-center gap-1">
-            <span className="text-green-700 text-lg sm:text-xl bg-white/70 backdrop-blur-[1px] px-2 py-0.5 rounded">Pharmagister</span>
+            <span className="text-green-700 text-lg sm:text-xl bg-white/80 backdrop-blur-[2px] px-3 py-1 rounded-lg shadow-sm">Pharmagister</span>
           </h1>
         </div>
 
-      </div>
-
-      {/* Navigációs gombok */}
-      <div className={`p-3 border-b ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-        <div className="max-w-xl mx-auto grid grid-cols-2 gap-2">
-          <button
-            onClick={() => router.push('/hianycikk-kereso')}
-            className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
-              darkMode ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
-            <span>Hiánycikk kereső</span>
-          </button>
-          <button
-            onClick={() => router.push('/pm-hirfolyam')}
-            className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
-              darkMode ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            <Newspaper className="w-4 h-4 flex-shrink-0" />
-            <span>PM hírfolyam</span>
-          </button>
-          <button
-            onClick={() => router.push('/hirek')}
-            className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
-              darkMode ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            <Newspaper className="w-4 h-4 flex-shrink-0" />
-            <span>Hírek</span>
-          </button>
-          <button
-            onClick={() => router.push('/pharmagister/allando-keres')}
-            className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
-              darkMode ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            <Search className="w-4 h-4 flex-shrink-0" />
-            <span>Állást keres</span>
-          </button>
-          <button
-            onClick={() => router.push('/ktk-kereso')}
-            className={`col-span-2 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
-              darkMode ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            <GraduationCap className="w-4 h-4 flex-shrink-0" />
-            <span>Kötelező továbbképzés kereső</span>
-          </button>
+        {/* Navigációs gombok */}
+        <div className="p-3">
+          <div className="max-w-xl mx-auto grid grid-cols-2 gap-2">
+            <button
+              onClick={() => router.push('/hianycikk-kereso')}
+              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors bg-white/90 backdrop-blur-sm text-gray-700 hover:bg-white shadow-sm"
+            >
+              <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+              <span>Hiánycikk kereső</span>
+            </button>
+            <button
+              onClick={() => router.push('/pm-hirfolyam')}
+              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors bg-white/90 backdrop-blur-sm text-gray-700 hover:bg-white shadow-sm"
+            >
+              <Newspaper className="w-4 h-4 flex-shrink-0" />
+              <span>PM hírfolyam</span>
+            </button>
+            <button
+              onClick={() => router.push('/hirek')}
+              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors bg-white/90 backdrop-blur-sm text-gray-700 hover:bg-white shadow-sm"
+            >
+              <Newspaper className="w-4 h-4 flex-shrink-0" />
+              <span>Hírek</span>
+            </button>
+            <button
+              onClick={() => router.push('/pharmagister/allando-keres')}
+              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors bg-white/90 backdrop-blur-sm text-gray-700 hover:bg-white shadow-sm"
+            >
+              <Search className="w-4 h-4 flex-shrink-0" />
+              <span>Állást keres</span>
+            </button>
+            <button
+              onClick={() => router.push('/ktk-kereso')}
+              className="col-span-2 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors bg-white/90 backdrop-blur-sm text-gray-700 hover:bg-white shadow-sm"
+            >
+              <GraduationCap className="w-4 h-4 flex-shrink-0" />
+              <span>Kötelező továbbképzés kereső</span>
+            </button>
+          </div>
         </div>
       </div>
 
