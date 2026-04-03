@@ -1,4 +1,3 @@
-export const dynamic = "force-static";
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 
 export async function GET(request) {

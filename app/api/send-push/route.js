@@ -23,6 +23,10 @@ function configureWebpush() {
   );
 }
 
+function isLikelyApnsToken(token) {
+  return typeof token === 'string' && /^[0-9a-fA-F]{64}$/.test(token);
+}
+
 export async function POST(request) {
   try {
     // Verify authenticated user
@@ -95,6 +99,22 @@ export async function POST(request) {
       try {
         // Natív (iOS/Android) push - FCM-en keresztül
         if (subscription.endpoint?.startsWith('native-') && subscription.token) {
+          const platform = subscription.platform || 'unknown';
+          const tokenType = subscription.tokenType || 'unknown';
+
+          if (platform === 'ios' && (tokenType === 'apns' || isLikelyApnsToken(subscription.token))) {
+            // iOS APNS token nem küldhető közvetlenül Firebase Admin messaging().send()-del.
+            // Itt FCM registration token szükséges.
+            results.push({
+              success: false,
+              id: subDoc.id,
+              platform: 'native-ios',
+              error: `APNS token detected (tokenType=${tokenType}); FCM token required for Firebase Admin send`
+            });
+            console.warn(`⚠️ iOS subscription ${subDoc.id} APNS tokennel mentve (FCM token szükséges)`);
+            continue;
+          }
+
           const message = {
             token: subscription.token,
             notification: {

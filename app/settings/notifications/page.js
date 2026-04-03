@@ -23,6 +23,10 @@ function urlBase64ToUint8Array(base64String) {
   return outputArray;
 }
 
+function isLikelyApnsToken(token) {
+  return typeof token === 'string' && /^[0-9a-fA-F]{64}$/.test(token);
+}
+
 export default function NotificationsSettingsPage() {
   const router = useRouter();
   const { user, userData } = useAuth();
@@ -35,6 +39,7 @@ export default function NotificationsSettingsPage() {
   const [capacitorLoaded, setCapacitorLoaded] = useState(false);
   const [Capacitor, setCapacitor] = useState(null);
   const [PushNotifications, setPushNotifications] = useState(null);
+  const [FirebaseMessaging, setFirebaseMessaging] = useState(null);
   
   const pharmaRole = userData?.pharmagisterRole;
   
@@ -59,9 +64,16 @@ export default function NotificationsSettingsPage() {
       try {
         const CapacitorCore = await import('@capacitor/core');
         const CapacitorPush = await import('@capacitor/push-notifications');
+        let CapacitorFirebaseMessaging = null;
+        try {
+          CapacitorFirebaseMessaging = await import('@capacitor-firebase/messaging');
+        } catch (e) {
+          console.log('🔔 Firebase Messaging plugin not available, fallback to PushNotifications token flow');
+        }
         
         setCapacitor(CapacitorCore.Capacitor);
         setPushNotifications(CapacitorPush.PushNotifications);
+        setFirebaseMessaging(CapacitorFirebaseMessaging?.FirebaseMessaging || null);
         setCapacitorLoaded(true);
         
         const isNative = CapacitorCore.Capacitor.isNativePlatform();
@@ -155,6 +167,8 @@ export default function NotificationsSettingsPage() {
       // ============= NATÍV APP =============
       try {
         console.log('🔔 [NATIVE] Starting push subscription...');
+        const platform = Capacitor.getPlatform();
+        let savedWithFcm = false;
         
         // 1. Kérj engedélyt
         let permStatus = await PushNotifications.checkPermissions();
@@ -169,13 +183,68 @@ export default function NotificationsSettingsPage() {
         }
         
         setPushPermission('granted');
+
+        // 2. FCM token lekérése (ha elérhető a Firebase Messaging plugin)
+        if (FirebaseMessaging) {
+          try {
+            const tokenResult = await FirebaseMessaging.getToken();
+            const fcmToken = tokenResult?.token;
+
+            if (fcmToken) {
+              console.log('🔔 [NATIVE] FCM token from FirebaseMessaging:', fcmToken.substring(0, 12));
+
+              const fcmResponse = await fetch('/api/push-subscription', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  userId: user.uid,
+                  subscription: {
+                    endpoint: `native-${platform}-${fcmToken}`,
+                    platform,
+                    token: fcmToken,
+                    tokenType: 'fcm',
+                    source: 'capacitor-firebase-messaging'
+                  }
+                })
+              });
+
+              if (fcmResponse.ok) {
+                savedWithFcm = true;
+                console.log('✅ [NATIVE] FCM token saved successfully');
+              } else {
+                const err = await fcmResponse.json();
+                console.error('❌ [NATIVE] FCM token save failed:', err);
+              }
+            } else {
+              console.warn('⚠️ [NATIVE] FirebaseMessaging.getToken returned empty token');
+            }
+          } catch (e) {
+            console.warn('⚠️ [NATIVE] FirebaseMessaging token fetch failed, fallback to PushNotifications token:', e);
+          }
+        }
         
-        // 2. Először add hozzá a listenert, MAJD regisztrálj
+        // 3. Először add hozzá a listenert, MAJD regisztrálj
         await PushNotifications.removeAllListeners();
         
-        // 3. Listener a token fogadására (előbb kell mint a register!)
+        // 4. Listener a token fogadására (előbb kell mint a register!)
         await PushNotifications.addListener('registration', async (token) => {
           console.log('🔔 [NATIVE] Push token:', token.value);
+
+          if (savedWithFcm) {
+            console.log('🔔 [NATIVE] Registration token ignored, FCM token already saved.');
+            await checkPushSubscription();
+            alert('✅ Push értesítések sikeresen bekapcsolva!');
+            return;
+          }
+
+          // iOS-en a 64 hex karakteres token jellemzően APNS token, nem FCM token.
+          // A backend FCM-en keresztül küld, ezért ezt most nem mentjük "sikeres" állapotként.
+          if (platform === 'ios' && isLikelyApnsToken(token.value)) {
+            console.error('🔔 [NATIVE] APNS token érkezett (FCM helyett):', token.value.substring(0, 12));
+            alert('iOS push nincs teljesen bekötve ehhez a buildhez (APNS token érkezett FCM helyett). Készítünk javított iOS buildet Firebase Messaging integrációval.');
+            setIsPushSubscribed(false);
+            return;
+          }
           
           // 4. Mentsd el a token-t a szerveren
           try {
@@ -185,9 +254,10 @@ export default function NotificationsSettingsPage() {
               body: JSON.stringify({
                 userId: user.uid,
                 subscription: {
-                  endpoint: `native-${Capacitor.getPlatform()}-${token.value}`,
-                  platform: Capacitor.getPlatform(),
-                  token: token.value
+                  endpoint: `native-${platform}-${token.value}`,
+                  platform,
+                  token: token.value,
+                  tokenType: platform === 'ios' ? 'apns' : 'unknown'
                 }
               })
             });
@@ -213,7 +283,7 @@ export default function NotificationsSettingsPage() {
           alert('Hiba történt a regisztráció során: ' + error.error);
         });
         
-        // 4. Most regisztrálj (a listenerek már feliratkoztak)
+        // 5. Most regisztrálj (a listenerek már feliratkoztak)
         await PushNotifications.register();
         
       } catch (error) {
