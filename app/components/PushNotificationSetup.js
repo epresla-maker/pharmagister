@@ -26,6 +26,22 @@ export default function PushNotificationSetup() {
   const [isNativePlatform, setIsNativePlatform] = useState(false);
   const [platformChecked, setPlatformChecked] = useState(false);
 
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  const getFcmTokenWithRetry = async (FirebaseMessaging, attempts = 5, delayMs = 700) => {
+    for (let i = 0; i < attempts; i += 1) {
+      try {
+        const tokenResult = await FirebaseMessaging.getToken();
+        const token = tokenResult?.token;
+        if (token) return token;
+      } catch (e) {
+        // Retry below
+      }
+      await sleep(delayMs);
+    }
+    return null;
+  };
+
   const syncNativeFcmToken = async () => {
     if (!user) return;
 
@@ -42,9 +58,15 @@ export default function PushNotificationSetup() {
         return;
       }
 
+      // iOS-en FCM token általában csak APNS regisztráció után jön létre.
+      try {
+        await PushNotifications.register();
+      } catch (e) {
+        console.log('[PushSetup] Native register call failed before token sync:', e?.message || e);
+      }
+
       const { FirebaseMessaging } = await import('@capacitor-firebase/messaging');
-      const tokenResult = await FirebaseMessaging.getToken();
-      const fcmToken = tokenResult?.token;
+      const fcmToken = await getFcmTokenWithRetry(FirebaseMessaging);
 
       if (!fcmToken) {
         console.log('[PushSetup] Native FCM token is empty, skipping sync');

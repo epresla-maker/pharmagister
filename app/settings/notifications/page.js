@@ -27,6 +27,22 @@ function isLikelyApnsToken(token) {
   return typeof token === 'string' && /^[0-9a-fA-F]{64}$/.test(token);
 }
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function getFcmTokenWithRetry(FirebaseMessaging, attempts = 5, delayMs = 700) {
+  for (let i = 0; i < attempts; i += 1) {
+    try {
+      const tokenResult = await FirebaseMessaging.getToken();
+      const token = tokenResult?.token;
+      if (token) return token;
+    } catch (e) {
+      // Retry below
+    }
+    await sleep(delayMs);
+  }
+  return null;
+}
+
 export default function NotificationsSettingsPage() {
   const router = useRouter();
   const { user, userData } = useAuth();
@@ -184,51 +200,47 @@ export default function NotificationsSettingsPage() {
         
         setPushPermission('granted');
 
-        // 2. FCM token lekérése (ha elérhető a Firebase Messaging plugin)
-        if (FirebaseMessaging) {
-          try {
-            const tokenResult = await FirebaseMessaging.getToken();
-            const fcmToken = tokenResult?.token;
-
-            if (fcmToken) {
-              console.log('🔔 [NATIVE] FCM token from FirebaseMessaging:', fcmToken.substring(0, 12));
-
-              const fcmResponse = await fetch('/api/push-subscription', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  userId: user.uid,
-                  subscription: {
-                    endpoint: `native-${platform}-${fcmToken}`,
-                    platform,
-                    token: fcmToken,
-                    tokenType: 'fcm',
-                    source: 'capacitor-firebase-messaging'
-                  }
-                })
-              });
-
-              if (fcmResponse.ok) {
-                savedWithFcm = true;
-                console.log('✅ [NATIVE] FCM token saved successfully');
-              } else {
-                const err = await fcmResponse.json();
-                console.error('❌ [NATIVE] FCM token save failed:', err);
-              }
-            } else {
-              console.warn('⚠️ [NATIVE] FirebaseMessaging.getToken returned empty token');
-            }
-          } catch (e) {
-            console.warn('⚠️ [NATIVE] FirebaseMessaging token fetch failed, fallback to PushNotifications token:', e);
-          }
-        }
-        
-        // 3. Először add hozzá a listenert, MAJD regisztrálj
+        // 2. Először add hozzá a listenert, MAJD regisztrálj
         await PushNotifications.removeAllListeners();
         
-        // 4. Listener a token fogadására (előbb kell mint a register!)
+        // 3. Listener a token fogadására (előbb kell mint a register!)
         await PushNotifications.addListener('registration', async (token) => {
           console.log('🔔 [NATIVE] Push token:', token.value);
+
+          if (!savedWithFcm && FirebaseMessaging) {
+            try {
+              const fcmToken = await getFcmTokenWithRetry(FirebaseMessaging);
+              if (fcmToken) {
+                console.log('🔔 [NATIVE] FCM token from FirebaseMessaging:', fcmToken.substring(0, 12));
+                const fcmResponse = await fetch('/api/push-subscription', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    userId: user.uid,
+                    subscription: {
+                      endpoint: `native-${platform}-${fcmToken}`,
+                      platform,
+                      token: fcmToken,
+                      tokenType: 'fcm',
+                      source: 'capacitor-firebase-messaging'
+                    }
+                  })
+                });
+
+                if (fcmResponse.ok) {
+                  savedWithFcm = true;
+                  console.log('✅ [NATIVE] FCM token saved successfully');
+                } else {
+                  const err = await fcmResponse.json();
+                  console.error('❌ [NATIVE] FCM token save failed:', err);
+                }
+              } else {
+                console.warn('⚠️ [NATIVE] FCM token still empty after registration');
+              }
+            } catch (e) {
+              console.warn('⚠️ [NATIVE] FirebaseMessaging token fetch failed, fallback to PushNotifications token:', e);
+            }
+          }
 
           if (savedWithFcm) {
             console.log('🔔 [NATIVE] Registration token ignored, FCM token already saved.');
@@ -283,7 +295,7 @@ export default function NotificationsSettingsPage() {
           alert('Hiba történt a regisztráció során: ' + error.error);
         });
         
-        // 5. Most regisztrálj (a listenerek már feliratkoztak)
+        // 4. Most regisztrálj (a listenerek már feliratkoztak)
         await PushNotifications.register();
         
       } catch (error) {
