@@ -41,51 +41,93 @@ export async function POST(request) {
       const admin = getFirebaseAdmin();
       const db = admin.firestore();
 
-      let VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-      let VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
+      const subsSnapshot = await db.collection('pushSubscriptions')
+        .where('userId', '==', ADMIN_UID)
+        .get();
 
-      if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
-        VAPID_PUBLIC_KEY = VAPID_PUBLIC_KEY.trim().replace(/=+$/, '');
-        VAPID_PRIVATE_KEY = VAPID_PRIVATE_KEY.trim().replace(/=+$/, '');
+      const notifMessage = `${reason} – ${reportedUserName || reportType}`;
+      let sent = 0;
 
-        webpush.setVapidDetails(
-          'mailto:epresla@icloud.com',
-          VAPID_PUBLIC_KEY,
-          VAPID_PRIVATE_KEY
-        );
-
-        const subsSnapshot = await db.collection('pushSubscriptions')
-          .where('userId', '==', ADMIN_UID)
-          .get();
-
-        const notifMessage = `${reason} – ${reportedUserName || reportType}`;
-        const payload = JSON.stringify({
-          title: 'Új bejelentés érkezett',
-          body: notifMessage,
-          icon: '/icons/icon-192x192.png',
-          badge: '/icons/icon-72x72.png',
-          tag: `content_report-${Date.now()}`,
-          url: '/admin'
-        });
-
-        let sent = 0;
-        for (const subDoc of subsSnapshot.docs) {
-          const sub = subDoc.data();
+      for (const subDoc of subsSnapshot.docs) {
+        const sub = subDoc.data();
+        
+        // === FCM token alapú push (iOS/Android native) ===
+        const fcmToken = sub.subscription?.token;
+        if (fcmToken) {
           try {
-            await webpush.sendNotification({
-              endpoint: sub.endpoint,
-              keys: sub.keys
-            }, payload);
+            await admin.messaging().send({
+              token: fcmToken,
+              notification: {
+                title: 'Új bejelentés érkezett',
+                body: notifMessage
+              },
+              data: {
+                url: '/admin',
+                tag: `content_report-${Date.now()}`
+              },
+              apns: {
+                payload: {
+                  aps: {
+                    alert: { title: 'Új bejelentés érkezett', body: notifMessage },
+                    badge: 1,
+                    sound: 'default'
+                  }
+                }
+              }
+            });
             sent++;
-          } catch (pushErr) {
-            console.error('[Report API] Push send error:', pushErr.statusCode || pushErr.message);
-            if (pushErr.statusCode === 404 || pushErr.statusCode === 410) {
+            console.log('[Report API] FCM push sent successfully');
+          } catch (fcmErr) {
+            console.error('[Report API] FCM push error:', fcmErr.code || fcmErr.message);
+            // Token érvénytelen - töröljük
+            if (fcmErr.code === 'messaging/registration-token-not-registered' ||
+                fcmErr.code === 'messaging/invalid-registration-token') {
               await subDoc.ref.delete();
             }
           }
+          continue; // Ne próbálkozzon web push-sal is
         }
-        console.log(`[Report API] Push sent to ${sent}/${subsSnapshot.size} subscriptions`);
+
+        // === Web Push (böngésző) ===
+        if (sub.endpoint && sub.keys) {
+          let VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+          let VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
+
+          if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+            VAPID_PUBLIC_KEY = VAPID_PUBLIC_KEY.trim().replace(/=+$/, '');
+            VAPID_PRIVATE_KEY = VAPID_PRIVATE_KEY.trim().replace(/=+$/, '');
+
+            webpush.setVapidDetails(
+              'mailto:epresla@icloud.com',
+              VAPID_PUBLIC_KEY,
+              VAPID_PRIVATE_KEY
+            );
+
+            const payload = JSON.stringify({
+              title: 'Új bejelentés érkezett',
+              body: notifMessage,
+              icon: '/icons/icon-192x192.png',
+              badge: '/icons/icon-72x72.png',
+              tag: `content_report-${Date.now()}`,
+              url: '/admin'
+            });
+
+            try {
+              await webpush.sendNotification({
+                endpoint: sub.endpoint,
+                keys: sub.keys
+              }, payload);
+              sent++;
+            } catch (pushErr) {
+              console.error('[Report API] Web push error:', pushErr.statusCode || pushErr.message);
+              if (pushErr.statusCode === 404 || pushErr.statusCode === 410) {
+                await subDoc.ref.delete();
+              }
+            }
+          }
+        }
       }
+      console.log(`[Report API] Push sent to ${sent}/${subsSnapshot.size} subscriptions`);
     } catch (pushErr) {
       console.error('[Report API] Push notification failed:', pushErr);
     }
