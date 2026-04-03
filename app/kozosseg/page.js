@@ -1927,30 +1927,19 @@ export default function KozossegPage() {
           </div>
         </div>
 
-        {/* Create post prompt - with bunny head overlay */}
-        <div className="mx-4 relative">
-          <div className="rounded-2xl p-4 bg-white/75 backdrop-blur-sm shadow-sm relative">
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="w-full flex items-center gap-3"
-            >
-              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-white/80">
-                <Users className="w-5 h-5 text-gray-500" />
-              </div>
-              <div className="flex-1 text-left px-4 py-2.5 rounded-full bg-white/80 text-gray-400">
-                Írj valamit...
-              </div>
-            </button>
-            {/* Bunny head that appears in front of input */}
-            <div 
-              className="absolute left-1/2 -translate-x-1/2 -top-8 w-20 h-16 z-20 pointer-events-none"
-              style={{
-                backgroundImage: "url('/IMG_7719.PNG')",
-                backgroundSize: '500% 500%',
-                backgroundPosition: '50% 25%',
-              }}
-            />
-          </div>
+        {/* Create post prompt */}
+        <div className="mx-4 rounded-2xl p-4 bg-white/75 backdrop-blur-sm shadow-sm">
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="w-full flex items-center gap-3"
+          >
+            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-white/80">
+              <Users className="w-5 h-5 text-gray-500" />
+            </div>
+            <div className="flex-1 text-left px-4 py-2.5 rounded-full bg-white/80 text-gray-400">
+              Írj valamit...
+            </div>
+          </button>
         </div>
       </div>
 
