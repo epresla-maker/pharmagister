@@ -9,7 +9,9 @@ import { db } from '@/lib/firebase';
 import { createNotificationWithPush } from '@/lib/notifications';
 import { MessageCircle } from 'lucide-react';
 
-const ADMIN_EMAILS = ['epresla@icloud.com', 'etinatina22@gmail.com'];
+const ADMIN_EMAILS = ['epresla@icloud.com'];
+const ADMINKA_EMAILS = ['etinatina22@gmail.com'];
+const ALL_ADMIN_EMAILS = [...ADMIN_EMAILS, ...ADMINKA_EMAILS];
 import ResponseRateBar from '@/app/components/ResponseRateBar';
 
 export default function DemandDetailPage() {

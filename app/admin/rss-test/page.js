@@ -8,8 +8,9 @@ import ModernServiceFeed from '@/app/components/ModernServiceFeed';
 import { ArrowLeft, TestTube, FileText } from 'lucide-react';
 
 // Admin e-mail címek
-const ADMIN_EMAILS = ['epresla@icloud.com', 'etinatina22@gmail.com'];
+const ADMIN_EMAILS = ['epresla@icloud.com'];
 const ADMINKA_EMAILS = ['etinatina22@gmail.com'];
+const ALL_ADMIN_EMAILS = [...ADMIN_EMAILS, ...ADMINKA_EMAILS];
 
 export default function RSSTestPage() {
   const { user, userData, loading } = useAuth();

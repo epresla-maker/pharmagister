@@ -5,8 +5,9 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, Smartphone, Download, Bot } from "lucide-react";
 import Link from "next/link";
 
-const ADMIN_EMAILS = ['epresla@icloud.com', 'etinatina22@gmail.com'];
+const ADMIN_EMAILS = ['epresla@icloud.com'];
 const ADMINKA_EMAILS = ['etinatina22@gmail.com'];
+const ALL_ADMIN_EMAILS = [...ADMIN_EMAILS, ...ADMINKA_EMAILS];
 
 // Ezeket a linkeket cseréld ki a tényleges Cloudinary/tárolt fájl URL-ekre
 const APP_DOWNLOADS = {

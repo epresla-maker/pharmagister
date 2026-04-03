@@ -21,8 +21,9 @@ import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 
 // Admin és Adminka szerepkörök
-const ADMIN_EMAILS = ['epresla@icloud.com', 'etinatina22@gmail.com'];
+const ADMIN_EMAILS = ['epresla@icloud.com'];
 const ADMINKA_EMAILS = ['etinatina22@gmail.com'];
+const ALL_ADMIN_EMAILS = [...ADMIN_EMAILS, ...ADMINKA_EMAILS];
 
 export default function SettingsPage() {
   const router = useRouter();
