@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, getCountFromServer } from 'firebase/firestore';
 
-const POLL_INTERVAL = 120000; // 2 perc
+const POLL_INTERVAL = 300000; // 5 perc
+const MIN_FETCH_GAP = 10000; // 10 mp burst védelem
 
 export function useDashboardBadges(user, userData) {
   const [badges, setBadges] = useState({
@@ -18,6 +19,8 @@ export function useDashboardBadges(user, userData) {
   });
   
   const isMountedRef = useRef(true);
+  const inFlightRef = useRef(false);
+  const lastFetchAtRef = useRef(0);
 
   // Stabilize userData dependency to avoid re-triggers on reference changes
   const userDataKey = user ? JSON.stringify({
@@ -32,6 +35,12 @@ export function useDashboardBadges(user, userData) {
   // Minden badge polling-gal, getCountFromServer-rel ahol lehet
   const fetchAllBadges = useCallback(async () => {
     if (!user || !userData || !isMountedRef.current) return;
+    if (inFlightRef.current) return;
+
+    const now = Date.now();
+    if (now - lastFetchAtRef.current < MIN_FETCH_GAP) return;
+    lastFetchAtRef.current = now;
+    inFlightRef.current = true;
 
     try {
       // --- Üzenetek (chats) badge: olvasatlan chatok száma ---
@@ -111,6 +120,8 @@ export function useDashboardBadges(user, userData) {
       }
     } catch (error) {
       // Silent fail
+    } finally {
+      inFlightRef.current = false;
     }
   }, [user, userDataKey]);
 
@@ -121,9 +132,17 @@ export function useDashboardBadges(user, userData) {
     fetchAllBadges();
     const interval = setInterval(fetchAllBadges, POLL_INTERVAL);
 
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchAllBadges();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
     return () => {
       isMountedRef.current = false;
       clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, [user, userDataKey, fetchAllBadges]);
 

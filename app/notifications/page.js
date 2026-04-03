@@ -1,5 +1,6 @@
 "use client";
 import { useAuth } from "@/context/AuthContext";
+import { useBadges } from "@/context/BadgesContext";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { collection, query, where, getDocs, doc, updateDoc, orderBy, deleteDoc, writeBatch } from "firebase/firestore";
@@ -8,6 +9,7 @@ import RouteGuard from "@/app/components/RouteGuard";
 
 export default function NotificationsPage() {
   const { user } = useAuth();
+  const { refreshBadges } = useBadges();
   const router = useRouter();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -58,6 +60,7 @@ export default function NotificationsPage() {
           batch.update(doc(db, 'notifications', notification.id), { read: true });
         }
         await batch.commit(); // Egyetlen write művelet!
+        refreshBadges();
       }
     } catch (error) {
       console.error('❌ Error loading notifications:', error);
