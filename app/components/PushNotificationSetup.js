@@ -137,9 +137,18 @@ export default function PushNotificationSetup() {
           // Listen for notification tap actions
           await PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
             console.log('[PushSetup] Native push action:', action);
+            PushNotifications.removeAllDeliveredNotifications().catch(() => {});
             const url = action.notification?.data?.url;
             if (url) {
               window.location.href = url;
+            }
+          });
+
+          // Badge törlése app előtérbe kerülésekor
+          const { App } = await import('@capacitor/app');
+          App.addListener('appStateChange', ({ isActive }) => {
+            if (isActive) {
+              PushNotifications.removeAllDeliveredNotifications().catch(() => {});
             }
           });
         } catch (e) {
