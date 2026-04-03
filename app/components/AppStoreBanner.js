@@ -9,7 +9,7 @@ const APP_STORE_URL = 'https://apps.apple.com/hu/app/pharmagister/id6759405794?l
 const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.pharmagister.app';
 
 // Ha a Google Play jóváhagyás megvan, állítsd true-ra
-const PLAY_STORE_LIVE = false;
+const PLAY_STORE_LIVE = true;
 
 const AppleLogo = ({ className }) => (
   <svg className={className} viewBox="0 0 384 512" fill="currentColor">
