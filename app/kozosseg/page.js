@@ -1872,10 +1872,16 @@ export default function KozossegPage() {
   return (
     <div className={`min-h-screen pb-24 ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
       {/* Header */}
-      <div className={`sticky top-0 z-10 pt-safe-small ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b shadow-sm`}>
-        <div className="max-w-xl mx-auto px-4 py-3 flex items-center justify-center min-h-[56px]">
+      <div className={`sticky top-0 z-10 pt-safe-small border-b shadow-sm ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+        <div
+          className="max-w-xl mx-auto px-4 py-3 flex items-center justify-center min-h-[56px] bg-center bg-cover"
+          style={{
+            backgroundImage: "url('/IMG_7719.PNG')",
+            backgroundPosition: 'center 35%'
+          }}
+        >
           <h1 className="text-lg sm:text-xl font-bold flex items-center gap-1">
-            <span className="text-green-600 text-lg sm:text-xl">Pharmagister</span>
+            <span className="text-green-700 text-lg sm:text-xl bg-white/70 backdrop-blur-[1px] px-2 py-0.5 rounded">Pharmagister</span>
           </h1>
         </div>
 
