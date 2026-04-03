@@ -138,6 +138,7 @@ export default function PushNotificationSetup() {
           await PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
             console.log('[PushSetup] Native push action:', action);
             PushNotifications.removeAllDeliveredNotifications().catch(() => {});
+            import('@capawesome/capacitor-badge').then(({ Badge }) => Badge.clear().catch(() => {}));
             const url = action.notification?.data?.url;
             if (url) {
               window.location.href = url;
@@ -146,9 +147,11 @@ export default function PushNotificationSetup() {
 
           // Badge törlése app előtérbe kerülésekor
           const { App } = await import('@capacitor/app');
+          const { Badge } = await import('@capawesome/capacitor-badge');
           App.addListener('appStateChange', ({ isActive }) => {
             if (isActive) {
               PushNotifications.removeAllDeliveredNotifications().catch(() => {});
+              Badge.clear().catch(() => {});
             }
           });
         } catch (e) {
