@@ -26,6 +26,59 @@ export default function PushNotificationSetup() {
   const [isNativePlatform, setIsNativePlatform] = useState(false);
   const [platformChecked, setPlatformChecked] = useState(false);
 
+  const syncNativeFcmToken = async () => {
+    if (!user) return;
+
+    try {
+      const { Capacitor } = await import('@capacitor/core');
+      const { PushNotifications } = await import('@capacitor/push-notifications');
+      const platform = Capacitor.getPlatform();
+
+      if (platform !== 'ios' && platform !== 'android') return;
+
+      const permStatus = await PushNotifications.checkPermissions();
+      if (permStatus.receive !== 'granted') {
+        console.log('[PushSetup] Native push permission is not granted, skipping token sync');
+        return;
+      }
+
+      const { FirebaseMessaging } = await import('@capacitor-firebase/messaging');
+      const tokenResult = await FirebaseMessaging.getToken();
+      const fcmToken = tokenResult?.token;
+
+      if (!fcmToken) {
+        console.log('[PushSetup] Native FCM token is empty, skipping sync');
+        return;
+      }
+
+      const response = await fetch('/api/push-subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.uid,
+          subscription: {
+            endpoint: `native-${platform}-${fcmToken}`,
+            platform,
+            token: fcmToken,
+            tokenType: 'fcm',
+            source: 'auto-sync'
+          }
+        })
+      });
+
+      if (response.ok) {
+        setIsSubscribed(true);
+        console.log('[PushSetup] Native FCM token synced automatically');
+      } else {
+        const err = await response.json();
+        console.log('[PushSetup] Native FCM token sync failed:', err?.error || response.status);
+      }
+    } catch (e) {
+      // Plugin may not be present on web or old builds; keep silent fallback
+      console.log('[PushSetup] Native FCM auto-sync not available:', e?.message || e);
+    }
+  };
+
   // Platform detektálás
   useEffect(() => {
     const checkPlatform = async () => {
@@ -71,7 +124,9 @@ export default function PushNotificationSetup() {
           console.log('[PushSetup] Could not set up native push listeners:', e);
         }
       };
+
       setupNativeListeners();
+      syncNativeFcmToken();
       return;
     }
     

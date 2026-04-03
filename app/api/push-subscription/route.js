@@ -1,5 +1,9 @@
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 
+function isLikelyApnsToken(token) {
+  return typeof token === 'string' && /^[0-9a-fA-F]{64}$/.test(token);
+}
+
 export async function GET(request) {
   try {
     const admin = getFirebaseAdmin();
@@ -58,6 +62,21 @@ export async function POST(request) {
         subscription,
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       });
+
+      // iOS FCM token mentéskor töröljük a régi APNS tokenes iOS rekordokat
+      if (subscription.platform === 'ios' && subscription.tokenType === 'fcm') {
+        const userSubs = await db.collection('pushSubscriptions').where('userId', '==', userId).get();
+        const batch = db.batch();
+        userSubs.docs.forEach((doc) => {
+          if (doc.id === docId) return;
+          const sub = doc.data()?.subscription || {};
+          const isIosSub = sub.platform === 'ios' || sub.endpoint?.startsWith('native-ios-');
+          const isApns = sub.tokenType === 'apns' || isLikelyApnsToken(sub.token);
+          if (isIosSub && isApns) batch.delete(doc.ref);
+        });
+        await batch.commit();
+      }
+
       return Response.json({ success: true, message: 'Subscription updated', id: docId });
     }
 
@@ -68,6 +87,20 @@ export async function POST(request) {
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     });
+
+    // iOS FCM token mentéskor töröljük a régi APNS tokenes iOS rekordokat
+    if (subscription.platform === 'ios' && subscription.tokenType === 'fcm') {
+      const userSubs = await db.collection('pushSubscriptions').where('userId', '==', userId).get();
+      const batch = db.batch();
+      userSubs.docs.forEach((doc) => {
+        if (doc.id === docRef.id) return;
+        const sub = doc.data()?.subscription || {};
+        const isIosSub = sub.platform === 'ios' || sub.endpoint?.startsWith('native-ios-');
+        const isApns = sub.tokenType === 'apns' || isLikelyApnsToken(sub.token);
+        if (isIosSub && isApns) batch.delete(doc.ref);
+      });
+      await batch.commit();
+    }
 
     return Response.json({ success: true, message: 'Subscription saved', id: docRef.id });
 
