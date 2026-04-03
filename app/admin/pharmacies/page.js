@@ -9,7 +9,7 @@ import {
   MapPin, Clock, UserCheck, User, Phone
 } from "lucide-react";
 
-const ADMIN_EMAILS = ['epresla@icloud.com'];
+const ADMIN_EMAILS = ['epresla@icloud.com', 'etinatina22@gmail.com'];
 const ADMINKA_EMAILS = ['etinatina22@gmail.com'];
 const ALL_ADMIN_EMAILS = [...ADMIN_EMAILS, ...ADMINKA_EMAILS];
 

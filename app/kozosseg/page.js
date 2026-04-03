@@ -1769,7 +1769,7 @@ export default function KozossegPage() {
   const [hideReactions, setHideReactions] = useState(false);
   const activeFilter = 'all';
 
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  const isAdmin = [ADMIN_EMAIL, ADMINKA_EMAIL].includes(user?.email);
   const isAdminka = user?.email === ADMINKA_EMAIL;
 
   // Load blocked users & anon pref

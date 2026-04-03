@@ -6,7 +6,7 @@ import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Mail, Users, Search, X, ChevronDown, ChevronUp, Send, ArrowLeft, CheckCircle, AlertCircle, Clock, Eye, EyeOff } from "lucide-react";
 
-const ADMIN_EMAILS = ['epresla@icloud.com'];
+const ADMIN_EMAILS = ['epresla@icloud.com', 'etinatina22@gmail.com'];
 const ADMINKA_EMAILS = ['etinatina22@gmail.com'];
 const ALL_ADMIN_EMAILS = [...ADMIN_EMAILS, ...ADMINKA_EMAILS];
 

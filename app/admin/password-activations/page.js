@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { collection, getDocs, query, where, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
-const ADMIN_EMAILS = ['epresla@icloud.com'];
+const ADMIN_EMAILS = ['epresla@icloud.com', 'etinatina22@gmail.com'];
 
 export default function PasswordActivationsPage() {
   const { user, loading } = useAuth();

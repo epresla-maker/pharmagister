@@ -9,7 +9,7 @@ import { db } from '@/lib/firebase';
 import { createNotificationWithPush } from '@/lib/notifications';
 import { MessageCircle } from 'lucide-react';
 
-const ADMIN_EMAIL = 'epresla@icloud.com';
+const ADMIN_EMAILS = ['epresla@icloud.com', 'etinatina22@gmail.com'];
 import ResponseRateBar from '@/app/components/ResponseRateBar';
 
 export default function DemandDetailPage() {
@@ -98,7 +98,7 @@ export default function DemandDetailPage() {
     }
 
     // Check if user has pharmagister role (admin bypasses)
-    const isAdminUser = user?.email === ADMIN_EMAIL;
+    const isAdminUser = ADMIN_EMAILS.includes(user?.email);
     if (!isAdminUser && (!userData.pharmagisterRole || userData.pharmagisterRole === 'pharmacy')) {
       alert('Csak gyógyszerészek és szakasszisztensek jelentkezhetnek!');
       return;
@@ -315,7 +315,7 @@ export default function DemandDetailPage() {
 
   const isOwnDemand = user?.uid === demand.pharmacyId;
   const isPendingApproval = userData?.pharmaPendingApproval && !userData?.pharmaProfileComplete;
-  const isAdminBypass = user?.email === ADMIN_EMAIL;
+  const isAdminBypass = ADMIN_EMAILS.includes(user?.email);
   const roleMatches = isAdminBypass || userData?.pharmagisterRole === demand.position;
   const canApply = (isAdminBypass || (userData?.pharmagisterRole && 
                    userData.pharmagisterRole !== 'pharmacy')) &&

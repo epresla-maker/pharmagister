@@ -6,7 +6,7 @@ import { collection, getDocs, doc, updateDoc, deleteDoc } from "firebase/firesto
 import { db } from "@/lib/firebase";
 import { Users, Building2, Pill, UserCog } from "lucide-react";
 
-const ADMIN_EMAILS = ['epresla@icloud.com'];
+const ADMIN_EMAILS = ['epresla@icloud.com', 'etinatina22@gmail.com'];
 const ADMINKA_EMAILS = ['etinatina22@gmail.com'];
 const ALL_ADMIN_EMAILS = [...ADMIN_EMAILS, ...ADMINKA_EMAILS];
 
