@@ -163,6 +163,7 @@ export default function DemandDetailPage() {
         demandId: demandId,
         pharmacyId: demand.pharmacyId,
         applicantId: user.uid,
+        applicantName: userData.displayName || 'Névtelen',
         displayName: userData.displayName || 'Névtelen',
         photoURL: userData.photoURL || null,
         pharmagisterRole: userData.pharmagisterRole,

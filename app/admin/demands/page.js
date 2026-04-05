@@ -374,7 +374,7 @@ function DemandCard({ demand, applications, creatorData, onDelete }) {
                       className={`rounded-lg p-3 border text-sm ${statusColors[app.status] || "bg-gray-50 border-gray-200"}`}
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <span className="font-semibold">{app.applicantName || "Ismeretlen"}</span>
+                        <span className="font-semibold">{app.applicantName || app.displayName || "Ismeretlen"}</span>
                         <span className="text-xs">{statusLabels[app.status] || app.status}</span>
                       </div>
                       {app.message && (
