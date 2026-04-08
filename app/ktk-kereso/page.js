@@ -388,7 +388,7 @@ export default function KtkKeresoPage() {
 
       <div className="min-h-screen bg-gray-100 dark:bg-gray-900 pb-[40px]">
         {/* Sticky Header */}
-        <div className="sticky top-0 bg-purple-400 dark:bg-purple-500 border-b border-purple-500 dark:border-purple-600 z-10 shadow-lg pt-safe-small">
+        <div className="sticky top-0 bg-purple-400 dark:bg-purple-500 border-b border-purple-500 dark:border-purple-600 z-20 shadow-lg pt-safe-small">
           <div className="max-w-xl mx-auto px-4 py-3">
             <button
               onClick={() => router.push('/')}
@@ -452,8 +452,8 @@ export default function KtkKeresoPage() {
           </div>
         )}
 
-        {/* Sticky Search + Filters */}
-        <div className={`sticky top-[120px] z-10 border-b shadow-sm ${
+        {/* Search + Filters - nem sticky, fejléc alatt */}
+        <div className={`border-b shadow-sm ${
           darkMode ? 'bg-gray-900 border-gray-800' : 'bg-gray-100 border-gray-200'
         }`}>
           <div className="max-w-xl mx-auto px-4 py-3 space-y-3">
