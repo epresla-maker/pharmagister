@@ -482,7 +482,7 @@ export default function KtkKeresoPage() {
             </div>
 
             {/* Status filter pills */}
-            <div className="flex flex-wrap gap-2">
+            <div className="flex gap-1.5 justify-between">
               {[
                 { value: '', label: 'Mind' },
                 { value: 'MEGHIRDETVE', label: 'Meghirdetve' },
@@ -493,7 +493,7 @@ export default function KtkKeresoPage() {
                 <button
                   key={opt.value}
                   onClick={() => setStatusFilter(opt.value)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                  className={`px-2 py-1.5 rounded-full text-[11px] font-medium transition-colors ${
                     statusFilter === opt.value
                       ? 'bg-purple-600 text-white'
                       : darkMode
