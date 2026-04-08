@@ -13,8 +13,6 @@ import {
   MapPin,
   Calendar,
   Building2,
-  ChevronDown,
-  ChevronUp,
   Filter,
   X,
   GraduationCap,
@@ -50,8 +48,6 @@ const STATUS_COLORS = {
 };
 
 function KtkCard({ item, darkMode }) {
-  const [expanded, setExpanded] = useState(false);
-
   const szakmak = item.szakmacsoportok
     ? item.szakmacsoportok.split(',').map(s => s.trim()).filter(Boolean)
     : [];
@@ -95,6 +91,13 @@ function KtkCard({ item, darkMode }) {
           </div>
         )}
 
+        {/* Pontos helyszín */}
+        {item.helyszin && (
+          <div className={`text-xs mb-1.5 ml-6 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+            {item.helyszin}
+          </div>
+        )}
+
         {/* Dátum */}
         {item.kezdes_idopontja && (() => {
           const isPast = item.ktk_statusz === 'MEGHIRDETVE' && item.kezdes_idopontja < new Date().toISOString().slice(0, 10);
@@ -112,10 +115,17 @@ function KtkCard({ item, darkMode }) {
           );
         })()}
 
+        {/* Nyilvántartási szám */}
+        {item.nyilvantartasi_szam && (
+          <div className={`text-[10px] mb-1 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+            {item.nyilvantartasi_szam}
+          </div>
+        )}
+
         {/* Szakmacsoportok chips */}
         {szakmak.length > 0 && (
           <div className="flex flex-wrap gap-1 mb-2">
-            {szakmak.slice(0, expanded ? szakmak.length : 3).map(num => (
+            {szakmak.map(num => (
               <span
                 key={num}
                 className={`text-[10px] px-1.5 py-0.5 rounded-md ${
@@ -126,17 +136,10 @@ function KtkCard({ item, darkMode }) {
                 {SZAKMACSOPORTOK[num] || `${num}. szakcsoport`}
               </span>
             ))}
-            {!expanded && szakmak.length > 3 && (
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-md ${
-                darkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-500'
-              }`}>
-                +{szakmak.length - 3}
-              </span>
-            )}
           </div>
         )}
 
-        {/* Kapcsolattartó adatok - mindig látható */}
+        {/* Kapcsolattartó adatok */}
         {item.kapcsolattarto_neve && (
           <div className={`mt-2 pt-2 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
             <span className={`text-[10px] uppercase tracking-wider font-medium ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
@@ -164,7 +167,7 @@ function KtkCard({ item, darkMode }) {
           </div>
         )}
 
-        {/* Második kapcsolattartó - mindig látható */}
+        {/* Második kapcsolattartó */}
         {item.kapcsolattarto2_neve && (
           <div className="mt-2">
             <span className={`text-[10px] uppercase tracking-wider font-medium ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
@@ -197,56 +200,14 @@ function KtkCard({ item, darkMode }) {
           href="https://enk.okfo.gov.hu/hirek-es-aktualitasok/tajekoztato-a-szaftex-portal-mukodeserol"
           target="_blank"
           rel="noopener noreferrer"
-          className={`inline-flex items-center gap-1 text-xs font-medium transition-colors ${
+          className={`inline-flex items-center gap-1 text-xs font-medium mt-2 transition-colors ${
             darkMode ? 'text-purple-400 hover:text-purple-300' : 'text-purple-600 hover:text-purple-700'
           }`}
         >
           <ExternalLink className="w-3.5 h-3.5" />
           Elérhetőség: OKFO SZAFTEX
         </a>
-
-        {/* Expand button */}
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className={`flex items-center gap-1 text-xs font-medium transition-colors ${
-            darkMode ? 'text-purple-400 hover:text-purple-300' : 'text-purple-600 hover:text-purple-700'
-          }`}
-        >
-          {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          {expanded ? 'Kevesebb' : 'Részletek'}
-        </button>
       </div>
-
-      {/* Expanded details */}
-      {expanded && (
-        <div className={`px-4 pb-4 border-t space-y-3 ${
-          darkMode ? 'border-gray-700' : 'border-gray-100'
-        }`}>
-          <div className="pt-3 space-y-2">
-            {item.nyilvantartasi_szam && (
-              <DetailRow darkMode={darkMode} label="Nyilvántartási szám" value={item.nyilvantartasi_szam} />
-            )}
-            {item.kulso_azonosito && (
-              <DetailRow darkMode={darkMode} label="Külső azonosító" value={item.kulso_azonosito} />
-            )}
-            {item.helyszin && (
-              <DetailRow darkMode={darkMode} label="Helyszín" value={item.helyszin} />
-            )}
-
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function DetailRow({ darkMode, label, value }) {
-  return (
-    <div>
-      <span className={`text-[10px] uppercase tracking-wider font-medium ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-        {label}
-      </span>
-      <p className={`text-xs ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>{value}</p>
     </div>
   );
 }
