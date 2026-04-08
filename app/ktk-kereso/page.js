@@ -237,38 +237,46 @@ export default function KtkKeresoPage() {
   const debounceRef = useRef(null);
   const visitTracked = useRef(false);
   const lastScrollY = useRef(0);
+  const scrollContainerRef = useRef(null);
 
-  // Scroll direction detection
+  // Scroll direction detection - wheel event alapú
   useEffect(() => {
-    let ticking = false;
-    const handleScroll = (e) => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          const scrollElement = document.scrollingElement || document.documentElement;
-          const currentScrollY = scrollElement.scrollTop;
-          const delta = currentScrollY - lastScrollY.current;
-          
-          console.log('scroll', currentScrollY, delta); // DEBUG
-          
-          if (currentScrollY < 10) {
-            setHeaderVisible(true);
-          } else if (delta < -3) {
-            // Scrolling up
-            setHeaderVisible(true);
-          } else if (delta > 3) {
-            // Scrolling down
-            setHeaderVisible(false);
-          }
-          lastScrollY.current = currentScrollY;
-          ticking = false;
-        });
-        ticking = true;
+    const handleWheel = (e) => {
+      if (e.deltaY > 10) {
+        // Scrolling down
+        setHeaderVisible(false);
+      } else if (e.deltaY < -10) {
+        // Scrolling up
+        setHeaderVisible(true);
       }
     };
     
-    window.addEventListener('scroll', handleScroll, { passive: true });
+    // Touch scroll detection
+    let touchStartY = 0;
+    const handleTouchStart = (e) => {
+      touchStartY = e.touches[0].clientY;
+    };
+    const handleTouchMove = (e) => {
+      const touchY = e.touches[0].clientY;
+      const delta = touchStartY - touchY;
+      if (delta > 20) {
+        // Scrolling down
+        setHeaderVisible(false);
+      } else if (delta < -20) {
+        // Scrolling up
+        setHeaderVisible(true);
+      }
+      touchStartY = touchY;
+    };
+    
+    document.addEventListener('wheel', handleWheel, { passive: true });
+    document.addEventListener('touchstart', handleTouchStart, { passive: true });
+    document.addEventListener('touchmove', handleTouchMove, { passive: true });
+    
     return () => {
-      window.removeEventListener('scroll', handleScroll);
+      document.removeEventListener('wheel', handleWheel);
+      document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchmove', handleTouchMove);
     };
   }, []);
 
