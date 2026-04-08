@@ -233,8 +233,29 @@ export default function KtkKeresoPage() {
   const [visitCount, setVisitCount] = useState(null);
   const [recentVisits, setRecentVisits] = useState([]);
   const [showVisitLog, setShowVisitLog] = useState(false);
+  const [headerVisible, setHeaderVisible] = useState(true);
   const debounceRef = useRef(null);
   const visitTracked = useRef(false);
+  const lastScrollY = useRef(0);
+
+  // Scroll direction detection
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      if (currentScrollY < 10) {
+        setHeaderVisible(true);
+      } else if (currentScrollY < lastScrollY.current) {
+        // Scrolling up
+        setHeaderVisible(true);
+      } else if (currentScrollY > lastScrollY.current) {
+        // Scrolling down
+        setHeaderVisible(false);
+      }
+      lastScrollY.current = currentScrollY;
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Disclaimer ellenőrzés
   useEffect(() => {
@@ -387,17 +408,19 @@ export default function KtkKeresoPage() {
       )}
 
       <div className="min-h-screen bg-gray-100 dark:bg-gray-900 pb-[40px]">
-        {/* Sticky Header */}
-        <div className="sticky top-0 bg-purple-400 dark:bg-purple-500 border-b border-purple-500 dark:border-purple-600 z-20 shadow-lg pt-safe-small">
-          <div className="max-w-xl mx-auto px-4 py-3">
-            <button
-              onClick={() => router.push('/')}
-              className="text-white hover:text-purple-100 flex items-center gap-2 mb-3 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              <span className="font-medium">Vissza</span>
-            </button>
-            <div className="flex items-center gap-2">
+        {/* Sticky Header + Filters */}
+        <div className={`sticky top-0 z-20 transition-transform duration-300 ${headerVisible ? 'translate-y-0' : '-translate-y-full'}`}>
+          {/* Header */}
+          <div className="bg-purple-400 dark:bg-purple-500 border-b border-purple-500 dark:border-purple-600 shadow-lg pt-safe-small">
+            <div className="max-w-xl mx-auto px-4 py-3">
+              <button
+                onClick={() => router.push('/')}
+                className="text-white hover:text-purple-100 flex items-center gap-2 mb-3 transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                <span className="font-medium">Vissza</span>
+              </button>
+              <div className="flex items-center gap-2">
               <GraduationCap className="w-6 h-6 text-white" />
               <h1 className="text-xl font-bold text-white">
                 Kötelező továbbképzés kereső
@@ -426,6 +449,74 @@ export default function KtkKeresoPage() {
                 👁 {visitCount} megtekintés
               </button>
             )}
+            </div>
+          </div>
+
+          {/* Search + Filters */}
+          <div className={`border-t shadow-sm ${
+            darkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-100 border-gray-200'
+          }`}>
+            <div className="max-w-xl mx-auto px-4 py-3 space-y-2">
+              {/* Search input */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Keresés: program, szervező, helyszín..."
+                  className={`w-full pl-10 pr-10 py-2.5 rounded-xl border transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+                    darkMode
+                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-500'
+                      : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400'
+                  }`}
+                />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm('')}
+                    className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg ${darkMode ? 'hover:bg-gray-600 text-gray-400' : 'hover:bg-gray-100 text-gray-400'}`}
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+
+              {/* Status filter pills + sort */}
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex gap-1">
+                  {[
+                    { value: '', label: 'Mind' },
+                    { value: 'MEGHIRDETVE', label: 'Meghirdetve' },
+                    { value: 'LEZAJLOTT', label: 'Lezajlott' },
+                    { value: 'ELMARAD', label: 'Elmarad' },
+                    { value: 'MEGTELT', label: 'Megtelt' },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setStatusFilter(opt.value)}
+                      className={`px-2 py-1 rounded-full text-[10px] font-medium transition-colors ${
+                        statusFilter === opt.value
+                          ? 'bg-purple-600 text-white'
+                          : darkMode
+                            ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                            : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+                  className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium transition-colors ${
+                    darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+                  }`}
+                >
+                  <Calendar className="w-3 h-3" />
+                  {sortOrder === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -451,74 +542,6 @@ export default function KtkKeresoPage() {
             </div>
           </div>
         )}
-
-        {/* Search + Filters - nem sticky, fejléc alatt */}
-        <div className={`border-b shadow-sm ${
-          darkMode ? 'bg-gray-900 border-gray-800' : 'bg-gray-100 border-gray-200'
-        }`}>
-          <div className="max-w-xl mx-auto px-4 py-3 space-y-3">
-            {/* Search input */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Keresés: program, szervező, helyszín..."
-                className={`w-full pl-10 pr-10 py-3 rounded-xl border transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 ${
-                  darkMode
-                    ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-500'
-                    : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400'
-                }`}
-              />
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm('')}
-                  className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg ${darkMode ? 'hover:bg-gray-700 text-gray-400' : 'hover:bg-gray-100 text-gray-400'}`}
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-
-            {/* Status filter pills */}
-            <div className="flex gap-1.5 justify-between">
-              {[
-                { value: '', label: 'Mind' },
-                { value: 'MEGHIRDETVE', label: 'Meghirdetve' },
-                { value: 'LEZAJLOTT', label: 'Lezajlott' },
-                { value: 'ELMARAD', label: 'Elmarad' },
-                { value: 'MEGTELT', label: 'Megtelt' },
-              ].map(opt => (
-                <button
-                  key={opt.value}
-                  onClick={() => setStatusFilter(opt.value)}
-                  className={`px-2 py-1.5 rounded-full text-[11px] font-medium transition-colors ${
-                    statusFilter === opt.value
-                      ? 'bg-purple-600 text-white'
-                      : darkMode
-                        ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                        : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Rendezés gomb */}
-            <button
-              onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
-                darkMode ? 'bg-gray-800 border border-gray-700 text-gray-300 hover:bg-gray-700' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              <Calendar className="w-4 h-4" />
-              Dátum: {sortOrder === 'asc' ? 'legkorábbi elöl' : 'legkésőbbi elöl'}
-              {sortOrder === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-            </button>
-          </div>
-        </div>
 
         {/* Results */}
         <div className="max-w-xl mx-auto px-4 pt-4 pb-8 space-y-3">
