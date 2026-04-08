@@ -13,6 +13,8 @@ import {
   MapPin,
   Calendar,
   Building2,
+  ChevronDown,
+  ChevronUp,
   Filter,
   X,
   GraduationCap,
