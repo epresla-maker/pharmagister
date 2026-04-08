@@ -457,7 +457,7 @@ export default function KtkKeresoPage() {
               className="inline-flex items-center gap-1 text-[10px] text-purple-200 hover:text-white mt-1 transition-colors"
             >
               <ExternalLink className="w-3 h-3" />
-              Forrás: OKFO SZAFTEX (Teljes KTK_03.31..xlsx)
+              Forrás: OKFO SZAFTEX (Teljes KTK_04.02..xlsx)
             </a>
             {ADMIN_EMAILS.includes(user?.email) && visitCount !== null && (
               <button
