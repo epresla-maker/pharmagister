@@ -240,21 +240,34 @@ export default function KtkKeresoPage() {
 
   // Scroll direction detection
   useEffect(() => {
+    let ticking = false;
     const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      if (currentScrollY < 10) {
-        setHeaderVisible(true);
-      } else if (currentScrollY < lastScrollY.current) {
-        // Scrolling up
-        setHeaderVisible(true);
-      } else if (currentScrollY > lastScrollY.current) {
-        // Scrolling down
-        setHeaderVisible(false);
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const currentScrollY = window.scrollY || document.documentElement.scrollTop;
+          const delta = currentScrollY - lastScrollY.current;
+          
+          if (currentScrollY < 10) {
+            setHeaderVisible(true);
+          } else if (delta < -5) {
+            // Scrolling up (threshold to avoid micro-movements)
+            setHeaderVisible(true);
+          } else if (delta > 5) {
+            // Scrolling down
+            setHeaderVisible(false);
+          }
+          lastScrollY.current = currentScrollY;
+          ticking = false;
+        });
+        ticking = true;
       }
-      lastScrollY.current = currentScrollY;
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    document.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      document.removeEventListener('scroll', handleScroll);
+    };
   }, []);
 
   // Disclaimer ellenőrzés
