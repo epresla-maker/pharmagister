@@ -15,7 +15,6 @@ import {
   Building2,
   ChevronDown,
   ChevronUp,
-  Filter,
   X,
   GraduationCap,
   Loader2,
@@ -227,10 +226,9 @@ export default function KtkKeresoPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedTerm, setDebouncedTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('MEGHIRDETVE');
   const [sortOrder, setSortOrder] = useState('asc');
 
-  const [showFilters, setShowFilters] = useState(false);
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
   const [visitCount, setVisitCount] = useState(null);
   const [recentVisits, setRecentVisits] = useState([]);
@@ -330,8 +328,6 @@ export default function KtkKeresoPage() {
 
     return result;
   }, [data, debouncedTerm, statusFilter, sortOrder]);
-
-  const activeFilterCount = statusFilter ? 1 : 0;
 
   // Loading state
   if (authLoading) {
@@ -456,99 +452,72 @@ export default function KtkKeresoPage() {
           </div>
         )}
 
-        {/* Search + Filters */}
-        <div className="max-w-xl mx-auto px-4 pt-4 space-y-3">
-          {/* Search input */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Keresés: program, szervező, helyszín..."
-              className={`w-full pl-10 pr-20 py-3 rounded-xl border transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 ${
-                darkMode
-                  ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-500'
-                  : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400'
-              }`}
-            />
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+        {/* Sticky Search + Filters */}
+        <div className={`sticky top-[120px] z-10 border-b shadow-sm ${
+          darkMode ? 'bg-gray-900 border-gray-800' : 'bg-gray-100 border-gray-200'
+        }`}>
+          <div className="max-w-xl mx-auto px-4 py-3 space-y-3">
+            {/* Search input */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Keresés: program, szervező, helyszín..."
+                className={`w-full pl-10 pr-10 py-3 rounded-xl border transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+                  darkMode
+                    ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-500'
+                    : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400'
+                }`}
+              />
               {searchTerm && (
                 <button
                   onClick={() => setSearchTerm('')}
-                  className={`p-1.5 rounded-lg ${darkMode ? 'hover:bg-gray-700 text-gray-400' : 'hover:bg-gray-100 text-gray-400'}`}
+                  className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg ${darkMode ? 'hover:bg-gray-700 text-gray-400' : 'hover:bg-gray-100 text-gray-400'}`}
                 >
                   <X className="w-4 h-4" />
                 </button>
               )}
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className={`relative p-1.5 rounded-lg ${
-                  showFilters || activeFilterCount
-                    ? (darkMode ? 'bg-purple-900/50 text-purple-400' : 'bg-purple-100 text-purple-600')
-                    : (darkMode ? 'hover:bg-gray-700 text-gray-400' : 'hover:bg-gray-100 text-gray-400')
-                }`}
-              >
-                <Filter className="w-4 h-4" />
-                {activeFilterCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-purple-600 text-white text-[9px] rounded-full flex items-center justify-center font-bold">
-                    {activeFilterCount}
-                  </span>
-                )}
-              </button>
             </div>
-          </div>
 
-          {/* Filter dropdowns */}
-          {showFilters && (
-            <div className={`rounded-xl border p-3 space-y-3 ${
-              darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-            }`}>
-              {/* Státusz filter */}
-              <div>
-                <label className={`text-xs font-medium mb-1 block ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  Státusz
-                </label>
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className={`w-full px-3 py-2 rounded-lg border text-sm ${
-                    darkMode
-                      ? 'bg-gray-700 border-gray-600 text-white'
-                      : 'bg-gray-50 border-gray-200 text-gray-900'
+            {/* Status filter pills */}
+            <div className="flex flex-wrap gap-2">
+              {[
+                { value: '', label: 'Mind' },
+                { value: 'MEGHIRDETVE', label: 'Meghirdetve' },
+                { value: 'LEZAJLOTT', label: 'Lezajlott' },
+                { value: 'ELMARAD', label: 'Elmarad' },
+                { value: 'MEGTELT', label: 'Megtelt' },
+              ].map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => setStatusFilter(opt.value)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                    statusFilter === opt.value
+                      ? 'bg-purple-600 text-white'
+                      : darkMode
+                        ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                        : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
                   }`}
                 >
-                  <option value="">Összes státusz</option>
-                  <option value="MEGHIRDETVE">Meghirdetve</option>
-                  <option value="LEZAJLOTT">Lezajlott</option>
-                  <option value="ELMARAD">Elmarad</option>
-                  <option value="MEGTELT">Megtelt</option>
-                </select>
-              </div>
-
-              {/* Clear filters */}
-              {activeFilterCount > 0 && (
-                <button
-                  onClick={() => setStatusFilter('')}
-                  className={`text-xs font-medium ${darkMode ? 'text-purple-400' : 'text-purple-600'}`}
-                >
-                  Alapértelmezés
+                  {opt.label}
                 </button>
-              )}
+              ))}
             </div>
-          )}
 
-          {/* Rendezés gomb */}
-          <button
-            onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
-              darkMode ? 'bg-gray-800 border border-gray-700 text-gray-300 hover:bg-gray-700' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            <Calendar className="w-4 h-4" />
-            Dátum: {sortOrder === 'asc' ? 'legkorábbi elöl' : 'legkésőbbi elöl'}
-            {sortOrder === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-          </button>
+            {/* Rendezés gomb */}
+            <button
+              onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                darkMode ? 'bg-gray-800 border border-gray-700 text-gray-300 hover:bg-gray-700' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <Calendar className="w-4 h-4" />
+              Dátum: {sortOrder === 'asc' ? 'legkorábbi elöl' : 'legkésőbbi elöl'}
+              {sortOrder === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+            </button>
+          </div>
         </div>
 
         {/* Results */}
