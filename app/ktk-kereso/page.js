@@ -241,18 +241,21 @@ export default function KtkKeresoPage() {
   // Scroll direction detection
   useEffect(() => {
     let ticking = false;
-    const handleScroll = () => {
+    const handleScroll = (e) => {
       if (!ticking) {
         window.requestAnimationFrame(() => {
-          const currentScrollY = window.scrollY || document.documentElement.scrollTop;
+          const scrollElement = document.scrollingElement || document.documentElement;
+          const currentScrollY = scrollElement.scrollTop;
           const delta = currentScrollY - lastScrollY.current;
+          
+          console.log('scroll', currentScrollY, delta); // DEBUG
           
           if (currentScrollY < 10) {
             setHeaderVisible(true);
-          } else if (delta < -5) {
-            // Scrolling up (threshold to avoid micro-movements)
+          } else if (delta < -3) {
+            // Scrolling up
             setHeaderVisible(true);
-          } else if (delta > 5) {
+          } else if (delta > 3) {
             // Scrolling down
             setHeaderVisible(false);
           }
@@ -262,11 +265,10 @@ export default function KtkKeresoPage() {
         ticking = true;
       }
     };
+    
     window.addEventListener('scroll', handleScroll, { passive: true });
-    document.addEventListener('scroll', handleScroll, { passive: true });
     return () => {
       window.removeEventListener('scroll', handleScroll);
-      document.removeEventListener('scroll', handleScroll);
     };
   }, []);
 
