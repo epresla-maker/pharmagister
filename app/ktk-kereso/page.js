@@ -177,6 +177,61 @@ function KtkCard({ item, darkMode }) {
               <DetailRow darkMode={darkMode} label="Helyszín" value={item.helyszin} />
             )}
 
+            {/* Kapcsolattartó adatok */}
+            {item.kapcsolattarto_neve && (
+              <div className={`mt-3 pt-3 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                <span className={`text-[10px] uppercase tracking-wider font-medium ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                  Kapcsolattartó
+                </span>
+                <p className={`text-xs font-medium ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+                  {item.kapcsolattarto_neve}
+                  {item.kapcsolattarto_beosztas && <span className={`font-normal ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}> – {item.kapcsolattarto_beosztas}</span>}
+                </p>
+                {item.kapcsolattarto_email && (
+                  <a href={`mailto:${item.kapcsolattarto_email}`} className={`text-xs block ${darkMode ? 'text-purple-400 hover:text-purple-300' : 'text-purple-600 hover:text-purple-700'}`}>
+                    {item.kapcsolattarto_email}
+                  </a>
+                )}
+                {item.kapcsolattarto_telefon && (
+                  <a href={`tel:${item.kapcsolattarto_telefon.replace(/[^+\d]/g, '')}`} className={`text-xs block ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                    {item.kapcsolattarto_telefon}
+                  </a>
+                )}
+                {item.kapcsolattarto_mobil && (
+                  <a href={`tel:${item.kapcsolattarto_mobil.replace(/[^+\d]/g, '')}`} className={`text-xs block ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                    {item.kapcsolattarto_mobil}
+                  </a>
+                )}
+              </div>
+            )}
+
+            {/* Második kapcsolattartó */}
+            {item.kapcsolattarto2_neve && (
+              <div className="mt-2">
+                <span className={`text-[10px] uppercase tracking-wider font-medium ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                  Kapcsolattartó 2
+                </span>
+                <p className={`text-xs font-medium ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+                  {item.kapcsolattarto2_neve}
+                  {item.kapcsolattarto2_beosztas && <span className={`font-normal ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}> – {item.kapcsolattarto2_beosztas}</span>}
+                </p>
+                {item.kapcsolattarto2_email && (
+                  <a href={`mailto:${item.kapcsolattarto2_email}`} className={`text-xs block ${darkMode ? 'text-purple-400 hover:text-purple-300' : 'text-purple-600 hover:text-purple-700'}`}>
+                    {item.kapcsolattarto2_email}
+                  </a>
+                )}
+                {item.kapcsolattarto2_telefon && (
+                  <a href={`tel:${item.kapcsolattarto2_telefon.replace(/[^+\d]/g, '')}`} className={`text-xs block ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                    {item.kapcsolattarto2_telefon}
+                  </a>
+                )}
+                {item.kapcsolattarto2_mobil && (
+                  <a href={`tel:${item.kapcsolattarto2_mobil.replace(/[^+\d]/g, '')}`} className={`text-xs block ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                    {item.kapcsolattarto2_mobil}
+                  </a>
+                )}
+              </div>
+            )}
 
           </div>
         </div>

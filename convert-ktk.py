@@ -1,17 +1,19 @@
 import pandas as pd
 import json
 
-df = pd.read_excel('/Users/epresl/Downloads/Teljes KTK_03.31..xlsx', sheet_name='KTK', header=None)
+df = pd.read_excel('/Users/epresl/Downloads/Teljes KTK_04.02..xlsx', sheet_name='KTK', header=None)
 
+# Új oszlopsorrend 2024.04.02-es exportban
 columns = [
-    'nyilvantartasi_szam', 'fantazia_nev', 'program_megnevezes', 'kulso_azonosito',
-    'ktk_statusz', 'szervezo_akkreditacio', 'tovabbkepzes_varos', 'tovabbkepzes_cime', 'helyszin',
-    'szervezo_megnevezes', 'szakmacsoportok', 'kezdes_idopontja', 'befejezes_idopontja',
+    'ktk_statusz', 'kezdes_idopontja', 'befejezes_idopontja', 'tovabbkepzes_varos',
+    'nyilvantartasi_szam', 'fantazia_nev', 'program_megnevezes', 'szakmacsoportok',
+    'szukitett_szakmacsoport', 'szervezo_akkreditacio', 'szervezo_megnevezes',
+    'tovabbkepzes_cime', 'helyszin',
     'kapcsolattarto_neve', 'kapcsolattarto_beosztas', 'kapcsolattarto_email',
     'kapcsolattarto_telefon', 'kapcsolattarto_mobil',
     'kapcsolattarto2_neve', 'kapcsolattarto2_beosztas', 'kapcsolattarto2_email',
     'kapcsolattarto2_telefon', 'kapcsolattarto2_mobil',
-    'szukitett_szakmacsoport'
+    'kulso_azonosito'
 ]
 
 data = df.iloc[6:].copy()
