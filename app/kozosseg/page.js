@@ -1871,13 +1871,9 @@ export default function KozossegPage() {
 
   return (
     <div className={`min-h-screen pb-24 ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
-      {/* Header + Navigációs gombok + Írj valamit háttérképpel */}
+      {/* Header + Navigációs gombok + Írj valamit */}
       <div
-        className="pt-safe-small bg-cover bg-center pb-4"
-        style={{
-          backgroundImage: "url('/IMG_7719.PNG')",
-          backgroundPosition: 'center 30%'
-        }}
+        className="pt-safe-small pb-4"
       >
         {/* Pharmagister felirat */}
         <div className="max-w-xl mx-auto px-4 py-3 flex items-center justify-center min-h-[56px]">
