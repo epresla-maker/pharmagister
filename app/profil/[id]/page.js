@@ -182,17 +182,24 @@ export default function ProfilePage() {
                     </span>
                   )}
                   {/* Értékelés megjelenítése helyettesítőknél */}
-                  {isSubstitute && profileData.pharmaRating && profileData.pharmaRating.ratingCount >= 1 && (
-                    <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-sm font-medium flex items-center gap-1">
-                      <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
-                      {profileData.pharmaRating.averageRating?.toFixed(1) || '-'}
-                      {profileData.pharmaRating.wouldChooseAgainPercent >= 70 && (
-                        <span className="ml-1 flex items-center gap-0.5">
-                          <ThumbsUp className="w-3 h-3" />
-                          Ajánlott
-                        </span>
-                      )}
-                    </span>
+                  {isSubstitute && (
+                    profileData.pharmaRating && profileData.pharmaRating.ratingCount >= 1 ? (
+                      <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-sm font-medium flex items-center gap-1">
+                        <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                        {profileData.pharmaRating.averageRating?.toFixed(1) || '-'}
+                        {profileData.pharmaRating.wouldChooseAgainPercent >= 70 && (
+                          <span className="ml-1 flex items-center gap-0.5">
+                            <ThumbsUp className="w-3 h-3" />
+                            Ajánlott
+                          </span>
+                        )}
+                      </span>
+                    ) : (
+                      <span className={`px-3 py-1 ${darkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-500'} rounded-full text-sm flex items-center gap-1`}>
+                        <Star className="w-3 h-3" />
+                        Még nem érkezett értékelés
+                      </span>
+                    )
                   )}
                 </div>
               </div>
@@ -316,11 +323,11 @@ export default function ProfilePage() {
                   )}
 
                   {/* Értékelések részletesen */}
-                  {profileData.pharmaRating && profileData.pharmaRating.ratingCount >= 1 && (
-                    <div>
-                      <h3 className={`text-sm font-semibold ${darkMode ? 'text-gray-400' : 'text-gray-500'} uppercase mb-3`}>
-                        Értékelések
-                      </h3>
+                  <div>
+                    <h3 className={`text-sm font-semibold ${darkMode ? 'text-gray-400' : 'text-gray-500'} uppercase mb-3`}>
+                      Értékelések
+                    </h3>
+                    {profileData.pharmaRating && profileData.pharmaRating.ratingCount >= 1 ? (
                       <div className={`${darkMode ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-4 space-y-3`}>
                         {/* Összesített értékelés */}
                         <div className="flex items-center justify-between">
@@ -403,8 +410,15 @@ export default function ProfilePage() {
                           </div>
                         )}
                       </div>
-                    </div>
-                  )}
+                    ) : (
+                      <div className={`${darkMode ? 'bg-gray-700/50' : 'bg-gray-100'} rounded-lg p-4 flex items-center gap-2`}>
+                        <Star className={`w-5 h-5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`} />
+                        <span className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                          Még nem érkezett értékelés
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ) : (
                 // Gyógyszertár adatok
