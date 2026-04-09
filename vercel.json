@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/rating-reminders",
+      "schedule": "0 18 * * *"
+    }
+  ]
+}

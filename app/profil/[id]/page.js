@@ -6,7 +6,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import RouteGuard from '@/app/components/RouteGuard';
-import { ArrowLeft, User, Phone, Mail, MapPin, Clock, Code, DollarSign, FileText, Shield, Loader2, Pencil, Flag, Ban } from 'lucide-react';
+import { ArrowLeft, User, Phone, Mail, MapPin, Clock, Code, DollarSign, FileText, Shield, Loader2, Pencil, Flag, Ban, Star, ThumbsUp } from 'lucide-react';
 import ReportModal from '@/app/components/ReportModal';
 import BlockUserModal from '@/app/components/BlockUserModal';
 
@@ -171,7 +171,7 @@ export default function ProfilePage() {
                 <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
                   {profileData.displayName || 'Névtelen'}
                 </h2>
-                <div className="flex items-center gap-2 mt-1">
+                <div className="flex flex-wrap items-center gap-2 mt-1">
                   <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
                     {roleLabel}
                   </span>
@@ -179,6 +179,19 @@ export default function ProfilePage() {
                     <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium flex items-center gap-1">
                       <Shield className="w-3 h-3" />
                       Jóváhagyott
+                    </span>
+                  )}
+                  {/* Értékelés megjelenítése helyettesítőknél */}
+                  {isSubstitute && profileData.pharmaRating && profileData.pharmaRating.ratingCount >= 1 && (
+                    <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-sm font-medium flex items-center gap-1">
+                      <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                      {profileData.pharmaRating.averageRating?.toFixed(1) || '-'}
+                      {profileData.pharmaRating.wouldChooseAgainPercent >= 70 && (
+                        <span className="ml-1 flex items-center gap-0.5">
+                          <ThumbsUp className="w-3 h-3" />
+                          Ajánlott
+                        </span>
+                      )}
                     </span>
                   )}
                 </div>
@@ -298,6 +311,97 @@ export default function ProfilePage() {
                         <p className={`${darkMode ? 'text-gray-300' : 'text-gray-700'} text-sm leading-relaxed`}>
                           {profileData.pharmaBio}
                         </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Értékelések részletesen */}
+                  {profileData.pharmaRating && profileData.pharmaRating.ratingCount >= 1 && (
+                    <div>
+                      <h3 className={`text-sm font-semibold ${darkMode ? 'text-gray-400' : 'text-gray-500'} uppercase mb-3`}>
+                        Értékelések
+                      </h3>
+                      <div className={`${darkMode ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-4 space-y-3`}>
+                        {/* Összesített értékelés */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Star className="w-5 h-5 fill-amber-500 text-amber-500" />
+                            <span className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                              {profileData.pharmaRating.averageRating?.toFixed(1) || '-'}
+                            </span>
+                            <span className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>/ 5</span>
+                          </div>
+                          {profileData.pharmaRating.wouldChooseAgainPercent >= 70 && (
+                            <div className="flex items-center gap-1 text-green-600">
+                              <ThumbsUp className="w-4 h-4" />
+                              <span className="text-sm font-medium">Ajánlott</span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Részletes értékelések */}
+                        <div className="space-y-2 pt-2 border-t border-gray-300/30">
+                          {profileData.pharmaRating.ratings?.megbizhatas && (
+                            <div className="flex items-center justify-between">
+                              <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>Megbízhatóság</span>
+                              <div className="flex items-center gap-1">
+                                {[1,2,3,4,5].map(star => (
+                                  <Star 
+                                    key={star} 
+                                    className={`w-3.5 h-3.5 ${
+                                      star <= Math.round(profileData.pharmaRating.ratings.megbizhatas)
+                                        ? 'fill-amber-500 text-amber-500'
+                                        : darkMode ? 'text-gray-600' : 'text-gray-300'
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {profileData.pharmaRating.ratings?.szakmaiTudas && (
+                            <div className="flex items-center justify-between">
+                              <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>Szakmai tudás</span>
+                              <div className="flex items-center gap-1">
+                                {[1,2,3,4,5].map(star => (
+                                  <Star 
+                                    key={star} 
+                                    className={`w-3.5 h-3.5 ${
+                                      star <= Math.round(profileData.pharmaRating.ratings.szakmaiTudas)
+                                        ? 'fill-amber-500 text-amber-500'
+                                        : darkMode ? 'text-gray-600' : 'text-gray-300'
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {profileData.pharmaRating.ratings?.kommunikacio && (
+                            <div className="flex items-center justify-between">
+                              <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>Kommunikáció</span>
+                              <div className="flex items-center gap-1">
+                                {[1,2,3,4,5].map(star => (
+                                  <Star 
+                                    key={star} 
+                                    className={`w-3.5 h-3.5 ${
+                                      star <= Math.round(profileData.pharmaRating.ratings.kommunikacio)
+                                        ? 'fill-amber-500 text-amber-500'
+                                        : darkMode ? 'text-gray-600' : 'text-gray-300'
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Újra választaná százalék */}
+                        {profileData.pharmaRating.wouldChooseAgainPercent !== undefined && (
+                          <div className={`pt-2 border-t border-gray-300/30 text-center`}>
+                            <span className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                              A gyógyszertárak <span className="font-semibold text-green-600">{profileData.pharmaRating.wouldChooseAgainPercent}%</span>-a újra választaná
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}

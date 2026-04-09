@@ -1,18 +1,27 @@
 "use client";
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useTheme } from '@/context/ThemeContext';
-import { Calendar, BarChart3, HelpCircle } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { Calendar, BarChart3, Star, HelpCircle } from 'lucide-react';
 
 export default function PharmaNavbar({ isVisible = true }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { darkMode } = useTheme();
+  const { userData } = useAuth();
+  
+  const pharmaRole = userData?.pharmagisterRole || null;
+  const userEmail = userData?.email || '';
+  
+  // Admin emails - csak nekik látszik az Értékelés tab egyelőre
+  const RATING_ADMIN_EMAILS = ['epresla@icloud.com', 'etinatina22@gmail.com'];
+  const isRatingAdmin = RATING_ADMIN_EMAILS.includes(userEmail);
   
   // Az aktív tab a ?tab= query paraméterből jön
   const activeTab = searchParams.get('tab') || 'calendar';
 
-  const navItems = [
+  const allNavItems = [
     {
       icon: Calendar,
       label: 'Naptár',
@@ -24,12 +33,30 @@ export default function PharmaNavbar({ isVisible = true }) {
       tab: 'dashboard'
     },
     {
+      icon: Star,
+      label: 'Értékelés',
+      tab: 'ratings',
+      pharmacyOnly: true
+    },
+    {
       icon: HelpCircle,
       label: 'Súgó',
       tab: 'help',
       isLink: true
     }
   ];
+
+  // Szűrjük ki a pharmacyOnly elemeket, ha nem gyógyszertár
+  // Az Értékelés tab csak adminoknak látszik egyelőre
+  const navItems = allNavItems.filter(item => {
+    if (item.tab === 'ratings') {
+      return isRatingAdmin; // Csak adminoknak
+    }
+    if (item.pharmacyOnly) {
+      return pharmaRole === 'pharmacy';
+    }
+    return true;
+  });
 
   const handleTabChange = (item) => {
     if (item.isLink) {
@@ -48,7 +75,7 @@ export default function PharmaNavbar({ isVisible = true }) {
         paddingBottom: 'env(safe-area-inset-bottom, 0px)'
       }}
     >
-      <div className="grid grid-cols-3 gap-1 px-2 py-2">
+      <div className={`grid ${navItems.length === 4 ? 'grid-cols-4' : 'grid-cols-3'} gap-1 px-2 py-2`}>
         {navItems.map((item) => {
           const isActive = !item.isLink && activeTab === item.tab;
           const Icon = item.icon;

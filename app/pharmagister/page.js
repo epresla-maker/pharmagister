@@ -260,6 +260,11 @@ function PharmagisterContent() {
                   <DashboardTab pharmaRole={pharmaRole} />
                 </div>
               )}
+              {activeTab === 'ratings' && (
+                <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-[#E5E7EB]'} border rounded-xl p-6`}>
+                  <RatingsTab />
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -283,6 +288,12 @@ function DashboardTab({ pharmaRole }) {
   const expandDemandId = searchParams.get('expand');
   const PharmaDashboard = require('@/app/components/PharmaDashboard').default;
   return <PharmaDashboard pharmaRole={pharmaRole} expandDemandId={expandDemandId} />;
+}
+
+// Ratings Tab Component (csak gyógyszertáraknak)
+function RatingsTab() {
+  const RatingsTabComponent = require('@/app/components/RatingsTab').default;
+  return <RatingsTabComponent />;
 }
 
 // Wrapper with Suspense boundary
