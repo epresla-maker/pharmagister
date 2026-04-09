@@ -21,7 +21,7 @@ async function sendNotification() {
     userId: adminUser.id,
     type: 'rating_request',
     title: 'Értékeld a helyettesítőt',
-    body: 'Értékelés Teszt készen áll az értékelésre. Kérjük, értékeld a munkáját!',
+    message: 'Értékelés Teszt készen áll az értékelésre. Kérjük, értékeld a munkáját!',
     data: {
       demandId: 'test-demand-for-rating',
       substituteId: 'test-rated-pharmacist-001',

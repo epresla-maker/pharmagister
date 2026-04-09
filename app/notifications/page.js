@@ -97,6 +97,8 @@ export default function NotificationsPage() {
         return '💬';
       case 'content_report':
         return '🚩';
+      case 'rating_request':
+        return '⭐';
       default:
         return '📢';
     }
@@ -119,6 +121,8 @@ export default function NotificationsPage() {
         return 'bg-cyan-50 border-cyan-200';
       case 'content_report':
         return 'bg-red-50 border-red-200';
+      case 'rating_request':
+        return 'bg-amber-50 border-amber-200';
       default:
         return 'bg-blue-50 border-blue-200';
     }
@@ -148,6 +152,10 @@ export default function NotificationsPage() {
     // Jelentés értesítés - navigálás a megfelelő oldalra
     else if (notification.type === 'content_report' && notification.url) {
       router.push(notification.url);
+    }
+    // Értékelés kérés - értékelő oldalra
+    else if (notification.type === 'rating_request' && notification.data?.demandId) {
+      router.push(`/ertekeles/${notification.data.demandId}`);
     }
     // Ha van url a notification data-ban
     else if (notification.url) {
@@ -197,7 +205,7 @@ export default function NotificationsPage() {
                   key={notification.id}
                   onClick={() => handleNotificationClick(notification)}
                   className={`rounded-xl shadow-lg p-6 border-2 ${getNotificationColor(notification.type)} ${
-                    notification.type === 'pharma_application' || notification.type === 'admin_approval_request' || notification.type === 'new_message' || notification.type === 'new_demand' || notification.chatId || notification.url || notification.data?.demandId
+                    notification.type === 'pharma_application' || notification.type === 'admin_approval_request' || notification.type === 'new_message' || notification.type === 'new_demand' || notification.type === 'rating_request' || notification.chatId || notification.url || notification.data?.demandId
                       ? 'cursor-pointer hover:shadow-xl transition-shadow'
                       : ''
                   } ${!notification.read ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}
@@ -215,7 +223,7 @@ export default function NotificationsPage() {
                           </span>
                         )}
                       </div>
-                      <p className="text-gray-700 mb-3">{notification.message}</p>
+                      <p className="text-gray-700 mb-3">{notification.message || notification.body}</p>
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-gray-500">
                           {notification.createdAt?.toLocaleString('hu-HU')}
