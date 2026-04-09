@@ -11,39 +11,137 @@ import { ArrowLeft, Star, Info, Check, Loader2, AlertCircle } from 'lucide-react
 // Admin emails - egyenlőre csak nekik érhető el az értékelő oldal
 const RATING_ADMIN_EMAILS = ['epresla@icloud.com', 'etinatina22@gmail.com'];
 
-const RATING_CRITERIA = [
+const RATING_CATEGORIES = [
   {
-    id: 'reliability',
+    id: 'megbizhatas',
     label: 'Megbízhatóság',
-    descriptions: {
-      1: 'Nem jelent meg / jelentős késés (30+ perc)',
-      2: 'Gyakran késett vagy korábban távozott',
-      3: 'Kisebb időbeli pontatlanságok',
-      4: 'Szinte mindig pontos volt',
-      5: 'Tökéletesen betartotta az időket'
-    }
+    icon: '⏰',
+    criteria: [
+      {
+        id: 'punctuality',
+        label: 'Időben érkezés',
+        descriptions: {
+          1: 'Jelentős késés (30+ perc) vagy meg sem jelent',
+          2: 'Többször is 15-30 percet késett',
+          3: 'Kisebb késések (5-15 perc) előfordultak',
+          4: 'Szinte mindig időben érkezett',
+          5: 'Mindig pontosan, vagy korábban érkezett'
+        }
+      },
+      {
+        id: 'endTime',
+        label: 'Munkaidő betartása',
+        descriptions: {
+          1: 'Rendszeresen korábban távozott',
+          2: 'Néha korábban akart menni',
+          3: 'A munkaidőt nagyjából betartotta',
+          4: 'Megbízhatóan végigdolgozta a műszakot',
+          5: 'Rugalmasan túlórázott is ha kellett'
+        }
+      },
+      {
+        id: 'commitment',
+        label: 'Vállalás betartása',
+        descriptions: {
+          1: 'Lemondta az utolsó pillanatban',
+          2: 'Többször is módosítani akarta az időpontot',
+          3: 'Egy-két kisebb változtatás előfordult',
+          4: 'Elkötelezett volt a megbeszélt időpont mellett',
+          5: 'Maximálisan megbízható, mindig tartotta a szavát'
+        }
+      }
+    ]
   },
   {
-    id: 'expertise',
+    id: 'szakmaiTudas',
     label: 'Szakmai tudás',
-    descriptions: {
-      1: 'Hiányos alapismeretek, sok hiba',
-      2: 'Gyakran kért segítséget, bizonytalan',
-      3: 'Megfelelő, rutinfeladatokat jól végezte',
-      4: 'Magabiztos, ritkán kért segítséget',
-      5: 'Kiváló felkészültség, önálló munkavégzés'
-    }
+    icon: '💊',
+    criteria: [
+      {
+        id: 'medicineKnowledge',
+        label: 'Gyógyszerkészítmények ismerete',
+        descriptions: {
+          1: 'Alapvető hiányosságok, hibák',
+          2: 'Bizonytalan, sokat kellett segíteni',
+          3: 'Átlagos tudás, rutinfeladatokra megfelelő',
+          4: 'Jó gyógyszerismeret, ritkán kérdezett',
+          5: 'Kiváló, naprakész tudás'
+        }
+      },
+      {
+        id: 'prescriptionHandling',
+        label: 'Receptkezelés',
+        descriptions: {
+          1: 'Hibásan kezelte a recepteket',
+          2: 'Bizonytalan volt a szabályokban',
+          3: 'Alapvető receptkezelés rendben',
+          4: 'Precíz és pontos receptkezelés',
+          5: 'Kifogástalan, minden típust ismert'
+        }
+      },
+      {
+        id: 'independence',
+        label: 'Önálló munkavégzés',
+        descriptions: {
+          1: 'Folyamatos felügyelet kellett',
+          2: 'Gyakran kért segítséget',
+          3: 'Rutinfeladatokat önállóan végezte',
+          4: 'Nagyrészt önállóan dolgozott',
+          5: 'Teljesen önálló, proaktív munkavégzés'
+        }
+      },
+      {
+        id: 'softwareUsage',
+        label: 'Patikai szoftver használata',
+        descriptions: {
+          1: 'Nem ismerte a rendszert',
+          2: 'Lassan, nehézkesen használta',
+          3: 'Alapfunkciókat kezelte',
+          4: 'Jól ismerte a szoftvert',
+          5: 'Profi szinten használta'
+        }
+      }
+    ]
   },
   {
-    id: 'communication',
+    id: 'kommunikacio',
     label: 'Kommunikáció',
-    descriptions: {
-      1: 'Nehézkes kommunikáció, konfliktusok',
-      2: 'Visszahúzódó, kevés beteg-interakció',
-      3: 'Megfelelő, átlagos kapcsolattartás',
-      4: 'Jó kommunikáció betegekkel és kollégákkal',
-      5: 'Kiváló, pozitív visszajelzések páciensektől'
-    }
+    icon: '💬',
+    criteria: [
+      {
+        id: 'patientCommunication',
+        label: 'Betegekkel való kommunikáció',
+        descriptions: {
+          1: 'Udvariatlan vagy közömbös volt',
+          2: 'Felületes, gyors kiszolgálás',
+          3: 'Megfelelő, átlagos kommunikáció',
+          4: 'Kedves, türelmes a betegekkel',
+          5: 'Kiváló, a betegek szerették'
+        }
+      },
+      {
+        id: 'teamwork',
+        label: 'Kollégákkal való együttműködés',
+        descriptions: {
+          1: 'Konfliktusok, nehéz együttműködés',
+          2: 'Visszahúzódó, nem kért/adott segítséget',
+          3: 'Megfelelő munkakapcsolat',
+          4: 'Jó csapatjátékos',
+          5: 'Kiválóan beilleszkedett a csapatba'
+        }
+      },
+      {
+        id: 'askingQuestions',
+        label: 'Kérdésfeltevés ha bizonytalan',
+        descriptions: {
+          1: 'Nem kérdezett, hibázott inkább',
+          2: 'Ritkán kérdezett amikor kellett volna',
+          3: 'Időnként rákérdezett',
+          4: 'Megfelelően kérdezett ha kellett',
+          5: 'Proaktívan tisztázta a kérdéseket'
+        }
+      }
+    ]
   }
 ];
 
@@ -51,32 +149,32 @@ function StarRating({ value, onChange, criterion, darkMode, showInfo, setShowInf
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'} truncate`}>
             {criterion.label}
           </span>
           <button
             type="button"
             onClick={() => setShowInfo(showInfo === criterion.id ? null : criterion.id)}
-            className={`p-1 rounded-full transition-colors ${
+            className={`p-0.5 rounded-full transition-colors flex-shrink-0 ${
               showInfo === criterion.id 
                 ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/50 dark:text-purple-400' 
                 : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
             }`}
           >
-            <Info className="w-4 h-4" />
+            <Info className="w-3.5 h-3.5" />
           </button>
         </div>
-        <div className="flex gap-1">
+        <div className="flex gap-0.5 flex-shrink-0">
           {[1, 2, 3, 4, 5].map((star) => (
             <button
               key={star}
               type="button"
               onClick={() => onChange(star)}
-              className="p-1 transition-transform hover:scale-110"
+              className="p-0.5 transition-transform hover:scale-110"
             >
               <Star
-                className={`w-7 h-7 ${
+                className={`w-6 h-6 ${
                   star <= value
                     ? 'fill-yellow-400 text-yellow-400'
                     : darkMode
@@ -91,12 +189,12 @@ function StarRating({ value, onChange, criterion, darkMode, showInfo, setShowInf
       
       {/* Info panel */}
       {showInfo === criterion.id && (
-        <div className={`rounded-lg p-3 text-xs space-y-1 ${
+        <div className={`rounded-lg p-2 text-xs space-y-0.5 ${
           darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-gray-50 border border-gray-200'
         }`}>
           {Object.entries(criterion.descriptions).map(([stars, desc]) => (
             <div key={stars} className="flex gap-2">
-              <span className="font-medium text-yellow-500 w-8">{'★'.repeat(parseInt(stars))}</span>
+              <span className="font-medium text-yellow-500 w-6 flex-shrink-0">{'★'.repeat(parseInt(stars))}</span>
               <span className={darkMode ? 'text-gray-300' : 'text-gray-600'}>{desc}</span>
             </div>
           ))}
@@ -104,6 +202,18 @@ function StarRating({ value, onChange, criterion, darkMode, showInfo, setShowInf
       )}
     </div>
   );
+}
+
+// Kezdeti üres értékelések generálása
+function getInitialRatings() {
+  const initial = {};
+  RATING_CATEGORIES.forEach(category => {
+    initial[category.id] = {};
+    category.criteria.forEach(criterion => {
+      initial[category.id][criterion.id] = 0;
+    });
+  });
+  return initial;
 }
 
 export default function RatingPage() {
@@ -118,18 +228,15 @@ export default function RatingPage() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
   const [showInfo, setShowInfo] = useState(null);
+  const [expandedCategory, setExpandedCategory] = useState('megbizhatas');
   
   const [demand, setDemand] = useState(null);
   const [application, setApplication] = useState(null);
   const [substituteData, setSubstituteData] = useState(null);
   const [existingRating, setExistingRating] = useState(null);
 
-  // Rating form state
-  const [ratings, setRatings] = useState({
-    reliability: 0,
-    expertise: 0,
-    communication: 0
-  });
+  // Rating form state - nested structure
+  const [ratings, setRatings] = useState(getInitialRatings());
   const [wouldChooseAgain, setWouldChooseAgain] = useState(null);
   const [comment, setComment] = useState('');
 
@@ -203,12 +310,10 @@ export default function RatingPage() {
       if (!ratingSnapshot.empty) {
         const ratingData = { id: ratingSnapshot.docs[0].id, ...ratingSnapshot.docs[0].data() };
         setExistingRating(ratingData);
-        // Pre-fill form with existing values
-        setRatings({
-          reliability: ratingData.reliability || 0,
-          expertise: ratingData.expertise || 0,
-          communication: ratingData.communication || 0
-        });
+        // Pre-fill form with existing values (new nested structure)
+        if (ratingData.detailedRatings) {
+          setRatings(ratingData.detailedRatings);
+        }
         setWouldChooseAgain(ratingData.wouldChooseAgain);
         setComment(ratingData.comment || '');
       }
@@ -224,9 +329,20 @@ export default function RatingPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validation
-    if (ratings.reliability === 0 || ratings.expertise === 0 || ratings.communication === 0) {
-      setError('Kérjük, értékelje mindhárom szempontot!');
+    // Validation - check all criteria in all categories
+    let allRated = true;
+    let missingCategory = null;
+    RATING_CATEGORIES.forEach(category => {
+      category.criteria.forEach(criterion => {
+        if (!ratings[category.id]?.[criterion.id] || ratings[category.id][criterion.id] === 0) {
+          allRated = false;
+          if (!missingCategory) missingCategory = category.label;
+        }
+      });
+    });
+
+    if (!allRated) {
+      setError(`Kérjük, értékelje az összes szempontot! (Hiányzik: ${missingCategory})`);
       return;
     }
     if (wouldChooseAgain === null) {
@@ -238,14 +354,39 @@ export default function RatingPage() {
       setSubmitting(true);
       setError(null);
 
+      // Calculate category averages
+      const categoryAverages = {};
+      let totalSum = 0;
+      let totalCount = 0;
+      
+      RATING_CATEGORIES.forEach(category => {
+        let categorySum = 0;
+        let categoryCount = 0;
+        category.criteria.forEach(criterion => {
+          const value = ratings[category.id]?.[criterion.id] || 0;
+          categorySum += value;
+          categoryCount++;
+          totalSum += value;
+          totalCount++;
+        });
+        categoryAverages[category.id] = categorySum / categoryCount;
+      });
+
+      const overallAverage = totalSum / totalCount;
+
       const ratingData = {
         demandId: demandId,
         pharmacyId: user.uid,
         substituteId: application.applicantId,
-        reliability: ratings.reliability,
-        expertise: ratings.expertise,
-        communication: ratings.communication,
-        averageRating: (ratings.reliability + ratings.expertise + ratings.communication) / 3,
+        // Detailed ratings - new structure
+        detailedRatings: ratings,
+        // Category averages for summary
+        categoryAverages: categoryAverages,
+        // Legacy fields for compatibility
+        reliability: categoryAverages.megbizhatas,
+        expertise: categoryAverages.szakmaiTudas,
+        communication: categoryAverages.kommunikacio,
+        averageRating: overallAverage,
         wouldChooseAgain: wouldChooseAgain,
         comment: comment.trim() || null,
         demandDate: demand.date,
@@ -266,7 +407,7 @@ export default function RatingPage() {
 
       setSuccess(true);
       setTimeout(() => {
-        router.push('/pharmagister?tab=dashboard');
+        router.push('/pharmagister?tab=ratings');
       }, 2000);
 
     } catch (err) {
@@ -294,22 +435,25 @@ export default function RatingPage() {
       let totalWouldChooseAgain = 0;
       let count = 0;
 
-      ratingsSnapshot.forEach(doc => {
-        const data = doc.data();
-        totalReliability += data.reliability || 0;
-        totalExpertise += data.expertise || 0;
-        totalCommunication += data.communication || 0;
+      ratingsSnapshot.forEach(d => {
+        const data = d.data();
+        // Use categoryAverages if available, fallback to old structure
+        totalReliability += data.categoryAverages?.megbizhatas || data.reliability || 0;
+        totalExpertise += data.categoryAverages?.szakmaiTudas || data.expertise || 0;
+        totalCommunication += data.categoryAverages?.kommunikacio || data.communication || 0;
         if (data.wouldChooseAgain) totalWouldChooseAgain++;
         count++;
       });
 
       const avgRating = {
-        reliability: totalReliability / count,
-        expertise: totalExpertise / count,
-        communication: totalCommunication / count,
-        overall: (totalReliability + totalExpertise + totalCommunication) / (count * 3),
-        wouldChooseAgainPercent: (totalWouldChooseAgain / count) * 100,
-        count: count
+        averageRating: (totalReliability + totalExpertise + totalCommunication) / (count * 3),
+        ratingCount: count,
+        wouldChooseAgainPercent: Math.round((totalWouldChooseAgain / count) * 100),
+        ratings: {
+          megbizhatas: totalReliability / count,
+          szakmaiTudas: totalExpertise / count,
+          kommunikacio: totalCommunication / count
+        }
       };
 
       // Update user document
@@ -387,11 +531,11 @@ export default function RatingPage() {
             </button>
             <h1 className="text-xl font-bold text-white">Helyettesítő értékelése</h1>
             <p className="text-purple-100 text-sm mt-1">
-              {demand?.date && new Date(demand.date).toLocaleDateString('hu-HU', { 
+              {demand?.date && (demand.date.toDate ? demand.date.toDate() : new Date(demand.date)).toLocaleDateString('hu-HU', { 
                 year: 'numeric', 
                 month: 'long', 
                 day: 'numeric' 
-              })} - {substituteData?.displayName || 'Ismeretlen'}
+              })} - {substituteData?.displayName || substituteData?.name || 'Ismeretlen'}
             </p>
           </div>
         </div>
@@ -425,23 +569,85 @@ export default function RatingPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Rating criteria */}
-            <div className={`rounded-xl p-4 space-y-6 ${
-              darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'
-            }`}>
-              {RATING_CRITERIA.map((criterion) => (
-                <StarRating
-                  key={criterion.id}
-                  criterion={criterion}
-                  value={ratings[criterion.id]}
-                  onChange={(value) => setRatings(prev => ({ ...prev, [criterion.id]: value }))}
-                  darkMode={darkMode}
-                  showInfo={showInfo}
-                  setShowInfo={setShowInfo}
-                />
-              ))}
-            </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Rating categories */}
+            {RATING_CATEGORIES.map((category) => {
+              const isExpanded = expandedCategory === category.id;
+              // Calculate category completion
+              const criteriaCount = category.criteria.length;
+              const ratedCount = category.criteria.filter(c => ratings[category.id]?.[c.id] > 0).length;
+              const categoryAvg = ratedCount > 0 
+                ? (category.criteria.reduce((sum, c) => sum + (ratings[category.id]?.[c.id] || 0), 0) / criteriaCount).toFixed(1)
+                : null;
+
+              return (
+                <div key={category.id} className={`rounded-xl overflow-hidden ${
+                  darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'
+                }`}>
+                  {/* Category header */}
+                  <button
+                    type="button"
+                    onClick={() => setExpandedCategory(isExpanded ? null : category.id)}
+                    className={`w-full p-4 flex items-center justify-between transition-colors ${
+                      darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{category.icon}</span>
+                      <div className="text-left">
+                        <h3 className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                          {category.label}
+                        </h3>
+                        <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                          {ratedCount}/{criteriaCount} értékelve
+                          {categoryAvg && <span className="ml-2 text-yellow-500">⭐ {categoryAvg}</span>}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {ratedCount === criteriaCount && (
+                        <Check className="w-5 h-5 text-green-500" />
+                      )}
+                      <svg 
+                        className={`w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''} ${
+                          darkMode ? 'text-gray-400' : 'text-gray-500'
+                        }`} 
+                        fill="none" 
+                        viewBox="0 0 24 24" 
+                        stroke="currentColor"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </button>
+
+                  {/* Category criteria */}
+                  {isExpanded && (
+                    <div className={`px-4 pb-4 space-y-4 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                      <div className="pt-4 space-y-4">
+                        {category.criteria.map((criterion) => (
+                          <StarRating
+                            key={criterion.id}
+                            criterion={criterion}
+                            value={ratings[category.id]?.[criterion.id] || 0}
+                            onChange={(value) => setRatings(prev => ({
+                              ...prev,
+                              [category.id]: {
+                                ...prev[category.id],
+                                [criterion.id]: value
+                              }
+                            }))}
+                            darkMode={darkMode}
+                            showInfo={showInfo}
+                            setShowInfo={setShowInfo}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
 
             {/* Would choose again */}
             <div className={`rounded-xl p-4 ${
