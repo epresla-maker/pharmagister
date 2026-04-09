@@ -1,4 +1,4 @@
-// Teszt értékelési értesítés küldése az adminoknak
+// Teszt értékelési értesítés küldése az adminoknak (in-app + push)
 const admin = require('firebase-admin');
 
 if (!admin.apps.length) {
@@ -59,6 +59,7 @@ async function sendTestRatingNotifications() {
   console.log('\n📬 Értesítések küldése...');
   
   for (const adminUser of adminUsers) {
+    // In-app notification
     const notificationData = {
       userId: adminUser.id,
       type: 'rating_reminder',
@@ -71,7 +72,49 @@ async function sendTestRatingNotifications() {
     };
 
     await db.collection('notifications').add(notificationData);
-    console.log(`  ✅ Értesítés küldve: ${adminUser.email}`);
+    console.log(`  ✅ In-app értesítés: ${adminUser.email}`);
+    
+    // Push notification
+    const subsSnapshot = await db.collection('pushSubscriptions')
+      .where('userId', '==', adminUser.id)
+      .get();
+    
+    for (const subDoc of subsSnapshot.docs) {
+      const sub = subDoc.data();
+      if (sub.fcmToken) {
+        try {
+          await admin.messaging().send({
+            token: sub.fcmToken,
+            notification: {
+              title: 'Értékeld a helyettesítőt! ⭐',
+              body: 'Hogy dolgoztatok együtt? Értékeld Teszt Gyógyszerész munkáját!',
+            },
+            data: {
+              url: `/ertekeles/${testDemandId}`,
+              type: 'rating_reminder',
+            },
+            android: {
+              priority: 'high',
+              notification: { channelId: 'pharmagister_channel' },
+            },
+            apns: {
+              payload: {
+                aps: {
+                  alert: {
+                    title: 'Értékeld a helyettesítőt! ⭐',
+                    body: 'Hogy dolgoztatok együtt? Értékeld Teszt Gyógyszerész munkáját!',
+                  },
+                  sound: 'default',
+                },
+              },
+            },
+          });
+          console.log(`  📱 Push küldve: ${adminUser.email}`);
+        } catch (pushErr) {
+          console.log(`  ⚠️ Push hiba (${adminUser.email}): ${pushErr.message}`);
+        }
+      }
+    }
   }
 
   console.log('\n🎉 Kész! Az értesítések megjelennek az appban.');

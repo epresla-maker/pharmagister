@@ -229,7 +229,7 @@ export default function AdminUsersPage() {
                     const hasPush = pushUserIds.has(u.id);
                     const isActivated = !!(u.lastLogin || u.lastSeen);
                     return (
-                      <tr key={u.id} className="border-b last:border-0 hover:bg-gray-50 transition-colors">
+                      <tr key={u.id} className="border-b last:border-0 hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => router.push(`/profil/${u.id}`)}>
                         <td className="py-3 px-4 text-center text-gray-400 text-xs font-mono">{index + 1}</td>
                         <td className="py-3 px-4">
                           <p className="font-medium text-gray-800">
@@ -297,7 +297,7 @@ export default function AdminUsersPage() {
                 const hasPush = pushUserIds.has(u.id);
                 const isActivated = !!(u.lastLogin || u.lastSeen);
                 return (
-                  <div key={u.id} className="p-4">
+                  <div key={u.id} className="p-4 cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => router.push(`/profil/${u.id}`)}>
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-start gap-2">
                         <span className="text-xs text-gray-400 font-mono mt-0.5">{index + 1}.</span>
