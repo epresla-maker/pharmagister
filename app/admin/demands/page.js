@@ -61,8 +61,14 @@ function formatDate(val) {
 
 function formatDayOnly(dateStr) {
   if (!dateStr) return "-";
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return dateStr;
+  // Handle Firestore Timestamp
+  if (dateStr.toDate) {
+    dateStr = dateStr.toDate();
+  } else if (dateStr.seconds) {
+    dateStr = new Date(dateStr.seconds * 1000);
+  }
+  const d = dateStr instanceof Date ? dateStr : new Date(dateStr);
+  if (isNaN(d.getTime())) return "-";
   return d.toLocaleDateString("hu-HU", {
     year: "numeric",
     month: "long",
@@ -109,7 +115,14 @@ function getDemandState(demand) {
       icon: CheckCircle2,
     };
   }
-  if (demand.date && demand.date < today) {
+  // Handle Timestamp for date comparison
+  let demandDateStr = demand.date;
+  if (demand.date?.toDate) {
+    demandDateStr = demand.date.toDate().toISOString().split("T")[0];
+  } else if (demand.date?.seconds) {
+    demandDateStr = new Date(demand.date.seconds * 1000).toISOString().split("T")[0];
+  }
+  if (demandDateStr && demandDateStr < today) {
     return {
       key: "expired",
       label: "Lejárt",
