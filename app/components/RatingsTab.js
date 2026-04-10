@@ -3,12 +3,9 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useRouter } from 'next/navigation';
-import { collection, query, where, getDocs, orderBy, doc, getDoc, limit } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Star, User, Calendar, MapPin, Clock, CheckCircle, Loader2 } from 'lucide-react';
-
-// Admin emails - egyenlőre csak nekik érhető el
-const RATING_ADMIN_EMAILS = ['epresla@icloud.com', 'etinatina22@gmail.com'];
 
 export default function RatingsTab() {
   const { user } = useAuth();
@@ -18,8 +15,6 @@ export default function RatingsTab() {
   const [demands, setDemands] = useState([]);
   const [ratings, setRatings] = useState({});
   const [loading, setLoading] = useState(true);
-  
-  const isAdmin = RATING_ADMIN_EMAILS.includes(user?.email);
 
   useEffect(() => {
     if (user?.uid) {
@@ -30,28 +25,15 @@ export default function RatingsTab() {
   const loadDemandsAndRatings = async () => {
     setLoading(true);
     try {
-      // Múltbeli, elfogadott igények lekérése
-      // Admin: összes igény | Normál user: csak sajátjai
+      // Múltbeli, elfogadott igények lekérése - csak saját igények
       const now = new Date();
-      let demandsQuery;
       
-      if (isAdmin) {
-        // Admin: minden elfogadott/completed igény (limit 50 a költségek miatt)
-        demandsQuery = query(
-          collection(db, 'pharmaDemands'),
-          where('status', 'in', ['accepted', 'completed']),
-          orderBy('date', 'desc'),
-          limit(50)
-        );
-      } else {
-        // Normál: csak saját igények
-        demandsQuery = query(
-          collection(db, 'pharmaDemands'),
-          where('userId', '==', user.uid),
-          where('status', 'in', ['accepted', 'completed']),
-          orderBy('date', 'desc')
-        );
-      }
+      const demandsQuery = query(
+        collection(db, 'pharmaDemands'),
+        where('pharmacyId', '==', user.uid),
+        where('status', 'in', ['accepted', 'completed']),
+        orderBy('date', 'desc')
+      );
       
       const demandsSnapshot = await getDocs(demandsQuery);
       const demandsData = [];

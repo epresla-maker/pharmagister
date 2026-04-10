@@ -19,10 +19,11 @@ service cloud.firestore {
       // Írás: csak saját profil
       allow create, delete: if isAuthenticated() && request.auth.uid == userId;
       
-      // Update: saját profil VAGY email verifikáció (bárki frissítheti ezeket a mezőket)
+      // Update: saját profil VAGY email verifikáció VAGY pharmaRating frissítés (értékelés után)
       allow update: if (isAuthenticated() && request.auth.uid == userId) ||
                        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['emailVerified', 'verificationToken', 'verificationTokenExpires']) &&
-                        request.resource.data.emailVerified == true);
+                        request.resource.data.emailVerified == true) ||
+                       (isAuthenticated() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pharmaRating', 'pharmaRatingUpdatedAt']));
     }
     
     // Pharmagister collections
@@ -128,6 +129,13 @@ service cloud.firestore {
     match /substitutionRequests/{requestId} {
       allow read: if isAuthenticated();
       allow write: if isAuthenticated();
+    }
+    
+    // Ratings - pharmacies can rate substitutes
+    match /ratings/{ratingId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && resource.data.pharmacyId == request.auth.uid;
     }
     
     // Sent emails - admin only

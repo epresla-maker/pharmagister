@@ -12,11 +12,6 @@ export default function PharmaNavbar({ isVisible = true }) {
   const { userData } = useAuth();
   
   const pharmaRole = userData?.pharmagisterRole || null;
-  const userEmail = userData?.email || '';
-  
-  // Admin emails - csak nekik látszik az Értékelés tab egyelőre
-  const RATING_ADMIN_EMAILS = ['epresla@icloud.com', 'etinatina22@gmail.com'];
-  const isRatingAdmin = RATING_ADMIN_EMAILS.includes(userEmail);
   
   // Az aktív tab a ?tab= query paraméterből jön
   const activeTab = searchParams.get('tab') || 'calendar';
@@ -47,11 +42,7 @@ export default function PharmaNavbar({ isVisible = true }) {
   ];
 
   // Szűrjük ki a pharmacyOnly elemeket, ha nem gyógyszertár
-  // Az Értékelés tab csak adminoknak látszik egyelőre
   const navItems = allNavItems.filter(item => {
-    if (item.tab === 'ratings') {
-      return isRatingAdmin; // Csak adminoknak
-    }
     if (item.pharmacyOnly) {
       return pharmaRole === 'pharmacy';
     }

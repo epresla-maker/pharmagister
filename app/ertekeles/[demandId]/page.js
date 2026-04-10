@@ -8,9 +8,6 @@ import { db } from '@/lib/firebase';
 import { doc, getDoc, collection, query, where, getDocs, addDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { ArrowLeft, Star, Info, Check, Loader2, AlertCircle } from 'lucide-react';
 
-// Admin emails - egyenlőre csak nekik érhető el az értékelő oldal
-const RATING_ADMIN_EMAILS = ['epresla@icloud.com', 'etinatina22@gmail.com'];
-
 const RATING_CATEGORIES = [
   {
     id: 'megbizhatas',
@@ -247,14 +244,6 @@ export default function RatingPage() {
   const loadData = async () => {
     if (!demandId || !user) return;
     
-    // Admin check - egyelőre csak adminok érhetik el
-    const userEmail = user.email || '';
-    if (!RATING_ADMIN_EMAILS.includes(userEmail)) {
-      setError('Ez a funkció jelenleg tesztelés alatt áll.');
-      setLoading(false);
-      return;
-    }
-    
     try {
       setLoading(true);
       setError(null);
@@ -268,11 +257,10 @@ export default function RatingPage() {
       const demandData = { id: demandDoc.id, ...demandDoc.data() };
       setDemand(demandData);
 
-      // Check if user is the pharmacy owner (vagy admin)
+      // Check if user is the pharmacy owner
       const isPharmacyOwner = demandData.pharmacyId === user.uid;
-      const isAdmin = RATING_ADMIN_EMAILS.includes(user.email);
       
-      if (!isPharmacyOwner && !isAdmin) {
+      if (!isPharmacyOwner) {
         setError('Csak a gyógyszertár értékelheti a helyettesítőt.');
         return;
       }
