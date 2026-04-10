@@ -132,10 +132,10 @@ export default function RatingsTab() {
       <div className="text-center py-12">
         <Star className={`w-12 h-12 mx-auto mb-4 ${darkMode ? 'text-gray-600' : 'text-gray-300'}`} />
         <h3 className={`text-lg font-semibold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-          Nincs értékelhető igény
+          Nincs értékelhető helyettesítés
         </h3>
         <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-          Amikor egy elfogadott helyettesítés lezárul, itt tudod majd értékelni.
+          Amikor egy elfogadott helyettesítés lezárul, itt tudod majd értékelni a helyettesítőt.
         </p>
       </div>
     );
@@ -148,7 +148,7 @@ export default function RatingsTab() {
           Értékelhető helyettesítések
         </h2>
         <span className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-          {demands.length} igény
+          {demands.length} helyettesítés
         </span>
       </div>
 
