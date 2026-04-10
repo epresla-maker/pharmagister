@@ -30,19 +30,15 @@ export async function GET(request) {
     const yesterday = new Date(now);
     yesterday.setDate(yesterday.getDate() - 1);
     
-    // Tegnap kezdete és vége
-    const yesterdayStart = new Date(yesterday);
-    yesterdayStart.setHours(0, 0, 0, 0);
-    const yesterdayEnd = new Date(yesterday);
-    yesterdayEnd.setHours(23, 59, 59, 999);
+    // Tegnapi dátum YYYY-MM-DD formátumban (a date mező string formátumú)
+    const yesterdayStr = yesterday.toISOString().split('T')[0]; // '2026-04-09'
 
-    console.log(`📅 Looking for demands from: ${yesterdayStart.toISOString()} to ${yesterdayEnd.toISOString()}`);
+    console.log(`📅 Looking for demands with date: ${yesterdayStr}`);
 
-    // 1. QUERY: Tegnapi igények (date range szűrés Firestore-ban)
-    // Status szűrés memóriában, mert range + in filter problémás lehet
+    // 1. QUERY: Tegnapi igények (exact date match, mert string mező)
+    // Status szűrés memóriában, mert equality + in filter problémás lehet
     const demandsSnapshot = await db.collection('pharmaDemands')
-      .where('date', '>=', admin.firestore.Timestamp.fromDate(yesterdayStart))
-      .where('date', '<=', admin.firestore.Timestamp.fromDate(yesterdayEnd))
+      .where('date', '==', yesterdayStr)
       .get();
 
     console.log(`📋 Found ${demandsSnapshot.size} demands from yesterday`);
