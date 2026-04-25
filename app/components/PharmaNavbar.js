@@ -2,6 +2,7 @@
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
+import { canAccessScheduleManager } from '@/lib/pharmagisterFeatures';
 import { Calendar, BarChart3, Star, HelpCircle } from 'lucide-react';
 
 export default function PharmaNavbar({ isVisible = true }) {
@@ -9,9 +10,10 @@ export default function PharmaNavbar({ isVisible = true }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { darkMode } = useTheme();
-  const { userData } = useAuth();
+  const { user, userData } = useAuth();
   
   const pharmaRole = userData?.pharmagisterRole || null;
+  const showScheduleManager = canAccessScheduleManager(user, userData);
   
   // Az aktív tab a ?tab= query paraméterből jön
   const activeTab = searchParams.get('tab') || 'calendar';
@@ -38,11 +40,20 @@ export default function PharmaNavbar({ isVisible = true }) {
       label: 'Súgó',
       tab: 'help',
       isLink: true
+    },
+    {
+      icon: BarChart3,
+      label: 'Beosztások kezelése',
+      tab: 'schedule-manager',
+      adminOnly: true
     }
   ];
 
   // Szűrjük ki a pharmacyOnly elemeket, ha nem gyógyszertár
   const navItems = allNavItems.filter(item => {
+    if (item.adminOnly) {
+      return showScheduleManager;
+    }
     if (item.pharmacyOnly) {
       return pharmaRole === 'pharmacy';
     }

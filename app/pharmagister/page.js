@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import RouteGuard from '@/app/components/RouteGuard';
 import PharmaNavbar from '@/app/components/PharmaNavbar';
 import { useBadges } from '@/context/BadgesContext';
-import { db } from '@/lib/firebase';
+import { canAccessScheduleManager } from '@/lib/pharmagisterFeatures';
 
 function PharmagisterContent() {
   const { user, userData } = useAuth();
@@ -23,9 +23,11 @@ function PharmagisterContent() {
   
   // Az aktív tab a query paraméterből jön (alapértelmezett: 'calendar')
   const activeTab = searchParams.get('tab') || 'calendar';
+  const showScheduleManager = canAccessScheduleManager(user, userData);
   
   // Pharmagister szerepkör: 'pharmacy' (Gyógyszertár), 'pharmacist' (Gyógyszerész), 'assistant' (Szakasszisztens)
   const pharmaRole = userData?.pharmagisterRole || null;
+  const showPharmaNavbar = pharmaRole && activeTab !== 'schedule-manager';
   const profileComplete = userData?.pharmaProfileComplete || false;
 
   // Detect standalone mode once on mount
@@ -81,6 +83,12 @@ function PharmagisterContent() {
     }
   }, [searchParams, isStandalone, deferredPrompt, handleInstallClick]);
 
+  useEffect(() => {
+    if (activeTab === 'schedule-manager' && !showScheduleManager) {
+      router.replace('/pharmagister?tab=calendar');
+    }
+  }, [activeTab, showScheduleManager, router]);
+
   // ✅ TÖRÖLVE: Duplikált notification listener - most már useDashboardBadges-ből jön
 
   // --- SCROLL FIGYELÉS A NAVBAR ELREJTÉSÉHEZ ---
@@ -114,7 +122,7 @@ function PharmagisterContent() {
 
   return (
     <RouteGuard>
-      <div className={`min-h-screen ${darkMode ? 'bg-gray-900 text-white' : 'bg-[#F9FAFB] text-[#111827]'} ${pharmaRole ? 'pb-[146px]' : 'pb-40'}`}>
+      <div className={`min-h-screen ${darkMode ? 'bg-gray-900 text-white' : 'bg-[#F9FAFB] text-[#111827]'} ${showPharmaNavbar ? 'pb-[146px]' : 'pb-24'}`}>
         <div className="max-w-[420px] sm:max-w-2xl lg:max-w-5xl xl:max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pt-safe">
           
           {/* Header */}
@@ -265,13 +273,18 @@ function PharmagisterContent() {
                   <RatingsTab />
                 </div>
               )}
+              {activeTab === 'schedule-manager' && showScheduleManager && (
+                <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-[#E5E7EB]'} border rounded-xl p-6`}>
+                  <ScheduleManagerTab pharmaRole={pharmaRole} />
+                </div>
+              )}
             </div>
           )}
         </div>
       </div>
       
       {/* Pharma Navbar - csak ha van szerepkör */}
-      {pharmaRole && <PharmaNavbar isVisible={showNavbar} />}
+      {showPharmaNavbar && <PharmaNavbar isVisible={showNavbar} />}
     </RouteGuard>
   );
 }
@@ -294,6 +307,12 @@ function DashboardTab({ pharmaRole }) {
 function RatingsTab() {
   const RatingsTabComponent = require('@/app/components/RatingsTab').default;
   return <RatingsTabComponent />;
+}
+
+// Schedule Manager Tab Component
+function ScheduleManagerTab({ pharmaRole }) {
+  const ScheduleManagerTabComponent = require('@/app/components/ScheduleManagerTab').default;
+  return <ScheduleManagerTabComponent pharmaRole={pharmaRole} />;
 }
 
 // Wrapper with Suspense boundary

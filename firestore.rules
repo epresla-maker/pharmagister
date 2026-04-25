@@ -137,6 +137,23 @@ service cloud.firestore {
       allow create: if isAuthenticated();
       allow update, delete: if isAuthenticated() && resource.data.pharmacyId == request.auth.uid;
     }
+
+    // Pharmagister schedule manager collections
+    match /pharmacyEmployees/{employeeId} {
+      allow read, write: if isAdmin() || isAuthenticated();
+    }
+
+    match /pharmacySchedules/{scheduleId} {
+      allow read, write: if isAdmin() || isAuthenticated();
+    }
+
+    match /scheduleSwapRequests/{requestId} {
+      allow read, write: if isAdmin() || isAuthenticated();
+    }
+
+    match /scheduleVacationRequests/{requestId} {
+      allow read, write: if isAdmin() || isAuthenticated();
+    }
     
     // Sent emails - admin only
     match /sentEmails/{emailId} {
