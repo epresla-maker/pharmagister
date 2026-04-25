@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer';
 import { NextResponse } from 'next/server';
-import { verifyAdmin } from '@/lib/apiAuth';
+import { verifyAuth } from '@/lib/apiAuth';
 
 export const runtime = 'nodejs';
 
@@ -52,15 +52,24 @@ function buildHtml({ employeeName, pharmacyName, pharmacyEmail }) {
 
 export async function POST(request) {
   try {
-    const adminUser = await verifyAdmin(request);
-    if (!adminUser) {
-      return NextResponse.json({ error: 'Nincs admin jogosultság' }, { status: 403 });
+    const authUser = await verifyAuth(request);
+    if (!authUser) {
+      return NextResponse.json({ error: 'Nincs jogosultsag' }, { status: 401 });
     }
 
     const { employeeEmail, employeeName, pharmacyName, pharmacyEmail } = await request.json();
 
     if (!employeeEmail) {
       return NextResponse.json({ error: 'A dolgozó email címe kötelező' }, { status: 400 });
+    }
+
+    if (!process.env.SMTP_PASS) {
+      console.warn('notify-employee-added: SMTP_PASS missing, email notification skipped');
+      return NextResponse.json({
+        success: false,
+        skipped: true,
+        reason: 'smtp_not_configured',
+      });
     }
 
     const transporter = nodemailer.createTransport({
@@ -77,12 +86,21 @@ export async function POST(request) {
       }
     });
 
-    await transporter.sendMail({
-      from: '"Pharmagister" <info@pharmagister.hu>',
-      to: employeeEmail,
-      subject: 'Pharmagister - Felvettek egy gyógyszertár dolgozói közé',
-      html: buildHtml({ employeeName, pharmacyName, pharmacyEmail })
-    });
+    try {
+      await transporter.sendMail({
+        from: '"Pharmagister" <info@pharmagister.hu>',
+        to: employeeEmail,
+        subject: 'Pharmagister - Felvettek egy gyógyszertár dolgozói közé',
+        html: buildHtml({ employeeName, pharmacyName, pharmacyEmail })
+      });
+    } catch (mailError) {
+      console.error('Employee added notification email send failed:', mailError);
+      return NextResponse.json({
+        success: false,
+        skipped: true,
+        reason: 'email_send_failed',
+      });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
