@@ -2115,41 +2115,43 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
       {!loading && ((isPharmacy && (mainTab === 'schedule' || mainTab === 'history')) || !isPharmacy) ? (
         <div className="space-y-6">
-          <div className={`rounded-2xl border p-5 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Field label="Év">
-                <select value={year} onChange={e => setYear(Number(e.target.value))} className="w-full rounded-xl border px-3 py-2 bg-transparent">
-                  {availableYears.map(item => <option key={item} value={item}>{item}</option>)}
-                </select>
-              </Field>
-              <Field label="Hónap">
-                <select value={month} onChange={e => setMonth(Number(e.target.value))} className="w-full rounded-xl border px-3 py-2 bg-transparent">
-                  {MONTHS_HU.map((label, index) => <option key={label} value={index + 1}>{label}</option>)}
-                </select>
-              </Field>
-              <Field label="Nap">
-                <select value={day} onChange={e => setDay(Number(e.target.value))} className="w-full rounded-xl border px-3 py-2 bg-transparent">
-                  {Array.from({ length: getDaysInMonth(year, month) }, (_, index) => index + 1).map(item => <option key={item} value={item}>{item}</option>)}
-                </select>
-              </Field>
+          {isPharmacy ? (
+            <div className={`rounded-2xl border p-5 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Field label="Év">
+                  <select value={year} onChange={e => setYear(Number(e.target.value))} className="w-full rounded-xl border px-3 py-2 bg-transparent">
+                    {availableYears.map(item => <option key={item} value={item}>{item}</option>)}
+                  </select>
+                </Field>
+                <Field label="Hónap">
+                  <select value={month} onChange={e => setMonth(Number(e.target.value))} className="w-full rounded-xl border px-3 py-2 bg-transparent">
+                    {MONTHS_HU.map((label, index) => <option key={label} value={index + 1}>{label}</option>)}
+                  </select>
+                </Field>
+                <Field label="Nap">
+                  <select value={day} onChange={e => setDay(Number(e.target.value))} className="w-full rounded-xl border px-3 py-2 bg-transparent">
+                    {Array.from({ length: getDaysInMonth(year, month) }, (_, index) => index + 1).map(item => <option key={item} value={item}>{item}</option>)}
+                  </select>
+                </Field>
+              </div>
+
+              <MonthCalendar
+                year={year}
+                month={month}
+                selectedDate={selectedDate}
+                schedules={visibleSchedules}
+                ownScheduleIds={ownScheduleIds}
+                onSelectDate={(dateKey) => {
+                  const [, nextMonth, nextDay] = dateKey.split('-').map(Number);
+                  setMonth(nextMonth);
+                  setDay(nextDay);
+                }}
+                darkMode={darkMode}
+              />
             </div>
+          ) : null}
 
-            <MonthCalendar
-              year={year}
-              month={month}
-              selectedDate={selectedDate}
-              schedules={visibleSchedules}
-              ownScheduleIds={ownScheduleIds}
-              onSelectDate={(dateKey) => {
-                const [, nextMonth, nextDay] = dateKey.split('-').map(Number);
-                setMonth(nextMonth);
-                setDay(nextDay);
-              }}
-              darkMode={darkMode}
-            />
-          </div>
-
-          {(isPharmacy && mainTab === 'schedule') || (!isPharmacy && mainTab === 'mine') ? (
+          {isPharmacy && mainTab === 'schedule' ? (
             <MonthlyRosterTable
               year={year}
               month={month}
@@ -2690,7 +2692,29 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           {!isPharmacy && mainTab === 'mine' ? (
             <div className="grid grid-cols-1 xl:grid-cols-[1.05fr,0.95fr] gap-6">
               <div className={`rounded-2xl border p-5 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
-                <h3 className="mb-4 text-lg font-semibold">Saját beosztás kiemelve</h3>
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-lg font-semibold">Saját beosztás – {MONTHS_HU[month - 1]} {year}</h3>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (month === 1) { setYear(y => y - 1); setMonth(12); } else { setMonth(m => m - 1); }
+                      }}
+                      className={`rounded-lg border px-3 py-1.5 text-sm font-medium ${darkMode ? 'border-gray-600 bg-gray-800 text-gray-200 hover:bg-gray-700' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'}`}
+                    >
+                      ‹
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (month === 12) { setYear(y => y + 1); setMonth(1); } else { setMonth(m => m + 1); }
+                      }}
+                      className={`rounded-lg border px-3 py-1.5 text-sm font-medium ${darkMode ? 'border-gray-600 bg-gray-800 text-gray-200 hover:bg-gray-700' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'}`}
+                    >
+                      ›
+                    </button>
+                  </div>
+                </div>
                 <MonthCalendar
                   year={year}
                   month={month}
