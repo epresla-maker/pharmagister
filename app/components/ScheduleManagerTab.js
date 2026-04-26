@@ -1215,10 +1215,9 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   }
 
   // Quick-swap: initiated from a specific own shift card
-  async function handleQuickSwapRequest(requesterScheduleId, targetScheduleId, message) {
+  async function handleQuickSwapRequest(requesterScheduleId, targetScheduleIdOrVirtual, message) {
     const requesterSchedule = schedules.find(item => item.id === requesterScheduleId);
-    const targetSchedule = schedules.find(item => item.id === targetScheduleId);
-    if (!requesterSchedule || !targetSchedule) {
+    if (!requesterSchedule) {
       setStatusError('Beosztás nem található.');
       return;
     }
@@ -1227,6 +1226,38 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     setStatusError('');
     setStatusMessage('');
     try {
+      // If the target is a virtual free-day entry, create an off schedule for them first
+      let resolvedTargetId = targetScheduleIdOrVirtual;
+      let resolvedTargetInfo = schedules.find(item => item.id === targetScheduleIdOrVirtual);
+
+      if (String(targetScheduleIdOrVirtual).startsWith('virtual:')) {
+        const allCandidates = getSwapCandidatesForSchedule(requesterScheduleId);
+        const virtual = allCandidates.find(c => c.id === targetScheduleIdOrVirtual);
+        if (!virtual) throw new Error('Nem található a kiválasztott dolgozó.');
+        const newDocRef = await addDoc(collection(db, 'pharmacySchedules'), {
+          pharmacyId: virtual.pharmacyId,
+          employeeId: virtual.employeeId,
+          employeeName: virtual.employeeName,
+          employeeEmail: virtual.employeeEmail,
+          linkedUserId: virtual.linkedUserId || null,
+          role: virtual.role,
+          date: virtual.date,
+          year: virtual.year,
+          month: virtual.month,
+          day: virtual.day,
+          startTime: '00:00',
+          endTime: '00:00',
+          shiftType: 'off',
+          notes: 'Szabad nap (csere céljából rögzítve)',
+          status: 'active',
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+        resolvedTargetId = newDocRef.id;
+        resolvedTargetInfo = { ...virtual, id: resolvedTargetId };
+      }
+
+      const targetSchedule = resolvedTargetInfo || { id: resolvedTargetId, employeeName: '', employeeEmail: '', linkedUserId: null, date: requesterSchedule.date };
       await addDoc(collection(db, 'scheduleSwapRequests'), {
         pharmacyId: requesterSchedule.pharmacyId,
         requesterUserId: user.uid,
@@ -1579,15 +1610,45 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     const own = schedules.find(item => item.id === scheduleId);
     if (!own) return [];
 
-    // All schedules on the same day, not own, not deleted
-    return schedules.filter((item) => {
+    // Employees who already have a schedule entry on this day (not own, not deleted)
+    const withEntry = schedules.filter((item) => {
       if (item.id === scheduleId) return false;
       if (item.status === 'deleted') return false;
       if (item.date !== own.date) return false;
-      // Exclude if the exact same employee already (shouldn't happen, but guard)
       if (item.employeeId === own.employeeId) return false;
       return true;
     });
+
+    const employeesWithEntry = new Set(withEntry.map(item => item.employeeId).filter(Boolean));
+
+    // Active employees who have NO entry on this day → implicitly free
+    const freeDayCandidates = activeEmployees
+      .filter(emp => {
+        if (!emp.id) return false;
+        if (emp.id === own.employeeId) return false;
+        if (employeesWithEntry.has(emp.id)) return false;
+        return true;
+      })
+      .map(emp => ({
+        _virtual: true,
+        id: `virtual:${emp.id}:${own.date}`,
+        employeeId: emp.id,
+        employeeName: emp.name || emp.employeeName || 'Ismeretlen',
+        employeeEmail: normalizeEmail(emp.email || ''),
+        linkedUserId: emp.linkedUserId || null,
+        pharmacyId: own.pharmacyId,
+        role: emp.role || '',
+        date: own.date,
+        year: own.year,
+        month: own.month,
+        day: own.day,
+        startTime: 'Szabad nap',
+        endTime: '',
+        shiftType: 'off',
+        status: 'active',
+      }));
+
+    return [...withEntry, ...freeDayCandidates];
   }
 
   async function handleCreateVacationRequest() {
