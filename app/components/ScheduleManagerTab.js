@@ -2690,10 +2690,10 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           ) : null}
 
           {!isPharmacy && mainTab === 'mine' ? (
-            <div className="grid grid-cols-1 xl:grid-cols-[1.05fr,0.95fr] gap-6">
+            <div className="space-y-6">
               <div className={`rounded-2xl border p-5 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
                 <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-lg font-semibold">Saját beosztás – {MONTHS_HU[month - 1]} {year}</h3>
+                  <h3 className="text-lg font-semibold">Beosztásom – {MONTHS_HU[month - 1]} {year}</h3>
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
@@ -2715,17 +2715,13 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                     </button>
                   </div>
                 </div>
-                <MonthCalendar
+                <MonthlyRosterTable
                   year={year}
                   month={month}
-                  selectedDate={selectedDate}
                   schedules={schedules.filter(item => item.status !== 'deleted')}
-                  ownScheduleIds={ownScheduleIds}
-                  onSelectDate={(dateKey) => {
-                    const [, nextMonth, nextDay] = dateKey.split('-').map(Number);
-                    setMonth(nextMonth);
-                    setDay(nextDay);
-                  }}
+                  employees={activeEmployees}
+                  ownEmployeeRecords={ownEmployeeRecords}
+                  user={user}
                   darkMode={darkMode}
                 />
               </div>
