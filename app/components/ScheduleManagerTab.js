@@ -24,6 +24,7 @@ import {
   CheckCircle2,
   Copy,
   Download,
+  Bird,
   Info,
   Plane,
   Plus,
@@ -184,6 +185,53 @@ function prettyRole(role) {
   return 'Egyéb';
 }
 
+function normalizeEmployeeRole(role) {
+  const normalized = String(role || '').trim().toLowerCase();
+  if (normalized === 'pharmacist' || normalized === 'gyógyszerész') return 'pharmacist';
+  if (normalized === 'assistant' || normalized === 'szakasszisztens') return 'assistant';
+  return 'other';
+}
+
+function roleGroupLabel(role) {
+  if (role === 'pharmacist') return 'Gyógyszerészek';
+  if (role === 'assistant') return 'Szakasszisztensek';
+  return 'Egyéb';
+}
+
+function getEmployeeIdentityKey(item) {
+  if (!item) return '';
+  if (item.id) return `id:${item.id}`;
+  if (item.employeeId) return `employee:${item.employeeId}`;
+  if (item.linkedUserId) return `linked:${item.linkedUserId}`;
+  const normalizedEmail = normalizeEmail(item.email || item.employeeEmail || '');
+  if (normalizedEmail) return `email:${normalizedEmail}`;
+  const fallbackName = String(item.name || item.employeeName || '').trim().toLowerCase();
+  return fallbackName ? `name:${fallbackName}` : '';
+}
+
+function detectShiftMarker(item) {
+  const rawType = String(item?.shiftType || '').trim().toLowerCase();
+  const notes = String(item?.notes || '').trim().toLowerCase();
+  const combined = `${rawType} ${notes}`;
+
+  if (/beteg|sick/.test(combined)) return 'B';
+  if (/szabad|off|free|vacation/.test(combined)) return 'OFF';
+  if (/ügyelet|ugyelet|oncall/.test(combined)) return 'Ü';
+  if (/éjszak|ejszak|night/.test(combined)) return 'É';
+  if (/nappal|day|normal/.test(combined)) return 'N';
+
+  const startHour = Number(String(item?.startTime || '').split(':')[0]);
+  const endHour = Number(String(item?.endTime || '').split(':')[0]);
+  const hasNightByHour = (
+    Number.isFinite(startHour)
+    && Number.isFinite(endHour)
+    && (startHour >= 20 || startHour <= 5 || endHour <= 6)
+  );
+
+  if (hasNightByHour) return 'É';
+  return 'N';
+}
+
 function normalizeRoleFromProfile(role) {
   const normalized = String(role || '').trim().toLowerCase();
   if (normalized === 'pharmacist' || normalized === 'gyógyszerész') return 'pharmacist';
@@ -336,6 +384,218 @@ function MonthCalendar({ year, month, selectedDate, schedules, ownScheduleIds, o
   );
 }
 
+function MonthlyRosterTable({ year, month, schedules, employees, ownEmployeeRecords, user, darkMode }) {
+  const daysInMonth = getDaysInMonth(year, month);
+  const dayNumbers = Array.from({ length: daysInMonth }, (_, index) => index + 1);
+  const ownEmail = normalizeEmail(user?.email);
+
+  const personColorThemes = [
+    { nameLight: 'bg-rose-100 text-rose-800', nameDark: 'bg-rose-900/30 text-rose-200', markerLight: 'text-rose-700 border-rose-200 bg-rose-50', markerDark: 'text-rose-300 border-rose-700 bg-rose-900/40' },
+    { nameLight: 'bg-orange-100 text-orange-800', nameDark: 'bg-orange-900/30 text-orange-200', markerLight: 'text-orange-700 border-orange-200 bg-orange-50', markerDark: 'text-orange-300 border-orange-700 bg-orange-900/40' },
+    { nameLight: 'bg-amber-100 text-amber-800', nameDark: 'bg-amber-900/30 text-amber-200', markerLight: 'text-amber-700 border-amber-200 bg-amber-50', markerDark: 'text-amber-300 border-amber-700 bg-amber-900/40' },
+    { nameLight: 'bg-lime-100 text-lime-800', nameDark: 'bg-lime-900/30 text-lime-200', markerLight: 'text-lime-700 border-lime-200 bg-lime-50', markerDark: 'text-lime-300 border-lime-700 bg-lime-900/40' },
+    { nameLight: 'bg-emerald-100 text-emerald-800', nameDark: 'bg-emerald-900/30 text-emerald-200', markerLight: 'text-emerald-700 border-emerald-200 bg-emerald-50', markerDark: 'text-emerald-300 border-emerald-700 bg-emerald-900/40' },
+    { nameLight: 'bg-teal-100 text-teal-800', nameDark: 'bg-teal-900/30 text-teal-200', markerLight: 'text-teal-700 border-teal-200 bg-teal-50', markerDark: 'text-teal-300 border-teal-700 bg-teal-900/40' },
+    { nameLight: 'bg-cyan-100 text-cyan-800', nameDark: 'bg-cyan-900/30 text-cyan-200', markerLight: 'text-cyan-700 border-cyan-200 bg-cyan-50', markerDark: 'text-cyan-300 border-cyan-700 bg-cyan-900/40' },
+    { nameLight: 'bg-sky-100 text-sky-800', nameDark: 'bg-sky-900/30 text-sky-200', markerLight: 'text-sky-700 border-sky-200 bg-sky-50', markerDark: 'text-sky-300 border-sky-700 bg-sky-900/40' },
+    { nameLight: 'bg-indigo-100 text-indigo-800', nameDark: 'bg-indigo-900/30 text-indigo-200', markerLight: 'text-indigo-700 border-indigo-200 bg-indigo-50', markerDark: 'text-indigo-300 border-indigo-700 bg-indigo-900/40' },
+    { nameLight: 'bg-violet-100 text-violet-800', nameDark: 'bg-violet-900/30 text-violet-200', markerLight: 'text-violet-700 border-violet-200 bg-violet-50', markerDark: 'text-violet-300 border-violet-700 bg-violet-900/40' },
+    { nameLight: 'bg-fuchsia-100 text-fuchsia-800', nameDark: 'bg-fuchsia-900/30 text-fuchsia-200', markerLight: 'text-fuchsia-700 border-fuchsia-200 bg-fuchsia-50', markerDark: 'text-fuchsia-300 border-fuchsia-700 bg-fuchsia-900/40' },
+    { nameLight: 'bg-pink-100 text-pink-800', nameDark: 'bg-pink-900/30 text-pink-200', markerLight: 'text-pink-700 border-pink-200 bg-pink-50', markerDark: 'text-pink-300 border-pink-700 bg-pink-900/40' },
+  ];
+
+  const normalizedSchedules = useMemo(
+    () => sortByDateAndTime((schedules || []).filter(item => item.status !== 'deleted')),
+    [schedules]
+  );
+
+  const employeeRows = useMemo(() => {
+    const byEmployee = new Map();
+
+    (employees || []).forEach((employee) => {
+      const key = getEmployeeIdentityKey(employee);
+      if (!key) return;
+      byEmployee.set(key, {
+        key,
+        id: employee.id || null,
+        linkedUserId: employee.linkedUserId || null,
+        email: normalizeEmail(employee.email || ''),
+        name: employee.name || employee.employeeName || 'Ismeretlen dolgozó',
+        role: normalizeEmployeeRole(employee.role),
+      });
+    });
+
+    normalizedSchedules.forEach((item) => {
+      const key = getEmployeeIdentityKey(item);
+      if (!key) return;
+
+      const existing = byEmployee.get(key);
+      if (existing) {
+        byEmployee.set(key, {
+          ...existing,
+          name: existing.name || item.employeeName || 'Ismeretlen dolgozó',
+          role: existing.role || normalizeEmployeeRole(item.role),
+          linkedUserId: existing.linkedUserId || item.linkedUserId || null,
+          email: existing.email || normalizeEmail(item.employeeEmail || ''),
+        });
+      } else {
+        byEmployee.set(key, {
+          key,
+          id: item.employeeId || null,
+          linkedUserId: item.linkedUserId || null,
+          email: normalizeEmail(item.employeeEmail || ''),
+          name: item.employeeName || 'Ismeretlen dolgozó',
+          role: normalizeEmployeeRole(item.role),
+        });
+      }
+    });
+
+    const ownEmployeeKeys = new Set((ownEmployeeRecords || []).map(getEmployeeIdentityKey));
+
+    const isOwnRow = (row) => (
+      ownEmployeeKeys.has(row.key)
+      || (row.linkedUserId && row.linkedUserId === user?.uid)
+      || (row.email && row.email === ownEmail)
+    );
+
+    const ownRole = [...byEmployee.values()].find(isOwnRow)?.role || null;
+    const defaultOrder = ['pharmacist', 'assistant', 'other'];
+    const roleOrder = ownRole
+      ? [ownRole, ...defaultOrder.filter(role => role !== ownRole)]
+      : defaultOrder;
+
+    const orderedRows = [];
+    let colorCursor = 0;
+    roleOrder.forEach((role) => {
+      const groupRows = [...byEmployee.values()]
+        .filter(item => item.role === role)
+        .sort((a, b) => {
+          const aOwn = isOwnRow(a);
+          const bOwn = isOwnRow(b);
+          if (aOwn !== bOwn) return aOwn ? -1 : 1;
+          return a.name.localeCompare(b.name, 'hu');
+        });
+
+      if (groupRows.length === 0) return;
+      orderedRows.push({ type: 'separator', role, label: roleGroupLabel(role) });
+      groupRows.forEach((item) => {
+        orderedRows.push({
+          type: 'employee',
+          ...item,
+          isOwn: isOwnRow(item),
+          colorTheme: personColorThemes[colorCursor % personColorThemes.length],
+        });
+        colorCursor += 1;
+      });
+    });
+
+    return orderedRows;
+  }, [employees, normalizedSchedules, ownEmployeeRecords, ownEmail, personColorThemes, user?.uid]);
+
+  const scheduleByRowDay = useMemo(() => {
+    const matrix = new Map();
+    normalizedSchedules.forEach((item) => {
+      const rowKey = getEmployeeIdentityKey(item);
+      const dayNumber = Number(item.day || String(item.date || '').split('-')[2]);
+      if (!rowKey || !dayNumber) return;
+      const key = `${rowKey}|${dayNumber}`;
+      const entries = matrix.get(key) || [];
+      entries.push(item);
+      matrix.set(key, entries);
+    });
+    return matrix;
+  }, [normalizedSchedules]);
+
+  if (normalizedSchedules.length === 0) {
+    return (
+      <div className={`rounded-2xl border p-5 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
+        <h3 className="text-lg font-semibold">Kész beosztás (táblázat)</h3>
+        <p className="mt-2 text-sm text-gray-500">Ebben a hónapban még nincs rögzített beosztás.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`rounded-2xl border p-5 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
+      <div className="mb-4">
+        <h3 className="text-lg font-semibold">Kész beosztás (táblázat)</h3>
+        <p className="text-sm text-gray-500">Jelölések: N = nappali, Ü = ügyelet, É = éjszaka, B = beteg, madár = szabadnap.</p>
+      </div>
+
+      <div className="overflow-auto rounded-xl border border-gray-200 dark:border-gray-700">
+        <table className="min-w-max w-full border-collapse text-xs">
+          <thead>
+            <tr className={darkMode ? 'bg-gray-800' : 'bg-gray-100'}>
+              <th className={`sticky left-0 z-10 min-w-[220px] border-b border-r px-3 py-2 text-left font-semibold ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-100'}`}>
+                Beosztott
+              </th>
+              {dayNumbers.map((dayNumber) => {
+                return (
+                  <th key={dayNumber} className={`min-w-[52px] border-b border-r px-2 py-2 text-center font-semibold ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                    {dayNumber}
+                  </th>
+                );
+              })}
+            </tr>
+          </thead>
+          <tbody>
+            {employeeRows.map((row, rowIndex) => {
+              if (row.type === 'separator') {
+                return (
+                  <tr key={`separator-${row.role}-${rowIndex}`}>
+                    <td
+                      colSpan={daysInMonth + 1}
+                      className={`border-b px-3 py-2 text-[11px] font-bold uppercase tracking-wide ${darkMode ? 'border-gray-700 bg-gray-800 text-gray-200' : 'border-gray-200 bg-gray-50 text-gray-700'}`}
+                    >
+                      {row.label}
+                    </td>
+                  </tr>
+                );
+              }
+
+              return (
+                <tr key={row.key} className={darkMode ? 'hover:bg-gray-800/70' : 'hover:bg-gray-50'}>
+                  <th
+                    scope="row"
+                    className={`sticky left-0 z-[5] border-b border-r px-3 py-2 text-left font-medium ${darkMode ? 'border-gray-700' : 'border-gray-200'} ${darkMode ? row.colorTheme.nameDark : row.colorTheme.nameLight} ${row.isOwn ? 'ring-2 ring-emerald-500 ring-inset' : ''}`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span>{row.name}</span>
+                      {row.isOwn ? <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-semibold text-white">Én</span> : null}
+                    </div>
+                  </th>
+
+                  {dayNumbers.map((dayNumber) => {
+                    const items = scheduleByRowDay.get(`${row.key}|${dayNumber}`) || [];
+                    const hasShift = items.length > 0;
+                    const first = items[0];
+                    const marker = hasShift ? detectShiftMarker(first) : 'OFF';
+                    const isOffDay = marker === 'OFF';
+
+                    return (
+                      <td
+                        key={`${row.key}-${dayNumber}`}
+                        className={`border-b border-r px-1 py-1.5 text-center align-middle ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}
+                      >
+                        <div className={`mx-auto flex h-6 w-8 items-center justify-center rounded border text-sm font-bold ${darkMode ? row.colorTheme.markerDark : row.colorTheme.markerLight} ${!hasShift ? 'opacity-70' : ''}`}>
+                          {isOffDay ? <Bird className="h-3.5 w-3.5" /> : marker}
+                        </div>
+                        {items.length > 1 ? (
+                          <div className={`mt-0.5 text-[9px] font-semibold ${darkMode ? 'text-gray-300' : 'text-gray-500'}`}>+{items.length - 1}</div>
+                        ) : null}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export default function ScheduleManagerTab({ pharmaRole }) {
   const { user, userData } = useAuth();
   const { darkMode } = useTheme();
@@ -366,6 +626,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
   const [scheduleForm, setScheduleForm] = useState({
     employeeId: '',
+    shiftType: 'day',
     startTime: '08:00',
     endTime: '16:00',
     notes: '',
@@ -744,6 +1005,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         employeeEmail: employee.email || '',
         linkedUserId: employee.linkedUserId || null,
         role: employee.role || 'other',
+        shiftType: scheduleForm.shiftType,
         startTime: scheduleForm.startTime,
         endTime: scheduleForm.endTime,
         notes: scheduleForm.notes.trim(),
@@ -1413,6 +1675,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           employeeEmail: item.employeeEmail || '',
           linkedUserId: item.linkedUserId || null,
           role: item.role || 'other',
+          shiftType: item.shiftType || 'day',
           startTime: item.startTime,
           endTime: item.endTime,
           notes: item.notes ? `${item.notes} | Másolva előző hónapból` : 'Másolva előző hónapból',
@@ -1696,6 +1959,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           employeeEmail: item.employeeEmail || employee?.email || '',
           linkedUserId: item.linkedUserId || employee?.linkedUserId || null,
           role: item.role || employee?.role || 'other',
+          shiftType: item.shiftType || 'day',
           startTime: item.startTime,
           endTime: item.endTime,
           notes: 'Automatikus tervezés (AI)',
@@ -1884,6 +2148,18 @@ export default function ScheduleManagerTab({ pharmaRole }) {
               darkMode={darkMode}
             />
           </div>
+
+          {(isPharmacy && mainTab === 'schedule') || (!isPharmacy && mainTab === 'mine') ? (
+            <MonthlyRosterTable
+              year={year}
+              month={month}
+              schedules={visibleSchedules}
+              employees={activeEmployees}
+              ownEmployeeRecords={ownEmployeeRecords}
+              user={user}
+              darkMode={darkMode}
+            />
+          ) : null}
 
           {isPharmacy && mainTab === 'schedule' ? (
             <div className="space-y-6">
@@ -2248,6 +2524,19 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                     }} className="w-full rounded-xl border px-3 py-2 bg-transparent">
                       <option value="">Válassz dolgozót</option>
                       {activeEmployees.map(employee => <option key={employee.id} value={employee.id}>{employee.name}</option>)}
+                    </select>
+                  </Field>
+                  <Field label="Műszak jel" required hint="A táblázatban ez a jel fog megjelenni.">
+                    <select
+                      value={scheduleForm.shiftType}
+                      onChange={e => setScheduleForm(prev => ({ ...prev, shiftType: e.target.value }))}
+                      className="w-full rounded-xl border px-3 py-2 bg-transparent"
+                    >
+                      <option value="day">N - nappali</option>
+                      <option value="oncall">Ü - ügyelet</option>
+                      <option value="night">É - éjszaka</option>
+                      <option value="sick">B - beteg</option>
+                      <option value="off">Madár - szabadnap</option>
                     </select>
                   </Field>
                   <Field label="Szerepkör (automatikus)">
