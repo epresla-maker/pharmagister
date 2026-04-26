@@ -1279,6 +1279,26 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     }
   }
 
+  async function handleReportSick(scheduleId) {
+    setSaving(true);
+    setStatusError('');
+    setStatusMessage('');
+    try {
+      await updateDoc(doc(db, 'pharmacySchedules', scheduleId), {
+        shiftType: 'sick',
+        updatedAt: serverTimestamp(),
+      });
+      setStatusMessage('Betegállomány rögzítve.');
+      setShowDayModal(false);
+      await loadData();
+    } catch (error) {
+      console.error('Report sick error:', error);
+      setStatusError('Nem sikerült rögzíteni a betegállományt.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   // Employee target responds (pending → employee_accepted / rejected)
   async function handleRespondToSwapRequest(requestId, decision) {
     const requestItem = swapRequests.find(item => item.id === requestId);
@@ -2813,6 +2833,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                         (r.requesterScheduleId === item.id || r.targetScheduleId === item.id) &&
                         (r.status === 'pending' || r.status === 'employee_accepted')
                       );
+                      const isFuture = item.date >= today;
+                      const isSick = item.shiftType === 'sick';
                       return (
                         <div key={item.id} className={`rounded-xl border p-4 space-y-3 ${isOwn ? 'border-green-300 bg-green-50 dark:border-green-700 dark:bg-green-900/20' : darkMode ? 'border-gray-700 bg-gray-800' : 'border-[#E5E7EB] bg-[#F9FAFB]'}`}>
                           <div className="flex items-start justify-between gap-3">
@@ -2823,24 +2845,41 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                             </div>
                             <div className="flex items-center gap-2 flex-wrap justify-end">
                               {isOwn ? <span className="rounded-full bg-green-600 px-2 py-1 text-xs font-semibold text-white">Saját</span> : null}
-                              {isOwn && !hasOpenSwap && item.date >= today ? (
+                              {isOwn && isSick ? <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">Beteg</span> : null}
+                              {isOwn && hasOpenSwap ? (
+                                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">Csere folyamatban</span>
+                              ) : null}
+                            </div>
+                          </div>
+
+                          {isOwn ? (
+                            <div className="flex flex-wrap gap-2 pt-1">
+                              {isFuture && !hasOpenSwap ? (
                                 <button
                                   type="button"
                                   onClick={() => {
                                     if (isSwapOpen) { setQuickSwapScheduleId(null); setQuickSwapMessage(''); }
                                     else { setQuickSwapScheduleId(item.id); setQuickSwapMessage(''); }
                                   }}
-                                  className="inline-flex items-center gap-1 rounded-xl border border-[#6B46C1] px-2 py-1 text-xs font-semibold text-[#6B46C1] hover:bg-[#6B46C1]/10"
+                                  className="inline-flex items-center gap-1.5 rounded-xl border border-[#6B46C1] px-3 py-1.5 text-xs font-semibold text-[#6B46C1] hover:bg-[#6B46C1]/10"
                                 >
                                   <ArrowLeftRight className="h-3 w-3" />
                                   {isSwapOpen ? 'Mégse' : 'Csere kérése'}
                                 </button>
                               ) : null}
-                              {isOwn && hasOpenSwap ? (
-                                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">Csere folyamatban</span>
+                              {!isSick ? (
+                                <button
+                                  type="button"
+                                  disabled={saving}
+                                  onClick={() => handleReportSick(item.id)}
+                                  className="inline-flex items-center gap-1.5 rounded-xl border border-red-400 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60"
+                                >
+                                  <UserMinus className="h-3 w-3" />
+                                  Beteg vagyok ezen a napon
+                                </button>
                               ) : null}
                             </div>
-                          </div>
+                          ) : null}
                           {isOwn && isSwapOpen ? (
                             <div className={`rounded-xl border p-3 space-y-3 ${darkMode ? 'border-gray-600 bg-gray-900' : 'border-gray-200 bg-white'}`}>
                               <p className="text-sm font-semibold">Kivel cserélnél?</p>
