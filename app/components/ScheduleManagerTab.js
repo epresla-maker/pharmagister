@@ -395,7 +395,7 @@ function MonthlyRosterTable({ year, month, schedules, employees, ownEmployeeReco
   const ownEmail = normalizeEmail(user?.email);
 
   const personColorThemes = [
-    { nameLight: 'bg-rose-100 text-rose-800', nameDark: 'bg-rose-900/30 text-rose-200', markerLight: 'text-rose-700 border-rose-200 bg-rose-50', markerDark: 'text-rose-300 border-rose-700 bg-rose-900/40' },
+    { nameLight: 'bg-slate-100 text-slate-800', nameDark: 'bg-slate-700/40 text-slate-200', markerLight: 'text-slate-700 border-slate-200 bg-slate-50', markerDark: 'text-slate-300 border-slate-600 bg-slate-800/40' },
     { nameLight: 'bg-orange-100 text-orange-800', nameDark: 'bg-orange-900/30 text-orange-200', markerLight: 'text-orange-700 border-orange-200 bg-orange-50', markerDark: 'text-orange-300 border-orange-700 bg-orange-900/40' },
     { nameLight: 'bg-amber-100 text-amber-800', nameDark: 'bg-amber-900/30 text-amber-200', markerLight: 'text-amber-700 border-amber-200 bg-amber-50', markerDark: 'text-amber-300 border-amber-700 bg-amber-900/40' },
     { nameLight: 'bg-lime-100 text-lime-800', nameDark: 'bg-lime-900/30 text-lime-200', markerLight: 'text-lime-700 border-lime-200 bg-lime-50', markerDark: 'text-lime-300 border-lime-700 bg-lime-900/40' },
@@ -522,8 +522,10 @@ function MonthlyRosterTable({ year, month, schedules, employees, ownEmployeeReco
                 Beosztott
               </th>
               {dayNumbers.map((dayNumber) => {
+                const dow = new Date(year, month - 1, dayNumber).getDay();
+                const isWeekend = dow === 0 || dow === 6;
                 return (
-                  <th key={dayNumber} className={`min-w-[52px] border-b border-r px-2 py-2 text-center font-semibold ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                  <th key={dayNumber} className={`min-w-[52px] border-b border-r px-2 py-2 text-center font-semibold ${darkMode ? 'border-gray-700' : 'border-gray-200'} ${isWeekend ? 'text-red-500' : ''}`}>
                     {dayNumber}
                   </th>
                 );
@@ -545,15 +547,17 @@ function MonthlyRosterTable({ year, month, schedules, employees, ownEmployeeReco
                 );
               }
 
+              const shiftCount = dayNumbers.filter(d => (scheduleByRowDay.get(`${row.key}|${d}`) || []).length > 0).length;
               return (
                 <tr key={row.key} className={darkMode ? 'hover:bg-gray-800/70' : 'hover:bg-gray-50'}>
                   <th
                     scope="row"
                     className={`sticky left-0 z-[5] border-b border-r px-3 py-2 text-left font-medium ${darkMode ? 'border-gray-700' : 'border-gray-200'} ${darkMode ? row.colorTheme.nameDark : row.colorTheme.nameLight} ${row.isOwn ? 'ring-2 ring-emerald-500 ring-inset' : ''}`}
                   >
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span>{row.name}</span>
                       {row.isOwn ? <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-semibold text-white">Én</span> : null}
+                      {shiftCount > 0 ? <span className={`text-[10px] font-normal opacity-70`}>{shiftCount} nap</span> : null}
                     </div>
                   </th>
 
