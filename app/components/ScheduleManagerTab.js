@@ -1299,6 +1299,46 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     }
   }
 
+  async function handleReportSickNoSchedule() {
+    const employeeRecord = ownEmployeeRecords[0];
+    if (!employeeRecord) {
+      setStatusError('Nem található dolgozói rekord.');
+      return;
+    }
+    setSaving(true);
+    setStatusError('');
+    setStatusMessage('');
+    try {
+      await addDoc(collection(db, 'pharmacySchedules'), {
+        pharmacyId: employeeRecord.pharmacyId,
+        employeeId: employeeRecord.id,
+        employeeName: employeeRecord.name,
+        employeeEmail: normalizeEmail(employeeRecord.email || ''),
+        linkedUserId: user.uid,
+        role: employeeRecord.role || '',
+        date: selectedDate,
+        year,
+        month,
+        day,
+        startTime: '00:00',
+        endTime: '00:00',
+        shiftType: 'sick',
+        notes: '',
+        status: 'active',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+      setStatusMessage('Betegállomány rögzítve.');
+      setShowDayModal(false);
+      await loadData();
+    } catch (error) {
+      console.error('Report sick no schedule error:', error);
+      setStatusError('Nem sikerült rögzíteni a betegállományt.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   // Employee target responds (pending → employee_accepted / rejected)
   async function handleRespondToSwapRequest(requestId, decision) {
     const requestItem = swapRequests.find(item => item.id === requestId);
@@ -2824,7 +2864,20 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                       </button>
                     </div>
                     {selectedDateSchedules.length === 0 ? (
-                      <p className="text-sm text-gray-500">Erre a napra nincs beosztás.</p>
+                      <div className="space-y-3">
+                        <p className="text-sm text-gray-500">Erre a napra nincs rögzített beosztás.</p>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            disabled={saving}
+                            onClick={handleReportSickNoSchedule}
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-red-400 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60"
+                          >
+                            <UserMinus className="h-3 w-3" />
+                            Betegállomány rögzítése
+                          </button>
+                        </div>
+                      </div>
                     ) : selectedDateSchedules.map(item => {
                       const isOwn = ownScheduleIds.has(item.id);
                       const isSwapOpen = quickSwapScheduleId === item.id;
