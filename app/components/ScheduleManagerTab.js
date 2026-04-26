@@ -525,13 +525,15 @@ function MonthlyRosterTable({ year, month, schedules, employees, ownEmployeeReco
                 const dow = new Date(year, month - 1, dayNumber).getDay();
                 const isWeekend = dow === 0 || dow === 6;
                 const isSelected = dayNumber === selectedDay;
+                const DAY_ABBR = ['V', 'H', 'K', 'SZE', 'CS', 'P', 'SZO'];
                 return (
                   <th
                     key={dayNumber}
                     onClick={() => onSelectDay?.(dayNumber)}
-                    className={`min-w-[52px] border-b border-r px-2 py-2 text-center font-semibold cursor-pointer select-none ${darkMode ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-200'} ${isWeekend ? 'text-red-500' : ''} ${isSelected ? (darkMode ? 'bg-violet-900/50' : 'bg-violet-100') : ''}`}
+                    className={`min-w-[52px] border-b border-r px-2 py-1.5 text-center font-semibold cursor-pointer select-none ${darkMode ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-200'} ${isWeekend ? 'text-red-500' : ''} ${isSelected ? (darkMode ? 'bg-violet-900/50' : 'bg-violet-100') : ''}`}
                   >
-                    {dayNumber}
+                    <div className="text-[9px] font-normal opacity-60 leading-none mb-0.5">{DAY_ABBR[dow]}</div>
+                    <div>{dayNumber}</div>
                   </th>
                 );
               })}
