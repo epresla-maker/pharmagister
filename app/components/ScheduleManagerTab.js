@@ -1320,7 +1320,6 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         updatedAt: serverTimestamp(),
       });
       setStatusMessage('Betegállomány rögzítve.');
-      setShowDayModal(false);
       await loadData();
     } catch (error) {
       console.error('Report sick error:', error);
@@ -1360,7 +1359,6 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         updatedAt: serverTimestamp(),
       });
       setStatusMessage('Betegállomány rögzítve.');
-      setShowDayModal(false);
       await loadData();
     } catch (error) {
       console.error('Report sick no schedule error:', error);
