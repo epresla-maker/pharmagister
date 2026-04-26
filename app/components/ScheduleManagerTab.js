@@ -1339,6 +1339,46 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     }
   }
 
+  async function handleCreateOffDayForSwap() {
+    const employeeRecord = ownEmployeeRecords[0];
+    if (!employeeRecord) {
+      setStatusError('Nem található dolgozói rekord.');
+      return;
+    }
+    setSaving(true);
+    setStatusError('');
+    setStatusMessage('');
+    try {
+      const docRef = await addDoc(collection(db, 'pharmacySchedules'), {
+        pharmacyId: employeeRecord.pharmacyId,
+        employeeId: employeeRecord.id,
+        employeeName: employeeRecord.name,
+        employeeEmail: normalizeEmail(employeeRecord.email || ''),
+        linkedUserId: user.uid,
+        role: employeeRecord.role || '',
+        date: selectedDate,
+        year,
+        month,
+        day,
+        startTime: '00:00',
+        endTime: '00:00',
+        shiftType: 'off',
+        notes: 'Szabad nap (csere céljából rögzítve)',
+        status: 'active',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+      await loadData();
+      setQuickSwapScheduleId(docRef.id);
+      setQuickSwapMessage('');
+    } catch (error) {
+      console.error('Create off day for swap error:', error);
+      setStatusError('Nem sikerült rögzíteni a szabad napot.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   // Employee target responds (pending → employee_accepted / rejected)
   async function handleRespondToSwapRequest(requestId, decision) {
     const requestItem = swapRequests.find(item => item.id === requestId);
@@ -2875,6 +2915,15 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                           >
                             <UserMinus className="h-3 w-3" />
                             Betegállomány rögzítése
+                          </button>
+                          <button
+                            type="button"
+                            disabled={saving}
+                            onClick={handleCreateOffDayForSwap}
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-[#6B46C1] px-3 py-1.5 text-xs font-semibold text-[#6B46C1] hover:bg-[#6B46C1]/10 disabled:opacity-60"
+                          >
+                            <ArrowLeftRight className="h-3 w-3" />
+                            Csere kérése (szabad nap leadása)
                           </button>
                         </div>
                       </div>
