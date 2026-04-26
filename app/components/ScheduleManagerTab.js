@@ -38,6 +38,8 @@ import {
   UserX,
   Wand2,
   XCircle,
+  Maximize2,
+  X,
 } from 'lucide-react';
 
 const MONTHS_HU = [
@@ -387,6 +389,7 @@ function MonthCalendar({ year, month, selectedDate, schedules, ownScheduleIds, o
 }
 
 function MonthlyRosterTable({ year, month, schedules, employees, ownEmployeeRecords, user, darkMode }) {
+  const [fullscreen, setFullscreen] = useState(false);
   const daysInMonth = getDaysInMonth(year, month);
   const dayNumbers = Array.from({ length: daysInMonth }, (_, index) => index + 1);
   const ownEmail = normalizeEmail(user?.email);
@@ -508,23 +511,10 @@ function MonthlyRosterTable({ year, month, schedules, employees, ownEmployeeReco
     return matrix;
   }, [normalizedSchedules]);
 
-  if (normalizedSchedules.length === 0) {
-    return (
-      <div className={`rounded-2xl border p-5 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
-        <h3 className="text-lg font-semibold">Kész beosztás (táblázat)</h3>
-        <p className="mt-2 text-sm text-gray-500">Ebben a hónapban még nincs rögzített beosztás.</p>
-      </div>
-    );
-  }
+  const emptyState = normalizedSchedules.length === 0;
 
-  return (
-    <div className={`rounded-2xl border p-5 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
-      <div className="mb-4">
-        <h3 className="text-lg font-semibold">Kész beosztás (táblázat)</h3>
-        <p className="text-sm text-gray-500">Jelölések: N = nappali, Ü = ügyelet, É = éjszaka, B = beteg, madár = szabadnap.</p>
-      </div>
-
-      <div className="overflow-auto rounded-xl border border-gray-200 dark:border-gray-700">
+  const tableInner = (
+    <div className="overflow-auto rounded-xl border border-gray-200 dark:border-gray-700">
         <table className="min-w-max w-full border-collapse text-xs">
           <thead>
             <tr className={darkMode ? 'bg-gray-800' : 'bg-gray-100'}>
@@ -594,7 +584,57 @@ function MonthlyRosterTable({ year, month, schedules, employees, ownEmployeeReco
           </tbody>
         </table>
       </div>
+  );
+
+  const header = (
+    <div className="mb-4 flex items-start justify-between gap-2">
+      <div>
+        <h3 className="text-lg font-semibold">Kész beosztás (táblázat)</h3>
+        <p className="text-sm text-gray-500">Jelölések: N = nappali, Ü = ügyelet, É = éjszaka, B = beteg, madár = szabadnap.</p>
+      </div>
+      <button
+        type="button"
+        onClick={() => setFullscreen(true)}
+        title="Teljes képernyő"
+        className={`shrink-0 rounded-lg border p-1.5 ${darkMode ? 'border-gray-600 bg-gray-800 text-gray-300 hover:bg-gray-700' : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'}`}
+      >
+        <Maximize2 className="h-4 w-4" />
+      </button>
     </div>
+  );
+
+  if (emptyState) {
+    return (
+      <div className={`rounded-2xl border p-5 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
+        {header}
+        <p className="text-sm text-gray-500">Ebben a hónapban még nincs rögzített beosztás.</p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className={`rounded-2xl border p-5 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
+        {header}
+        {tableInner}
+      </div>
+
+      {fullscreen ? (
+        <div className="fixed inset-0 z-50 flex flex-col bg-white dark:bg-gray-900 p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Kész beosztás – {MONTHS_HU[month - 1]} {year}</h3>
+            <button
+              type="button"
+              onClick={() => setFullscreen(false)}
+              className={`rounded-lg border p-2 ${darkMode ? 'border-gray-600 bg-gray-800 text-gray-200 hover:bg-gray-700' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'}`}
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          {tableInner}
+        </div>
+      ) : null}
+    </>
   );
 }
 
