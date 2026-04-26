@@ -200,8 +200,10 @@ function roleGroupLabel(role) {
 
 function getEmployeeIdentityKey(item) {
   if (!item) return '';
+  // schedules have employeeId pointing to the employee record – must check before item.id
+  // (item.id on a schedule is the schedule doc id, not the employee id)
+  if (item.employeeId) return `id:${item.employeeId}`;
   if (item.id) return `id:${item.id}`;
-  if (item.employeeId) return `employee:${item.employeeId}`;
   if (item.linkedUserId) return `linked:${item.linkedUserId}`;
   const normalizedEmail = normalizeEmail(item.email || item.employeeEmail || '');
   if (normalizedEmail) return `email:${normalizedEmail}`;
