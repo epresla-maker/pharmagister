@@ -388,7 +388,7 @@ function MonthCalendar({ year, month, selectedDate, schedules, ownScheduleIds, o
   );
 }
 
-function MonthlyRosterTable({ year, month, schedules, employees, ownEmployeeRecords, user, darkMode }) {
+function MonthlyRosterTable({ year, month, schedules, employees, ownEmployeeRecords, user, darkMode, onSelectDay, selectedDay }) {
   const [fullscreen, setFullscreen] = useState(false);
   const daysInMonth = getDaysInMonth(year, month);
   const dayNumbers = Array.from({ length: daysInMonth }, (_, index) => index + 1);
@@ -524,8 +524,13 @@ function MonthlyRosterTable({ year, month, schedules, employees, ownEmployeeReco
               {dayNumbers.map((dayNumber) => {
                 const dow = new Date(year, month - 1, dayNumber).getDay();
                 const isWeekend = dow === 0 || dow === 6;
+                const isSelected = dayNumber === selectedDay;
                 return (
-                  <th key={dayNumber} className={`min-w-[52px] border-b border-r px-2 py-2 text-center font-semibold ${darkMode ? 'border-gray-700' : 'border-gray-200'} ${isWeekend ? 'text-red-500' : ''}`}>
+                  <th
+                    key={dayNumber}
+                    onClick={() => onSelectDay?.(dayNumber)}
+                    className={`min-w-[52px] border-b border-r px-2 py-2 text-center font-semibold cursor-pointer select-none ${darkMode ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-200'} ${isWeekend ? 'text-red-500' : ''} ${isSelected ? (darkMode ? 'bg-violet-900/50' : 'bg-violet-100') : ''}`}
+                  >
                     {dayNumber}
                   </th>
                 );
@@ -571,7 +576,8 @@ function MonthlyRosterTable({ year, month, schedules, employees, ownEmployeeReco
                     return (
                       <td
                         key={`${row.key}-${dayNumber}`}
-                        className={`border-b border-r px-1 py-1.5 text-center align-middle ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}
+                        onClick={() => onSelectDay?.(dayNumber)}
+                        className={`border-b border-r px-1 py-1.5 text-center align-middle cursor-pointer ${darkMode ? 'border-gray-700 hover:bg-gray-700/50' : 'border-gray-200 hover:bg-gray-100'} ${dayNumber === selectedDay ? (darkMode ? 'bg-violet-900/30' : 'bg-violet-50') : ''}`}
                       >
                         <div className={`mx-auto flex h-6 w-8 items-center justify-center rounded border text-sm font-bold ${darkMode ? row.colorTheme.markerDark : row.colorTheme.markerLight} ${!hasShift ? 'opacity-70' : ''}`}>
                           {isOffDay ? <Bird className="h-3.5 w-3.5" /> : marker}
@@ -2769,11 +2775,13 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   ownEmployeeRecords={ownEmployeeRecords}
                   user={user}
                   darkMode={darkMode}
+                  onSelectDay={setDay}
+                  selectedDay={day}
                 />
               </div>
 
               <div className={`rounded-2xl border p-5 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
-                <h3 className="text-lg font-semibold">Kiválasztott nap</h3>
+                <h3 className="text-lg font-semibold">Kiválasztott nap – {MONTHS_HU[month - 1]} {day}.</h3>
                 {selectedDateSchedules.length === 0 ? (
                   <p className="text-sm text-gray-500">Erre a napra nincs beosztás.</p>
                 ) : selectedDateSchedules.map(item => {
