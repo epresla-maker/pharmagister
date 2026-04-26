@@ -388,8 +388,7 @@ function MonthCalendar({ year, month, selectedDate, schedules, ownScheduleIds, o
   );
 }
 
-function MonthlyRosterTable({ year, month, schedules, employees, ownEmployeeRecords, user, darkMode, onSelectDay, selectedDay }) {
-  const [fullscreen, setFullscreen] = useState(false);
+function MonthlyRosterTable({ year, month, schedules, employees, ownEmployeeRecords, user, darkMode, onSelectDay, selectedDay, fullscreen, setFullscreen }) {
   const daysInMonth = getDaysInMonth(year, month);
   const dayNumbers = Array.from({ length: daysInMonth }, (_, index) => index + 1);
   const ownEmail = normalizeEmail(user?.email);
@@ -606,7 +605,7 @@ function MonthlyRosterTable({ year, month, schedules, employees, ownEmployeeReco
       </div>
       <button
         type="button"
-        onClick={() => setFullscreen(true)}
+        onClick={() => setFullscreen?.(true)}
         title="Teljes képernyő"
         className={`shrink-0 rounded-lg border p-1.5 ${darkMode ? 'border-gray-600 bg-gray-800 text-gray-300 hover:bg-gray-700' : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'}`}
       >
@@ -637,7 +636,7 @@ function MonthlyRosterTable({ year, month, schedules, employees, ownEmployeeReco
             <h3 className="text-lg font-semibold">Kész beosztás – {MONTHS_HU[month - 1]} {year}</h3>
             <button
               type="button"
-              onClick={() => setFullscreen(false)}
+              onClick={() => setFullscreen?.(false)}
               className={`rounded-lg border p-2 ${darkMode ? 'border-gray-600 bg-gray-800 text-gray-200 hover:bg-gray-700' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'}`}
             >
               <X className="h-5 w-5" />
@@ -716,6 +715,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   const [quickSwapScheduleId, setQuickSwapScheduleId] = useState(null);
   const [quickSwapMessage, setQuickSwapMessage] = useState('');
   const [showDayModal, setShowDayModal] = useState(false);
+  const [rosterFullscreen, setRosterFullscreen] = useState(false);
 
   const selectedDate = formatDateKey(year, month, day);
   const today = getTodayKey();
@@ -2374,6 +2374,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
               ownEmployeeRecords={ownEmployeeRecords}
               user={user}
               darkMode={darkMode}
+              fullscreen={rosterFullscreen}
+              setFullscreen={setRosterFullscreen}
             />
           ) : null}
 
@@ -2939,6 +2941,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   darkMode={darkMode}
                   onSelectDay={(d) => { setDay(d); setShowDayModal(true); }}
                   selectedDay={day}
+                  fullscreen={rosterFullscreen}
+                  setFullscreen={setRosterFullscreen}
                 />
               </div>
 
