@@ -88,6 +88,46 @@ function escapeCsvValue(value) {
   return stringValue;
 }
 
+// Returns a Set of 'MM-DD' strings for Hungarian public holidays in a given year
+function getHungarianHolidays(year) {
+  const fixed = ['01-01','03-15','05-01','08-20','10-23','11-01','12-25','12-26'];
+  // Easter (Meeus/Jones/Butcher algorithm)
+  const a = year % 19, b = Math.floor(year / 100), c = year % 100;
+  const d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4), k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const emonth = Math.floor((h + l - 7 * m + 114) / 31);
+  const eday = ((h + l - 7 * m + 114) % 31) + 1;
+  const easter = new Date(year, emonth - 1, eday);
+  const goodFriday = new Date(easter); goodFriday.setDate(easter.getDate() - 2);
+  const easterMon = new Date(easter); easterMon.setDate(easter.getDate() + 1);
+  const pentecostMon = new Date(easter); pentecostMon.setDate(easter.getDate() + 50);
+  const fmt = dt => `${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+  return new Set([...fixed, fmt(goodFriday), fmt(easterMon), fmt(pentecostMon)]);
+}
+
+// Pastel bg colors per weekday (0=Sun..6=Sat), light mode
+const DAY_PASTEL = [
+  { bg: '#F8FAFC', chipBg: 'rgba(255,255,255,0.75)' }, // Sun  – grey (weekend)
+  { bg: '#EFF6FF', chipBg: 'rgba(255,255,255,0.80)' }, // Mon  – sky blue
+  { bg: '#F0FDF4', chipBg: 'rgba(255,255,255,0.80)' }, // Tue  – mint green
+  { bg: '#F5F3FF', chipBg: 'rgba(255,255,255,0.80)' }, // Wed  – lavender
+  { bg: '#FFFBEB', chipBg: 'rgba(255,255,255,0.80)' }, // Thu  – amber
+  { bg: '#FFF1F2', chipBg: 'rgba(255,255,255,0.80)' }, // Fri  – rose
+  { bg: '#F8FAFC', chipBg: 'rgba(255,255,255,0.75)' }, // Sat  – grey (weekend)
+];
+const DAY_PASTEL_DARK = [
+  { bg: 'rgba(30,41,59,0.5)',  chipBg: 'rgba(255,255,255,0.05)' }, // Sun
+  { bg: 'rgba(30,58,138,0.2)', chipBg: 'rgba(255,255,255,0.07)' }, // Mon
+  { bg: 'rgba(20,83,45,0.2)',  chipBg: 'rgba(255,255,255,0.07)' }, // Tue
+  { bg: 'rgba(46,16,101,0.25)',chipBg: 'rgba(255,255,255,0.07)' }, // Wed
+  { bg: 'rgba(120,53,15,0.2)', chipBg: 'rgba(255,255,255,0.07)' }, // Thu
+  { bg: 'rgba(136,19,55,0.15)',chipBg: 'rgba(255,255,255,0.07)' }, // Fri
+  { bg: 'rgba(30,41,59,0.5)',  chipBg: 'rgba(255,255,255,0.05)' }, // Sat
+];
+
 function isPublishedSchedule(schedule) {
   return Boolean(schedule?.publishedAt);
 }
@@ -504,87 +544,108 @@ function PharmacyScheduleCalendar({
         </button>
       </div>
       {/* Day list — full width, vertically scrollable */}
-      <div className="flex-1 overflow-y-auto overscroll-contain">
-        {Array.from({ length: getDaysInMonth(year, month) }, (_, i) => i + 1).map(day => {
-          const dateKey = formatDateKey(year, month, day);
-          const dayScheds = schedules.filter(s => s.date === dateKey && s.status !== 'deleted');
-          const isToday = dateKey === today;
-          const dow = new Date(year, month - 1, day).getDay(); // 0=Sun
-          const isWeekend = dow === 0 || dow === 6;
-          const DOW_LABELS = ['V','H','K','Sze','Cs','P','Szo'];
-          const dowLabel = DOW_LABELS[dow];
+      {(() => {
+        const holidays = getHungarianHolidays(year);
+        const DOW_LABELS = ['V','H','K','Sze','Cs','P','Szo'];
+        return (
+          <div className="flex-1 overflow-y-auto overscroll-contain">
+            {Array.from({ length: getDaysInMonth(year, month) }, (_, i) => i + 1).map(day => {
+              const dateKey = formatDateKey(year, month, day);
+              const dayScheds = schedules.filter(s => s.date === dateKey && s.status !== 'deleted');
+              const isToday = dateKey === today;
+              const dow = new Date(year, month - 1, day).getDay();
+              const isWeekend = dow === 0 || dow === 6;
+              const mmdd = `${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+              const isHoliday = holidays.has(mmdd);
+              const dowLabel = DOW_LABELS[dow];
+              const pastel = darkMode ? DAY_PASTEL_DARK[dow] : DAY_PASTEL[dow];
+              // Today overrides pastel bg
+              const rowBg = isToday
+                ? (darkMode ? 'rgba(109,40,217,0.22)' : '#EDE9FE')
+                : pastel.bg;
 
-          return (
-            <button
-              key={dateKey}
-              type="button"
-              onClick={() => openDay(day)}
-              className={[
-                'w-full text-left border-b px-4 py-3 transition-all',
-                darkMode ? 'border-gray-800' : 'border-[#F0F0F5]',
-                isToday
-                  ? darkMode ? 'bg-violet-900/25 hover:bg-violet-900/40' : 'bg-violet-50 hover:bg-violet-100'
-                  : isWeekend
-                    ? darkMode ? 'bg-gray-800/40 hover:bg-gray-800/70' : 'bg-slate-50/70 hover:bg-slate-100'
-                    : darkMode ? 'hover:bg-gray-800/50' : 'hover:bg-gray-50',
-              ].join(' ')}
-            >
-              {/* Row header: day number + name */}
-              <div className="flex items-center gap-3 mb-2">
-                <span className={[
-                  'inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-base font-bold',
-                  isToday
-                    ? 'bg-violet-600 text-white shadow-sm shadow-violet-300'
-                    : isWeekend
-                      ? darkMode ? 'text-rose-400' : 'text-rose-600'
-                      : darkMode ? 'text-gray-100' : 'text-gray-800',
-                ].join(' ')}>
-                  {day}
-                </span>
-                <span className={`text-sm font-semibold ${isWeekend ? darkMode ? 'text-rose-400' : 'text-rose-500' : darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {dowLabel}
-                </span>
-                {dayScheds.length > 0 && (
-                  <span className={`ml-auto text-xs font-semibold rounded-full px-2 py-0.5 ${darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-600'}`}>
-                    {dayScheds.length} műszak
-                  </span>
-                )}
-              </div>
-              {/* Employee chips */}
-              {dayScheds.length > 0 ? (
-                <div className="flex flex-col gap-1.5">
-                  {dayScheds.map(s => {
-                    const st = getShiftType(s.shiftType || 'N');
-                    const hrs = calcHours(s.startTime, s.endTime);
-                    return (
-                      <div key={s.id} className={`flex items-center gap-2 rounded-xl px-3 py-2 ${darkMode ? 'bg-gray-800' : 'bg-white border border-gray-100 shadow-sm'}`}>
-                        <span className={`flex-shrink-0 inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-black ${st.bg} ${st.text}`}>
-                          {st.label}
-                        </span>
-                        <span className={`flex-1 text-sm font-medium ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>
-                          {s.employeeName}
-                        </span>
-                        {hrs && (
-                          <span className={`flex-shrink-0 text-xs font-semibold tabular-nums ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                            {hrs}
-                          </span>
-                        )}
-                        {s.startTime && s.endTime && (
-                          <span className={`flex-shrink-0 text-xs tabular-nums ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                            {s.startTime}–{s.endTime}
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className={`text-xs ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>Nincs beosztás</p>
-              )}
-            </button>
-          );
-        })}
-      </div>{/* end day list */}
+              return (
+                <button
+                  key={dateKey}
+                  type="button"
+                  onClick={() => openDay(day)}
+                  style={{ background: rowBg }}
+                  className={[
+                    'w-full text-left px-4 py-3 transition-colors',
+                    // subtle bottom separator line
+                    isWeekend
+                      ? darkMode ? 'border-b-2 border-gray-700' : 'border-b-2 border-gray-200'
+                      : darkMode ? 'border-b border-gray-800/60' : 'border-b border-gray-200/70',
+                  ].join(' ')}
+                >
+                  {/* Row header: day number + name */}
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className={[
+                      'inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-base font-bold',
+                      isToday
+                        ? 'bg-violet-600 text-white shadow-sm shadow-violet-300'
+                        : isHoliday
+                          ? darkMode ? 'text-rose-400 bg-rose-900/30' : 'text-rose-600 bg-rose-50'
+                          : darkMode ? 'text-gray-100' : 'text-gray-800',
+                    ].join(' ')}>
+                      {day}
+                    </span>
+                    <span className={[
+                      'text-sm font-semibold',
+                      isToday ? darkMode ? 'text-violet-300' : 'text-violet-700'
+                        : isHoliday ? darkMode ? 'text-rose-400' : 'text-rose-500'
+                        : isWeekend ? darkMode ? 'text-gray-400' : 'text-gray-500'
+                        : darkMode ? 'text-gray-400' : 'text-gray-500',
+                    ].join(' ')}>
+                      {dowLabel}{isHoliday && !isWeekend ? ' 🔴' : ''}
+                    </span>
+                    {dayScheds.length > 0 && (
+                      <span className={`ml-auto text-xs font-semibold rounded-full px-2 py-0.5 ${darkMode ? 'bg-black/30 text-gray-300' : 'bg-black/10 text-gray-600'}`}>
+                        {dayScheds.length} műszak
+                      </span>
+                    )}
+                  </div>
+                  {/* Employee chips */}
+                  {dayScheds.length > 0 ? (
+                    <div className="flex flex-col gap-1.5">
+                      {dayScheds.map(s => {
+                        const st = getShiftType(s.shiftType || 'N');
+                        const hrs = calcHours(s.startTime, s.endTime);
+                        return (
+                          <div
+                            key={s.id}
+                            style={{ background: pastel.chipBg }}
+                            className={`flex items-center gap-2 rounded-xl px-3 py-2 border ${darkMode ? 'border-white/5' : 'border-black/5'} shadow-sm`}
+                          >
+                            <span className={`flex-shrink-0 inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-black ${st.bg} ${st.text}`}>
+                              {st.label}
+                            </span>
+                            <span className={`flex-1 text-sm font-medium ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>
+                              {s.employeeName}
+                            </span>
+                            {hrs && (
+                              <span className={`flex-shrink-0 text-xs font-semibold tabular-nums ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                                {hrs}
+                              </span>
+                            )}
+                            {s.startTime && s.endTime && (
+                              <span className={`flex-shrink-0 text-xs tabular-nums ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                                {s.startTime}–{s.endTime}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className={`text-xs ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>Nincs beosztás</p>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        );
+      })()}{/* end day list */}
 
       {/* Day edit modal */}
       {showModal && selectedDay && (
