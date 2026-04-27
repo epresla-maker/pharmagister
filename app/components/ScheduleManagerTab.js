@@ -819,7 +819,20 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       getDocs(query(collection(db, 'scheduleVacationRequests'), where('pharmacyId', '==', user.uid))),
     ]);
 
-    setEmployees(employeesSnapshot.docs.map(item => ({ id: item.id, ...item.data() })));
+    const allEmpDocs = employeesSnapshot.docs
+      .map(item => ({ id: item.id, ...item.data() }))
+      .filter(item => item.status !== 'inactive');
+    const empDedupMap = new Map();
+    allEmpDocs.forEach(emp => {
+      const key = emp.linkedUserId
+        ? `linked:${emp.linkedUserId}`
+        : `email:${normalizeEmail(emp.email || '')}` || `id:${emp.id}`;
+      const existing = empDedupMap.get(key);
+      if (!existing || (!existing.linkedUserId && emp.linkedUserId)) {
+        empDedupMap.set(key, emp);
+      }
+    });
+    setEmployees([...empDedupMap.values()]);
     setSchedules(sortByDateAndTime(schedulesSnapshot.docs.map(item => ({ id: item.id, ...item.data() }))));
     setSwapRequests(swapSnapshot.docs.map(item => ({ id: item.id, ...item.data() })));
     setVacationRequests(vacationSnapshot.docs.map(item => ({ id: item.id, ...item.data() })));
