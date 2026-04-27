@@ -376,8 +376,12 @@ function PharmacyScheduleCalendar({
   const [modalSaving, setModalSaving] = useState(false);
 
   const cells = getCalendarCells(year, month);
+  const rowCount = cells.length / 7; // 4, 5 or 6 weeks
   const today = getTodayKey();
   const monthLabel = MONTHS_HU[month - 1];
+  // Each cell fills an equal slice of the available viewport height.
+  // 100svh minus: bottom nav (~56px) + page tabs (~48px) + action bar card (~76px) + calendar header (~70px) + weekday labels (~36px) + gaps (~24px)
+  const cellHeight = `calc((100svh - 310px) / ${rowCount})`;
 
   function openDay(day) {
     const dateKey = formatDateKey(year, month, day);
@@ -505,8 +509,9 @@ function PharmacyScheduleCalendar({
               type="button"
               disabled={!day}
               onClick={() => day && openDay(day)}
+              style={{height: cellHeight}}
               className={[
-                'min-h-[360px] border-r border-b p-2 text-left align-top transition-all group',
+                'border-r border-b p-2 text-left align-top transition-all group overflow-hidden',
                 darkMode ? 'border-gray-800' : 'border-[#F0F0F5]',
                 !day
                   ? darkMode ? 'bg-gray-950/50' : 'bg-gray-50/60'
@@ -538,13 +543,13 @@ function PharmacyScheduleCalendar({
                       </span>
                     )}
                   </div>
-                  {/* Employee rows */}
-                  <div className="flex flex-col gap-1 flex-1">
+                  {/* Employee rows — scrollable within the cell */}
+                  <div className="flex flex-col gap-1 flex-1 overflow-y-auto overscroll-contain" style={{minHeight:0}}>
                     {dayScheds.map(s => {
                       const st = getShiftType(s.shiftType || 'N');
                       const hrs = calcHours(s.startTime, s.endTime);
                       return (
-                        <div key={s.id} className={`flex items-center gap-1 rounded-lg px-1.5 py-1 ${darkMode ? 'bg-gray-800/80' : 'bg-white/80 border border-gray-100 shadow-sm'}`}>
+                        <div key={s.id} className={`flex items-center gap-1 rounded-lg px-1.5 py-1 flex-shrink-0 ${darkMode ? 'bg-gray-800/80' : 'bg-white/80 border border-gray-100 shadow-sm'}`}>
                           <span className={`flex-shrink-0 inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-black ${st.bg} ${st.text}`}>
                             {st.label}
                           </span>
@@ -559,10 +564,6 @@ function PharmacyScheduleCalendar({
                         </div>
                       );
                     })}
-                  </div>
-                  {/* Edit hint on hover */}
-                  <div className={`mt-1 text-center text-[9px] font-medium opacity-0 group-hover:opacity-100 transition-opacity ${darkMode ? 'text-violet-400' : 'text-violet-500'}`}>
-                    szerkesztés
                   </div>
                 </div>
               ) : null}
