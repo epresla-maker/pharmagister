@@ -308,29 +308,45 @@ function MonthCalendar({ year, month, selectedDate, schedules, ownScheduleIds, o
   const cells = getCalendarCells(year, month);
   const today = getTodayKey();
 
+  const DAYS_SHORT = ['H', 'K', 'SZE', 'CS', 'P', 'SZO', 'V'];
+
   return (
-    <div className={`overflow-hidden rounded-2xl border ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
-      <div className={`flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 ${darkMode ? 'border-gray-700 bg-gray-800/80' : 'border-[#E5E7EB] bg-[#F9FAFB]'}`}>
-        <div className="flex flex-wrap items-center gap-2 text-xs font-medium">
-          <span className={`rounded-full px-2.5 py-1 ${darkMode ? 'bg-emerald-900/60 text-emerald-100 border border-emerald-700' : 'bg-emerald-100 text-emerald-800 border border-emerald-200'}`}>Saját műszak</span>
-          <span className={`rounded-full px-2.5 py-1 ${darkMode ? 'bg-sky-900/60 text-sky-100 border border-sky-700' : 'bg-sky-100 text-sky-800 border border-sky-200'}`}>Gyógyszerész</span>
-          <span className={`rounded-full px-2.5 py-1 ${darkMode ? 'bg-amber-900/50 text-amber-100 border border-amber-700' : 'bg-amber-100 text-amber-800 border border-amber-200'}`}>Szakasszisztens</span>
-          <span className={`rounded-full px-2.5 py-1 ${darkMode ? 'bg-fuchsia-900/50 text-fuchsia-100 border border-fuchsia-700' : 'bg-fuchsia-100 text-fuchsia-800 border border-fuchsia-200'}`}>Egyéb</span>
-        </div>
-        <p className={`text-xs ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>Kattints egy napra a részletekhez</p>
+    <div className={`overflow-hidden rounded-2xl ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
+      {/* Legend */}
+      <div className="flex flex-wrap gap-2 px-1 pb-3 pt-1 text-xs font-medium">
+        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 ${darkMode ? 'bg-emerald-900/50 text-emerald-200' : 'bg-emerald-50 text-emerald-700'}`}>
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 inline-block" />Saját műszak
+        </span>
+        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 ${darkMode ? 'bg-sky-900/50 text-sky-200' : 'bg-sky-50 text-sky-700'}`}>
+          <span className="h-1.5 w-1.5 rounded-full bg-sky-400 inline-block" />Gyógyszerész
+        </span>
+        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 ${darkMode ? 'bg-amber-900/40 text-amber-200' : 'bg-amber-50 text-amber-700'}`}>
+          <span className="h-1.5 w-1.5 rounded-full bg-amber-400 inline-block" />Szakasszisztens
+        </span>
+        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 ${darkMode ? 'bg-fuchsia-900/40 text-fuchsia-200' : 'bg-fuchsia-50 text-fuchsia-700'}`}>
+          <span className="h-1.5 w-1.5 rounded-full bg-fuchsia-400 inline-block" />Egyéb
+        </span>
       </div>
-      <div className={`grid grid-cols-7 ${darkMode ? 'bg-gray-800' : 'bg-[#F9FAFB]'} border-b ${darkMode ? 'border-gray-700' : 'border-[#E5E7EB]'}`}>
-        {WEEKDAYS_HU.map(day => (
-          <div key={day} className="px-2 py-3 text-center text-[11px] font-semibold uppercase tracking-wide">
-            {day}
+
+      {/* Day headers */}
+      <div className={`grid grid-cols-7 border-t border-b ${darkMode ? 'border-gray-800' : 'border-gray-100'}`}>
+        {DAYS_SHORT.map((d, i) => (
+          <div key={d} className={`py-2 text-center text-[11px] font-bold uppercase tracking-wider ${i >= 5 ? 'text-red-400' : darkMode ? 'text-gray-400' : 'text-gray-400'}`}>
+            {d}
           </div>
         ))}
       </div>
+
+      {/* Calendar grid */}
       <div className="grid grid-cols-7">
         {cells.map((day, index) => {
           const dateKey = day ? formatDateKey(year, month, day) : null;
           const daySchedules = dateKey ? schedules.filter(item => item.date === dateKey && item.status !== 'deleted') : [];
           const hasOwnSchedule = daySchedules.some(item => ownScheduleIds.has(item.id));
+          const isToday = dateKey === today;
+          const isSelected = selectedDate === dateKey;
+          const dow = day ? new Date(year, month - 1, day).getDay() : 0;
+          const isWeekend = dow === 0 || dow === 6;
 
           return (
             <button
@@ -338,43 +354,56 @@ function MonthCalendar({ year, month, selectedDate, schedules, ownScheduleIds, o
               type="button"
               disabled={!day}
               onClick={() => day && onSelectDate(dateKey)}
-              className={`min-h-[132px] border-r border-b p-2.5 text-left align-top transition-colors ${
-                darkMode ? 'border-gray-800' : 'border-[#E5E7EB]'
+              className={`relative min-h-[80px] sm:min-h-[100px] border-r border-b p-1.5 sm:p-2 text-left align-top transition-all focus:outline-none ${
+                darkMode ? 'border-gray-800' : 'border-gray-100'
               } ${
                 !day
-                  ? darkMode ? 'bg-gray-950' : 'bg-[#F9FAFB]'
-                  : selectedDate === dateKey
-                    ? 'bg-violet-100 ring-2 ring-violet-400 ring-inset dark:bg-violet-900/30'
+                  ? darkMode ? 'bg-gray-950/60' : 'bg-gray-50/60'
+                  : isSelected
+                    ? darkMode ? 'bg-violet-900/40 ring-2 ring-inset ring-violet-500' : 'bg-violet-50 ring-2 ring-inset ring-violet-400'
                     : hasOwnSchedule
-                      ? 'bg-emerald-50 dark:bg-emerald-900/15'
-                      : daySchedules.length > 0
-                        ? darkMode ? 'bg-slate-800/70 hover:bg-slate-800' : 'bg-slate-50 hover:bg-slate-100'
-                        : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                      ? darkMode ? 'bg-emerald-950/40 hover:bg-emerald-900/40' : 'bg-emerald-50/70 hover:bg-emerald-50'
+                      : darkMode ? 'hover:bg-gray-800/60' : 'hover:bg-gray-50'
               }`}
             >
               {day ? (
                 <>
-                  <div className="flex items-center justify-between">
-                    <span className={`text-sm font-semibold ${dateKey === today ? 'text-[#6B46C1]' : ''}`}>{day}</span>
+                  {/* Day number */}
+                  <div className="flex items-start justify-between gap-1">
+                    <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
+                      isToday
+                        ? 'bg-[#6B46C1] text-white'
+                        : isWeekend
+                          ? darkMode ? 'text-red-400' : 'text-red-400'
+                          : darkMode ? 'text-gray-200' : 'text-gray-700'
+                    }`}>
+                      {day}
+                    </span>
                     {daySchedules.length > 0 ? (
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${hasOwnSchedule ? 'bg-emerald-600 text-white' : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-100'}`}>
+                      <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold leading-none ${
+                        hasOwnSchedule
+                          ? 'bg-emerald-500 text-white'
+                          : darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-600'
+                      }`}>
                         {daySchedules.length}
                       </span>
                     ) : null}
                   </div>
-                  <div className="mt-2.5 space-y-1.5">
-                    {daySchedules.slice(0, 3).map(item => (
+
+                  {/* Schedule chips */}
+                  <div className="mt-1 space-y-0.5">
+                    {daySchedules.slice(0, 2).map(item => (
                       <div
                         key={item.id}
-                        className={`truncate rounded-md px-2 py-1 text-[11px] ${getShiftChipClasses(item, ownScheduleIds.has(item.id), darkMode)}`}
+                        className={`truncate rounded-md px-1.5 py-0.5 text-[10px] font-medium leading-tight ${getShiftChipClasses(item, ownScheduleIds.has(item.id), darkMode)}`}
                         title={`${item.employeeName} ${item.startTime || ''}-${item.endTime || ''}`}
                       >
-                        {item.startTime && item.endTime ? `${item.startTime}-${item.endTime} ` : ''}{item.employeeName}
+                        {item.startTime && item.endTime && item.startTime !== '00:00' ? `${item.startTime} ` : ''}{item.employeeName}
                       </div>
                     ))}
-                    {daySchedules.length > 3 ? (
-                      <div className={`text-[11px] font-medium ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                        +{daySchedules.length - 3} további műszak
+                    {daySchedules.length > 2 ? (
+                      <div className={`pl-1 text-[10px] font-semibold ${darkMode ? 'text-gray-400' : 'text-gray-400'}`}>
+                        +{daySchedules.length - 2}
                       </div>
                     ) : null}
                   </div>
@@ -2351,23 +2380,27 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       {!loading && ((isPharmacy && (mainTab === 'schedule' || mainTab === 'history')) || !isPharmacy) ? (
         <div className="space-y-6">
           {isPharmacy ? (
-            <div className={`rounded-2xl border p-5 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Field label="Év">
-                  <select value={year} onChange={e => setYear(Number(e.target.value))} className="w-full rounded-xl border px-3 py-2 bg-transparent">
-                    {availableYears.map(item => <option key={item} value={item}>{item}</option>)}
-                  </select>
-                </Field>
-                <Field label="Hónap">
-                  <select value={month} onChange={e => setMonth(Number(e.target.value))} className="w-full rounded-xl border px-3 py-2 bg-transparent">
-                    {MONTHS_HU.map((label, index) => <option key={label} value={index + 1}>{label}</option>)}
-                  </select>
-                </Field>
-                <Field label="Nap">
-                  <select value={day} onChange={e => setDay(Number(e.target.value))} className="w-full rounded-xl border px-3 py-2 bg-transparent">
-                    {Array.from({ length: getDaysInMonth(year, month) }, (_, index) => index + 1).map(item => <option key={item} value={item}>{item}</option>)}
-                  </select>
-                </Field>
+            <div className={`rounded-2xl border p-4 sm:p-5 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
+              {/* Month navigator */}
+              <div className="flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => { if (month === 1) { setYear(y => y - 1); setMonth(12); } else { setMonth(m => m - 1); } }}
+                  className={`rounded-xl border p-2.5 ${darkMode ? 'border-gray-700 bg-gray-800 text-gray-200 hover:bg-gray-700' : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'}`}
+                >
+                  ‹
+                </button>
+                <div className="text-center">
+                  <h3 className="text-lg font-bold">{MONTHS_HU[month - 1]} {year}</h3>
+                  <p className={`text-xs mt-0.5 ${darkMode ? 'text-gray-400' : 'text-gray-400'}`}>Kattints egy napra a szerkesztéshez</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { if (month === 12) { setYear(y => y + 1); setMonth(1); } else { setMonth(m => m + 1); } }}
+                  className={`rounded-xl border p-2.5 ${darkMode ? 'border-gray-700 bg-gray-800 text-gray-200 hover:bg-gray-700' : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'}`}
+                >
+                  ›
+                </button>
               </div>
 
               <MonthCalendar
