@@ -2968,47 +2968,58 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
               {showDayModal ? (
                 <div
-                  className="fixed inset-0 z-50 flex items-center justify-center p-4"
-                  style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}
+                  className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+                  style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}
                   onClick={() => { setShowDayModal(false); setQuickSwapScheduleId(null); setQuickSwapMessage(''); }}
                 >
                   <div
-                    className={`relative w-full max-w-md max-h-[80vh] overflow-y-auto rounded-2xl shadow-xl p-5 space-y-4 ${darkMode ? 'bg-gray-900 border border-gray-700' : 'bg-white border border-gray-200'}`}
+                    className={`relative w-full sm:max-w-sm max-h-[90vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl shadow-2xl ${darkMode ? 'bg-gray-900' : 'bg-white'}`}
                     onClick={e => e.stopPropagation()}
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-lg font-semibold">{MONTHS_HU[month - 1]} {day}. – beosztás</h3>
-                      <button
-                        type="button"
-                        onClick={() => { setShowDayModal(false); setQuickSwapScheduleId(null); setQuickSwapMessage(''); }}
-                        className={`rounded-lg border p-1.5 ${darkMode ? 'border-gray-600 bg-gray-800 text-gray-300 hover:bg-gray-700' : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'}`}
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
+                    {/* Header strip */}
+                    <div className="rounded-t-3xl sm:rounded-t-3xl bg-gradient-to-br from-[#6B46C1] to-[#4F46E5] px-5 pt-5 pb-6">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="text-xs font-medium text-purple-200 uppercase tracking-wider mb-0.5">{MONTHS_HU[month - 1]} {year}</p>
+                          <h3 className="text-2xl font-bold text-white">{day}. nap</h3>
+                          <p className="text-sm text-purple-200 mt-0.5">
+                            {(() => { const dow = new Date(year, month - 1, day).getDay(); return ['Vasárnap','Hétfő','Kedd','Szerda','Csütörtök','Péntek','Szombat'][dow]; })()}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => { setShowDayModal(false); setQuickSwapScheduleId(null); setQuickSwapMessage(''); }}
+                          className="rounded-xl bg-white/20 p-2 text-white hover:bg-white/30 transition-colors"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
+
+                    <div className="p-5 space-y-4">
                     {selectedDateSchedules.length === 0 ? (
                       <div className="space-y-3">
-                        <p className="text-sm text-gray-500">Erre a napra nincs rögzített beosztás.</p>
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            disabled={saving}
-                            onClick={handleReportSickNoSchedule}
-                            className="inline-flex items-center gap-1.5 rounded-xl border border-red-400 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60"
-                          >
-                            <UserMinus className="h-3 w-3" />
-                            Betegállomány rögzítése
-                          </button>
-                          <button
-                            type="button"
-                            disabled={saving}
-                            onClick={handleCreateOffDayForSwap}
-                            className="inline-flex items-center gap-1.5 rounded-xl border border-[#6B46C1] px-3 py-1.5 text-xs font-semibold text-[#6B46C1] hover:bg-[#6B46C1]/10 disabled:opacity-60"
-                          >
-                            <ArrowLeftRight className="h-3 w-3" />
-                            Csere kérése (szabad nap leadása)
-                          </button>
+                        <div className={`rounded-2xl px-4 py-3 text-sm ${darkMode ? 'bg-gray-800 text-gray-300' : 'bg-gray-50 text-gray-500'}`}>
+                          Erre a napra nincs rögzített beosztás.
                         </div>
+                        <button
+                          type="button"
+                          disabled={saving}
+                          onClick={handleReportSickNoSchedule}
+                          className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-red-500 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-red-600 disabled:opacity-60 transition-colors"
+                        >
+                          <UserMinus className="h-4 w-4" />
+                          Betegállomány rögzítése
+                        </button>
+                        <button
+                          type="button"
+                          disabled={saving}
+                          onClick={handleCreateOffDayForSwap}
+                          className="w-full inline-flex items-center justify-center gap-2 rounded-2xl border-2 border-[#6B46C1] px-4 py-3 text-sm font-semibold text-[#6B46C1] hover:bg-[#6B46C1]/10 disabled:opacity-60 transition-colors"
+                        >
+                          <ArrowLeftRight className="h-4 w-4" />
+                          Csere kérése (szabad nap leadása)
+                        </button>
                       </div>
                     ) : selectedDateSchedules.map(item => {
                       const isOwn = ownScheduleIds.has(item.id);
@@ -3021,90 +3032,95 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                       const isFuture = item.date >= today;
                       const isSick = item.shiftType === 'sick';
                       return (
-                        <div key={item.id} className={`rounded-xl border p-4 space-y-3 ${isOwn ? 'border-green-300 bg-green-50 dark:border-green-700 dark:bg-green-900/20' : darkMode ? 'border-gray-700 bg-gray-800' : 'border-[#E5E7EB] bg-[#F9FAFB]'}`}>
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <p className="font-semibold">{item.employeeName}</p>
-                              <p className="text-sm text-gray-500">{item.startTime} - {item.endTime}</p>
-                              {item.notes ? <p className="text-sm text-gray-500 mt-0.5">{item.notes}</p> : null}
+                        <div key={item.id} className="space-y-3">
+                          <div className={`rounded-2xl p-4 space-y-3 ${isOwn
+                            ? darkMode ? 'bg-emerald-900/30 border border-emerald-700' : 'bg-emerald-50 border border-emerald-200'
+                            : darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-gray-50 border border-gray-200'
+                          }`}>
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <p className="font-bold text-sm">{item.employeeName}</p>
+                                  {isOwn ? <span className="rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold text-white">Én</span> : null}
+                                  {isSick ? <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">Beteg</span> : null}
+                                  {hasOpenSwap ? <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">Csere folyamatban</span> : null}
+                                </div>
+                                <p className={`text-sm mt-0.5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{item.startTime} – {item.endTime}</p>
+                                {item.notes ? <p className={`text-xs mt-0.5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{item.notes}</p> : null}
+                              </div>
                             </div>
-                            <div className="flex items-center gap-2 flex-wrap justify-end">
-                              {isOwn ? <span className="rounded-full bg-green-600 px-2 py-1 text-xs font-semibold text-white">Saját</span> : null}
-                              {isOwn && isSick ? <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">Beteg</span> : null}
-                              {isOwn && hasOpenSwap ? (
-                                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">Csere folyamatban</span>
-                              ) : null}
-                            </div>
+
+                            {isOwn ? (
+                              <div className="flex flex-col gap-2 pt-1">
+                                {isFuture && !hasOpenSwap ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (isSwapOpen) { setQuickSwapScheduleId(null); setQuickSwapMessage(''); }
+                                      else { setQuickSwapScheduleId(item.id); setQuickSwapMessage(''); }
+                                    }}
+                                    className={`w-full inline-flex items-center justify-center gap-2 rounded-xl border-2 px-3 py-2.5 text-sm font-semibold transition-colors ${isSwapOpen
+                                      ? darkMode ? 'border-gray-600 text-gray-400' : 'border-gray-300 text-gray-500'
+                                      : 'border-[#6B46C1] text-[#6B46C1] hover:bg-[#6B46C1]/10'
+                                    }`}
+                                  >
+                                    <ArrowLeftRight className="h-4 w-4" />
+                                    {isSwapOpen ? 'Mégse' : 'Csere kérése'}
+                                  </button>
+                                ) : null}
+                                {!isSick ? (
+                                  <button
+                                    type="button"
+                                    disabled={saving}
+                                    onClick={() => handleReportSick(item.id)}
+                                    className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-red-500 px-3 py-2.5 text-sm font-semibold text-white hover:bg-red-600 disabled:opacity-60 transition-colors"
+                                  >
+                                    <UserMinus className="h-4 w-4" />
+                                    Beteg vagyok ezen a napon
+                                  </button>
+                                ) : null}
+                              </div>
+                            ) : null}
                           </div>
 
-                          {isOwn ? (
-                            <div className="flex flex-wrap gap-2 pt-1">
-                              {isFuture && !hasOpenSwap ? (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (isSwapOpen) { setQuickSwapScheduleId(null); setQuickSwapMessage(''); }
-                                    else { setQuickSwapScheduleId(item.id); setQuickSwapMessage(''); }
-                                  }}
-                                  className="inline-flex items-center gap-1.5 rounded-xl border border-[#6B46C1] px-3 py-1.5 text-xs font-semibold text-[#6B46C1] hover:bg-[#6B46C1]/10"
-                                >
-                                  <ArrowLeftRight className="h-3 w-3" />
-                                  {isSwapOpen ? 'Mégse' : 'Csere kérése'}
-                                </button>
-                              ) : null}
-                              {!isSick ? (
-                                <button
-                                  type="button"
-                                  disabled={saving}
-                                  onClick={() => handleReportSick(item.id)}
-                                  className="inline-flex items-center gap-1.5 rounded-xl border border-red-400 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60"
-                                >
-                                  <UserMinus className="h-3 w-3" />
-                                  Beteg vagyok ezen a napon
-                                </button>
-                              ) : null}
-                            </div>
-                          ) : null}
                           {isOwn && isSwapOpen ? (
-                            <div className={`rounded-xl border p-3 space-y-3 ${darkMode ? 'border-gray-600 bg-gray-900' : 'border-gray-200 bg-white'}`}>
-                              <p className="text-sm font-semibold">Kivel cserélnél?</p>
+                            <div className={`rounded-2xl border p-4 space-y-3 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
+                              <p className="text-sm font-bold">Kivel cserélnél?</p>
                               {swapCandidates.length === 0 ? (
-                                <p className="text-sm text-gray-500">Ezen a napon nincs más beosztott dolgozó, akivel cserét kezdeményezhetnél.</p>
+                                <p className={`text-sm rounded-xl px-3 py-2.5 ${darkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-50 text-gray-500'}`}>Nincs más beosztott dolgozó ezen a napon.</p>
                               ) : (
                                 <div className="space-y-2">
                                   {swapCandidates.map(candidate => (
-                                    <div key={candidate.id} className={`flex items-center justify-between rounded-lg border px-3 py-2 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-gray-50'}`}>
+                                    <div key={candidate.id} className={`flex items-center justify-between rounded-xl border px-3 py-2.5 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-100 bg-gray-50'}`}>
                                       <div>
-                                        <p className="text-sm font-medium">{candidate.employeeName}</p>
-                                        <p className="text-xs text-gray-500">{candidate.startTime}–{candidate.endTime}</p>
+                                        <p className="text-sm font-semibold">{candidate.employeeName}</p>
+                                        <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{candidate.startTime}–{candidate.endTime}</p>
                                       </div>
                                       <button
                                         type="button"
                                         disabled={saving}
                                         onClick={() => handleQuickSwapRequest(item.id, candidate.id, quickSwapMessage)}
-                                        className="rounded-xl bg-[#6B46C1] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+                                        className="rounded-xl bg-[#6B46C1] px-3 py-2 text-xs font-bold text-white disabled:opacity-60 hover:bg-[#5B36B1] transition-colors"
                                       >
-                                        Csere kérése
+                                        Kérem
                                       </button>
                                     </div>
                                   ))}
                                 </div>
                               )}
-                              <div>
-                                <p className="mb-1 text-xs font-medium text-gray-500">Üzenet (opcionális)</p>
-                                <textarea
-                                  value={quickSwapMessage}
-                                  onChange={e => setQuickSwapMessage(e.target.value)}
-                                  rows={2}
-                                  className="w-full rounded-xl border px-3 py-2 text-sm bg-transparent"
-                                  placeholder="Pl. Nekem erre a napra egyéb kötelezettségem van."
-                                />
-                              </div>
+                              <textarea
+                                value={quickSwapMessage}
+                                onChange={e => setQuickSwapMessage(e.target.value)}
+                                rows={2}
+                                className={`w-full rounded-xl border px-3 py-2 text-sm bg-transparent resize-none ${darkMode ? 'border-gray-600 placeholder-gray-500' : 'border-gray-200 placeholder-gray-400'}`}
+                                placeholder="Üzenet a csere kéréséhez (opcionális)"
+                              />
                             </div>
                           ) : null}
                         </div>
                       );
                     })}
+                    </div>
                   </div>
                 </div>
               ) : null}
