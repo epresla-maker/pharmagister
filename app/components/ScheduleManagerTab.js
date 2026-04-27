@@ -2301,84 +2301,50 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       ) : null}
 
       {!loading && isPharmacy && mainTab === 'workers' ? (
-        <div className="space-y-6">
-          <SegmentedTabs
-            tabs={[
-              { key: 'add', label: 'Dolgozó hozzáadása' },
-              { key: 'remove', label: 'Dolgozó eltávolítása' },
-            ]}
-            active={workerTab}
-            onChange={setWorkerTab}
-          />
-
-          {workerTab === 'add' ? (
-            <form onSubmit={handleAddEmployee} className={`rounded-2xl border p-5 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Field label="Email cím" required hint="Csak regisztrált Pharmagister email adható meg. A szerepkört automatikusan a profilból vesszük át.">
-                  <input type="email" value={employeeForm.email} onChange={e => setEmployeeForm(prev => ({ ...prev, email: e.target.value }))} className="w-full rounded-xl border px-3 py-2 bg-transparent" placeholder="nev@email.hu" />
+        <div className="space-y-5">
+          {/* Add employee form */}
+          <div className={`rounded-2xl border p-5 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
+            <h3 className="text-base font-semibold">Dolgozó hozzáadása</h3>
+            <form onSubmit={handleAddEmployee} className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Field label="Email cím *" hint="Regisztrált Pharmagister email cím szükséges.">
+                  <input type="email" value={employeeForm.email} onChange={e => setEmployeeForm(prev => ({ ...prev, email: e.target.value }))} className="w-full rounded-xl border px-3 py-2.5 bg-transparent text-sm" placeholder="nev@email.hu" />
                 </Field>
                 <Field label="Telefonszám">
-                  <input type="text" value={employeeForm.phone} onChange={e => setEmployeeForm(prev => ({ ...prev, phone: e.target.value }))} className="w-full rounded-xl border px-3 py-2 bg-transparent" />
-                </Field>
-                <Field label="Cím">
-                  <input type="text" value={employeeForm.address} onChange={e => setEmployeeForm(prev => ({ ...prev, address: e.target.value }))} className="w-full rounded-xl border px-3 py-2 bg-transparent" />
-                </Field>
-                <Field label="Megjegyzés">
-                  <input type="text" value={employeeForm.notes} onChange={e => setEmployeeForm(prev => ({ ...prev, notes: e.target.value }))} className="w-full rounded-xl border px-3 py-2 bg-transparent" />
+                  <input type="text" value={employeeForm.phone} onChange={e => setEmployeeForm(prev => ({ ...prev, phone: e.target.value }))} className="w-full rounded-xl border px-3 py-2.5 bg-transparent text-sm" />
                 </Field>
               </div>
-
-              <div className="flex justify-end">
-                <button type="submit" disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-[#16a34a] px-4 py-2 font-medium text-white disabled:opacity-60">
-                  <UserPlus className="h-4 w-4" />
-                  Dolgozó hozzáadása
-                </button>
-              </div>
+              <button type="submit" disabled={saving} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-[#16a34a] px-5 py-2.5 font-medium text-white disabled:opacity-60">
+                <UserPlus className="h-4 w-4" />
+                Hozzáadás
+              </button>
             </form>
-          ) : (
-            <div className={`rounded-2xl border p-5 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
-              {activeEmployees.length === 0 ? (
-                <p className="text-sm text-gray-500">Még nincs aktív dolgozó.</p>
-              ) : activeEmployees.map(employee => (
-                <div key={employee.id} className={`flex items-start justify-between gap-4 rounded-xl border p-4 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-[#E5E7EB] bg-[#F9FAFB]'}`}>
-                  <div>
-                    <p className="font-semibold">{employee.name}</p>
-                    <p className="text-sm text-gray-500">{prettyRole(employee.role)}</p>
-                    {employee.email ? <p className="text-sm text-gray-500">{employee.email}</p> : null}
-                    {(Array.isArray(employee.avoidWeekdays) && employee.avoidWeekdays.length > 0) || (Array.isArray(employee.preferWeekdays) && employee.preferWeekdays.length > 0) || employee.schedulingNotes ? (
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {(Array.isArray(employee.avoidWeekdays) ? employee.avoidWeekdays : []).map((d) => {
-                          const wd = WEEKDAY_DISPLAY.find((w) => w.day === d);
-                          return wd ? (
-                            <span key={d} className="rounded-full border border-red-300 bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-700">
-                              {wd.fullLabel}: kerüli
-                            </span>
-                          ) : null;
-                        })}
-                        {(Array.isArray(employee.preferWeekdays) ? employee.preferWeekdays : []).map((d) => {
-                          const wd = WEEKDAY_DISPLAY.find((w) => w.day === d);
-                          return wd ? (
-                            <span key={d} className="rounded-full border border-green-300 bg-green-50 px-2 py-0.5 text-[11px] font-medium text-green-700">
-                              {wd.fullLabel}: szívesen
-                            </span>
-                          ) : null;
-                        })}
-                        {employee.schedulingNotes ? (
-                          <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] text-blue-700" title={employee.schedulingNotes}>
-                            Megjegyzés
-                          </span>
-                        ) : null}
-                      </div>
-                    ) : null}
-                  </div>
-                  <button type="button" onClick={() => handleRemoveEmployee(employee.id)} className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-3 py-2 text-sm font-medium text-white">
-                    <UserMinus className="h-4 w-4" />
-                    Eltávolítás
-                  </button>
-                </div>
-              ))}
+          </div>
+
+          {/* Employee list */}
+          <div className={`rounded-2xl border ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
+            <div className={`px-5 py-4 border-b ${darkMode ? 'border-gray-700' : 'border-[#E5E7EB]'}`}>
+              <h3 className="text-base font-semibold">Dolgozók <span className={`ml-1.5 rounded-full px-2 py-0.5 text-xs font-semibold ${darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'}`}>{activeEmployees.length} fő</span></h3>
             </div>
-          )}
+            {activeEmployees.length === 0 ? (
+              <div className="px-5 py-8 text-center text-sm text-gray-500">Még nincs hozzáadott dolgozó.</div>
+            ) : (
+              <ul className="divide-y divide-gray-100 dark:divide-gray-700/60">
+                {activeEmployees.map((employee, index) => (
+                  <li key={employee.id} className="flex items-center gap-3 px-5 py-3.5">
+                    <span className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-500'}`}>{index + 1}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm truncate">{employee.name}</p>
+                      <p className={`text-xs truncate ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{prettyRole(employee.role)}{employee.email ? ` · ${employee.email}` : ''}</p>
+                    </div>
+                    <button type="button" onClick={() => handleRemoveEmployee(employee.id)} className={`shrink-0 rounded-lg border px-2.5 py-1.5 text-xs font-medium text-red-600 border-red-200 hover:bg-red-50 ${darkMode ? 'border-red-800 hover:bg-red-900/20' : ''}`}>
+                      Eltávolítás
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       ) : null}
 
@@ -2438,25 +2404,25 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             <div className="space-y-6">
             <div className="grid grid-cols-1 xl:grid-cols-[1.1fr,0.9fr] gap-6">
               <div className={`rounded-2xl border p-5 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
-                <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="space-y-3">
                   <div>
-                    <h3 className="text-lg font-semibold">Beosztás írása - {selectedDate}</h3>
-                    <p className="text-sm text-gray-500">Egyszerű, napra kattintós beosztáskezelés.</p>
+                    <h3 className="text-lg font-semibold">Beosztás írása – {selectedDate}</h3>
+                    <p className="text-sm text-gray-500">Napra kattintva szerkeszthető a beosztás.</p>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <button type="button" onClick={handleCopyPreviousMonth} disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-slate-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60">
+                  <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+                    <button type="button" onClick={handleCopyPreviousMonth} disabled={saving} className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-slate-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-60">
                       <Copy className="h-4 w-4" />
-                      Előző hónap másolása
+                      <span className="hidden sm:inline">Előző hónap </span>másolása
                     </button>
-                    <button type="button" onClick={handleExportSchedules} className="inline-flex items-center gap-2 rounded-xl bg-sky-600 px-4 py-2 text-sm font-medium text-white">
+                    <button type="button" onClick={handleExportSchedules} className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-sky-600 px-3 py-2 text-sm font-medium text-white">
                       <Download className="h-4 w-4" />
                       CSV export
                     </button>
-                    <button type="button" onClick={handlePublishSchedules} disabled={saving || activeMonthSchedules.length === 0} className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60">
+                    <button type="button" onClick={handlePublishSchedules} disabled={saving || activeMonthSchedules.length === 0} className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-rose-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-60">
                       <Send className="h-4 w-4" />
                       Publikálás
                     </button>
-                    <button type="button" onClick={handleSuggestEmployee} className="inline-flex items-center gap-2 rounded-xl bg-[#6B46C1] px-4 py-2 text-sm font-medium text-white">
+                    <button type="button" onClick={handleSuggestEmployee} className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#6B46C1] px-3 py-2 text-sm font-medium text-white">
                       <Sparkles className="h-4 w-4" />
                       AI javaslat
                     </button>
@@ -2467,11 +2433,10 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                       className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
                     >
                       <Wand2 className="h-4 w-4" />
-                      {plannerLoading ? 'Tervezés...' : 'Automatikus tervezés'}
+                      {plannerLoading ? 'Tervezés...' : 'Auto tervezés'}
                     </button>
                   </div>
                 </div>
-
                 <div className={`rounded-xl border px-4 py-3 text-sm ${darkMode ? 'border-gray-700 bg-gray-800 text-gray-200' : 'border-gray-200 bg-gray-50 text-gray-700'}`}>
                   Ebben a hónapban {activeMonthSchedules.length} aktív műszak van, ebből {publishedScheduleCount} publikált.
                 </div>
