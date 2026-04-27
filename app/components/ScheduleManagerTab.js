@@ -413,6 +413,18 @@ function MonthlyRosterTable({ year, month, schedules, employees, ownEmployeeReco
     [schedules]
   );
 
+  // Maps email → canonical employeeKey so schedules referencing a duplicate/legacy
+  // employee doc ID can be redirected to the correct row key.
+  const emailToCanonicalKey = useMemo(() => {
+    const map = new Map();
+    (employees || []).forEach((employee) => {
+      const key = getEmployeeIdentityKey(employee);
+      const email = normalizeEmail(employee.email || '');
+      if (key && email) map.set(email, key);
+    });
+    return map;
+  }, [employees]);
+
   const employeeRows = useMemo(() => {
     const byEmployee = new Map();
 
@@ -430,8 +442,16 @@ function MonthlyRosterTable({ year, month, schedules, employees, ownEmployeeReco
     });
 
     normalizedSchedules.forEach((item) => {
-      const key = getEmployeeIdentityKey(item);
+      let key = getEmployeeIdentityKey(item);
       if (!key) return;
+
+      // Redirect to canonical key via email if this doc ID is not known
+      if (!byEmployee.has(key)) {
+        const itemEmail = normalizeEmail(item.employeeEmail || '');
+        if (itemEmail && emailToCanonicalKey.has(itemEmail)) {
+          key = emailToCanonicalKey.get(itemEmail);
+        }
+      }
 
       const existing = byEmployee.get(key);
       if (existing) {
@@ -494,12 +514,19 @@ function MonthlyRosterTable({ year, month, schedules, employees, ownEmployeeReco
     });
 
     return orderedRows;
-  }, [employees, normalizedSchedules, ownEmployeeRecords, ownEmail, personColorThemes, user?.uid]);
+  }, [employees, normalizedSchedules, ownEmployeeRecords, ownEmail, personColorThemes, user?.uid, emailToCanonicalKey]);
 
   const scheduleByRowDay = useMemo(() => {
     const matrix = new Map();
     normalizedSchedules.forEach((item) => {
-      const rowKey = getEmployeeIdentityKey(item);
+      let rowKey = getEmployeeIdentityKey(item);
+      // Redirect legacy doc ID to canonical key via email
+      if (rowKey) {
+        const itemEmail = normalizeEmail(item.employeeEmail || '');
+        if (itemEmail && emailToCanonicalKey.has(itemEmail)) {
+          rowKey = emailToCanonicalKey.get(itemEmail);
+        }
+      }
       const dayNumber = Number(item.day || String(item.date || '').split('-')[2]);
       if (!rowKey || !dayNumber) return;
       const key = `${rowKey}|${dayNumber}`;
@@ -508,7 +535,7 @@ function MonthlyRosterTable({ year, month, schedules, employees, ownEmployeeReco
       matrix.set(key, entries);
     });
     return matrix;
-  }, [normalizedSchedules]);
+  }, [normalizedSchedules, emailToCanonicalKey]);
 
   const emptyState = normalizedSchedules.length === 0;
 
@@ -822,17 +849,16 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     const allEmpDocs = employeesSnapshot.docs
       .map(item => ({ id: item.id, ...item.data() }))
       .filter(item => item.status !== 'inactive');
-    const empDedupMap = new Map();
+    // Deduplicate by email: prefer the record that has linkedUserId
+    const empByEmail = new Map();
     allEmpDocs.forEach(emp => {
-      const key = emp.linkedUserId
-        ? `linked:${emp.linkedUserId}`
-        : `email:${normalizeEmail(emp.email || '')}` || `id:${emp.id}`;
-      const existing = empDedupMap.get(key);
+      const emailKey = normalizeEmail(emp.email || '') || `id:${emp.id}`;
+      const existing = empByEmail.get(emailKey);
       if (!existing || (!existing.linkedUserId && emp.linkedUserId)) {
-        empDedupMap.set(key, emp);
+        empByEmail.set(emailKey, emp);
       }
     });
-    setEmployees([...empDedupMap.values()]);
+    setEmployees([...empByEmail.values()]);
     setSchedules(sortByDateAndTime(schedulesSnapshot.docs.map(item => ({ id: item.id, ...item.data() }))));
     setSwapRequests(swapSnapshot.docs.map(item => ({ id: item.id, ...item.data() })));
     setVacationRequests(vacationSnapshot.docs.map(item => ({ id: item.id, ...item.data() })));
