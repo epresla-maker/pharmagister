@@ -477,11 +477,14 @@ function PharmacyScheduleCalendar({
         </button>
       </div>
 
+      {/* Weekday labels + days — horizontally scrollable on mobile */}
+      <div className="overflow-x-auto">
+      <div style={{minWidth:'980px'}}>
       {/* Weekday labels */}
       <div className={`grid grid-cols-7 border-b ${darkMode ? 'border-gray-700 bg-gray-800/60' : 'border-[#E5E7EB] bg-gray-50'}`}>
         {['Hétfő','Kedd','Szerda','Csütörtök','Péntek','Szombat','Vasárnap'].map(d => (
           <div key={d} className={`py-2.5 text-center text-[10px] font-bold uppercase tracking-widest ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-            {d.slice(0, 3)}
+            {d}
           </div>
         ))}
       </div>
@@ -503,7 +506,7 @@ function PharmacyScheduleCalendar({
               disabled={!day}
               onClick={() => day && openDay(day)}
               className={[
-                'min-h-[180px] border-r border-b p-2 text-left align-top transition-all group',
+                'min-h-[360px] border-r border-b p-2 text-left align-top transition-all group',
                 darkMode ? 'border-gray-800' : 'border-[#F0F0F5]',
                 !day
                   ? darkMode ? 'bg-gray-950/50' : 'bg-gray-50/60'
@@ -546,7 +549,7 @@ function PharmacyScheduleCalendar({
                             {st.label}
                           </span>
                           <span className={`text-[11px] font-medium truncate flex-1 ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>
-                            {s.employeeName?.split(' ').pop() ?? s.employeeName}
+                            {s.employeeName}
                           </span>
                           {hrs && (
                             <span className={`flex-shrink-0 text-[10px] font-semibold tabular-nums ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
@@ -567,6 +570,8 @@ function PharmacyScheduleCalendar({
           );
         })}
       </div>
+      </div>{/* end min-width wrapper */}
+      </div>{/* end overflow-x-auto */}
 
       {/* Modal */}
       {showModal && selectedDay && (
