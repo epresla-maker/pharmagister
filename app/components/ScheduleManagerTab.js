@@ -878,26 +878,42 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     });
 
     const employeeList = [...employeeMap.values()];
-    setEmployees(employeeList);
 
     const pharmacyIds = [...new Set(employeeList.map(item => item.pharmacyId).filter(Boolean))];
     const collectedSchedules = [];
     const collectedSwapRequests = [];
     const collectedVacationRequests = [];
+    const allPharmacyEmployees = [...employeeList];
 
     for (const pharmacyId of pharmacyIds) {
-      const [scheduleSnapshot, requesterSwapsSnapshot, targetSwapsSnapshot, vacationSnapshot] = await Promise.all([
+      const [scheduleSnapshot, requesterSwapsSnapshot, targetSwapsSnapshot, vacationSnapshot, allEmpSnapshot] = await Promise.all([
         getDocs(query(collection(db, 'pharmacySchedules'), where('pharmacyId', '==', pharmacyId), where('year', '==', year), where('month', '==', month))),
         getDocs(query(collection(db, 'scheduleSwapRequests'), where('requesterUserId', '==', user.uid))),
         getDocs(query(collection(db, 'scheduleSwapRequests'), where('targetUserId', '==', user.uid))),
         getDocs(query(collection(db, 'scheduleVacationRequests'), where('userId', '==', user.uid))),
+        getDocs(query(collection(db, 'pharmacyEmployees'), where('pharmacyId', '==', pharmacyId))),
       ]);
 
       collectedSchedules.push(...scheduleSnapshot.docs.map(item => ({ id: item.id, ...item.data() })));
       collectedSwapRequests.push(...requesterSwapsSnapshot.docs.map(item => ({ id: item.id, ...item.data() })));
       collectedSwapRequests.push(...targetSwapsSnapshot.docs.map(item => ({ id: item.id, ...item.data() })));
       collectedVacationRequests.push(...vacationSnapshot.docs.map(item => ({ id: item.id, ...item.data() })));
+      allEmpSnapshot.docs.forEach(item => {
+        const data = { id: item.id, ...item.data() };
+        if (data.status !== 'inactive') allPharmacyEmployees.push(data);
+      });
     }
+
+    // Deduplicate all employees by email (prefer linkedUserId record)
+    const empByEmail = new Map();
+    allPharmacyEmployees.forEach(emp => {
+      const emailKey = normalizeEmail(emp.email || '') || `id:${emp.id}`;
+      const existing = empByEmail.get(emailKey);
+      if (!existing || (!existing.linkedUserId && emp.linkedUserId)) {
+        empByEmail.set(emailKey, emp);
+      }
+    });
+    setEmployees([...empByEmail.values()]);
 
     const uniqueSwapMap = new Map();
     collectedSwapRequests.forEach(item => uniqueSwapMap.set(item.id, item));
