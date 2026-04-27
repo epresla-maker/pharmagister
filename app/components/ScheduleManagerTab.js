@@ -384,12 +384,8 @@ function PharmacyScheduleCalendar({
     return () => window.dispatchEvent(new CustomEvent('calendar-overlay-close'));
   }, []);
 
-  const cells = getCalendarCells(year, month);
-  const rowCount = cells.length / 7; // 4, 5 or 6 weeks
   const today = getTodayKey();
   const monthLabel = MONTHS_HU[month - 1];
-  // Full-screen overlay: 100svh minus overlay header (~56px) + weekday labels (~36px) + 8px border
-  const cellHeight = `calc((100svh - 100px) / ${rowCount})`;
 
   function openDay(day) {
     const dateKey = formatDateKey(year, month, day);
@@ -507,96 +503,88 @@ function PharmacyScheduleCalendar({
           <Send className="h-4 w-4" />
         </button>
       </div>
-      {/* Weekday labels + days — horizontally scrollable */}
-      <div className="flex-1 overflow-x-auto overflow-y-hidden">
-      <div style={{minWidth:'1400px', height:'100%', display:'flex', flexDirection:'column'}}>
-      {/* Weekday labels */}
-      <div className={`grid grid-cols-7 flex-shrink-0 border-b ${darkMode ? 'border-gray-700 bg-gray-800/60' : 'border-[#E5E7EB] bg-gray-50'}`}>
-        {['H','K','Sze','Cs','P','Szo','V'].map(d => (
-          <div key={d} className={`py-1.5 text-center text-[11px] font-bold uppercase tracking-widest ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-            {d}
-          </div>
-        ))}
-      </div>
-      <div className="grid grid-cols-7 flex-1">
-        {cells.map((day, index) => {
-          const dateKey = day ? formatDateKey(year, month, day) : null;
-          const dayScheds = dateKey
-            ? schedules.filter(s => s.date === dateKey && s.status !== 'deleted')
-            : [];
+      {/* Day list — full width, vertically scrollable */}
+      <div className="flex-1 overflow-y-auto overscroll-contain">
+        {Array.from({ length: getDaysInMonth(year, month) }, (_, i) => i + 1).map(day => {
+          const dateKey = formatDateKey(year, month, day);
+          const dayScheds = schedules.filter(s => s.date === dateKey && s.status !== 'deleted');
           const isToday = dateKey === today;
-          const isWeekend = day ? [0, 6].includes(new Date(year, month - 1, day).getDay()) : false;
+          const dow = new Date(year, month - 1, day).getDay(); // 0=Sun
+          const isWeekend = dow === 0 || dow === 6;
+          const DOW_LABELS = ['V','H','K','Sze','Cs','P','Szo'];
+          const dowLabel = DOW_LABELS[dow];
 
           return (
             <button
-              key={`${dateKey || 'empty'}-${index}`}
+              key={dateKey}
               type="button"
-              disabled={!day}
-              onClick={() => day && openDay(day)}
-              style={{height: cellHeight, minHeight: '80px'}}
+              onClick={() => openDay(day)}
               className={[
-                'border-r border-b p-1.5 text-left align-top transition-all group overflow-hidden',
+                'w-full text-left border-b px-4 py-3 transition-all',
                 darkMode ? 'border-gray-800' : 'border-[#F0F0F5]',
-                !day
-                  ? darkMode ? 'bg-gray-950/50' : 'bg-gray-50/60'
-                  : isToday
-                    ? darkMode ? 'bg-violet-900/25 hover:bg-violet-900/40' : 'bg-violet-50 hover:bg-violet-100'
-                    : isWeekend
-                      ? darkMode ? 'bg-gray-800/40 hover:bg-gray-800/70' : 'bg-slate-50/70 hover:bg-slate-100'
-                      : darkMode ? 'hover:bg-gray-800/50' : 'hover:bg-gray-50',
-                day ? 'cursor-pointer' : 'cursor-default',
+                isToday
+                  ? darkMode ? 'bg-violet-900/25 hover:bg-violet-900/40' : 'bg-violet-50 hover:bg-violet-100'
+                  : isWeekend
+                    ? darkMode ? 'bg-gray-800/40 hover:bg-gray-800/70' : 'bg-slate-50/70 hover:bg-slate-100'
+                    : darkMode ? 'hover:bg-gray-800/50' : 'hover:bg-gray-50',
               ].join(' ')}
             >
-              {day ? (
-                <div className="flex flex-col h-full">
-                  {/* Day number */}
-                  <div className="flex items-start justify-between mb-1.5">
-                    <span className={[
-                      'inline-flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold transition-colors',
-                      isToday
-                        ? 'bg-violet-600 text-white shadow-sm shadow-violet-300'
-                        : isWeekend
-                          ? darkMode ? 'text-rose-400 group-hover:bg-rose-900/30' : 'text-rose-600 group-hover:bg-rose-50'
-                          : darkMode ? 'text-gray-200 group-hover:bg-gray-700' : 'text-gray-800 group-hover:bg-gray-100',
-                    ].join(' ')}>
-                      {day}
-                    </span>
-                    {dayScheds.length > 0 && (
-                      <span className={`text-[10px] font-semibold rounded-full px-1.5 py-0.5 ${darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-600'}`}>
-                        {dayScheds.length}
-                      </span>
-                    )}
-                  </div>
-                  {/* Employee rows — scrollable within the cell */}
-                  <div className="flex flex-col gap-1 flex-1 overflow-y-auto overscroll-contain" style={{minHeight:0}}>
-                    {dayScheds.map(s => {
-                      const st = getShiftType(s.shiftType || 'N');
-                      const hrs = calcHours(s.startTime, s.endTime);
-                      return (
-                        <div key={s.id} className={`flex items-center gap-1 rounded-lg px-1.5 py-1 flex-shrink-0 ${darkMode ? 'bg-gray-800/80' : 'bg-white/80 border border-gray-100 shadow-sm'}`}>
-                          <span className={`flex-shrink-0 inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-black ${st.bg} ${st.text}`}>
-                            {st.label}
+              {/* Row header: day number + name */}
+              <div className="flex items-center gap-3 mb-2">
+                <span className={[
+                  'inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-base font-bold',
+                  isToday
+                    ? 'bg-violet-600 text-white shadow-sm shadow-violet-300'
+                    : isWeekend
+                      ? darkMode ? 'text-rose-400' : 'text-rose-600'
+                      : darkMode ? 'text-gray-100' : 'text-gray-800',
+                ].join(' ')}>
+                  {day}
+                </span>
+                <span className={`text-sm font-semibold ${isWeekend ? darkMode ? 'text-rose-400' : 'text-rose-500' : darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  {dowLabel}
+                </span>
+                {dayScheds.length > 0 && (
+                  <span className={`ml-auto text-xs font-semibold rounded-full px-2 py-0.5 ${darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-600'}`}>
+                    {dayScheds.length} műszak
+                  </span>
+                )}
+              </div>
+              {/* Employee chips */}
+              {dayScheds.length > 0 ? (
+                <div className="flex flex-col gap-1.5">
+                  {dayScheds.map(s => {
+                    const st = getShiftType(s.shiftType || 'N');
+                    const hrs = calcHours(s.startTime, s.endTime);
+                    return (
+                      <div key={s.id} className={`flex items-center gap-2 rounded-xl px-3 py-2 ${darkMode ? 'bg-gray-800' : 'bg-white border border-gray-100 shadow-sm'}`}>
+                        <span className={`flex-shrink-0 inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-black ${st.bg} ${st.text}`}>
+                          {st.label}
+                        </span>
+                        <span className={`flex-1 text-sm font-medium ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>
+                          {s.employeeName}
+                        </span>
+                        {hrs && (
+                          <span className={`flex-shrink-0 text-xs font-semibold tabular-nums ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                            {hrs}
                           </span>
-                          <span className={`text-[11px] font-medium truncate flex-1 ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>
-                            {s.employeeName}
+                        )}
+                        {s.startTime && s.endTime && (
+                          <span className={`flex-shrink-0 text-xs tabular-nums ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                            {s.startTime}–{s.endTime}
                           </span>
-                          {hrs && (
-                            <span className={`flex-shrink-0 text-[10px] font-semibold tabular-nums ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                              {hrs}
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-              ) : null}
+              ) : (
+                <p className={`text-xs ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>Nincs beosztás</p>
+              )}
             </button>
           );
         })}
-      </div>{/* end grid */}
-      </div>{/* end min-width flex col */}
-      </div>{/* end overflow-x-auto flex-1 */}
+      </div>{/* end day list */}
 
       {/* Day edit modal */}
       {showModal && selectedDay && (
