@@ -6,10 +6,22 @@ import BottomNavigation from './BottomNavigation';
 
 function GlobalBottomNav() {
   const [showBottomNav, setShowBottomNav] = useState(true);
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const lastScrollY = useRef(0);
   const ticking = useRef(false);
   const pathname = usePathname();
   const { user, loading } = useAuth();
+
+  useEffect(() => {
+    const open = () => setCalendarOpen(true);
+    const close = () => setCalendarOpen(false);
+    window.addEventListener('calendar-overlay-open', open);
+    window.addEventListener('calendar-overlay-close', close);
+    return () => {
+      window.removeEventListener('calendar-overlay-open', open);
+      window.removeEventListener('calendar-overlay-close', close);
+    };
+  }, []);
 
   // Chat oldalakon és post detail oldalakon ne jelenjen meg
   const isChatPage = pathname?.startsWith('/chat');
@@ -44,7 +56,7 @@ function GlobalBottomNav() {
   }, [user, loading, handleScroll]);
 
   // Ne renderelj semmit ha nincs user, chat oldalon vagy post detail oldalon vagyunk
-  if (!user || loading || isChatPage || isPostDetailPage) {
+  if (!user || loading || isChatPage || isPostDetailPage || calendarOpen) {
     return null;
   }
 

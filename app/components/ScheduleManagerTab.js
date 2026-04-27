@@ -378,6 +378,12 @@ function PharmacyScheduleCalendar({
   const [employeeRows, setEmployeeRows] = useState([]);
   const [modalSaving, setModalSaving] = useState(false);
 
+  // Hide bottom nav while overlay is visible
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('calendar-overlay-open'));
+    return () => window.dispatchEvent(new CustomEvent('calendar-overlay-close'));
+  }, []);
+
   const cells = getCalendarCells(year, month);
   const rowCount = cells.length / 7; // 4, 5 or 6 weeks
   const today = getTodayKey();
