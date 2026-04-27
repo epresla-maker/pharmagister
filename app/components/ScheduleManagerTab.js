@@ -509,7 +509,7 @@ function PharmacyScheduleCalendar({
       </div>
       {/* Weekday labels + days — horizontally scrollable */}
       <div className="flex-1 overflow-x-auto overflow-y-hidden">
-      <div style={{minWidth:'560px', height:'100%', display:'flex', flexDirection:'column'}}>
+      <div style={{minWidth:'1400px', height:'100%', display:'flex', flexDirection:'column'}}>
       {/* Weekday labels */}
       <div className={`grid grid-cols-7 flex-shrink-0 border-b ${darkMode ? 'border-gray-700 bg-gray-800/60' : 'border-[#E5E7EB] bg-gray-50'}`}>
         {['H','K','Sze','Cs','P','Szo','V'].map(d => (
