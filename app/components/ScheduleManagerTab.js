@@ -848,7 +848,10 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
   const selectedDate = formatDateKey(year, month, day);
   const today = getTodayKey();
-  const availableYears = [now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1, now.getFullYear() + 2];
+  const thisYear = now.getFullYear();
+  const thisMonth = now.getMonth() + 1;
+  const availableYears = [thisYear, thisYear + 1, thisYear + 2];
+  const pastYears = [thisYear - 1, thisYear - 2].filter(y => y > 2020);
 
   const activeEmployees = useMemo(
     () => employees.filter(item => item.status !== 'inactive').sort((a, b) => a.name.localeCompare(b.name, 'hu')),
@@ -2361,40 +2364,44 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           {isPharmacy && mainTab === 'schedule' ? (
             <div className="space-y-4">
               {/* ── Month picker ─────────────────────────────────────── */}
-              {availableYears.map(y => (
-                <div key={y}>
-                  <p className={`text-xs font-bold uppercase tracking-widest mb-2 px-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{y}</p>
-                  <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-                    {MONTHS_HU.map((label, idx) => {
-                      const m = idx + 1;
-                      const isActive = y === year && m === month;
-                      const monthScheds = schedules.filter(s => s.status !== 'deleted' && s.year === y && s.month === m);
-                      return (
-                        <button
-                          key={m}
-                          type="button"
-                          onClick={() => { setYear(y); setMonth(m); setCalendarOpen(true); }}
-                          className={[
-                            'flex-shrink-0 flex flex-col items-center rounded-2xl px-4 py-3 transition-all border',
-                            isActive
-                              ? 'bg-gradient-to-br from-violet-600 to-indigo-600 text-white border-transparent shadow-lg shadow-violet-200'
-                              : darkMode
-                                ? 'bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-700'
-                                : 'bg-white border-gray-200 text-gray-800 hover:bg-violet-50 hover:border-violet-300',
-                          ].join(' ')}
-                        >
-                          <span className="font-bold text-sm whitespace-nowrap">{label}</span>
-                          {monthScheds.length > 0 && (
-                            <span className={`mt-1 text-[10px] font-semibold rounded-full px-2 py-0.5 ${isActive ? 'bg-white/25 text-white' : darkMode ? 'bg-gray-700 text-gray-300' : 'bg-violet-100 text-violet-700'}`}>
-                              {monthScheds.length} műszak
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
+              {availableYears.map(y => {
+                // Current year starts from current month; future years from January
+                const startMonth = y === thisYear ? thisMonth : 1;
+                const months = MONTHS_HU.slice(startMonth - 1).map((label, i) => ({ label, m: startMonth + i }));
+                return (
+                  <div key={y}>
+                    <p className={`text-xs font-bold uppercase tracking-widest mb-2 px-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{y}</p>
+                    <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                      {months.map(({ label, m }) => {
+                        const isActive = y === year && m === month;
+                        const monthScheds = schedules.filter(s => s.status !== 'deleted' && s.year === y && s.month === m);
+                        return (
+                          <button
+                            key={m}
+                            type="button"
+                            onClick={() => { setYear(y); setMonth(m); setCalendarOpen(true); }}
+                            className={[
+                              'flex-shrink-0 flex flex-col items-center rounded-2xl px-4 py-3 transition-all border',
+                              isActive
+                                ? 'bg-gradient-to-br from-violet-600 to-indigo-600 text-white border-transparent shadow-lg shadow-violet-200'
+                                : darkMode
+                                  ? 'bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-700'
+                                  : 'bg-white border-gray-200 text-gray-800 hover:bg-violet-50 hover:border-violet-300',
+                            ].join(' ')}
+                          >
+                            <span className="font-bold text-sm whitespace-nowrap">{label}</span>
+                            {monthScheds.length > 0 && (
+                              <span className={`mt-1 text-[10px] font-semibold rounded-full px-2 py-0.5 ${isActive ? 'bg-white/25 text-white' : darkMode ? 'bg-gray-700 text-gray-300' : 'bg-violet-100 text-violet-700'}`}>
+                                {monthScheds.length} műszak
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
               {/* Pending vacation + swap panels */}
               {pendingVacationRequests.length > 0 ? (
@@ -3019,16 +3026,77 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             ) : null}
 
           {isPharmacy && mainTab === 'history' ? (
-            <div className={`rounded-2xl border p-5 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
-              <h3 className="text-lg font-semibold">Múlt beosztások</h3>
-              {visibleSchedules.length === 0 ? (
-                <p className="text-sm text-gray-500">A kiválasztott hónapban nincs múltbeli beosztás.</p>
-              ) : visibleSchedules.map(item => (
-                <div key={item.id} className={`rounded-xl border p-4 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-[#E5E7EB] bg-[#F9FAFB]'}`}>
-                  <p className="font-semibold">{item.date} - {item.employeeName}</p>
-                  <p className="text-sm text-gray-500">{item.startTime} - {item.endTime}</p>
-                </div>
-              ))}
+            <div className="space-y-4">
+              {/* Past years month picker */}
+              {[thisYear, ...pastYears].map(y => {
+                // Current year: only past months (before this month); past years: all 12
+                const endMonth = y === thisYear ? thisMonth - 1 : 12;
+                if (endMonth < 1) return null;
+                const months = MONTHS_HU.slice(0, endMonth).map((label, i) => ({ label, m: i + 1 })).reverse();
+                if (months.length === 0) return null;
+                return (
+                  <div key={y}>
+                    <p className={`text-xs font-bold uppercase tracking-widest mb-2 px-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{y}</p>
+                    <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                      {months.map(({ label, m }) => {
+                        const isActive = y === year && m === month;
+                        const monthScheds = schedules.filter(s => s.status !== 'deleted' && s.year === y && s.month === m);
+                        return (
+                          <button
+                            key={m}
+                            type="button"
+                            onClick={() => { setYear(y); setMonth(m); setCalendarOpen(true); }}
+                            className={[
+                              'flex-shrink-0 flex flex-col items-center rounded-2xl px-4 py-3 transition-all border',
+                              isActive
+                                ? 'bg-gradient-to-br from-violet-600 to-indigo-600 text-white border-transparent shadow-lg shadow-violet-200'
+                                : darkMode
+                                  ? 'bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-700'
+                                  : 'bg-white border-gray-200 text-gray-800 hover:bg-violet-50 hover:border-violet-300',
+                            ].join(' ')}
+                          >
+                            <span className="font-bold text-sm whitespace-nowrap">{label}</span>
+                            {monthScheds.length > 0 && (
+                              <span className={`mt-1 text-[10px] font-semibold rounded-full px-2 py-0.5 ${isActive ? 'bg-white/25 text-white' : darkMode ? 'bg-gray-700 text-gray-300' : 'bg-violet-100 text-violet-700'}`}>
+                                {monthScheds.length} műszak
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+              {/* Full-screen overlay for past months */}
+              {calendarOpen && (
+                <PharmacyScheduleCalendar
+                  year={year}
+                  month={month}
+                  onChangeMonth={(dir) => {
+                    if (dir === 'prev') {
+                      const p = getPreviousMonth(year, month);
+                      setYear(p.year); setMonth(p.month);
+                    } else {
+                      const next = month === 12 ? { year: year + 1, month: 1 } : { year, month: month + 1 };
+                      setYear(next.year); setMonth(next.month);
+                    }
+                  }}
+                  onClose={() => setCalendarOpen(false)}
+                  schedules={schedules.filter(s => s.status !== 'deleted')}
+                  employees={employees}
+                  user={user}
+                  userData={userData}
+                  darkMode={darkMode}
+                  onSaveDaySchedules={handleSaveDaySchedules}
+                  saving={saving}
+                  onCopyPrev={handleCopyPreviousMonth}
+                  onExport={handleExportSchedules}
+                  onPublish={handlePublishSchedules}
+                  activeMonthSchedules={activeMonthSchedules.length}
+                  publishedScheduleCount={publishedScheduleCount}
+                />
+              )}
             </div>
           ) : null}
 
