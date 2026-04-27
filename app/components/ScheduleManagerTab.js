@@ -24,7 +24,6 @@ import {
   CheckCircle2,
   Copy,
   Download,
-  Bird,
   Info,
   Plane,
   Plus,
@@ -38,8 +37,6 @@ import {
   UserX,
   Wand2,
   XCircle,
-  Maximize2,
-  X,
 } from 'lucide-react';
 
 const MONTHS_HU = [
@@ -187,55 +184,6 @@ function prettyRole(role) {
   return 'Egyéb';
 }
 
-function normalizeEmployeeRole(role) {
-  const normalized = String(role || '').trim().toLowerCase();
-  if (normalized === 'pharmacist' || normalized === 'gyógyszerész') return 'pharmacist';
-  if (normalized === 'assistant' || normalized === 'szakasszisztens') return 'assistant';
-  return 'other';
-}
-
-function roleGroupLabel(role) {
-  if (role === 'pharmacist') return 'Gyógyszerészek';
-  if (role === 'assistant') return 'Szakasszisztensek';
-  return 'Egyéb';
-}
-
-function getEmployeeIdentityKey(item) {
-  if (!item) return '';
-  // schedules have employeeId pointing to the employee record – must check before item.id
-  // (item.id on a schedule is the schedule doc id, not the employee id)
-  if (item.employeeId) return `id:${item.employeeId}`;
-  if (item.id) return `id:${item.id}`;
-  if (item.linkedUserId) return `linked:${item.linkedUserId}`;
-  const normalizedEmail = normalizeEmail(item.email || item.employeeEmail || '');
-  if (normalizedEmail) return `email:${normalizedEmail}`;
-  const fallbackName = String(item.name || item.employeeName || '').trim().toLowerCase();
-  return fallbackName ? `name:${fallbackName}` : '';
-}
-
-function detectShiftMarker(item) {
-  const rawType = String(item?.shiftType || '').trim().toLowerCase();
-  const notes = String(item?.notes || '').trim().toLowerCase();
-  const combined = `${rawType} ${notes}`;
-
-  if (/beteg|sick/.test(combined)) return 'B';
-  if (/szabad|off|free|vacation/.test(combined)) return 'OFF';
-  if (/ügyelet|ugyelet|oncall/.test(combined)) return 'Ü';
-  if (/éjszak|ejszak|night/.test(combined)) return 'É';
-  if (/nappal|day|normal/.test(combined)) return 'N';
-
-  const startHour = Number(String(item?.startTime || '').split(':')[0]);
-  const endHour = Number(String(item?.endTime || '').split(':')[0]);
-  const hasNightByHour = (
-    Number.isFinite(startHour)
-    && Number.isFinite(endHour)
-    && (startHour >= 20 || startHour <= 5 || endHour <= 6)
-  );
-
-  if (hasNightByHour) return 'É';
-  return 'N';
-}
-
 function normalizeRoleFromProfile(role) {
   const normalized = String(role || '').trim().toLowerCase();
   if (normalized === 'pharmacist' || normalized === 'gyógyszerész') return 'pharmacist';
@@ -308,45 +256,29 @@ function MonthCalendar({ year, month, selectedDate, schedules, ownScheduleIds, o
   const cells = getCalendarCells(year, month);
   const today = getTodayKey();
 
-  const DAYS_SHORT = ['H', 'K', 'SZE', 'CS', 'P', 'SZO', 'V'];
-
   return (
-    <div className={`overflow-hidden rounded-2xl ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
-      {/* Legend */}
-      <div className="flex flex-wrap gap-2 px-1 pb-3 pt-1 text-xs font-medium">
-        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 ${darkMode ? 'bg-emerald-900/50 text-emerald-200' : 'bg-emerald-50 text-emerald-700'}`}>
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 inline-block" />Saját műszak
-        </span>
-        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 ${darkMode ? 'bg-sky-900/50 text-sky-200' : 'bg-sky-50 text-sky-700'}`}>
-          <span className="h-1.5 w-1.5 rounded-full bg-sky-400 inline-block" />Gyógyszerész
-        </span>
-        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 ${darkMode ? 'bg-amber-900/40 text-amber-200' : 'bg-amber-50 text-amber-700'}`}>
-          <span className="h-1.5 w-1.5 rounded-full bg-amber-400 inline-block" />Szakasszisztens
-        </span>
-        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 ${darkMode ? 'bg-fuchsia-900/40 text-fuchsia-200' : 'bg-fuchsia-50 text-fuchsia-700'}`}>
-          <span className="h-1.5 w-1.5 rounded-full bg-fuchsia-400 inline-block" />Egyéb
-        </span>
+    <div className={`overflow-hidden rounded-2xl border ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
+      <div className={`flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 ${darkMode ? 'border-gray-700 bg-gray-800/80' : 'border-[#E5E7EB] bg-[#F9FAFB]'}`}>
+        <div className="flex flex-wrap items-center gap-2 text-xs font-medium">
+          <span className={`rounded-full px-2.5 py-1 ${darkMode ? 'bg-emerald-900/60 text-emerald-100 border border-emerald-700' : 'bg-emerald-100 text-emerald-800 border border-emerald-200'}`}>Saját műszak</span>
+          <span className={`rounded-full px-2.5 py-1 ${darkMode ? 'bg-sky-900/60 text-sky-100 border border-sky-700' : 'bg-sky-100 text-sky-800 border border-sky-200'}`}>Gyógyszerész</span>
+          <span className={`rounded-full px-2.5 py-1 ${darkMode ? 'bg-amber-900/50 text-amber-100 border border-amber-700' : 'bg-amber-100 text-amber-800 border border-amber-200'}`}>Szakasszisztens</span>
+          <span className={`rounded-full px-2.5 py-1 ${darkMode ? 'bg-fuchsia-900/50 text-fuchsia-100 border border-fuchsia-700' : 'bg-fuchsia-100 text-fuchsia-800 border border-fuchsia-200'}`}>Egyéb</span>
+        </div>
+        <p className={`text-xs ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>Kattints egy napra a részletekhez</p>
       </div>
-
-      {/* Day headers */}
-      <div className={`grid grid-cols-7 border-t border-b ${darkMode ? 'border-gray-800' : 'border-gray-100'}`}>
-        {DAYS_SHORT.map((d, i) => (
-          <div key={d} className={`py-2 text-center text-[11px] font-bold uppercase tracking-wider ${i >= 5 ? 'text-red-400' : darkMode ? 'text-gray-400' : 'text-gray-400'}`}>
-            {d}
+      <div className={`grid grid-cols-7 ${darkMode ? 'bg-gray-800' : 'bg-[#F9FAFB]'} border-b ${darkMode ? 'border-gray-700' : 'border-[#E5E7EB]'}`}>
+        {WEEKDAYS_HU.map(day => (
+          <div key={day} className="px-2 py-3 text-center text-[11px] font-semibold uppercase tracking-wide">
+            {day}
           </div>
         ))}
       </div>
-
-      {/* Calendar grid */}
       <div className="grid grid-cols-7">
         {cells.map((day, index) => {
           const dateKey = day ? formatDateKey(year, month, day) : null;
           const daySchedules = dateKey ? schedules.filter(item => item.date === dateKey && item.status !== 'deleted') : [];
           const hasOwnSchedule = daySchedules.some(item => ownScheduleIds.has(item.id));
-          const isToday = dateKey === today;
-          const isSelected = selectedDate === dateKey;
-          const dow = day ? new Date(year, month - 1, day).getDay() : 0;
-          const isWeekend = dow === 0 || dow === 6;
 
           return (
             <button
@@ -354,56 +286,43 @@ function MonthCalendar({ year, month, selectedDate, schedules, ownScheduleIds, o
               type="button"
               disabled={!day}
               onClick={() => day && onSelectDate(dateKey)}
-              className={`relative min-h-[80px] sm:min-h-[100px] border-r border-b p-1.5 sm:p-2 text-left align-top transition-all focus:outline-none ${
-                darkMode ? 'border-gray-800' : 'border-gray-100'
+              className={`min-h-[132px] border-r border-b p-2.5 text-left align-top transition-colors ${
+                darkMode ? 'border-gray-800' : 'border-[#E5E7EB]'
               } ${
                 !day
-                  ? darkMode ? 'bg-gray-950/60' : 'bg-gray-50/60'
-                  : isSelected
-                    ? darkMode ? 'bg-violet-900/40 ring-2 ring-inset ring-violet-500' : 'bg-violet-50 ring-2 ring-inset ring-violet-400'
+                  ? darkMode ? 'bg-gray-950' : 'bg-[#F9FAFB]'
+                  : selectedDate === dateKey
+                    ? 'bg-violet-100 ring-2 ring-violet-400 ring-inset dark:bg-violet-900/30'
                     : hasOwnSchedule
-                      ? darkMode ? 'bg-emerald-950/40 hover:bg-emerald-900/40' : 'bg-emerald-50/70 hover:bg-emerald-50'
-                      : darkMode ? 'hover:bg-gray-800/60' : 'hover:bg-gray-50'
+                      ? 'bg-emerald-50 dark:bg-emerald-900/15'
+                      : daySchedules.length > 0
+                        ? darkMode ? 'bg-slate-800/70 hover:bg-slate-800' : 'bg-slate-50 hover:bg-slate-100'
+                        : 'hover:bg-gray-50 dark:hover:bg-gray-800'
               }`}
             >
               {day ? (
                 <>
-                  {/* Day number */}
-                  <div className="flex items-start justify-between gap-1">
-                    <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
-                      isToday
-                        ? 'bg-[#6B46C1] text-white'
-                        : isWeekend
-                          ? darkMode ? 'text-red-400' : 'text-red-400'
-                          : darkMode ? 'text-gray-200' : 'text-gray-700'
-                    }`}>
-                      {day}
-                    </span>
+                  <div className="flex items-center justify-between">
+                    <span className={`text-sm font-semibold ${dateKey === today ? 'text-[#6B46C1]' : ''}`}>{day}</span>
                     {daySchedules.length > 0 ? (
-                      <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold leading-none ${
-                        hasOwnSchedule
-                          ? 'bg-emerald-500 text-white'
-                          : darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-600'
-                      }`}>
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${hasOwnSchedule ? 'bg-emerald-600 text-white' : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-100'}`}>
                         {daySchedules.length}
                       </span>
                     ) : null}
                   </div>
-
-                  {/* Schedule chips */}
-                  <div className="mt-1 space-y-0.5">
-                    {daySchedules.slice(0, 2).map(item => (
+                  <div className="mt-2.5 space-y-1.5">
+                    {daySchedules.slice(0, 3).map(item => (
                       <div
                         key={item.id}
-                        className={`truncate rounded-md px-1.5 py-0.5 text-[10px] font-medium leading-tight ${getShiftChipClasses(item, ownScheduleIds.has(item.id), darkMode)}`}
+                        className={`truncate rounded-md px-2 py-1 text-[11px] ${getShiftChipClasses(item, ownScheduleIds.has(item.id), darkMode)}`}
                         title={`${item.employeeName} ${item.startTime || ''}-${item.endTime || ''}`}
                       >
-                        {item.startTime && item.endTime && item.startTime !== '00:00' ? `${item.startTime} ` : ''}{item.employeeName}
+                        {item.startTime && item.endTime ? `${item.startTime}-${item.endTime} ` : ''}{item.employeeName}
                       </div>
                     ))}
-                    {daySchedules.length > 2 ? (
-                      <div className={`pl-1 text-[10px] font-semibold ${darkMode ? 'text-gray-400' : 'text-gray-400'}`}>
-                        +{daySchedules.length - 2}
+                    {daySchedules.length > 3 ? (
+                      <div className={`text-[11px] font-medium ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                        +{daySchedules.length - 3} további műszak
                       </div>
                     ) : null}
                   </div>
@@ -414,294 +333,6 @@ function MonthCalendar({ year, month, selectedDate, schedules, ownScheduleIds, o
         })}
       </div>
     </div>
-  );
-}
-
-function MonthlyRosterTable({ year, month, schedules, employees, ownEmployeeRecords, user, darkMode, onSelectDay, selectedDay, fullscreen, setFullscreen }) {
-  const daysInMonth = getDaysInMonth(year, month);
-  const dayNumbers = Array.from({ length: daysInMonth }, (_, index) => index + 1);
-  const ownEmail = normalizeEmail(user?.email);
-
-  const personColorThemes = [
-    { nameLight: 'bg-slate-100 text-slate-800', nameDark: 'bg-slate-700/40 text-slate-200', markerLight: 'text-slate-700 border-slate-200 bg-slate-50', markerDark: 'text-slate-300 border-slate-600 bg-slate-800/40' },
-    { nameLight: 'bg-orange-100 text-orange-800', nameDark: 'bg-orange-900/30 text-orange-200', markerLight: 'text-orange-700 border-orange-200 bg-orange-50', markerDark: 'text-orange-300 border-orange-700 bg-orange-900/40' },
-    { nameLight: 'bg-amber-100 text-amber-800', nameDark: 'bg-amber-900/30 text-amber-200', markerLight: 'text-amber-700 border-amber-200 bg-amber-50', markerDark: 'text-amber-300 border-amber-700 bg-amber-900/40' },
-    { nameLight: 'bg-lime-100 text-lime-800', nameDark: 'bg-lime-900/30 text-lime-200', markerLight: 'text-lime-700 border-lime-200 bg-lime-50', markerDark: 'text-lime-300 border-lime-700 bg-lime-900/40' },
-    { nameLight: 'bg-emerald-100 text-emerald-800', nameDark: 'bg-emerald-900/30 text-emerald-200', markerLight: 'text-emerald-700 border-emerald-200 bg-emerald-50', markerDark: 'text-emerald-300 border-emerald-700 bg-emerald-900/40' },
-    { nameLight: 'bg-teal-100 text-teal-800', nameDark: 'bg-teal-900/30 text-teal-200', markerLight: 'text-teal-700 border-teal-200 bg-teal-50', markerDark: 'text-teal-300 border-teal-700 bg-teal-900/40' },
-    { nameLight: 'bg-cyan-100 text-cyan-800', nameDark: 'bg-cyan-900/30 text-cyan-200', markerLight: 'text-cyan-700 border-cyan-200 bg-cyan-50', markerDark: 'text-cyan-300 border-cyan-700 bg-cyan-900/40' },
-    { nameLight: 'bg-sky-100 text-sky-800', nameDark: 'bg-sky-900/30 text-sky-200', markerLight: 'text-sky-700 border-sky-200 bg-sky-50', markerDark: 'text-sky-300 border-sky-700 bg-sky-900/40' },
-    { nameLight: 'bg-indigo-100 text-indigo-800', nameDark: 'bg-indigo-900/30 text-indigo-200', markerLight: 'text-indigo-700 border-indigo-200 bg-indigo-50', markerDark: 'text-indigo-300 border-indigo-700 bg-indigo-900/40' },
-    { nameLight: 'bg-violet-100 text-violet-800', nameDark: 'bg-violet-900/30 text-violet-200', markerLight: 'text-violet-700 border-violet-200 bg-violet-50', markerDark: 'text-violet-300 border-violet-700 bg-violet-900/40' },
-    { nameLight: 'bg-fuchsia-100 text-fuchsia-800', nameDark: 'bg-fuchsia-900/30 text-fuchsia-200', markerLight: 'text-fuchsia-700 border-fuchsia-200 bg-fuchsia-50', markerDark: 'text-fuchsia-300 border-fuchsia-700 bg-fuchsia-900/40' },
-    { nameLight: 'bg-pink-100 text-pink-800', nameDark: 'bg-pink-900/30 text-pink-200', markerLight: 'text-pink-700 border-pink-200 bg-pink-50', markerDark: 'text-pink-300 border-pink-700 bg-pink-900/40' },
-  ];
-
-  const normalizedSchedules = useMemo(
-    () => sortByDateAndTime((schedules || []).filter(item => item.status !== 'deleted')),
-    [schedules]
-  );
-
-  // Maps email → canonical employeeKey so schedules referencing a duplicate/legacy
-  // employee doc ID can be redirected to the correct row key.
-  const emailToCanonicalKey = useMemo(() => {
-    const map = new Map();
-    (employees || []).forEach((employee) => {
-      const key = getEmployeeIdentityKey(employee);
-      const email = normalizeEmail(employee.email || '');
-      if (key && email) map.set(email, key);
-    });
-    return map;
-  }, [employees]);
-
-  const employeeRows = useMemo(() => {
-    const byEmployee = new Map();
-
-    (employees || []).forEach((employee) => {
-      const key = getEmployeeIdentityKey(employee);
-      if (!key) return;
-      byEmployee.set(key, {
-        key,
-        id: employee.id || null,
-        linkedUserId: employee.linkedUserId || null,
-        email: normalizeEmail(employee.email || ''),
-        name: employee.name || employee.employeeName || 'Ismeretlen dolgozó',
-        role: normalizeEmployeeRole(employee.role),
-      });
-    });
-
-    normalizedSchedules.forEach((item) => {
-      let key = getEmployeeIdentityKey(item);
-      if (!key) return;
-
-      // Redirect to canonical key via email if this doc ID is not known
-      if (!byEmployee.has(key)) {
-        const itemEmail = normalizeEmail(item.employeeEmail || '');
-        if (itemEmail && emailToCanonicalKey.has(itemEmail)) {
-          key = emailToCanonicalKey.get(itemEmail);
-        }
-      }
-
-      const existing = byEmployee.get(key);
-      if (existing) {
-        byEmployee.set(key, {
-          ...existing,
-          name: existing.name || item.employeeName || 'Ismeretlen dolgozó',
-          role: existing.role || normalizeEmployeeRole(item.role),
-          linkedUserId: existing.linkedUserId || item.linkedUserId || null,
-          email: existing.email || normalizeEmail(item.employeeEmail || ''),
-        });
-      } else {
-        byEmployee.set(key, {
-          key,
-          id: item.employeeId || null,
-          linkedUserId: item.linkedUserId || null,
-          email: normalizeEmail(item.employeeEmail || ''),
-          name: item.employeeName || 'Ismeretlen dolgozó',
-          role: normalizeEmployeeRole(item.role),
-        });
-      }
-    });
-
-    const ownEmployeeKeys = new Set((ownEmployeeRecords || []).map(getEmployeeIdentityKey));
-
-    const isOwnRow = (row) => (
-      ownEmployeeKeys.has(row.key)
-      || (row.linkedUserId && row.linkedUserId === user?.uid)
-      || (row.email && row.email === ownEmail)
-    );
-
-    const ownRole = [...byEmployee.values()].find(isOwnRow)?.role || null;
-    const defaultOrder = ['pharmacist', 'assistant', 'other'];
-    const roleOrder = ownRole
-      ? [ownRole, ...defaultOrder.filter(role => role !== ownRole)]
-      : defaultOrder;
-
-    const orderedRows = [];
-    let colorCursor = 0;
-    roleOrder.forEach((role) => {
-      const groupRows = [...byEmployee.values()]
-        .filter(item => item.role === role)
-        .sort((a, b) => {
-          const aOwn = isOwnRow(a);
-          const bOwn = isOwnRow(b);
-          if (aOwn !== bOwn) return aOwn ? -1 : 1;
-          return a.name.localeCompare(b.name, 'hu');
-        });
-
-      if (groupRows.length === 0) return;
-      orderedRows.push({ type: 'separator', role, label: roleGroupLabel(role) });
-      groupRows.forEach((item) => {
-        orderedRows.push({
-          type: 'employee',
-          ...item,
-          isOwn: isOwnRow(item),
-          colorTheme: personColorThemes[colorCursor % personColorThemes.length],
-        });
-        colorCursor += 1;
-      });
-    });
-
-    return orderedRows;
-  }, [employees, normalizedSchedules, ownEmployeeRecords, ownEmail, personColorThemes, user?.uid, emailToCanonicalKey]);
-
-  const scheduleByRowDay = useMemo(() => {
-    const matrix = new Map();
-    normalizedSchedules.forEach((item) => {
-      let rowKey = getEmployeeIdentityKey(item);
-      // Redirect legacy doc ID to canonical key via email
-      if (rowKey) {
-        const itemEmail = normalizeEmail(item.employeeEmail || '');
-        if (itemEmail && emailToCanonicalKey.has(itemEmail)) {
-          rowKey = emailToCanonicalKey.get(itemEmail);
-        }
-      }
-      const dayNumber = Number(item.day || String(item.date || '').split('-')[2]);
-      if (!rowKey || !dayNumber) return;
-      const key = `${rowKey}|${dayNumber}`;
-      const entries = matrix.get(key) || [];
-      entries.push(item);
-      matrix.set(key, entries);
-    });
-    return matrix;
-  }, [normalizedSchedules, emailToCanonicalKey]);
-
-  const emptyState = normalizedSchedules.length === 0;
-
-  const tableInner = (
-    <div className="overflow-auto rounded-xl border border-gray-200 dark:border-gray-700">
-        <table className="min-w-max w-full border-collapse text-xs">
-          <thead>
-            <tr className={darkMode ? 'bg-gray-800' : 'bg-gray-100'}>
-              <th className={`sticky left-0 z-10 min-w-[220px] border-b border-r px-3 py-2 text-left font-semibold ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-100'}`}>
-                Beosztott
-              </th>
-              {dayNumbers.map((dayNumber) => {
-                const dow = new Date(year, month - 1, dayNumber).getDay();
-                const isWeekend = dow === 0 || dow === 6;
-                const isSelected = dayNumber === selectedDay;
-                const DAY_ABBR = ['V', 'H', 'K', 'SZE', 'CS', 'P', 'SZO'];
-                return (
-                  <th
-                    key={dayNumber}
-                    onClick={() => onSelectDay?.(dayNumber)}
-                    className={`min-w-[52px] border-b border-r px-2 py-1.5 text-center font-semibold cursor-pointer select-none ${darkMode ? 'border-gray-700 hover:bg-gray-700' : 'border-gray-200 hover:bg-gray-200'} ${isWeekend ? 'text-red-500' : ''} ${isSelected ? (darkMode ? 'bg-violet-900/50' : 'bg-violet-100') : ''}`}
-                  >
-                    <div className="text-[9px] font-normal opacity-60 leading-none mb-0.5">{DAY_ABBR[dow]}</div>
-                    <div>{dayNumber}</div>
-                  </th>
-                );
-              })}
-            </tr>
-          </thead>
-          <tbody>
-            {employeeRows.map((row, rowIndex) => {
-              if (row.type === 'separator') {
-                return (
-                  <tr key={`separator-${row.role}-${rowIndex}`}>
-                    <td
-                      colSpan={daysInMonth + 1}
-                      className={`border-b px-3 py-2 text-[11px] font-bold uppercase tracking-wide ${darkMode ? 'border-gray-700 bg-gray-800 text-gray-200' : 'border-gray-200 bg-gray-50 text-gray-700'}`}
-                    >
-                      {row.label}
-                    </td>
-                  </tr>
-                );
-              }
-
-              const shiftCount = dayNumbers.filter(d => (scheduleByRowDay.get(`${row.key}|${d}`) || []).length > 0).length;
-              return (
-                <tr key={row.key} className={darkMode ? 'hover:bg-gray-800/70' : 'hover:bg-gray-50'}>
-                  <th
-                    scope="row"
-                    className={`sticky left-0 z-[5] border-b border-r px-3 py-2 text-left font-medium ${darkMode ? 'border-gray-700' : 'border-gray-200'} ${darkMode ? row.colorTheme.nameDark : row.colorTheme.nameLight} ${row.isOwn ? 'ring-2 ring-emerald-500 ring-inset' : ''}`}
-                  >
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span>{row.name}</span>
-                      {row.isOwn ? <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-semibold text-white">Én</span> : null}
-                      {shiftCount > 0 ? <span className={`text-[10px] font-normal opacity-70`}>{shiftCount} nap</span> : null}
-                    </div>
-                  </th>
-
-                  {dayNumbers.map((dayNumber) => {
-                    const items = scheduleByRowDay.get(`${row.key}|${dayNumber}`) || [];
-                    const hasShift = items.length > 0;
-                    const first = items[0];
-                    const marker = hasShift ? detectShiftMarker(first) : 'OFF';
-                    const isOffDay = marker === 'OFF';
-
-                    return (
-                      <td
-                        key={`${row.key}-${dayNumber}`}
-                        onClick={() => onSelectDay?.(dayNumber)}
-                        className={`border-b border-r px-1 py-1.5 text-center align-middle cursor-pointer ${darkMode ? 'border-gray-700 hover:bg-gray-700/50' : 'border-gray-200 hover:bg-gray-100'} ${dayNumber === selectedDay ? (darkMode ? 'bg-violet-900/30' : 'bg-violet-50') : ''}`}
-                      >
-                        <div className={`mx-auto flex h-6 w-8 items-center justify-center rounded border text-sm font-bold ${darkMode ? row.colorTheme.markerDark : row.colorTheme.markerLight} ${!hasShift ? 'opacity-70' : ''}`}>
-                          {isOffDay ? <Bird className="h-3.5 w-3.5" /> : marker}
-                        </div>
-                        {items.length > 1 ? (
-                          <div className={`mt-0.5 text-[9px] font-semibold ${darkMode ? 'text-gray-300' : 'text-gray-500'}`}>+{items.length - 1}</div>
-                        ) : null}
-                      </td>
-                    );
-                  })}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-  );
-
-  const header = (
-    <div className="mb-4 flex items-start justify-between gap-2">
-      <div>
-        <h3 className="text-lg font-semibold">Kész beosztás (táblázat)</h3>
-        <p className="text-sm text-gray-500">Jelölések: N = nappali, Ü = ügyelet, É = éjszaka, B = beteg, madár = szabadnap.</p>
-      </div>
-      <button
-        type="button"
-        onClick={() => setFullscreen?.(true)}
-        title="Teljes képernyő"
-        className={`shrink-0 rounded-lg border p-1.5 ${darkMode ? 'border-gray-600 bg-gray-800 text-gray-300 hover:bg-gray-700' : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'}`}
-      >
-        <Maximize2 className="h-4 w-4" />
-      </button>
-    </div>
-  );
-
-  if (emptyState) {
-    return (
-      <div className={`rounded-2xl border p-5 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
-        {header}
-        <p className="text-sm text-gray-500">Ebben a hónapban még nincs rögzített beosztás.</p>
-      </div>
-    );
-  }
-
-  return (
-    <>
-      <div className={`rounded-2xl border p-5 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
-        {header}
-        {tableInner}
-      </div>
-
-      {fullscreen ? (
-        <div className="fixed inset-0 z-50 flex flex-col bg-white dark:bg-gray-900 p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Kész beosztás – {MONTHS_HU[month - 1]} {year}</h3>
-            <button
-              type="button"
-              onClick={() => setFullscreen?.(false)}
-              className={`rounded-lg border p-2 ${darkMode ? 'border-gray-600 bg-gray-800 text-gray-200 hover:bg-gray-700' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'}`}
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-          {tableInner}
-        </div>
-      ) : null}
-    </>
   );
 }
 
@@ -735,7 +366,6 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
   const [scheduleForm, setScheduleForm] = useState({
     employeeId: '',
-    shiftType: 'day',
     startTime: '08:00',
     endTime: '16:00',
     notes: '',
@@ -770,8 +400,6 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   // Quick swap: which own schedule is currently open for partner selection
   const [quickSwapScheduleId, setQuickSwapScheduleId] = useState(null);
   const [quickSwapMessage, setQuickSwapMessage] = useState('');
-  const [showDayModal, setShowDayModal] = useState(false);
-  const [rosterFullscreen, setRosterFullscreen] = useState(false);
 
   const selectedDate = formatDateKey(year, month, day);
   const today = getTodayKey();
@@ -875,19 +503,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       getDocs(query(collection(db, 'scheduleVacationRequests'), where('pharmacyId', '==', user.uid))),
     ]);
 
-    const allEmpDocs = employeesSnapshot.docs
-      .map(item => ({ id: item.id, ...item.data() }))
-      .filter(item => item.status !== 'inactive');
-    // Deduplicate by email: prefer the record that has linkedUserId
-    const empByEmail = new Map();
-    allEmpDocs.forEach(emp => {
-      const emailKey = normalizeEmail(emp.email || '') || `id:${emp.id}`;
-      const existing = empByEmail.get(emailKey);
-      if (!existing || (!existing.linkedUserId && emp.linkedUserId)) {
-        empByEmail.set(emailKey, emp);
-      }
-    });
-    setEmployees([...empByEmail.values()]);
+    setEmployees(employeesSnapshot.docs.map(item => ({ id: item.id, ...item.data() })));
     setSchedules(sortByDateAndTime(schedulesSnapshot.docs.map(item => ({ id: item.id, ...item.data() }))));
     setSwapRequests(swapSnapshot.docs.map(item => ({ id: item.id, ...item.data() })));
     setVacationRequests(vacationSnapshot.docs.map(item => ({ id: item.id, ...item.data() })));
@@ -907,42 +523,26 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     });
 
     const employeeList = [...employeeMap.values()];
+    setEmployees(employeeList);
 
     const pharmacyIds = [...new Set(employeeList.map(item => item.pharmacyId).filter(Boolean))];
     const collectedSchedules = [];
     const collectedSwapRequests = [];
     const collectedVacationRequests = [];
-    const allPharmacyEmployees = [...employeeList];
 
     for (const pharmacyId of pharmacyIds) {
-      const [scheduleSnapshot, requesterSwapsSnapshot, targetSwapsSnapshot, vacationSnapshot, allEmpSnapshot] = await Promise.all([
+      const [scheduleSnapshot, requesterSwapsSnapshot, targetSwapsSnapshot, vacationSnapshot] = await Promise.all([
         getDocs(query(collection(db, 'pharmacySchedules'), where('pharmacyId', '==', pharmacyId), where('year', '==', year), where('month', '==', month))),
         getDocs(query(collection(db, 'scheduleSwapRequests'), where('requesterUserId', '==', user.uid))),
         getDocs(query(collection(db, 'scheduleSwapRequests'), where('targetUserId', '==', user.uid))),
         getDocs(query(collection(db, 'scheduleVacationRequests'), where('userId', '==', user.uid))),
-        getDocs(query(collection(db, 'pharmacyEmployees'), where('pharmacyId', '==', pharmacyId))),
       ]);
 
       collectedSchedules.push(...scheduleSnapshot.docs.map(item => ({ id: item.id, ...item.data() })));
       collectedSwapRequests.push(...requesterSwapsSnapshot.docs.map(item => ({ id: item.id, ...item.data() })));
       collectedSwapRequests.push(...targetSwapsSnapshot.docs.map(item => ({ id: item.id, ...item.data() })));
       collectedVacationRequests.push(...vacationSnapshot.docs.map(item => ({ id: item.id, ...item.data() })));
-      allEmpSnapshot.docs.forEach(item => {
-        const data = { id: item.id, ...item.data() };
-        if (data.status !== 'inactive') allPharmacyEmployees.push(data);
-      });
     }
-
-    // Deduplicate all employees by email (prefer linkedUserId record)
-    const empByEmail = new Map();
-    allPharmacyEmployees.forEach(emp => {
-      const emailKey = normalizeEmail(emp.email || '') || `id:${emp.id}`;
-      const existing = empByEmail.get(emailKey);
-      if (!existing || (!existing.linkedUserId && emp.linkedUserId)) {
-        empByEmail.set(emailKey, emp);
-      }
-    });
-    setEmployees([...empByEmail.values()]);
 
     const uniqueSwapMap = new Map();
     collectedSwapRequests.forEach(item => uniqueSwapMap.set(item.id, item));
@@ -1144,7 +744,6 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         employeeEmail: employee.email || '',
         linkedUserId: employee.linkedUserId || null,
         role: employee.role || 'other',
-        shiftType: scheduleForm.shiftType,
         startTime: scheduleForm.startTime,
         endTime: scheduleForm.endTime,
         notes: scheduleForm.notes.trim(),
@@ -1299,9 +898,10 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   }
 
   // Quick-swap: initiated from a specific own shift card
-  async function handleQuickSwapRequest(requesterScheduleId, targetScheduleIdOrVirtual, message) {
+  async function handleQuickSwapRequest(requesterScheduleId, targetScheduleId, message) {
     const requesterSchedule = schedules.find(item => item.id === requesterScheduleId);
-    if (!requesterSchedule) {
+    const targetSchedule = schedules.find(item => item.id === targetScheduleId);
+    if (!requesterSchedule || !targetSchedule) {
       setStatusError('Beosztás nem található.');
       return;
     }
@@ -1310,38 +910,6 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     setStatusError('');
     setStatusMessage('');
     try {
-      // If the target is a virtual free-day entry, create an off schedule for them first
-      let resolvedTargetId = targetScheduleIdOrVirtual;
-      let resolvedTargetInfo = schedules.find(item => item.id === targetScheduleIdOrVirtual);
-
-      if (String(targetScheduleIdOrVirtual).startsWith('virtual:')) {
-        const allCandidates = getSwapCandidatesForSchedule(requesterScheduleId);
-        const virtual = allCandidates.find(c => c.id === targetScheduleIdOrVirtual);
-        if (!virtual) throw new Error('Nem található a kiválasztott dolgozó.');
-        const newDocRef = await addDoc(collection(db, 'pharmacySchedules'), {
-          pharmacyId: virtual.pharmacyId,
-          employeeId: virtual.employeeId,
-          employeeName: virtual.employeeName,
-          employeeEmail: virtual.employeeEmail,
-          linkedUserId: virtual.linkedUserId || null,
-          role: virtual.role,
-          date: virtual.date,
-          year: virtual.year,
-          month: virtual.month,
-          day: virtual.day,
-          startTime: '00:00',
-          endTime: '00:00',
-          shiftType: 'off',
-          notes: 'Szabad nap (csere céljából rögzítve)',
-          status: 'active',
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        });
-        resolvedTargetId = newDocRef.id;
-        resolvedTargetInfo = { ...virtual, id: resolvedTargetId };
-      }
-
-      const targetSchedule = resolvedTargetInfo || { id: resolvedTargetId, employeeName: '', employeeEmail: '', linkedUserId: null, date: requesterSchedule.date };
       await addDoc(collection(db, 'scheduleSwapRequests'), {
         pharmacyId: requesterSchedule.pharmacyId,
         requesterUserId: user.uid,
@@ -1389,104 +957,6 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     } catch (error) {
       console.error('Quick swap request error:', error);
       setStatusError('Nem sikerült elküldeni a csereigényt.');
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleReportSick(scheduleId) {
-    setSaving(true);
-    setStatusError('');
-    setStatusMessage('');
-    try {
-      await updateDoc(doc(db, 'pharmacySchedules', scheduleId), {
-        shiftType: 'sick',
-        updatedAt: serverTimestamp(),
-      });
-      setStatusMessage('Betegállomány rögzítve.');
-      await loadData();
-    } catch (error) {
-      console.error('Report sick error:', error);
-      setStatusError('Nem sikerült rögzíteni a betegállományt.');
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleReportSickNoSchedule() {
-    const employeeRecord = ownEmployeeRecords[0];
-    if (!employeeRecord) {
-      setStatusError('Nem található dolgozói rekord.');
-      return;
-    }
-    setSaving(true);
-    setStatusError('');
-    setStatusMessage('');
-    try {
-      await addDoc(collection(db, 'pharmacySchedules'), {
-        pharmacyId: employeeRecord.pharmacyId,
-        employeeId: employeeRecord.id,
-        employeeName: employeeRecord.name,
-        employeeEmail: normalizeEmail(employeeRecord.email || ''),
-        linkedUserId: user.uid,
-        role: employeeRecord.role || '',
-        date: selectedDate,
-        year,
-        month,
-        day,
-        startTime: '00:00',
-        endTime: '00:00',
-        shiftType: 'sick',
-        notes: '',
-        status: 'active',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-      setStatusMessage('Betegállomány rögzítve.');
-      await loadData();
-    } catch (error) {
-      console.error('Report sick no schedule error:', error);
-      setStatusError('Nem sikerült rögzíteni a betegállományt.');
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleCreateOffDayForSwap() {
-    const employeeRecord = ownEmployeeRecords[0];
-    if (!employeeRecord) {
-      setStatusError('Nem található dolgozói rekord.');
-      return;
-    }
-    setSaving(true);
-    setStatusError('');
-    setStatusMessage('');
-    try {
-      const docRef = await addDoc(collection(db, 'pharmacySchedules'), {
-        pharmacyId: employeeRecord.pharmacyId,
-        employeeId: employeeRecord.id,
-        employeeName: employeeRecord.name,
-        employeeEmail: normalizeEmail(employeeRecord.email || ''),
-        linkedUserId: user.uid,
-        role: employeeRecord.role || '',
-        date: selectedDate,
-        year,
-        month,
-        day,
-        startTime: '00:00',
-        endTime: '00:00',
-        shiftType: 'off',
-        notes: 'Szabad nap (csere céljából rögzítve)',
-        status: 'active',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-      await loadData();
-      setQuickSwapScheduleId(docRef.id);
-      setQuickSwapMessage('');
-    } catch (error) {
-      console.error('Create off day for swap error:', error);
-      setStatusError('Nem sikerült rögzíteni a szabad napot.');
     } finally {
       setSaving(false);
     }
@@ -1692,45 +1162,15 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     const own = schedules.find(item => item.id === scheduleId);
     if (!own) return [];
 
-    // Employees who already have a schedule entry on this day (not own, not deleted)
-    const withEntry = schedules.filter((item) => {
+    // All schedules on the same day, not own, not deleted
+    return schedules.filter((item) => {
       if (item.id === scheduleId) return false;
       if (item.status === 'deleted') return false;
       if (item.date !== own.date) return false;
+      // Exclude if the exact same employee already (shouldn't happen, but guard)
       if (item.employeeId === own.employeeId) return false;
       return true;
     });
-
-    const employeesWithEntry = new Set(withEntry.map(item => item.employeeId).filter(Boolean));
-
-    // Active employees who have NO entry on this day → implicitly free
-    const freeDayCandidates = activeEmployees
-      .filter(emp => {
-        if (!emp.id) return false;
-        if (emp.id === own.employeeId) return false;
-        if (employeesWithEntry.has(emp.id)) return false;
-        return true;
-      })
-      .map(emp => ({
-        _virtual: true,
-        id: `virtual:${emp.id}:${own.date}`,
-        employeeId: emp.id,
-        employeeName: emp.name || emp.employeeName || 'Ismeretlen',
-        employeeEmail: normalizeEmail(emp.email || ''),
-        linkedUserId: emp.linkedUserId || null,
-        pharmacyId: own.pharmacyId,
-        role: emp.role || '',
-        date: own.date,
-        year: own.year,
-        month: own.month,
-        day: own.day,
-        startTime: 'Szabad nap',
-        endTime: '',
-        shiftType: 'off',
-        status: 'active',
-      }));
-
-    return [...withEntry, ...freeDayCandidates];
   }
 
   async function handleCreateVacationRequest() {
@@ -1973,7 +1413,6 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           employeeEmail: item.employeeEmail || '',
           linkedUserId: item.linkedUserId || null,
           role: item.role || 'other',
-          shiftType: item.shiftType || 'day',
           startTime: item.startTime,
           endTime: item.endTime,
           notes: item.notes ? `${item.notes} | Másolva előző hónapból` : 'Másolva előző hónapból',
@@ -2257,7 +1696,6 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           employeeEmail: item.employeeEmail || employee?.email || '',
           linkedUserId: item.linkedUserId || employee?.linkedUserId || null,
           role: item.role || employee?.role || 'other',
-          shiftType: item.shiftType || 'day',
           startTime: item.startTime,
           endTime: item.endTime,
           notes: 'Automatikus tervezés (AI)',
@@ -2330,151 +1768,166 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       ) : null}
 
       {!loading && isPharmacy && mainTab === 'workers' ? (
-        <div className="space-y-5">
-          {/* Add employee form */}
-          <div className={`rounded-2xl border p-5 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
-            <h3 className="text-base font-semibold">Dolgozó hozzáadása</h3>
-            <form onSubmit={handleAddEmployee} className="space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <Field label="Email cím *" hint="Regisztrált Pharmagister email cím szükséges.">
-                  <input type="email" value={employeeForm.email} onChange={e => setEmployeeForm(prev => ({ ...prev, email: e.target.value }))} className="w-full rounded-xl border px-3 py-2.5 bg-transparent text-sm" placeholder="nev@email.hu" />
+        <div className="space-y-6">
+          <SegmentedTabs
+            tabs={[
+              { key: 'add', label: 'Dolgozó hozzáadása' },
+              { key: 'remove', label: 'Dolgozó eltávolítása' },
+            ]}
+            active={workerTab}
+            onChange={setWorkerTab}
+          />
+
+          {workerTab === 'add' ? (
+            <form onSubmit={handleAddEmployee} className={`rounded-2xl border p-5 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Field label="Email cím" required hint="Csak regisztrált Pharmagister email adható meg. A szerepkört automatikusan a profilból vesszük át.">
+                  <input type="email" value={employeeForm.email} onChange={e => setEmployeeForm(prev => ({ ...prev, email: e.target.value }))} className="w-full rounded-xl border px-3 py-2 bg-transparent" placeholder="nev@email.hu" />
                 </Field>
                 <Field label="Telefonszám">
-                  <input type="text" value={employeeForm.phone} onChange={e => setEmployeeForm(prev => ({ ...prev, phone: e.target.value }))} className="w-full rounded-xl border px-3 py-2.5 bg-transparent text-sm" />
+                  <input type="text" value={employeeForm.phone} onChange={e => setEmployeeForm(prev => ({ ...prev, phone: e.target.value }))} className="w-full rounded-xl border px-3 py-2 bg-transparent" />
+                </Field>
+                <Field label="Cím">
+                  <input type="text" value={employeeForm.address} onChange={e => setEmployeeForm(prev => ({ ...prev, address: e.target.value }))} className="w-full rounded-xl border px-3 py-2 bg-transparent" />
+                </Field>
+                <Field label="Megjegyzés">
+                  <input type="text" value={employeeForm.notes} onChange={e => setEmployeeForm(prev => ({ ...prev, notes: e.target.value }))} className="w-full rounded-xl border px-3 py-2 bg-transparent" />
                 </Field>
               </div>
-              <button type="submit" disabled={saving} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-[#16a34a] px-5 py-2.5 font-medium text-white disabled:opacity-60">
-                <UserPlus className="h-4 w-4" />
-                Hozzáadás
-              </button>
-            </form>
-          </div>
 
-          {/* Employee list */}
-          <div className={`rounded-2xl border ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
-            <div className={`px-5 py-4 border-b ${darkMode ? 'border-gray-700' : 'border-[#E5E7EB]'}`}>
-              <h3 className="text-base font-semibold">Dolgozók <span className={`ml-1.5 rounded-full px-2 py-0.5 text-xs font-semibold ${darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'}`}>{activeEmployees.length} fő</span></h3>
+              <div className="flex justify-end">
+                <button type="submit" disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-[#16a34a] px-4 py-2 font-medium text-white disabled:opacity-60">
+                  <UserPlus className="h-4 w-4" />
+                  Dolgozó hozzáadása
+                </button>
+              </div>
+            </form>
+          ) : (
+            <div className={`rounded-2xl border p-5 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
+              {activeEmployees.length === 0 ? (
+                <p className="text-sm text-gray-500">Még nincs aktív dolgozó.</p>
+              ) : activeEmployees.map(employee => (
+                <div key={employee.id} className={`flex items-start justify-between gap-4 rounded-xl border p-4 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-[#E5E7EB] bg-[#F9FAFB]'}`}>
+                  <div>
+                    <p className="font-semibold">{employee.name}</p>
+                    <p className="text-sm text-gray-500">{prettyRole(employee.role)}</p>
+                    {employee.email ? <p className="text-sm text-gray-500">{employee.email}</p> : null}
+                    {(Array.isArray(employee.avoidWeekdays) && employee.avoidWeekdays.length > 0) || (Array.isArray(employee.preferWeekdays) && employee.preferWeekdays.length > 0) || employee.schedulingNotes ? (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {(Array.isArray(employee.avoidWeekdays) ? employee.avoidWeekdays : []).map((d) => {
+                          const wd = WEEKDAY_DISPLAY.find((w) => w.day === d);
+                          return wd ? (
+                            <span key={d} className="rounded-full border border-red-300 bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-700">
+                              {wd.fullLabel}: kerüli
+                            </span>
+                          ) : null;
+                        })}
+                        {(Array.isArray(employee.preferWeekdays) ? employee.preferWeekdays : []).map((d) => {
+                          const wd = WEEKDAY_DISPLAY.find((w) => w.day === d);
+                          return wd ? (
+                            <span key={d} className="rounded-full border border-green-300 bg-green-50 px-2 py-0.5 text-[11px] font-medium text-green-700">
+                              {wd.fullLabel}: szívesen
+                            </span>
+                          ) : null;
+                        })}
+                        {employee.schedulingNotes ? (
+                          <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] text-blue-700" title={employee.schedulingNotes}>
+                            Megjegyzés
+                          </span>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
+                  <button type="button" onClick={() => handleRemoveEmployee(employee.id)} className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-3 py-2 text-sm font-medium text-white">
+                    <UserMinus className="h-4 w-4" />
+                    Eltávolítás
+                  </button>
+                </div>
+              ))}
             </div>
-            {activeEmployees.length === 0 ? (
-              <div className="px-5 py-8 text-center text-sm text-gray-500">Még nincs hozzáadott dolgozó.</div>
-            ) : (
-              <ul className="divide-y divide-gray-100 dark:divide-gray-700/60">
-                {activeEmployees.map((employee, index) => (
-                  <li key={employee.id} className="flex items-center gap-3 px-5 py-3.5">
-                    <span className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-500'}`}>{index + 1}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm truncate">{employee.name}</p>
-                      <p className={`text-xs truncate ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{prettyRole(employee.role)}{employee.email ? ` · ${employee.email}` : ''}</p>
-                    </div>
-                    <button type="button" onClick={() => handleRemoveEmployee(employee.id)} className={`shrink-0 rounded-lg border px-2.5 py-1.5 text-xs font-medium text-red-600 border-red-200 hover:bg-red-50 ${darkMode ? 'border-red-800 hover:bg-red-900/20' : ''}`}>
-                      Eltávolítás
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          )}
         </div>
       ) : null}
 
       {!loading && ((isPharmacy && (mainTab === 'schedule' || mainTab === 'history')) || !isPharmacy) ? (
         <div className="space-y-6">
-          {isPharmacy ? (
-            <div className={`rounded-2xl border p-4 sm:p-5 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
-              {/* Month navigator */}
-              <div className="flex items-center justify-between gap-3">
-                <button
-                  type="button"
-                  onClick={() => { if (month === 1) { setYear(y => y - 1); setMonth(12); } else { setMonth(m => m - 1); } }}
-                  className={`rounded-xl border p-2.5 ${darkMode ? 'border-gray-700 bg-gray-800 text-gray-200 hover:bg-gray-700' : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'}`}
-                >
-                  ‹
-                </button>
-                <div className="text-center">
-                  <h3 className="text-lg font-bold">{MONTHS_HU[month - 1]} {year}</h3>
-                  <p className={`text-xs mt-0.5 ${darkMode ? 'text-gray-400' : 'text-gray-400'}`}>Kattints egy napra a szerkesztéshez</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => { if (month === 12) { setYear(y => y + 1); setMonth(1); } else { setMonth(m => m + 1); } }}
-                  className={`rounded-xl border p-2.5 ${darkMode ? 'border-gray-700 bg-gray-800 text-gray-200 hover:bg-gray-700' : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'}`}
-                >
-                  ›
-                </button>
-              </div>
-
-              <MonthCalendar
-                year={year}
-                month={month}
-                selectedDate={selectedDate}
-                schedules={visibleSchedules}
-                ownScheduleIds={ownScheduleIds}
-                onSelectDate={(dateKey) => {
-                  const [, nextMonth, nextDay] = dateKey.split('-').map(Number);
-                  setMonth(nextMonth);
-                  setDay(nextDay);
-                }}
-                darkMode={darkMode}
-              />
+          <div className={`rounded-2xl border p-5 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Field label="Év">
+                <select value={year} onChange={e => setYear(Number(e.target.value))} className="w-full rounded-xl border px-3 py-2 bg-transparent">
+                  {availableYears.map(item => <option key={item} value={item}>{item}</option>)}
+                </select>
+              </Field>
+              <Field label="Hónap">
+                <select value={month} onChange={e => setMonth(Number(e.target.value))} className="w-full rounded-xl border px-3 py-2 bg-transparent">
+                  {MONTHS_HU.map((label, index) => <option key={label} value={index + 1}>{label}</option>)}
+                </select>
+              </Field>
+              <Field label="Nap">
+                <select value={day} onChange={e => setDay(Number(e.target.value))} className="w-full rounded-xl border px-3 py-2 bg-transparent">
+                  {Array.from({ length: getDaysInMonth(year, month) }, (_, index) => index + 1).map(item => <option key={item} value={item}>{item}</option>)}
+                </select>
+              </Field>
             </div>
-          ) : null}
 
-          {isPharmacy && mainTab === 'schedule' ? (
-            <MonthlyRosterTable
+            <MonthCalendar
               year={year}
               month={month}
+              selectedDate={selectedDate}
               schedules={visibleSchedules}
-              employees={activeEmployees}
-              ownEmployeeRecords={ownEmployeeRecords}
-              user={user}
+              ownScheduleIds={ownScheduleIds}
+              onSelectDate={(dateKey) => {
+                const [, nextMonth, nextDay] = dateKey.split('-').map(Number);
+                setMonth(nextMonth);
+                setDay(nextDay);
+              }}
               darkMode={darkMode}
-              fullscreen={rosterFullscreen}
-              setFullscreen={setRosterFullscreen}
             />
-          ) : null}
+          </div>
 
           {isPharmacy && mainTab === 'schedule' ? (
             <div className="space-y-6">
             <div className="grid grid-cols-1 xl:grid-cols-[1.1fr,0.9fr] gap-6">
               <div className={`rounded-2xl border p-5 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
-                <div className="space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <h3 className="text-lg font-semibold">Beosztás írása – {selectedDate}</h3>
-                    <p className="text-sm text-gray-500">Napra kattintva szerkeszthető a beosztás.</p>
+                    <h3 className="text-lg font-semibold">Beosztás írása - {selectedDate}</h3>
+                    <p className="text-sm text-gray-500">Egyszerű, napra kattintós beosztáskezelés.</p>
                   </div>
-                  <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
-                    <button type="button" onClick={handleCopyPreviousMonth} disabled={saving} className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-slate-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-60">
+                  <div className="flex flex-wrap gap-2">
+                    <button type="button" onClick={handleCopyPreviousMonth} disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-slate-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60">
                       <Copy className="h-4 w-4" />
-                      <span className="hidden sm:inline">Előző hónap </span>másolása
+                      Előző hónap másolása
                     </button>
-                    <button type="button" onClick={handleExportSchedules} className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-sky-600 px-3 py-2 text-sm font-medium text-white">
+                    <button type="button" onClick={handleExportSchedules} className="inline-flex items-center gap-2 rounded-xl bg-sky-600 px-4 py-2 text-sm font-medium text-white">
                       <Download className="h-4 w-4" />
                       CSV export
                     </button>
-                    <button type="button" onClick={handlePublishSchedules} disabled={saving || activeMonthSchedules.length === 0} className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-rose-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-60">
+                    <button type="button" onClick={handlePublishSchedules} disabled={saving || activeMonthSchedules.length === 0} className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60">
                       <Send className="h-4 w-4" />
                       Publikálás
                     </button>
-                    <button type="button" onClick={handleSuggestEmployee} className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#6B46C1] px-3 py-2 text-sm font-medium text-white">
+                    {false && <button type="button" onClick={handleSuggestEmployee} className="inline-flex items-center gap-2 rounded-xl bg-[#6B46C1] px-4 py-2 text-sm font-medium text-white">
                       <Sparkles className="h-4 w-4" />
                       AI javaslat
-                    </button>
-                    <button
+                    </button>}
+                    {false && <button
                       type="button"
                       onClick={() => runAutoPlanner({ action: 'plan' })}
                       disabled={plannerLoading}
                       className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
                     >
                       <Wand2 className="h-4 w-4" />
-                      {plannerLoading ? 'Tervezés...' : 'Auto tervezés'}
-                    </button>
+                      {plannerLoading ? 'Tervezés...' : 'Automatikus tervezés'}
+                    </button>}
                   </div>
                 </div>
+
                 <div className={`rounded-xl border px-4 py-3 text-sm ${darkMode ? 'border-gray-700 bg-gray-800 text-gray-200' : 'border-gray-200 bg-gray-50 text-gray-700'}`}>
                   Ebben a hónapban {activeMonthSchedules.length} aktív műszak van, ebből {publishedScheduleCount} publikált.
                 </div>
 
-                <div className={`rounded-xl border p-4 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'}`}>
+                {false && <div className={`rounded-xl border p-4 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'}`}>
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <h4 className="font-semibold">Tervezési szabályok</h4>
@@ -2665,9 +2118,9 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                       </div>
                     ))}
                   </div>
-                </div>
+                </div>}
 
-                <div className={`rounded-xl border p-4 space-y-3 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'}`}>
+                {false && <div className={`rounded-xl border p-4 space-y-3 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'}`}>
                   <div className="flex items-center gap-2">
                     <RefreshCcw className="h-4 w-4 text-orange-600" />
                     <p className="font-medium">Gyors újratervezés (beteg dolgozó)</p>
@@ -2701,9 +2154,9 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                       Érintett napok újratervezése
                     </button>
                   </div>
-                </div>
+                </div>}
 
-                {plannerResult ? (
+                {false && plannerResult ? (
                   <div className={`rounded-xl border p-4 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
@@ -2795,19 +2248,6 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                     }} className="w-full rounded-xl border px-3 py-2 bg-transparent">
                       <option value="">Válassz dolgozót</option>
                       {activeEmployees.map(employee => <option key={employee.id} value={employee.id}>{employee.name}</option>)}
-                    </select>
-                  </Field>
-                  <Field label="Műszak jel" required hint="A táblázatban ez a jel fog megjelenni.">
-                    <select
-                      value={scheduleForm.shiftType}
-                      onChange={e => setScheduleForm(prev => ({ ...prev, shiftType: e.target.value }))}
-                      className="w-full rounded-xl border px-3 py-2 bg-transparent"
-                    >
-                      <option value="day">N - nappali</option>
-                      <option value="oncall">Ü - ügyelet</option>
-                      <option value="night">É - éjszaka</option>
-                      <option value="sick">B - beteg</option>
-                      <option value="off">Madár - szabadnap</option>
                     </select>
                   </Field>
                   <Field label="Szerepkör (automatikus)">
@@ -2959,204 +2399,107 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           ) : null}
 
           {!isPharmacy && mainTab === 'mine' ? (
-            <div className="space-y-6">
+            <div className="grid grid-cols-1 xl:grid-cols-[1.05fr,0.95fr] gap-6">
               <div className={`rounded-2xl border p-5 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
-                <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-lg font-semibold">Beosztásom – {MONTHS_HU[month - 1]} {year}</h3>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (month === 1) { setYear(y => y - 1); setMonth(12); } else { setMonth(m => m - 1); }
-                      }}
-                      className={`rounded-lg border px-3 py-1.5 text-sm font-medium ${darkMode ? 'border-gray-600 bg-gray-800 text-gray-200 hover:bg-gray-700' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'}`}
-                    >
-                      ‹
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (month === 12) { setYear(y => y + 1); setMonth(1); } else { setMonth(m => m + 1); }
-                      }}
-                      className={`rounded-lg border px-3 py-1.5 text-sm font-medium ${darkMode ? 'border-gray-600 bg-gray-800 text-gray-200 hover:bg-gray-700' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'}`}
-                    >
-                      ›
-                    </button>
-                  </div>
-                </div>
-                <MonthlyRosterTable
+                <h3 className="mb-4 text-lg font-semibold">Saját beosztás kiemelve</h3>
+                <MonthCalendar
                   year={year}
                   month={month}
+                  selectedDate={selectedDate}
                   schedules={schedules.filter(item => item.status !== 'deleted')}
-                  employees={activeEmployees}
-                  ownEmployeeRecords={ownEmployeeRecords}
-                  user={user}
+                  ownScheduleIds={ownScheduleIds}
+                  onSelectDate={(dateKey) => {
+                    const [, nextMonth, nextDay] = dateKey.split('-').map(Number);
+                    setMonth(nextMonth);
+                    setDay(nextDay);
+                  }}
                   darkMode={darkMode}
-                  onSelectDay={(d) => { setDay(d); setShowDayModal(true); }}
-                  selectedDay={day}
-                  fullscreen={rosterFullscreen}
-                  setFullscreen={setRosterFullscreen}
                 />
               </div>
 
-              {showDayModal ? (
-                <div
-                  className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
-                  style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}
-                  onClick={() => { setShowDayModal(false); setQuickSwapScheduleId(null); setQuickSwapMessage(''); }}
-                >
-                  <div
-                    className={`relative w-full sm:max-w-sm max-h-[90vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl shadow-2xl ${darkMode ? 'bg-gray-900' : 'bg-white'}`}
-                    onClick={e => e.stopPropagation()}
-                  >
-                    {/* Header strip */}
-                    <div className="rounded-t-3xl sm:rounded-t-3xl bg-gradient-to-br from-[#6B46C1] to-[#4F46E5] px-5 pt-5 pb-6">
-                      <div className="flex items-start justify-between">
+              <div className={`rounded-2xl border p-5 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
+                <h3 className="text-lg font-semibold">Kiválasztott nap</h3>
+                {selectedDateSchedules.length === 0 ? (
+                  <p className="text-sm text-gray-500">Erre a napra nincs beosztás.</p>
+                ) : selectedDateSchedules.map(item => {
+                  const isOwn = ownScheduleIds.has(item.id);
+                  const isSwapOpen = quickSwapScheduleId === item.id;
+                  const swapCandidates = isOwn && isSwapOpen ? getSwapCandidatesForSchedule(item.id) : [];
+                  // Check if there's already an open/pending swap for this schedule
+                  const hasOpenSwap = swapRequests.some(r =>
+                    (r.requesterScheduleId === item.id || r.targetScheduleId === item.id) &&
+                    (r.status === 'pending' || r.status === 'employee_accepted')
+                  );
+                  return (
+                    <div key={item.id} className={`rounded-xl border p-4 space-y-3 ${isOwn ? 'border-green-300 bg-green-50 dark:border-green-700 dark:bg-green-900/20' : darkMode ? 'border-gray-700 bg-gray-800' : 'border-[#E5E7EB] bg-[#F9FAFB]'}`}>
+                      <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="text-xs font-medium text-purple-200 uppercase tracking-wider mb-0.5">{MONTHS_HU[month - 1]} {year}</p>
-                          <h3 className="text-2xl font-bold text-white">{day}. nap</h3>
-                          <p className="text-sm text-purple-200 mt-0.5">
-                            {(() => { const dow = new Date(year, month - 1, day).getDay(); return ['Vasárnap','Hétfő','Kedd','Szerda','Csütörtök','Péntek','Szombat'][dow]; })()}
-                          </p>
+                          <p className="font-semibold">{item.employeeName}</p>
+                          <p className="text-sm text-gray-500">{item.startTime} - {item.endTime}</p>
+                          {item.notes ? <p className="text-sm text-gray-500 mt-0.5">{item.notes}</p> : null}
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => { setShowDayModal(false); setQuickSwapScheduleId(null); setQuickSwapMessage(''); }}
-                          className="rounded-xl bg-white/20 p-2 text-white hover:bg-white/30 transition-colors"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="p-5 space-y-4">
-                    {selectedDateSchedules.length === 0 ? (
-                      <div className="space-y-3">
-                        <div className={`rounded-2xl px-4 py-3 text-sm ${darkMode ? 'bg-gray-800 text-gray-300' : 'bg-gray-50 text-gray-500'}`}>
-                          Erre a napra nincs rögzített beosztás.
+                        <div className="flex items-center gap-2 flex-wrap justify-end">
+                          {isOwn ? <span className="rounded-full bg-green-600 px-2 py-1 text-xs font-semibold text-white">Saját</span> : null}
+                          {isOwn && !hasOpenSwap && item.date >= today ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (isSwapOpen) { setQuickSwapScheduleId(null); setQuickSwapMessage(''); }
+                                else { setQuickSwapScheduleId(item.id); setQuickSwapMessage(''); }
+                              }}
+                              className="inline-flex items-center gap-1 rounded-xl border border-[#6B46C1] px-2 py-1 text-xs font-semibold text-[#6B46C1] hover:bg-[#6B46C1]/10"
+                            >
+                              <ArrowLeftRight className="h-3 w-3" />
+                              {isSwapOpen ? 'Mégse' : 'Csere kérése'}
+                            </button>
+                          ) : null}
+                          {isOwn && hasOpenSwap ? (
+                            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">Csere folyamatban</span>
+                          ) : null}
                         </div>
-                        <button
-                          type="button"
-                          disabled={saving}
-                          onClick={handleReportSickNoSchedule}
-                          className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-red-500 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-red-600 disabled:opacity-60 transition-colors"
-                        >
-                          <UserMinus className="h-4 w-4" />
-                          Betegállomány rögzítése
-                        </button>
-                        <button
-                          type="button"
-                          disabled={saving}
-                          onClick={handleCreateOffDayForSwap}
-                          className="w-full inline-flex items-center justify-center gap-2 rounded-2xl border-2 border-[#6B46C1] px-4 py-3 text-sm font-semibold text-[#6B46C1] hover:bg-[#6B46C1]/10 disabled:opacity-60 transition-colors"
-                        >
-                          <ArrowLeftRight className="h-4 w-4" />
-                          Csere kérése (szabad nap leadása)
-                        </button>
                       </div>
-                    ) : selectedDateSchedules.map(item => {
-                      const isOwn = ownScheduleIds.has(item.id);
-                      const isSwapOpen = quickSwapScheduleId === item.id;
-                      const swapCandidates = isOwn && isSwapOpen ? getSwapCandidatesForSchedule(item.id) : [];
-                      const hasOpenSwap = swapRequests.some(r =>
-                        (r.requesterScheduleId === item.id || r.targetScheduleId === item.id) &&
-                        (r.status === 'pending' || r.status === 'employee_accepted')
-                      );
-                      const isFuture = item.date >= today;
-                      const isSick = item.shiftType === 'sick';
-                      return (
-                        <div key={item.id} className="space-y-3">
-                          <div className={`rounded-2xl p-4 space-y-3 ${isOwn
-                            ? darkMode ? 'bg-emerald-900/30 border border-emerald-700' : 'bg-emerald-50 border border-emerald-200'
-                            : darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-gray-50 border border-gray-200'
-                          }`}>
-                            <div className="flex items-start justify-between gap-3">
-                              <div>
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <p className="font-bold text-sm">{item.employeeName}</p>
-                                  {isOwn ? <span className="rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold text-white">Én</span> : null}
-                                  {isSick ? <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">Beteg</span> : null}
-                                  {hasOpenSwap ? <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">Csere folyamatban</span> : null}
-                                </div>
-                                <p className={`text-sm mt-0.5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{item.startTime} – {item.endTime}</p>
-                                {item.notes ? <p className={`text-xs mt-0.5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{item.notes}</p> : null}
-                              </div>
-                            </div>
 
-                            {isOwn ? (
-                              <div className="flex flex-col gap-2 pt-1">
-                                {isFuture && !hasOpenSwap ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      if (isSwapOpen) { setQuickSwapScheduleId(null); setQuickSwapMessage(''); }
-                                      else { setQuickSwapScheduleId(item.id); setQuickSwapMessage(''); }
-                                    }}
-                                    className={`w-full inline-flex items-center justify-center gap-2 rounded-xl border-2 px-3 py-2.5 text-sm font-semibold transition-colors ${isSwapOpen
-                                      ? darkMode ? 'border-gray-600 text-gray-400' : 'border-gray-300 text-gray-500'
-                                      : 'border-[#6B46C1] text-[#6B46C1] hover:bg-[#6B46C1]/10'
-                                    }`}
-                                  >
-                                    <ArrowLeftRight className="h-4 w-4" />
-                                    {isSwapOpen ? 'Mégse' : 'Csere kérése'}
-                                  </button>
-                                ) : null}
-                                {!isSick ? (
+                      {isOwn && isSwapOpen ? (
+                        <div className={`rounded-xl border p-3 space-y-3 ${darkMode ? 'border-gray-600 bg-gray-900' : 'border-gray-200 bg-white'}`}>
+                          <p className="text-sm font-semibold">Kivel cserélnél?</p>
+                          {swapCandidates.length === 0 ? (
+                            <p className="text-sm text-gray-500">Ezen a napon nincs más beosztott dolgozó, akivel cserét kezdeményezhetnél.</p>
+                          ) : (
+                            <div className="space-y-2">
+                              {swapCandidates.map(candidate => (
+                                <div key={candidate.id} className={`flex items-center justify-between rounded-lg border px-3 py-2 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-gray-50'}`}>
+                                  <div>
+                                    <p className="text-sm font-medium">{candidate.employeeName}</p>
+                                    <p className="text-xs text-gray-500">{candidate.startTime}–{candidate.endTime}</p>
+                                  </div>
                                   <button
                                     type="button"
                                     disabled={saving}
-                                    onClick={() => handleReportSick(item.id)}
-                                    className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-red-500 px-3 py-2.5 text-sm font-semibold text-white hover:bg-red-600 disabled:opacity-60 transition-colors"
+                                    onClick={() => handleQuickSwapRequest(item.id, candidate.id, quickSwapMessage)}
+                                    className="rounded-xl bg-[#6B46C1] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
                                   >
-                                    <UserMinus className="h-4 w-4" />
-                                    Beteg vagyok ezen a napon
+                                    Csere kérése
                                   </button>
-                                ) : null}
-                              </div>
-                            ) : null}
-                          </div>
-
-                          {isOwn && isSwapOpen ? (
-                            <div className={`rounded-2xl border p-4 space-y-3 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
-                              <p className="text-sm font-bold">Kivel cserélnél?</p>
-                              {swapCandidates.length === 0 ? (
-                                <p className={`text-sm rounded-xl px-3 py-2.5 ${darkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-50 text-gray-500'}`}>Nincs más beosztott dolgozó ezen a napon.</p>
-                              ) : (
-                                <div className="space-y-2">
-                                  {swapCandidates.map(candidate => (
-                                    <div key={candidate.id} className={`flex items-center justify-between rounded-xl border px-3 py-2.5 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-100 bg-gray-50'}`}>
-                                      <div>
-                                        <p className="text-sm font-semibold">{candidate.employeeName}</p>
-                                        <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{candidate.startTime}–{candidate.endTime}</p>
-                                      </div>
-                                      <button
-                                        type="button"
-                                        disabled={saving}
-                                        onClick={() => handleQuickSwapRequest(item.id, candidate.id, quickSwapMessage)}
-                                        className="rounded-xl bg-[#6B46C1] px-3 py-2 text-xs font-bold text-white disabled:opacity-60 hover:bg-[#5B36B1] transition-colors"
-                                      >
-                                        Kérem
-                                      </button>
-                                    </div>
-                                  ))}
                                 </div>
-                              )}
-                              <textarea
-                                value={quickSwapMessage}
-                                onChange={e => setQuickSwapMessage(e.target.value)}
-                                rows={2}
-                                className={`w-full rounded-xl border px-3 py-2 text-sm bg-transparent resize-none ${darkMode ? 'border-gray-600 placeholder-gray-500' : 'border-gray-200 placeholder-gray-400'}`}
-                                placeholder="Üzenet a csere kéréséhez (opcionális)"
-                              />
+                              ))}
                             </div>
-                          ) : null}
+                          )}
+                          <div>
+                            <p className="mb-1 text-xs font-medium text-gray-500">Üzenet (opcionális)</p>
+                            <textarea
+                              value={quickSwapMessage}
+                              onChange={e => setQuickSwapMessage(e.target.value)}
+                              rows={2}
+                              className="w-full rounded-xl border px-3 py-2 text-sm bg-transparent"
+                              placeholder="Pl. Nekem erre a napra egyéb kötelezettségem van."
+                            />
+                          </div>
                         </div>
-                      );
-                    })}
+                      ) : null}
                     </div>
-                  </div>
-                </div>
-              ) : null}
+                  );
+                })}
+              </div>
             </div>
           ) : null}
 
