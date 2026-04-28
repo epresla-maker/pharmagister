@@ -958,17 +958,15 @@ function EmployeePreferenceCalendar({
           const dowLabel = DOW_LABELS[dow];
           const dayOwn = ownPrefs.filter(p => p.date === dateKey);
           const dayOthers = othersPrefs.filter(p => p.date === dateKey);
-          const pastel = DAY_PASTEL[dow];
-          const rowBg = isToday ? '#EDE9FE' : pastel.bg;
 
           return (
             <button
               key={dateKey}
               type="button"
               onClick={() => openDay(d)}
-              style={{ background: darkMode ? (isToday ? 'rgba(109,40,217,0.22)' : DAY_PASTEL_DARK[dow].bg) : rowBg }}
               className={[
                 'w-full text-left px-4 py-3 transition-colors',
+                isToday ? darkMode ? 'bg-violet-900/20' : 'bg-violet-50' : darkMode ? 'bg-transparent' : 'bg-white',
                 isWeekend
                   ? darkMode ? 'border-b-2 border-gray-700' : 'border-b-2 border-gray-200'
                   : darkMode ? 'border-b border-gray-800/60' : 'border-b border-gray-200/70',
