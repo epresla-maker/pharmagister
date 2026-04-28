@@ -2646,7 +2646,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     ? [
         { key: 'workers', label: 'Dolgozók', fullLabel: 'Dolgozók kezelése' },
         { key: 'schedule', label: 'Beosztás', fullLabel: 'Beosztások kezelése' },
-        { key: 'history', label: 'Múlt', fullLabel: 'Múlt beosztások kezelése' },
+        { key: 'history', label: 'Múlt', fullLabel: 'Múlt beosztások' },
       ]
     : [
         { key: 'mine', label: 'Beosztásom' },
@@ -3092,51 +3092,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           {isPharmacy && mainTab === 'schedule' ? (
             <div className="space-y-4">
 
-              {/* ── Kompakt hónap-választó (csak info panel, nem nyit naptárt) ── */}
-              {(() => {
-                const MONTHS_SHORT = ['Jan','Feb','Már','Ápr','Máj','Jún','Júl','Aug','Szep','Okt','Nov','Dec'];
-                // Csak a következő 12 hónap (jelenlegi + 11)
-                const allMonths = [];
-                for (let i = 0; i < 12; i++) {
-                  const m = ((thisMonth - 1 + i) % 12) + 1;
-                  const y = thisYear + Math.floor((thisMonth - 1 + i) / 12);
-                  allMonths.push({ y, m });
-                }
-                const row1 = allMonths.slice(0, 6);
-                const row2 = allMonths.slice(6);
-                return (
-                  <div className={`rounded-2xl border p-3 space-y-2 ${darkMode ? 'border-gray-700 bg-gray-800/60' : 'border-gray-200 bg-gray-50'}`}>
-                    {[row1, row2].map((row, ri) => (
-                      <div key={ri} className="flex gap-1.5">
-                        {row.map(({ y, m }) => {
-                          const isActive = y === year && m === month;
-                          const hasData = schedules.some(s => s.status !== 'deleted' && s.year === y && s.month === m);
-                          return (
-                            <button
-                              key={`${y}-${m}`}
-                              type="button"
-                              onClick={() => { setYear(y); setMonth(m); }}
-                              className={[
-                                'flex-1 rounded-xl py-2 text-xs font-bold transition-all border text-center',
-                                isActive
-                                  ? 'bg-gradient-to-br from-violet-600 to-indigo-600 text-white border-transparent shadow'
-                                  : hasData
-                                    ? darkMode ? 'bg-gray-700 border-violet-700 text-violet-300' : 'bg-white border-violet-300 text-violet-700'
-                                    : darkMode ? 'bg-gray-800 border-gray-700 text-gray-400' : 'bg-white border-gray-200 text-gray-500',
-                              ].join(' ')}
-                            >
-                              <span className="block">{MONTHS_SHORT[m - 1]}</span>
-                              {y > thisYear && <span className="block text-[9px] opacity-50">{y}</span>}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ))}
-                  </div>
-                );
-              })()}
-
-              {/* ── Dashboard összesítő sáv ──────────────────────────── */}
+              {/* ── Dashboard: hónap navigáció + info egy kártyában ── */}
               {(() => {
                 const totalDays = getDaysInMonth(year, month);
                 const filledDays = new Set(activeMonthSchedules.filter(s => s.year === year && s.month === month).map(s => s.date)).size;
@@ -3146,39 +3102,50 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   return !activeMonthSchedules.some(s => s.date === p.date && (s.employeeId === p.employeeId || s.linkedUserId === p.linkedUserId));
                 }).length;
                 const isPublished = publishedScheduleCount > 0;
+                const goPrev = () => { const p = getPreviousMonth(year, month); setYear(p.year); setMonth(p.month); };
+                const goNext = () => { const n = month === 12 ? { year: year+1, month: 1 } : { year, month: month+1 }; setYear(n.year); setMonth(n.month); };
                 return (
-                  <div className={`rounded-2xl border p-4 flex flex-wrap gap-4 items-center ${darkMode ? 'border-violet-800 bg-violet-900/20' : 'border-violet-200 bg-violet-50'}`}>
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">👥</span>
-                      <span className={`text-sm font-semibold ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>{activeEmployees.length} dolgozó</span>
+                  <div className={`rounded-2xl border overflow-hidden ${darkMode ? 'border-violet-800 bg-violet-900/20' : 'border-violet-200 bg-violet-50'}`}>
+                    {/* Hónap navigáció fejléc */}
+                    <div className={`flex items-center justify-between px-4 py-3 border-b ${darkMode ? 'border-violet-800 bg-violet-900/40' : 'border-violet-200 bg-violet-100'}`}>
+                      <button type="button" onClick={goPrev} className={`h-9 w-9 flex items-center justify-center rounded-xl font-bold text-xl ${darkMode ? 'bg-violet-800/60 text-violet-200 hover:bg-violet-700' : 'bg-white text-violet-600 hover:bg-violet-50 shadow-sm border border-violet-200'}`}>‹</button>
+                      <span className={`font-bold text-base ${darkMode ? 'text-white' : 'text-violet-800'}`}>{MONTHS_HU[month-1]} {year}</span>
+                      <button type="button" onClick={goNext} className={`h-9 w-9 flex items-center justify-center rounded-xl font-bold text-xl ${darkMode ? 'bg-violet-800/60 text-violet-200 hover:bg-violet-700' : 'bg-white text-violet-600 hover:bg-violet-50 shadow-sm border border-violet-200'}`}>›</button>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">📅</span>
-                      <span className={`text-sm font-semibold ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>{filledDays}/{totalDays} nap kitöltve</span>
-                    </div>
-                    {ignoredPrefs > 0 && (
+                    {/* Info adatok */}
+                    <div className="p-4 flex flex-wrap gap-x-5 gap-y-2">
                       <div className="flex items-center gap-2">
-                        <span className="text-lg">⚠️</span>
-                        <span className="text-sm font-semibold text-amber-600">{ignoredPrefs} preferencia figyelmen kívül</span>
+                        <span className="text-lg">👥</span>
+                        <span className={`text-sm font-semibold ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>{activeEmployees.length} dolgozó</span>
                       </div>
-                    )}
-                    {pendingPrefs > 0 && ignoredPrefs === 0 && (
                       <div className="flex items-center gap-2">
-                        <span className="text-lg">💬</span>
-                        <span className={`text-sm font-semibold ${darkMode ? 'text-emerald-300' : 'text-emerald-700'}`}>{pendingPrefs} dolgozói kérés</span>
+                        <span className="text-lg">📅</span>
+                        <span className={`text-sm font-semibold ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>{filledDays}/{totalDays} nap kitöltve</span>
                       </div>
-                    )}
-                    <div className="flex items-center gap-2">
-                      {isPublished
-                        ? <><span className="text-lg">✅</span><span className={`text-sm font-semibold ${darkMode ? 'text-emerald-300' : 'text-emerald-700'}`}>Publikálva ({publishedScheduleCount})</span></>
-                        : <><span className="text-lg">🔒</span><span className="text-sm font-semibold text-rose-500">Még nem publikált</span></>
-                      }
+                      {ignoredPrefs > 0 && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">⚠️</span>
+                          <span className="text-sm font-semibold text-amber-600">{ignoredPrefs} preferencia figyelmen kívül</span>
+                        </div>
+                      )}
+                      {pendingPrefs > 0 && ignoredPrefs === 0 && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">💬</span>
+                          <span className={`text-sm font-semibold ${darkMode ? 'text-emerald-300' : 'text-emerald-700'}`}>{pendingPrefs} dolgozói kérés</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2">
+                        {isPublished
+                          ? <><span className="text-lg">✅</span><span className={`text-sm font-semibold ${darkMode ? 'text-emerald-300' : 'text-emerald-700'}`}>Publikálva ({publishedScheduleCount})</span></>
+                          : <><span className="text-lg">🔒</span><span className="text-sm font-semibold text-rose-500">Még nem publikált</span></>
+                        }
+                      </div>
                     </div>
                   </div>
                 );
               })()}
 
-              {/* ── Onboarding checklist (csak ha kevés az adat) ─────── */}
+              {/* ── Onboarding checklist (csak ha nincs dolgozó) ─────── */}
               {activeEmployees.length === 0 && (
                 <div className={`rounded-2xl border-2 border-dashed p-5 space-y-3 ${darkMode ? 'border-violet-700 bg-violet-900/10' : 'border-violet-300 bg-violet-50'}`}>
                   <p className={`font-bold text-base ${darkMode ? 'text-violet-300' : 'text-violet-700'}`}>🚀 Kezdj el beosztást írni!</p>
@@ -3209,7 +3176,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   return !activeMonthSchedules.some(s => s.date === p.date && (s.employeeId === p.employeeId || s.linkedUserId === p.linkedUserId));
                 }).length;
                 if (activeEmployees.length > 0 && filledDays === 0)
-                  hints.push('💡 Kattints egy hónapra a beosztás elkezdéséhez');
+                  hints.push('💡 Kattints a hónap nevére a beosztás elkezdéséhez');
                 if (ignoredPrefs > 0)
                   hints.push(`💬 ${ignoredPrefs} dolgozói kérés van, amit még nem vettél figyelembe`);
                 if (year === thisYear && month === thisMonth && daysLeft < 5 && publishedScheduleCount === 0 && activeMonthSchedules.length > 0)
