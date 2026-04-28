@@ -2911,11 +2911,13 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     <div className="space-y-6">
       <div>
         <h2 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-[#111827]'}`}>
-          {isPharmacy ? 'Beosztások kezelése' : 'Beosztásom'}
+          {isPharmacy
+            ? (mainTab === 'workers' ? 'Dolgozók kezelése' : mainTab === 'history' ? 'Múlt beosztások' : 'Beosztások kezelése')
+            : (mainTab === 'mine' ? 'Beosztásom' : mainTab === 'vacations' ? 'Szabadságolások' : mainTab === 'planner' ? 'Beosztás-tervező' : 'Preferenciák')}
         </h2>
         <p className={`mt-1 text-sm ${darkMode ? 'text-gray-400' : 'text-[#6B7280]'}`}>
           {isPharmacy
-            ? 'Dolgozók, beosztások, múlt beosztások, csereigények és szabadságok egy helyen.'
+            ? (mainTab === 'workers' ? 'Dolgozók hozzáadása, eltávolítása és preferenciáik megtekintése.' : mainTab === 'history' ? 'Korábbi hónapok beosztásai.' : 'Beosztások írása, publikálása és csereigények kezelése.')
             : 'Saját beosztások, csereigények és szabadságigények egy helyen.'}
         </p>
       </div>
