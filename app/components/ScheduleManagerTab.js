@@ -110,22 +110,22 @@ function getHungarianHolidays(year) {
 
 // Pastel bg colors per weekday (0=Sun..6=Sat), light mode
 const DAY_PASTEL = [
-  { bg: '#F8FAFC', chipBg: 'rgba(255,255,255,0.75)' }, // Sun  – grey (weekend)
+  { bg: '#E5E7EB', chipBg: 'rgba(255,255,255,0.70)' }, // Sun  – darker grey (weekend)
   { bg: '#EFF6FF', chipBg: 'rgba(255,255,255,0.80)' }, // Mon  – sky blue
   { bg: '#F0FDF4', chipBg: 'rgba(255,255,255,0.80)' }, // Tue  – mint green
   { bg: '#F5F3FF', chipBg: 'rgba(255,255,255,0.80)' }, // Wed  – lavender
   { bg: '#FFFBEB', chipBg: 'rgba(255,255,255,0.80)' }, // Thu  – amber
   { bg: '#FFF1F2', chipBg: 'rgba(255,255,255,0.80)' }, // Fri  – rose
-  { bg: '#F8FAFC', chipBg: 'rgba(255,255,255,0.75)' }, // Sat  – grey (weekend)
+  { bg: '#E5E7EB', chipBg: 'rgba(255,255,255,0.70)' }, // Sat  – darker grey (weekend)
 ];
 const DAY_PASTEL_DARK = [
-  { bg: 'rgba(30,41,59,0.5)',  chipBg: 'rgba(255,255,255,0.05)' }, // Sun
+  { bg: 'rgba(15,23,42,0.75)', chipBg: 'rgba(255,255,255,0.05)' }, // Sun  – darker
   { bg: 'rgba(30,58,138,0.2)', chipBg: 'rgba(255,255,255,0.07)' }, // Mon
   { bg: 'rgba(20,83,45,0.2)',  chipBg: 'rgba(255,255,255,0.07)' }, // Tue
   { bg: 'rgba(46,16,101,0.25)',chipBg: 'rgba(255,255,255,0.07)' }, // Wed
   { bg: 'rgba(120,53,15,0.2)', chipBg: 'rgba(255,255,255,0.07)' }, // Thu
   { bg: 'rgba(136,19,55,0.15)',chipBg: 'rgba(255,255,255,0.07)' }, // Fri
-  { bg: 'rgba(30,41,59,0.5)',  chipBg: 'rgba(255,255,255,0.05)' }, // Sat
+  { bg: 'rgba(15,23,42,0.75)', chipBg: 'rgba(255,255,255,0.05)' }, // Sat  – darker
 ];
 
 function isPublishedSchedule(schedule) {
@@ -546,7 +546,7 @@ function PharmacyScheduleCalendar({
       {/* Day list — full width, vertically scrollable */}
       {(() => {
         const holidays = getHungarianHolidays(year);
-        const DOW_LABELS = ['V','H','K','Sze','Cs','P','Szo'];
+        const DOW_LABELS = ['Vasárnap','Hétfő','Kedd','Szerda','Csütörtök','Péntek','Szombat'];
         return (
           <div className="flex-1 overflow-y-auto overscroll-contain">
             {Array.from({ length: getDaysInMonth(year, month) }, (_, i) => i + 1).map(day => {
@@ -586,15 +586,18 @@ function PharmacyScheduleCalendar({
                         ? 'bg-violet-600 text-white shadow-sm shadow-violet-300'
                         : isHoliday
                           ? darkMode ? 'text-rose-400 bg-rose-900/30' : 'text-rose-600 bg-rose-50'
-                          : darkMode ? 'text-gray-100' : 'text-gray-800',
+                          : isWeekend
+                            ? darkMode ? 'text-rose-400' : 'text-rose-600'
+                            : darkMode ? 'text-gray-100' : 'text-gray-800',
                     ].join(' ')}>
                       {day}
                     </span>
                     <span className={[
-                      'text-sm font-semibold',
+                      'text-sm',
+                      dow === 0 ? 'font-bold' : 'font-semibold',
                       isToday ? darkMode ? 'text-violet-300' : 'text-violet-700'
                         : isHoliday ? darkMode ? 'text-rose-400' : 'text-rose-500'
-                        : isWeekend ? darkMode ? 'text-gray-400' : 'text-gray-500'
+                        : isWeekend ? darkMode ? 'text-rose-400' : 'text-rose-600'
                         : darkMode ? 'text-gray-400' : 'text-gray-500',
                     ].join(' ')}>
                       {dowLabel}{isHoliday && !isWeekend ? ' 🔴' : ''}
