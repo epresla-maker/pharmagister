@@ -949,6 +949,7 @@ function EmployeePreferenceCalendar({
   user, darkMode,
   onSaveDayPreferences, saving,
   employeeProfile,      // { contractHours, birthDate, childrenCount, vacationTakenThisYear, vacationCarriedOver }
+  initialDay,           // optional: auto-open this day's modal on mount
 }) {
   const [selectedDay, setSelectedDay] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -1037,6 +1038,14 @@ function EmployeePreferenceCalendar({
   }
   // helper — avoid shadowing `day` in the map
   const day_ = selectedDay;
+
+  // Auto-open a specific day modal when initialDay is provided (e.g. from vacations tab)
+  useEffect(() => {
+    if (initialDay) {
+      openDay(initialDay);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const selectedDayName = selectedDay
     ? HU_DAYS_LONG[new Date(year, month - 1, selectedDay).getDay()]
@@ -1373,6 +1382,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   const [calendarOpen, setCalendarOpen] = useState(false);
   // Full-screen preference calendar overlay (employee draft)
   const [preferenceCalendarOpen, setPreferenceCalendarOpen] = useState(false);
+  const [preferenceInitialDay, setPreferenceInitialDay] = useState(null);
   // schedulePreferences drafts
   const [schedulePreferences, setSchedulePreferences] = useState([]);
   const [allPreferences, setAllPreferences] = useState([]);
@@ -3994,7 +4004,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                           setYear(next.year); setMonth(next.month);
                         }
                       }}
-                      onClose={() => setPreferenceCalendarOpen(false)}
+                      onClose={() => { setPreferenceCalendarOpen(false); setPreferenceInitialDay(null); }}
                       preferences={schedulePreferences.filter(p => p.year === year && p.month === month)}
                       ownEmployeeRecord={ownEmployeeRecords[0]}
                       user={user}
@@ -4002,6 +4012,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                       onSaveDayPreferences={handleSavePreferenceDaySchedules}
                       saving={saving}
                       employeeProfile={employeeProfile}
+                      initialDay={preferenceInitialDay}
                     />
                   )}
                 </div>
@@ -4042,7 +4053,9 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   onClick={() => {
                     setYear(d.getFullYear());
                     setMonth(d.getMonth() + 1);
+                    setPreferenceInitialDay(d.getDate());
                     setPreferenceCalendarOpen(true);
+                    setMainTab('planner');
                   }}
                   className={`w-full text-left flex items-center gap-3 rounded-2xl border px-4 py-3 transition-all ${
                     isPast
