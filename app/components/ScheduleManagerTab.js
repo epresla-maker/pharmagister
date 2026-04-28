@@ -1159,7 +1159,7 @@ function EmployeePreferenceCalendar({
                   setShowModal(false);
                 } finally { setModalSaving(false); }
               }} disabled={modalSaving} className="flex-1 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 px-8 py-2.5 text-sm font-bold text-white shadow-lg disabled:opacity-60">
-                {modalSaving ? 'Mentés...' : 'Terv mentése'}
+                {modalSaving ? 'Mentés...' : checked ? 'Terv mentése' : 'Szabadnap kérése'}
               </button>
             </div>
           </div>
