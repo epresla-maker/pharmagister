@@ -59,6 +59,61 @@ function getDaysInMonth(year, month) {
   return new Date(year, month, 0).getDate();
 }
 
+// ── Magyar Munka Törvénykönyve: éves szabadságnapok kiszámítása ───────────
+function calcAgeAt(birthDateStr, refYear) {
+  if (!birthDateStr) return 0;
+  const [by, bm, bd] = birthDateStr.split('-').map(Number);
+  const ref = new Date(refYear, 11, 31); // dec 31 of ref year
+  let age = refYear - by;
+  if (ref.getMonth() + 1 < bm || (ref.getMonth() + 1 === bm && ref.getDate() < bd)) age--;
+  return Math.max(0, age);
+}
+
+function calcAnnualVacationDays(birthDateStr, childrenCount, refYear) {
+  const age = calcAgeAt(birthDateStr, refYear || new Date().getFullYear());
+  let days = 20; // alap (Mt. 115.§)
+  // Kor szerinti pótszabadság (Mt. 116.§)
+  if (age >= 45) days += 10;
+  else if (age >= 43) days += 9;
+  else if (age >= 41) days += 8;
+  else if (age >= 39) days += 7;
+  else if (age >= 37) days += 6;
+  else if (age >= 35) days += 5;
+  else if (age >= 33) days += 4;
+  else if (age >= 31) days += 3;
+  else if (age >= 28) days += 2;
+  else if (age >= 25) days += 1;
+  // Gyermek utáni pótszabadság (Mt. 118.§)
+  const c = Number(childrenCount) || 0;
+  if (c >= 3) days += 7;
+  else if (c === 2) days += 4;
+  else if (c === 1) days += 2;
+  return days;
+}
+
+// Munkanapok száma egy hónapban (hétköznapok - ünnepnapok)
+function countWorkdaysInMonth(year, month) {
+  const holidays = getHungarianHolidays(year);
+  let count = 0;
+  const days = new Date(year, month, 0).getDate();
+  for (let d = 1; d <= days; d++) {
+    const dow = new Date(year, month - 1, d).getDay();
+    const isWeekend = dow === 0 || dow === 6;
+    const mmdd = `${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    if (!isWeekend && !holidays.has(mmdd)) count++;
+  }
+  return count;
+}
+
+// Havi kötelező munkaórák (napi munkaóra × munkanapok száma)
+function calcMonthlyRequiredHours(contractHours, year, month) {
+  const h = Number(contractHours);
+  if (!h) return 0;
+  // 12h-s műszak esetén havonta kb. munkaidő-keret: (contractHours/8)*munkanapok*8
+  // De a törvényes keret alapján inkább: napi h × munkanapok
+  return h * countWorkdaysInMonth(year, month);
+}
+
 function getDateRangeKeys(startDate, endDate) {
   const start = new Date(startDate);
   const end = new Date(endDate || startDate);
@@ -893,6 +948,7 @@ function EmployeePreferenceCalendar({
   ownEmployeeRecord,    // { id, name, email, linkedUserId, ... }
   user, darkMode,
   onSaveDayPreferences, saving,
+  employeeProfile,      // { contractHours, birthDate, childrenCount, vacationTakenThisYear, vacationCarriedOver }
 }) {
   const [selectedDay, setSelectedDay] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -927,6 +983,34 @@ function EmployeePreferenceCalendar({
   );
 
   const ownMonthCount = ownPrefs.length;
+
+  // ── Havi óra + szabadság számítás ──────────────────────────────────────
+  const contractHours = Number(employeeProfile?.contractHours) || 0;
+  const monthlyRequiredHours = contractHours ? calcMonthlyRequiredHours(contractHours, year, month) : 0;
+  // Sum up planned working hours (non-Sz prefs)
+  const plannedWorkPrefs = ownPrefs.filter(p => p.shiftType !== 'Sz');
+  const plannedSzPrefs = ownPrefs.filter(p => p.shiftType === 'Sz');
+  const plannedHoursTotal = plannedWorkPrefs.reduce((sum, p) => {
+    if (!p.startTime || !p.endTime) return sum + contractHours;
+    const [sh, sm] = p.startTime.split(':').map(Number);
+    const [eh, em] = p.endTime.split(':').map(Number);
+    return sum + Math.max(0, (eh * 60 + em - sh * 60 - sm) / 60);
+  }, 0);
+  const remainingHours = monthlyRequiredHours - plannedHoursTotal;
+  // Vacation
+  const annualVacDays = employeeProfile?.birthDate
+    ? calcAnnualVacationDays(employeeProfile.birthDate, employeeProfile.childrenCount, year)
+    : 0;
+  const carryOver = Number(employeeProfile?.vacationCarriedOver) || 0;
+  const takenThisYear = Number(employeeProfile?.vacationTakenThisYear) || 0;
+  const totalRemainingVac = annualVacDays + carryOver - takenThisYear;
+  const thisMonthSzDays = plannedSzPrefs.length;
+  const vacAfterThisMonth = totalRemainingVac - thisMonthSzDays;
+
+  // Find last planned day index for showing "maradék" label
+  const lastPlannedDay = plannedWorkPrefs.length > 0
+    ? Math.max(...plannedWorkPrefs.map(p => Number(p.date.split('-')[2])))
+    : null;
 
   function openDay(day) {
     const dateKey = formatDateKey(year, month, day);
@@ -966,7 +1050,14 @@ function EmployeePreferenceCalendar({
         <button type="button" onClick={() => onChangeMonth('prev')} className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold text-xl leading-none">‹</button>
         <div className="flex-1 text-center">
           <span className="text-white font-bold text-base tracking-tight">{monthLabel} {year}</span>
-          <span className="ml-2 text-xs font-medium text-white/70">{ownMonthCount} tervezett nap</span>
+          {monthlyRequiredHours > 0 ? (
+            <span className="ml-2 text-xs font-medium text-white/80">
+              {Math.round(plannedHoursTotal)} / {monthlyRequiredHours} óra
+              {remainingHours > 0 ? ` · ${Math.round(remainingHours)} h maradék` : ' ✓'}
+            </span>
+          ) : (
+            <span className="ml-2 text-xs font-medium text-white/70">{ownMonthCount} tervezett nap</span>
+          )}
         </div>
         <button type="button" onClick={() => onChangeMonth('next')} className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold text-xl leading-none">›</button>
       </div>
@@ -1036,14 +1127,40 @@ function EmployeePreferenceCalendar({
                   const isSz = p.shiftType === 'Sz';
                   const st = getShiftType(p.shiftType || 'N');
                   const hrs = calcHours(p.startTime, p.endTime);
+                  // running hours up to this day
+                  const runningHrs = plannedWorkPrefs
+                    .filter(pp => pp.date <= formatDateKey(year, month, d))
+                    .reduce((sum, pp) => {
+                      if (!pp.startTime || !pp.endTime) return sum + contractHours;
+                      const [sh, sm] = pp.startTime.split(':').map(Number);
+                      const [eh, em] = pp.endTime.split(':').map(Number);
+                      return sum + Math.max(0, (eh * 60 + em - sh * 60 - sm) / 60);
+                    }, 0);
+                  const isLastDay = d === lastPlannedDay;
                   return (
-                    <div key={p.id} className={`flex items-center gap-2 rounded-xl px-3 py-2 border ${isSz ? (darkMode ? 'border-orange-700/50 bg-orange-900/20' : 'border-orange-200 bg-orange-50') : (darkMode ? 'border-emerald-700/50 bg-emerald-900/30' : 'border-emerald-200 bg-emerald-50')}`}>
-                      <span className={`flex-shrink-0 inline-flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-black ${st.bg} ${st.text}`}>{st.label}</span>
-                      <span className={`flex-1 text-sm font-medium ${isSz ? (darkMode ? 'text-orange-300' : 'text-orange-700') : (darkMode ? 'text-emerald-200' : 'text-emerald-800')}`}>
-                        {isSz ? 'Szabadnapot kértem' : 'Saját tervem'}
-                      </span>
-                      {hrs && <span className="flex-shrink-0 text-xs font-semibold tabular-nums text-emerald-600">{hrs}</span>}
-                      {p.startTime && p.endTime && <span className="flex-shrink-0 text-xs tabular-nums text-emerald-500">{p.startTime}–{p.endTime}</span>}
+                    <div key={p.id} className={`flex flex-col gap-1 rounded-xl px-3 py-2 border ${isSz ? (darkMode ? 'border-orange-700/50 bg-orange-900/20' : 'border-orange-200 bg-orange-50') : (darkMode ? 'border-emerald-700/50 bg-emerald-900/30' : 'border-emerald-200 bg-emerald-50')}`}>
+                      <div className="flex items-center gap-2">
+                        <span className={`flex-shrink-0 inline-flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-black ${st.bg} ${st.text}`}>{st.label}</span>
+                        <span className={`flex-1 text-sm font-medium ${isSz ? (darkMode ? 'text-orange-300' : 'text-orange-700') : (darkMode ? 'text-emerald-200' : 'text-emerald-800')}`}>
+                          {isSz ? 'Szabadnapot kértem' : 'Saját tervem'}
+                        </span>
+                        {!isSz && contractHours > 0 && (
+                          <span className="flex-shrink-0 text-xs font-bold tabular-nums text-emerald-600">{hrs || `${contractHours}.00`}</span>
+                        )}
+                        {p.startTime && p.endTime && !isSz && <span className="flex-shrink-0 text-xs tabular-nums text-emerald-500">{p.startTime}–{p.endTime}</span>}
+                      </div>
+                      {!isSz && isLastDay && monthlyRequiredHours > 0 && (
+                        <div className={`flex flex-wrap gap-2 mt-0.5 pt-1 border-t ${darkMode ? 'border-emerald-700/40' : 'border-emerald-200'}`}>
+                          <span className={`text-[11px] font-semibold ${remainingHours <= 0 ? 'text-emerald-500' : darkMode ? 'text-amber-300' : 'text-amber-600'}`}>
+                            Havi maradék: {Math.max(0, Math.round(remainingHours))} óra {remainingHours <= 0 ? '✓' : ''}
+                          </span>
+                          {annualVacDays > 0 && (
+                            <span className={`text-[11px] font-semibold ${vacAfterThisMonth <= 3 ? 'text-rose-500' : darkMode ? 'text-violet-300' : 'text-violet-600'}`}>
+                              · Szabadság maradék: {Math.max(0, vacAfterThisMonth)} nap
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -1237,6 +1354,18 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   const [preferencesForm, setPreferencesForm] = useState(DEFAULT_PREFERENCES);
   const [preferencesSaving, setPreferencesSaving] = useState(false);
 
+  // Employee profile (birth date, children, contract type, vacation tracking)
+  const [employeeProfile, setEmployeeProfile] = useState(null); // loaded from Firestore
+  const [profileForm, setProfileForm] = useState({
+    birthDate: '',
+    childrenCount: '0',
+    contractHours: '8',
+    vacationTakenThisYear: '0',
+    vacationCarriedOver: '0',
+  });
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [showProfileForm, setShowProfileForm] = useState(false);
+
   // Full-screen calendar overlay (pharmacy schedule)
   const [calendarOpen, setCalendarOpen] = useState(false);
   // Full-screen preference calendar overlay (employee draft)
@@ -1415,6 +1544,51 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     setSchedules(sortByDateAndTime(collectedSchedules));
     setSwapRequests([...uniqueSwapMap.values()]);
     setVacationRequests(collectedVacationRequests);
+
+    // Load employee profile
+    const profileDocs = await getDocs(query(
+      collection(db, 'employeeProfiles'),
+      where('userId', '==', user.uid)
+    ));
+    if (!profileDocs.empty) {
+      const prof = { id: profileDocs.docs[0].id, ...profileDocs.docs[0].data() };
+      setEmployeeProfile(prof);
+      setProfileForm({
+        birthDate: prof.birthDate || '',
+        childrenCount: String(prof.childrenCount ?? '0'),
+        contractHours: String(prof.contractHours ?? '8'),
+        vacationTakenThisYear: String(prof.vacationTakenThisYear ?? '0'),
+        vacationCarriedOver: String(prof.vacationCarriedOver ?? '0'),
+      });
+    } else {
+      setEmployeeProfile(null);
+    }
+  }
+
+  async function handleSaveEmployeeProfile() {
+    if (!user?.uid) return;
+    setProfileSaving(true);
+    try {
+      const payload = {
+        userId: user.uid,
+        birthDate: profileForm.birthDate,
+        childrenCount: Number(profileForm.childrenCount) || 0,
+        contractHours: Number(profileForm.contractHours) || 8,
+        vacationTakenThisYear: Number(profileForm.vacationTakenThisYear) || 0,
+        vacationCarriedOver: Number(profileForm.vacationCarriedOver) || 0,
+        updatedAt: serverTimestamp(),
+      };
+      if (employeeProfile?.id) {
+        await updateDoc(doc(db, 'employeeProfiles', employeeProfile.id), payload);
+        setEmployeeProfile({ ...employeeProfile, ...payload });
+      } else {
+        const ref = await addDoc(collection(db, 'employeeProfiles'), { ...payload, createdAt: serverTimestamp() });
+        setEmployeeProfile({ id: ref.id, ...payload });
+      }
+      setShowProfileForm(false);
+    } finally {
+      setProfileSaving(false);
+    }
   }
 
   // Save a single employee's preference for one day
@@ -3627,7 +3801,48 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
           {!isPharmacy && mainTab === 'mine' ? (
             <div className="space-y-4">
-              {/* Month picker */}
+              {/* Profile warning + Alap adataim gomb */}
+              {!employeeProfile?.birthDate && (
+                <div className={`flex items-start gap-3 rounded-2xl border px-4 py-3 ${darkMode ? 'border-amber-700 bg-amber-900/20' : 'border-amber-300 bg-amber-50'}`}>
+                  <AlertTriangle className={`flex-shrink-0 mt-0.5 h-5 w-5 ${darkMode ? 'text-amber-400' : 'text-amber-600'}`} />
+                  <div className="flex-1">
+                    <p className={`text-sm font-semibold ${darkMode ? 'text-amber-300' : 'text-amber-800'}`}>Az alap adataid hiányoznak</p>
+                    <p className={`text-xs mt-0.5 ${darkMode ? 'text-amber-400/80' : 'text-amber-700/80'}`}>A szabadságnapok kiszámításához és a beosztás-tervező teljes funkcionalitásához add meg az adataidat.</p>
+                  </div>
+                  <button type="button" onClick={() => { setMainTab('preferences'); setShowProfileForm(true); }} className="flex-shrink-0 rounded-xl bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-600">Megadom</button>
+                </div>
+              )}
+              {employeeProfile?.birthDate && (
+                <div className={`flex items-center gap-3 rounded-2xl border px-4 py-3 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
+                  <div className="flex-1">
+                    {(() => {
+                      const totalVac = calcAnnualVacationDays(employeeProfile.birthDate, employeeProfile.childrenCount, thisYear);
+                      const carryOver = employeeProfile.vacationCarriedOver || 0;
+                      const taken = employeeProfile.vacationTakenThisYear || 0;
+                      const remaining = totalVac + carryOver - taken;
+                      const reqHours = calcMonthlyRequiredHours(employeeProfile.contractHours, year, month);
+                      return (
+                        <div className="flex flex-wrap gap-4">
+                          <div className="text-center">
+                            <p className={`text-[11px] font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Éves szabadság</p>
+                            <p className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>{totalVac} nap</p>
+                          </div>
+                          <div className="text-center">
+                            <p className={`text-[11px] font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Maradt ({thisYear})</p>
+                            <p className={`text-lg font-bold ${remaining <= 5 ? 'text-rose-500' : darkMode ? 'text-emerald-300' : 'text-emerald-600'}`}>{remaining} nap</p>
+                          </div>
+                          <div className="text-center">
+                            <p className={`text-[11px] font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{MONTHS_HU[month-1]} kötelező</p>
+                            <p className={`text-lg font-bold ${darkMode ? 'text-indigo-300' : 'text-indigo-600'}`}>{reqHours} óra</p>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                  <button type="button" onClick={() => { setMainTab('preferences'); setShowProfileForm(true); }} className={`flex-shrink-0 rounded-xl border px-3 py-1.5 text-xs font-semibold ${darkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}>Szerkesztés</button>
+                </div>
+              )}
+
               {availableYears.map(y => {
                 const startM = 1;
                 const endM = 12;
@@ -3782,6 +3997,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                       darkMode={darkMode}
                       onSaveDayPreferences={handleSavePreferenceDaySchedules}
                       saving={saving}
+                      employeeProfile={employeeProfile}
                     />
                   )}
                 </div>
@@ -3793,6 +4009,137 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
           {!isPharmacy && mainTab === 'preferences' ? (
             <div className="space-y-6">
+
+            {/* ── Alap adataim form ─────────────────────────────────────── */}
+            <div className={`rounded-2xl border p-5 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <h3 className="text-base font-bold">👤 Alap adataim</h3>
+                  <p className="text-xs text-gray-500 mt-0.5">Szabadságnapok kiszámításához szükséges adatok</p>
+                </div>
+                {!showProfileForm && (
+                  <button type="button" onClick={() => setShowProfileForm(true)} className={`flex-shrink-0 rounded-xl border px-3 py-1.5 text-xs font-semibold ${darkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}>
+                    {employeeProfile?.birthDate ? 'Szerkesztés' : '+ Megadás'}
+                  </button>
+                )}
+              </div>
+
+              {/* Display current values */}
+              {!showProfileForm && employeeProfile?.birthDate && (() => {
+                const totalVac = calcAnnualVacationDays(employeeProfile.birthDate, employeeProfile.childrenCount, thisYear);
+                const carryOver = employeeProfile.vacationCarriedOver || 0;
+                const taken = employeeProfile.vacationTakenThisYear || 0;
+                const remaining = totalVac + carryOver - taken;
+                return (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {[
+                      { label: 'Születési dátum', val: employeeProfile.birthDate },
+                      { label: 'Gyermekek száma', val: `${employeeProfile.childrenCount || 0} gyermek` },
+                      { label: 'Szerződés típus', val: `${employeeProfile.contractHours || 8} h/nap` },
+                      { label: `${thisYear}. évi szabadság`, val: `${totalVac} nap (Mt. alapján)` },
+                      { label: 'Áthozott szabadság', val: `${carryOver} nap` },
+                      { label: 'Felvett idén', val: `${taken} nap felvett` },
+                      { label: 'Maradék szabadság', val: `${remaining} nap`, highlight: remaining <= 5 ? 'rose' : 'emerald' },
+                    ].map(({ label, val, highlight }) => (
+                      <div key={label} className={`rounded-xl border px-3 py-2 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-gray-50'}`}>
+                        <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">{label}</p>
+                        <p className={`text-sm font-semibold mt-0.5 ${
+                          highlight === 'rose' ? 'text-rose-500' :
+                          highlight === 'emerald' ? (darkMode ? 'text-emerald-300' : 'text-emerald-600') :
+                          darkMode ? 'text-white' : 'text-gray-800'
+                        }`}>{val}</p>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+              {!showProfileForm && !employeeProfile?.birthDate && (
+                <p className={`text-sm ${darkMode ? 'text-amber-400' : 'text-amber-600'}`}>⚠️ Az adatok megadása szükséges a szabadságnapok kiszámításához.</p>
+              )}
+
+              {/* Form */}
+              {showProfileForm && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Születési dátum</label>
+                    <input
+                      type="date"
+                      value={profileForm.birthDate}
+                      onChange={e => setProfileForm(p => ({ ...p, birthDate: e.target.value }))}
+                      className={`w-full rounded-xl border px-3 py-2 text-sm bg-transparent ${darkMode ? 'border-gray-600' : 'border-gray-300'}`}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Gyermekek száma</label>
+                    <select
+                      value={profileForm.childrenCount}
+                      onChange={e => setProfileForm(p => ({ ...p, childrenCount: e.target.value }))}
+                      className={`w-full rounded-xl border px-3 py-2 text-sm bg-transparent ${darkMode ? 'border-gray-600' : 'border-gray-300'}`}
+                    >
+                      {['0','1','2','3','4','5+'].map(v => <option key={v} value={v}>{v} gyermek</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Munkaszerződés típusa</label>
+                    <select
+                      value={profileForm.contractHours}
+                      onChange={e => setProfileForm(p => ({ ...p, contractHours: e.target.value }))}
+                      className={`w-full rounded-xl border px-3 py-2 text-sm bg-transparent ${darkMode ? 'border-gray-600' : 'border-gray-300'}`}
+                    >
+                      <option value="4">4 h/nap (részmunkaidő 50%)</option>
+                      <option value="6">6 h/nap (részmunkaidő 75%)</option>
+                      <option value="8">8 h/nap (teljes munkaidő)</option>
+                      <option value="12">12 h/nap (műszakos)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Eddig felvett szabadság idén</label>
+                    <select
+                      value={profileForm.vacationTakenThisYear}
+                      onChange={e => setProfileForm(p => ({ ...p, vacationTakenThisYear: e.target.value }))}
+                      className={`w-full rounded-xl border px-3 py-2 text-sm bg-transparent ${darkMode ? 'border-gray-600' : 'border-gray-300'}`}
+                    >
+                      {Array.from({ length: 51 }, (_, i) => i).map(v => <option key={v} value={v}>{v} nap</option>)}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">Ha évközben regisztráltál, add meg az eddig felvett szabadságnapok számát.</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Előző évről áthozott szabadság</label>
+                    <select
+                      value={profileForm.vacationCarriedOver}
+                      onChange={e => setProfileForm(p => ({ ...p, vacationCarriedOver: e.target.value }))}
+                      className={`w-full rounded-xl border px-3 py-2 text-sm bg-transparent ${darkMode ? 'border-gray-600' : 'border-gray-300'}`}
+                    >
+                      {Array.from({ length: 31 }, (_, i) => i).map(v => <option key={v} value={v}>{v} nap</option>)}
+                    </select>
+                  </div>
+                  {/* Preview */}
+                  {profileForm.birthDate && (() => {
+                    const totalVac = calcAnnualVacationDays(profileForm.birthDate, profileForm.childrenCount, thisYear);
+                    const age = calcAgeAt(profileForm.birthDate, thisYear);
+                    const carryOver = Number(profileForm.vacationCarriedOver) || 0;
+                    const taken = Number(profileForm.vacationTakenThisYear) || 0;
+                    const remaining = totalVac + carryOver - taken;
+                    const reqHours = calcMonthlyRequiredHours(profileForm.contractHours, year, month);
+                    return (
+                      <div className={`rounded-xl border px-4 py-3 space-y-1 ${darkMode ? 'border-emerald-800 bg-emerald-950/30' : 'border-emerald-200 bg-emerald-50'}`}>
+                        <p className={`text-xs font-bold uppercase tracking-wide ${darkMode ? 'text-emerald-400' : 'text-emerald-700'}`}>Kiszámított értékek ({thisYear})</p>
+                        <p className={`text-sm ${darkMode ? 'text-emerald-200' : 'text-emerald-800'}`}>Életkor: <strong>{age} év</strong></p>
+                        <p className={`text-sm ${darkMode ? 'text-emerald-200' : 'text-emerald-800'}`}>Járó szabadság: <strong>{totalVac} nap</strong> (alap 20 + kor + gyermek)</p>
+                        <p className={`text-sm ${darkMode ? 'text-emerald-200' : 'text-emerald-800'}`}>Maradék idén: <strong>{remaining} nap</strong> ({totalVac}+{carryOver}−{taken})</p>
+                        <p className={`text-sm ${darkMode ? 'text-emerald-200' : 'text-emerald-800'}`}>{MONTHS_HU[month-1]} kötelező munkaóra: <strong>{reqHours} óra</strong> ({countWorkdaysInMonth(year, month)} munkanap × {profileForm.contractHours} h)</p>
+                      </div>
+                    );
+                  })()}
+                  <div className="flex gap-2 justify-end">
+                    <button type="button" onClick={() => setShowProfileForm(false)} className={`rounded-xl border px-4 py-2 text-sm font-medium ${darkMode ? 'border-gray-600 text-gray-300' : 'border-gray-300 text-gray-600'}`}>Mégse</button>
+                    <button type="button" onClick={handleSaveEmployeeProfile} disabled={profileSaving || !profileForm.birthDate} className="rounded-xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
+                      {profileSaving ? 'Mentés...' : 'Mentés'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
 
             <div className={`rounded-2xl border p-5 space-y-6 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
               <div>
