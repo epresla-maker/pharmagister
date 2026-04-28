@@ -1062,7 +1062,7 @@ function EmployeePreferenceCalendar({
 
       {/* Day preference modal */}
       {showModal && selectedDay && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{backdropFilter:'blur(6px)', background:'rgba(0,0,0,0.55)'}}>
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-14 px-4 pb-4" style={{backdropFilter:'blur(6px)', background:'rgba(0,0,0,0.55)'}}>
           <div className={`relative w-full max-w-lg flex flex-col rounded-2xl shadow-2xl overflow-hidden ${darkMode ? 'bg-gray-900 border border-gray-700' : 'bg-white'}`} onClick={e => e.stopPropagation()}>
             {/* Header */}
             <div className="bg-gradient-to-br from-emerald-600 to-teal-600 px-6 py-5 flex-shrink-0">
