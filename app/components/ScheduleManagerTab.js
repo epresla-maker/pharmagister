@@ -3013,7 +3013,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           ) : null}
 
           {/* ── Old month/day selectors + calendar (shown for history and employee views) ── */}
-          {!(isPharmacy && mainTab === 'schedule') && !(!isPharmacy && mainTab === 'mine') ? (
+          {!(isPharmacy && mainTab === 'schedule') && !(!isPharmacy && (mainTab === 'mine' || mainTab === 'preferences')) ? (
           <div className={`rounded-2xl border p-5 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Field label="Év">
