@@ -551,6 +551,7 @@ function PharmacyScheduleCalendar({
         {Array.from({ length: getDaysInMonth(year, month) }, (_, i) => i + 1).map(day => {
           const dateKey = formatDateKey(year, month, day);
           const dayScheds = schedules.filter(s => s.date === dateKey && s.status !== 'deleted');
+          const dayPrefs = preferences ? preferences.filter(p => p.date === dateKey && p.status !== 'deleted') : [];
           const isToday = dateKey === today;
           const dow = new Date(year, month - 1, day).getDay();
           const isWeekend = dow === 0 || dow === 6;
@@ -604,6 +605,11 @@ function PharmacyScheduleCalendar({
                     {dayScheds.length} műszak
                   </span>
                 )}
+                {dayPrefs.length > 0 && (
+                  <span className={`flex-shrink-0 ml-1.5 text-xs font-semibold rounded-full px-2 py-0.5 ${darkMode ? 'bg-emerald-900/50 text-emerald-300' : 'bg-emerald-100 text-emerald-700'}`}>
+                    {dayPrefs.length} preferencia
+                  </span>
+                )}
               </div>
               {/* Employee chips */}
               {dayScheds.length > 0 ? (
@@ -639,6 +645,24 @@ function PharmacyScheduleCalendar({
                 </div>
               ) : (
                 <p className={`text-xs ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>Nincs beosztás</p>
+              )}
+              {/* Preference chips */}
+              {dayPrefs.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {dayPrefs.map(p => {
+                    const st = getShiftType(p.shiftType || 'N');
+                    return (
+                      <span
+                        key={p.id}
+                        className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium border ${darkMode ? 'bg-emerald-900/30 border-emerald-700/40 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`}
+                      >
+                        <span className={`inline-flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-black ${st.bg} ${st.text}`}>{p.shiftType}</span>
+                        {p.employeeName}
+                        {p.startTime && p.endTime && <span className="opacity-70">{p.startTime}–{p.endTime}</span>}
+                      </span>
+                    );
+                  })}
+                </div>
               )}
             </button>
           );
