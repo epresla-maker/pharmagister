@@ -3090,6 +3090,53 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           {isPharmacy && mainTab === 'schedule' ? (
             <div className="space-y-4">
 
+              {/* ── Kompakt hónap-választó (csak info panel, nem nyit naptárt) ── */}
+              {(() => {
+                const MONTHS_SHORT = ['Jan','Feb','Már','Ápr','Máj','Jún','Júl','Aug','Szep','Okt','Nov','Dec'];
+                const rows = [];
+                for (let y = thisYear; y <= thisYear + 1; y++) {
+                  const startM = y === thisYear ? thisMonth : 1;
+                  const endM = 12;
+                  const months = [];
+                  for (let m = startM; m <= endM; m++) months.push({ y, m });
+                  rows.push(months);
+                }
+                const allMonths = rows.flat();
+                // split into rows of 6
+                const row1 = allMonths.slice(0, 6);
+                const row2 = allMonths.slice(6);
+                return (
+                  <div className={`rounded-2xl border p-3 space-y-2 ${darkMode ? 'border-gray-700 bg-gray-800/60' : 'border-gray-200 bg-gray-50'}`}>
+                    {[row1, row2].filter(r => r.length > 0).map((row, ri) => (
+                      <div key={ri} className="flex gap-1.5 flex-wrap">
+                        {row.map(({ y, m }) => {
+                          const isActive = y === year && m === month;
+                          const hasData = schedules.some(s => s.status !== 'deleted' && s.year === y && s.month === m);
+                          return (
+                            <button
+                              key={`${y}-${m}`}
+                              type="button"
+                              onClick={() => { setYear(y); setMonth(m); }}
+                              className={[
+                                'flex-1 min-w-[44px] rounded-xl py-1.5 text-xs font-bold transition-all border',
+                                isActive
+                                  ? 'bg-gradient-to-br from-violet-600 to-indigo-600 text-white border-transparent shadow'
+                                  : hasData
+                                    ? darkMode ? 'bg-gray-700 border-violet-700 text-violet-300' : 'bg-white border-violet-300 text-violet-700'
+                                    : darkMode ? 'bg-gray-800 border-gray-700 text-gray-400' : 'bg-white border-gray-200 text-gray-500',
+                              ].join(' ')}
+                            >
+                              {MONTHS_SHORT[m - 1]}
+                              {y > thisYear && <span className="block text-[9px] opacity-60">{y}</span>}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+
               {/* ── Dashboard összesítő sáv ──────────────────────────── */}
               {(() => {
                 const totalDays = getDaysInMonth(year, month);
