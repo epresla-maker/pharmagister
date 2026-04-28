@@ -412,6 +412,7 @@ function PharmacyScheduleCalendar({
   // action handlers passed through for the overlay toolbar
   onCopyPrev, onExport, onPublish,
   activeMonthSchedules, publishedScheduleCount,
+  readOnly, ownScheduleIds,
 }) {
   const [selectedDay, setSelectedDay] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -536,16 +537,20 @@ function PharmacyScheduleCalendar({
         >
           ›
         </button>
-        {/* Actions */}
-        <button type="button" onClick={onCopyPrev} disabled={saving} title="Előző hónap másolása" className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 text-white disabled:opacity-50">
-          <Copy className="h-4 w-4" />
-        </button>
-        <button type="button" onClick={onExport} title="CSV export" className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 text-white">
-          <Download className="h-4 w-4" />
-        </button>
-        <button type="button" onClick={onPublish} disabled={saving || (activeMonthSchedules ?? 0) === 0} title="Publikálás" className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 text-white disabled:opacity-50">
-          <Send className="h-4 w-4" />
-        </button>
+        {/* Actions — hidden in readOnly mode */}
+        {!readOnly && (
+          <>
+            <button type="button" onClick={onCopyPrev} disabled={saving} title="Előző hónap másolása" className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 text-white disabled:opacity-50">
+              <Copy className="h-4 w-4" />
+            </button>
+            <button type="button" onClick={onExport} title="CSV export" className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 text-white">
+              <Download className="h-4 w-4" />
+            </button>
+            <button type="button" onClick={onPublish} disabled={saving || (activeMonthSchedules ?? 0) === 0} title="Publikálás" className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 text-white disabled:opacity-50">
+              <Send className="h-4 w-4" />
+            </button>
+          </>
+        )}
       </div>
       {/* Day list — full width, vertically scrollable */}
       <div className="flex-1 overflow-y-auto overscroll-contain">
@@ -2443,8 +2448,6 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       ]
     : [
         { key: 'mine', label: 'Beosztásom' },
-        { key: 'swaps', label: 'Csereigények' },
-        { key: 'vacations', label: 'Szabadságigény' },
         { key: 'preferences', label: 'Preferenciák' },
       ];
 
@@ -3622,219 +3625,90 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           ) : null}
 
           {!isPharmacy && mainTab === 'mine' ? (
-            <div className="grid grid-cols-1 xl:grid-cols-[1.05fr,0.95fr] gap-6">
-              <div className={`rounded-2xl border p-5 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
-                <h3 className="mb-4 text-lg font-semibold">Saját beosztás kiemelve</h3>
-                <MonthCalendar
+            <div className="space-y-4">
+              {/* Month picker */}
+              {availableYears.map(y => {
+                const startM = 1;
+                const endM = 12;
+                const months = MONTHS_HU.slice(startM - 1, endM).map((label, i) => ({ label, m: startM + i }));
+                const publishedMonths = months.filter(({ m }) =>
+                  schedules.some(s => s.status !== 'deleted' && s.year === y && s.month === m && s.isPublished)
+                );
+                if (publishedMonths.length === 0 && y !== thisYear) return null;
+                return (
+                  <div key={y}>
+                    <p className={`text-xs font-bold uppercase tracking-widest mb-2 px-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{y}</p>
+                    <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                      {months.map(({ label, m }) => {
+                        const isActive = y === year && m === month && calendarOpen;
+                        const monthScheds = schedules.filter(s => s.status !== 'deleted' && s.year === y && s.month === m && s.isPublished);
+                        const ownCount = monthScheds.filter(s => ownScheduleIds.has(s.id)).length;
+                        if (monthScheds.length === 0) return null;
+                        return (
+                          <button
+                            key={m}
+                            type="button"
+                            onClick={() => { setYear(y); setMonth(m); setCalendarOpen(true); }}
+                            className={[
+                              'flex-shrink-0 flex flex-col items-center rounded-2xl px-4 py-3 transition-all border',
+                              isActive
+                                ? 'bg-gradient-to-br from-violet-600 to-indigo-600 text-white border-transparent shadow-lg shadow-violet-200'
+                                : darkMode
+                                  ? 'bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-700'
+                                  : 'bg-white border-gray-200 text-gray-800 hover:bg-violet-50 hover:border-violet-300',
+                            ].join(' ')}
+                          >
+                            <span className="font-bold text-sm whitespace-nowrap">{label}</span>
+                            {ownCount > 0 && (
+                              <span className={`mt-1 text-[10px] font-semibold rounded-full px-2 py-0.5 ${isActive ? 'bg-white/25 text-white' : darkMode ? 'bg-gray-700 text-gray-300' : 'bg-violet-100 text-violet-700'}`}>
+                                {ownCount} saját műszak
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+              {schedules.filter(s => s.status !== 'deleted' && s.isPublished).length === 0 && (
+                <p className={`text-sm text-center py-8 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Még nincs publikált beosztás.</p>
+              )}
+              {/* Full-screen calendar overlay */}
+              {calendarOpen && (
+                <PharmacyScheduleCalendar
                   year={year}
                   month={month}
-                  selectedDate={selectedDate}
-                  schedules={schedules.filter(item => item.status !== 'deleted')}
-                  ownScheduleIds={ownScheduleIds}
-                  onSelectDate={(dateKey) => {
-                    const [, nextMonth, nextDay] = dateKey.split('-').map(Number);
-                    setMonth(nextMonth);
-                    setDay(nextDay);
+                  onChangeMonth={(dir) => {
+                    if (dir === 'prev') {
+                      const p = getPreviousMonth(year, month);
+                      setYear(p.year); setMonth(p.month);
+                    } else {
+                      const next = month === 12 ? { year: year + 1, month: 1 } : { year, month: month + 1 };
+                      setYear(next.year); setMonth(next.month);
+                    }
                   }}
+                  onClose={() => setCalendarOpen(false)}
+                  schedules={schedules.filter(s => s.status !== 'deleted' && s.isPublished)}
+                  employees={employees}
+                  preferences={[]}
+                  user={user}
+                  userData={userData}
                   darkMode={darkMode}
+                  onSaveDaySchedules={() => {}}
+                  saving={false}
+                  onCopyPrev={() => {}}
+                  onExport={() => {}}
+                  onPublish={() => {}}
+                  activeMonthSchedules={schedules.filter(s => s.status !== 'deleted' && s.isPublished && s.year === year && s.month === month).length}
+                  publishedScheduleCount={0}
+                  readOnly={true}
+                  ownScheduleIds={ownScheduleIds}
                 />
-              </div>
-
-              <div className={`rounded-2xl border p-5 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
-                <h3 className="text-lg font-semibold">Kiválasztott nap</h3>
-                {selectedDateSchedules.length === 0 ? (
-                  <p className="text-sm text-gray-500">Erre a napra nincs beosztás.</p>
-                ) : selectedDateSchedules.map(item => {
-                  const isOwn = ownScheduleIds.has(item.id);
-                  const isSwapOpen = quickSwapScheduleId === item.id;
-                  const swapCandidates = isOwn && isSwapOpen ? getSwapCandidatesForSchedule(item.id) : [];
-                  // Check if there's already an open/pending swap for this schedule
-                  const hasOpenSwap = swapRequests.some(r =>
-                    (r.requesterScheduleId === item.id || r.targetScheduleId === item.id) &&
-                    (r.status === 'pending' || r.status === 'employee_accepted')
-                  );
-                  return (
-                    <div key={item.id} className={`rounded-xl border p-4 space-y-3 ${isOwn ? 'border-green-300 bg-green-50 dark:border-green-700 dark:bg-green-900/20' : darkMode ? 'border-gray-700 bg-gray-800' : 'border-[#E5E7EB] bg-[#F9FAFB]'}`}>
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="font-semibold">{item.employeeName}</p>
-                          <p className="text-sm text-gray-500">{item.startTime} - {item.endTime}</p>
-                          {item.notes ? <p className="text-sm text-gray-500 mt-0.5">{item.notes}</p> : null}
-                        </div>
-                        <div className="flex items-center gap-2 flex-wrap justify-end">
-                          {isOwn ? <span className="rounded-full bg-green-600 px-2 py-1 text-xs font-semibold text-white">Saját</span> : null}
-                          {isOwn && !hasOpenSwap && item.date >= today ? (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (isSwapOpen) { setQuickSwapScheduleId(null); setQuickSwapMessage(''); }
-                                else { setQuickSwapScheduleId(item.id); setQuickSwapMessage(''); }
-                              }}
-                              className="inline-flex items-center gap-1 rounded-xl border border-[#6B46C1] px-2 py-1 text-xs font-semibold text-[#6B46C1] hover:bg-[#6B46C1]/10"
-                            >
-                              <ArrowLeftRight className="h-3 w-3" />
-                              {isSwapOpen ? 'Mégse' : 'Csere kérése'}
-                            </button>
-                          ) : null}
-                          {isOwn && hasOpenSwap ? (
-                            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">Csere folyamatban</span>
-                          ) : null}
-                        </div>
-                      </div>
-
-                      {isOwn && isSwapOpen ? (
-                        <div className={`rounded-xl border p-3 space-y-3 ${darkMode ? 'border-gray-600 bg-gray-900' : 'border-gray-200 bg-white'}`}>
-                          <p className="text-sm font-semibold">Kivel cserélnél?</p>
-                          {swapCandidates.length === 0 ? (
-                            <p className="text-sm text-gray-500">Ezen a napon nincs más beosztott dolgozó, akivel cserét kezdeményezhetnél.</p>
-                          ) : (
-                            <div className="space-y-2">
-                              {swapCandidates.map(candidate => (
-                                <div key={candidate.id} className={`flex items-center justify-between rounded-lg border px-3 py-2 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-gray-50'}`}>
-                                  <div>
-                                    <p className="text-sm font-medium">{candidate.employeeName}</p>
-                                    <p className="text-xs text-gray-500">{candidate.startTime}–{candidate.endTime}</p>
-                                  </div>
-                                  <button
-                                    type="button"
-                                    disabled={saving}
-                                    onClick={() => handleQuickSwapRequest(item.id, candidate.id, quickSwapMessage)}
-                                    className="rounded-xl bg-[#6B46C1] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
-                                  >
-                                    Csere kérése
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                          <div>
-                            <p className="mb-1 text-xs font-medium text-gray-500">Üzenet (opcionális)</p>
-                            <textarea
-                              value={quickSwapMessage}
-                              onChange={e => setQuickSwapMessage(e.target.value)}
-                              rows={2}
-                              className="w-full rounded-xl border px-3 py-2 text-sm bg-transparent"
-                              placeholder="Pl. Nekem erre a napra egyéb kötelezettségem van."
-                            />
-                          </div>
-                        </div>
-                      ) : null}
-                    </div>
-                  );
-                })}
-              </div>
+              )}
             </div>
           ) : null}
 
-          {!isPharmacy && mainTab === 'swaps' ? (
-            <div className="grid grid-cols-1 xl:grid-cols-[1fr,1fr] gap-6">
-              <div className={`rounded-2xl border p-5 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
-                <h3 className="text-lg font-semibold">Új csereigény</h3>
-                <Field label="Saját beosztás">
-                  <select value={swapForm.requesterScheduleId} onChange={e => setSwapForm(prev => ({ ...prev, requesterScheduleId: e.target.value }))} className="w-full rounded-xl border px-3 py-2 bg-transparent">
-                    <option value="">Válassz saját beosztást</option>
-                    {ownSchedules.filter(item => item.date >= today).map(item => (
-                      <option key={item.id} value={item.id}>{item.date} | {item.startTime}-{item.endTime}</option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="Melyik beosztásra cserélnél?">
-                  <select value={swapForm.targetScheduleId} onChange={e => setSwapForm(prev => ({ ...prev, targetScheduleId: e.target.value }))} className="w-full rounded-xl border px-3 py-2 bg-transparent">
-                    <option value="">Válassz cél beosztást</option>
-                    {otherSchedules.filter(item => item.date >= today).map(item => (
-                      <option key={item.id} value={item.id}>{item.employeeName} | {item.date} | {item.startTime}-{item.endTime}</option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="Üzenet">
-                  <textarea value={swapForm.message} onChange={e => setSwapForm(prev => ({ ...prev, message: e.target.value }))} className="min-h-[90px] w-full rounded-xl border px-3 py-2 bg-transparent" placeholder="Pl. Nekem a péntek nem jó, cserélnék a csütörtöki műszakodra." />
-                </Field>
-                <div className="flex justify-end">
-                  <button type="button" onClick={handleCreateSwapRequest} disabled={saving} className="rounded-xl bg-[#6B46C1] px-4 py-2 font-medium text-white disabled:opacity-60">
-                    Csereigény küldése
-                  </button>
-                </div>
-              </div>
-
-              <div className={`rounded-2xl border p-5 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
-                <h3 className="text-lg font-semibold">Csereigények</h3>
-                {swapRequests.length === 0 ? (
-                  <p className="text-sm text-gray-500">Jelenleg nincs csereigény.</p>
-                ) : swapRequests.map(item => {
-                  const incoming = item.targetUserId === user.uid;
-                  const statusLabel = {
-                    pending: incoming ? '⏳ Válaszra vár (te döntesz)' : '⏳ Vár a kollégára',
-                    employee_accepted: '⏳ Gyógyszertár jóváhagyására vár',
-                    accepted: '✅ Elfogadva és végrehajtva',
-                    rejected: '❌ Elutasítva',
-                    rejected_by_pharmacy: '❌ Gyógyszertár elutasította',
-                  }[item.status] || item.status;
-                  return (
-                    <div key={item.id} className={`rounded-xl border p-4 space-y-1 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-[#E5E7EB] bg-[#F9FAFB]'}`}>
-                      <p className="font-semibold">{incoming ? 'Beérkező csereigény' : 'Kimenő csereigény'}</p>
-                      <p className="text-sm text-gray-500">{item.requesterName} ↔ {item.targetName}</p>
-                      <p className="text-sm text-gray-500">{item.date} ↔ {item.targetDate}</p>
-                      <p className="text-sm">Állapot: <strong>{statusLabel}</strong></p>
-                      {item.message ? <p className="mt-1 text-sm italic text-gray-500">"{item.message}"</p> : null}
-                      {incoming && item.status === 'pending' ? (
-                        <div className="mt-3 flex gap-2">
-                          <button type="button" disabled={saving} onClick={() => handleRespondToSwapRequest(item.id, 'accepted')} className="inline-flex items-center gap-2 rounded-xl bg-green-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-60">
-                            <CheckCircle2 className="h-4 w-4" />
-                            Elfogadom
-                          </button>
-                          <button type="button" disabled={saving} onClick={() => handleRespondToSwapRequest(item.id, 'rejected')} className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-60">
-                            <XCircle className="h-4 w-4" />
-                            Elutasítom
-                          </button>
-                        </div>
-                      ) : null}
-                      {item.status === 'employee_accepted' ? (
-                        <p className="mt-2 text-xs text-amber-600 font-medium">Mindkét fél elfogadta – a gyógyszertár jóváhagyása szükséges a végrehajtáshoz.</p>
-                      ) : null}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ) : null}
-
-          {!isPharmacy && mainTab === 'vacations' ? (
-            <div className="grid grid-cols-1 xl:grid-cols-[0.95fr,1.05fr] gap-6">
-              <div className={`rounded-2xl border p-5 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
-                <h3 className="text-lg font-semibold">Jövőbeli szabadságigény</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Field label="Kezdő dátum">
-                    <input type="date" value={vacationForm.startDate} onChange={e => setVacationForm(prev => ({ ...prev, startDate: e.target.value }))} className="w-full rounded-xl border px-3 py-2 bg-transparent" />
-                  </Field>
-                  <Field label="Záró dátum">
-                    <input type="date" value={vacationForm.endDate} onChange={e => setVacationForm(prev => ({ ...prev, endDate: e.target.value }))} className="w-full rounded-xl border px-3 py-2 bg-transparent" />
-                  </Field>
-                </div>
-                <Field label="Megjegyzés / indoklás">
-                  <textarea value={vacationForm.reason} onChange={e => setVacationForm(prev => ({ ...prev, reason: e.target.value }))} className="min-h-[100px] w-full rounded-xl border px-3 py-2 bg-transparent" placeholder="Pl. előre tervezett szabadság, családi ok, vizsga" />
-                </Field>
-                <div className="flex justify-end">
-                  <button type="button" onClick={handleCreateVacationRequest} disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-[#6B46C1] px-4 py-2 font-medium text-white disabled:opacity-60">
-                    <Plane className="h-4 w-4" />
-                    Szabadságigény küldése
-                  </button>
-                </div>
-              </div>
-
-              <div className={`rounded-2xl border p-5 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
-                <h3 className="text-lg font-semibold">Korábbi szabadságigények</h3>
-                {vacationRequests.length === 0 ? (
-                  <p className="text-sm text-gray-500">Még nincs szabadságigény.</p>
-                ) : vacationRequests.map(item => (
-                  <div key={item.id} className={`rounded-xl border p-4 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-[#E5E7EB] bg-[#F9FAFB]'}`}>
-                    <p className="font-semibold">{item.startDate} - {item.endDate}</p>
-                    <p className="mt-1 text-sm text-gray-500">Állapot: {item.status === 'pending' ? 'függőben' : item.status === 'accepted' ? 'elfogadva' : item.status === 'rejected' ? 'elutasítva' : item.status}</p>
-                    {item.reason ? <p className="mt-2 text-sm">{item.reason}</p> : null}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
           {!isPharmacy && mainTab === 'preferences' ? (
             <div className="space-y-6">
 
