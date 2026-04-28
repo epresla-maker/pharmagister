@@ -2655,65 +2655,164 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     setSaving(true);
     let fixedCount = 0;
     try {
-      // Group errors by employeeId+date for efficient lookup
-      const MAX_DAILY = 12; // safe default for Hungarian labor law
-      const DEFAULT_FROM = '08:00';
-      const DEFAULT_TO = '20:00';
+      const LEGAL_MAX_DAILY = 12; // Hungarian labor law
+      const LEGAL_MAX_WEEKLY = 48;
 
-      // Collect affected (employeeId, date) pairs per error type
-      const fixHours = new Set(); // key: `${employeeId}|${date}` — fix times
-      const deleteViolation = new Set(); // key: `${employeeId}|${date}` — remove
-      const fixWeek = new Set(); // key: `${employeeId}|${week}` — trim week
+      // Helper: "HH:MM" → minutes
+      const toMins = (t) => {
+        if (!t) return 0;
+        const [h, m] = t.split(':').map(Number);
+        return h * 60 + m;
+      };
+      // minutes → "HH:MM" (clamp to 24h)
+      const toTime = (mins) => {
+        const clamped = Math.min(Math.max(0, mins), 24 * 60);
+        return `${String(Math.floor(clamped / 60)).padStart(2,'0')}:${String(clamped % 60).padStart(2,'0')}`;
+      };
+      // Shift duration in hours (handles overnight)
+      const durHours = (start, end) => {
+        const s = toMins(start), e = toMins(end);
+        return e > s ? (e - s) / 60 : (24 * 60 - s + e) / 60;
+      };
+
+      // Preference lookup: employeeId|date → best matching preference entry
+      const prefByEmpDate = new Map();
+      for (const pref of schedulePreferences) {
+        if (pref.status === 'deleted') continue;
+        const key = `${pref.employeeId}|${pref.date}`;
+        if (!prefByEmpDate.has(key)) prefByEmpDate.set(key, pref);
+      }
+
+      // Employee config lookup
+      const empById = new Map(activeEmployees.map(e => [e.id, e]));
+
+      // Categorise blocking errors
+      const dailyOverflow = new Set();   // employeeId|date
+      const doubleShiftSet = new Set();  // employeeId|date
+      const timeOffSet = new Set();      // employeeId|date
+      const weeklyOverflow = new Set();  // employeeId|weekStartDate
 
       for (const err of blockingErrors) {
-        if (err.code === 'max_daily_hours' || err.code === 'legal_max_daily_hours' || err.code === 'double_shift') {
-          if (err.employeeId && err.date) fixHours.add(`${err.employeeId}|${err.date}`);
-        } else if (err.code === 'time_off_violation') {
-          if (err.employeeId && err.date) deleteViolation.add(`${err.employeeId}|${err.date}`);
-        } else if (err.code === 'legal_weekly_hours_limit') {
-          if (err.employeeId && err.week) fixWeek.add(`${err.employeeId}|${err.week}`);
+        if ((err.code === 'max_daily_hours' || err.code === 'legal_max_daily_hours') && err.employeeId && err.date)
+          dailyOverflow.add(`${err.employeeId}|${err.date}`);
+        else if (err.code === 'double_shift' && err.employeeId && err.date)
+          doubleShiftSet.add(`${err.employeeId}|${err.date}`);
+        else if (err.code === 'time_off_violation' && err.employeeId && err.date)
+          timeOffSet.add(`${err.employeeId}|${err.date}`);
+        else if (err.code === 'legal_weekly_hours_limit' && err.employeeId && err.week)
+          weeklyOverflow.add(`${err.employeeId}|${err.week}`);
+      }
+
+      // ── 1. Time-off violations: delete the shift (employee is on leave) ──────
+      for (const item of activeMonthSchedules) {
+        if (item.publishedAt) continue;
+        const k = `${item.employeeId}|${item.date}`;
+        if (timeOffSet.has(k)) {
+          await updateDoc(doc(db, 'pharmacySchedules', item.id), { status: 'deleted', updatedAt: serverTimestamp() });
+          fixedCount++;
         }
       }
 
-      // Process each affected schedule
-      for (const item of activeMonthSchedules) {
-        if (item.publishedAt) continue; // never touch published
-        const empDateKey = `${item.employeeId}|${item.date}`;
-
-        // Delete time-off violations
-        if (deleteViolation.has(empDateKey)) {
-          await updateDoc(doc(db, 'pharmacySchedules', item.id), { status: 'deleted', updatedAt: serverTimestamp() });
-          fixedCount++;
-          continue;
+      // ── 2. Double shifts: keep the one matching employee preference, delete rest ──
+      for (const k of doubleShiftSet) {
+        const [empId, dateKey] = k.split('|');
+        const shifts = activeMonthSchedules.filter(s =>
+          s.employeeId === empId && s.date === dateKey && !s.publishedAt && s.status !== 'deleted'
+        );
+        if (shifts.length <= 1) continue;
+        const pref = prefByEmpDate.get(k);
+        let keepId;
+        if (pref) {
+          // Prefer the shift whose shiftType or times match the employee's request
+          const byType = shifts.find(s => s.shiftType === pref.shiftType);
+          const byTime = shifts.find(s => s.startTime === pref.startTime && s.endTime === pref.endTime);
+          keepId = (byTime || byType || shifts[0]).id;
+        } else {
+          // Keep the first non-midnight shift (likely intentional)
+          const nonMidnight = shifts.find(s => !(s.startTime === '00:00' && s.endTime === '00:00'));
+          keepId = (nonMidnight || shifts[0]).id;
         }
-
-        // Fix 00:00-00:00 (=24h) or any daily hour overflow
-        if (fixHours.has(empDateKey)) {
-          const isAllDay = item.startTime === '00:00' && item.endTime === '00:00';
-          if (isAllDay) {
-            await updateDoc(doc(db, 'pharmacySchedules', item.id), {
-              startTime: DEFAULT_FROM,
-              endTime: DEFAULT_TO,
-              updatedAt: serverTimestamp(),
-            });
+        for (const s of shifts) {
+          if (s.id !== keepId) {
+            await updateDoc(doc(db, 'pharmacySchedules', s.id), { status: 'deleted', updatedAt: serverTimestamp() });
             fixedCount++;
           }
         }
       }
 
-      // For double_shift: after fixing times, delete duplicate shifts (same employee+date, keep only first)
-      const doubleShiftKeys = new Set(blockingErrors.filter(e => e.code === 'double_shift' && e.employeeId && e.date).map(e => `${e.employeeId}|${e.date}`));
-      if (doubleShiftKeys.size > 0) {
-        const seenEmpDate = new Set();
-        for (const item of activeMonthSchedules) {
-          if (item.publishedAt || item.status === 'deleted') continue;
-          const k = `${item.employeeId}|${item.date}`;
-          if (!doubleShiftKeys.has(k)) continue;
-          if (seenEmpDate.has(k)) {
-            await updateDoc(doc(db, 'pharmacySchedules', item.id), { status: 'deleted', updatedAt: serverTimestamp() });
-            fixedCount++;
+      // ── 3. Daily hour overflows: adjust times to fit within legal max ─────────
+      // Re-fetch after deletions above
+      const freshSnapshots = activeMonthSchedules.filter(s => s.status !== 'deleted' && !s.publishedAt);
+      for (const item of freshSnapshots) {
+        const k = `${item.employeeId}|${item.date}`;
+        if (!dailyOverflow.has(k)) continue;
+
+        const emp = empById.get(item.employeeId);
+        const maxH = Math.min(emp?.maxDailyHours ?? LEGAL_MAX_DAILY, LEGAL_MAX_DAILY);
+        const pref = prefByEmpDate.get(k);
+
+        let newStart, newEnd;
+
+        if (pref?.startTime && pref?.endTime) {
+          // Employee requested specific times – honour them if they fit, otherwise clip end
+          if (durHours(pref.startTime, pref.endTime) <= maxH) {
+            newStart = pref.startTime;
+            newEnd = pref.endTime;
           } else {
-            seenEmpDate.add(k);
+            newStart = pref.startTime;
+            newEnd = toTime(toMins(pref.startTime) + maxH * 60);
+          }
+        } else if (item.startTime && item.startTime !== '00:00') {
+          // Keep employee's start time, clip end to legal max
+          newStart = item.startTime;
+          newEnd = toTime(toMins(item.startTime) + maxH * 60);
+        } else {
+          // Midnight placeholder → use standard day shift
+          newStart = '08:00';
+          newEnd = toTime(8 * 60 + maxH * 60);
+        }
+
+        await updateDoc(doc(db, 'pharmacySchedules', item.id), {
+          startTime: newStart,
+          endTime: newEnd,
+          updatedAt: serverTimestamp(),
+        });
+        fixedCount++;
+      }
+
+      // ── 4. Weekly hour overflows: remove least-preferred shifts that week ──────
+      if (weeklyOverflow.size > 0) {
+        const isoWeekStart = (dateStr) => {
+          const d = new Date(dateStr);
+          const day = d.getDay();
+          const diff = (day === 0 ? -6 : 1) - day;
+          d.setDate(d.getDate() + diff);
+          return d.toISOString().slice(0, 10);
+        };
+
+        for (const wk of weeklyOverflow) {
+          const [empId, weekKey] = wk.split('|');
+          const emp = empById.get(empId);
+          const maxW = Math.min(emp?.weeklyHoursLimit ?? LEGAL_MAX_WEEKLY, LEGAL_MAX_WEEKLY);
+
+          const weekShifts = activeMonthSchedules.filter(s =>
+            s.employeeId === empId && !s.publishedAt && s.status !== 'deleted' &&
+            isoWeekStart(s.date) === weekKey
+          ).sort((a, b) => {
+            // Non-preferred days first → those get removed first
+            const aP = prefByEmpDate.has(`${empId}|${a.date}`);
+            const bP = prefByEmpDate.has(`${empId}|${b.date}`);
+            if (aP !== bP) return aP ? 1 : -1;
+            return a.date.localeCompare(b.date);
+          });
+
+          let totalH = weekShifts.reduce((sum, s) => sum + durHours(s.startTime, s.endTime), 0);
+          for (const s of weekShifts) {
+            if (totalH <= maxW) break;
+            const h = durHours(s.startTime, s.endTime);
+            await updateDoc(doc(db, 'pharmacySchedules', s.id), { status: 'deleted', updatedAt: serverTimestamp() });
+            totalH -= h;
+            fixedCount++;
           }
         }
       }
