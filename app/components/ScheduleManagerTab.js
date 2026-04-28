@@ -309,13 +309,13 @@ function Field({ label, required = false, hint, children }) {
 
 function SegmentedTabs({ tabs, active, onChange }) {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex gap-2">
       {tabs.map(tab => (
         <button
           key={tab.key}
           type="button"
           onClick={() => onChange(tab.key)}
-          className={`rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
+          className={`flex-1 rounded-xl px-3 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
             active === tab.key
               ? 'bg-[#6B46C1] text-white'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-700'
@@ -2644,9 +2644,9 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
   const topTabs = isPharmacy
     ? [
-        { key: 'workers', label: 'Dolgozók kezelése' },
-        { key: 'schedule', label: 'Beosztások kezelése' },
-        { key: 'history', label: 'Múlt beosztások kezelése' },
+        { key: 'workers', label: 'Dolgozók', fullLabel: 'Dolgozók kezelése' },
+        { key: 'schedule', label: 'Beosztás', fullLabel: 'Beosztások kezelése' },
+        { key: 'history', label: 'Múlt', fullLabel: 'Múlt beosztások kezelése' },
       ]
     : [
         { key: 'mine', label: 'Beosztásom' },
@@ -2912,7 +2912,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       <div>
         <h2 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-[#111827]'}`}>
           {isPharmacy
-            ? (mainTab === 'workers' ? 'Dolgozók kezelése' : mainTab === 'history' ? 'Múlt beosztások' : 'Beosztások kezelése')
+            ? (topTabs.find(t => t.key === mainTab)?.fullLabel || topTabs.find(t => t.key === mainTab)?.label)
             : (mainTab === 'mine' ? 'Beosztásom' : mainTab === 'vacations' ? 'Szabadságolások' : mainTab === 'planner' ? 'Beosztás-tervező' : 'Preferenciák')}
         </h2>
         <p className={`mt-1 text-sm ${darkMode ? 'text-gray-400' : 'text-[#6B7280]'}`}>
@@ -3095,22 +3095,19 @@ export default function ScheduleManagerTab({ pharmaRole }) {
               {/* ── Kompakt hónap-választó (csak info panel, nem nyit naptárt) ── */}
               {(() => {
                 const MONTHS_SHORT = ['Jan','Feb','Már','Ápr','Máj','Jún','Júl','Aug','Szep','Okt','Nov','Dec'];
-                const rows = [];
-                for (let y = thisYear; y <= thisYear + 1; y++) {
-                  const startM = y === thisYear ? thisMonth : 1;
-                  const endM = 12;
-                  const months = [];
-                  for (let m = startM; m <= endM; m++) months.push({ y, m });
-                  rows.push(months);
+                // Csak a következő 12 hónap (jelenlegi + 11)
+                const allMonths = [];
+                for (let i = 0; i < 12; i++) {
+                  const m = ((thisMonth - 1 + i) % 12) + 1;
+                  const y = thisYear + Math.floor((thisMonth - 1 + i) / 12);
+                  allMonths.push({ y, m });
                 }
-                const allMonths = rows.flat();
-                // split into rows of 6
                 const row1 = allMonths.slice(0, 6);
                 const row2 = allMonths.slice(6);
                 return (
                   <div className={`rounded-2xl border p-3 space-y-2 ${darkMode ? 'border-gray-700 bg-gray-800/60' : 'border-gray-200 bg-gray-50'}`}>
-                    {[row1, row2].filter(r => r.length > 0).map((row, ri) => (
-                      <div key={ri} className="flex gap-1.5 flex-wrap">
+                    {[row1, row2].map((row, ri) => (
+                      <div key={ri} className="flex gap-1.5">
                         {row.map(({ y, m }) => {
                           const isActive = y === year && m === month;
                           const hasData = schedules.some(s => s.status !== 'deleted' && s.year === y && s.month === m);
@@ -3120,7 +3117,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                               type="button"
                               onClick={() => { setYear(y); setMonth(m); }}
                               className={[
-                                'flex-1 min-w-[44px] rounded-xl py-1.5 text-xs font-bold transition-all border',
+                                'flex-1 rounded-xl py-2 text-xs font-bold transition-all border text-center',
                                 isActive
                                   ? 'bg-gradient-to-br from-violet-600 to-indigo-600 text-white border-transparent shadow'
                                   : hasData
@@ -3128,8 +3125,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                                     : darkMode ? 'bg-gray-800 border-gray-700 text-gray-400' : 'bg-white border-gray-200 text-gray-500',
                               ].join(' ')}
                             >
-                              {MONTHS_SHORT[m - 1]}
-                              {y > thisYear && <span className="block text-[9px] opacity-60">{y}</span>}
+                              <span className="block">{MONTHS_SHORT[m - 1]}</span>
+                              {y > thisYear && <span className="block text-[9px] opacity-50">{y}</span>}
                             </button>
                           );
                         })}
