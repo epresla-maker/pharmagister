@@ -574,18 +574,30 @@ function PharmacyScheduleCalendar({
                   : darkMode ? 'border-b border-gray-800/60' : 'border-b border-gray-200/70',
               ].join(' ')}
             >
-              {/* Row header: centered "1. Csütörtök" */}
+              {/* Row header: left-aligned, number fixed-width then day name */}
               <div className="flex items-center mb-2">
-                <span className={[
-                  'text-[17px] flex-1 text-center underline underline-offset-4',
-                  dow === 0 ? 'font-bold' : 'font-semibold',
-                  isToday ? darkMode ? 'text-violet-300 decoration-violet-400' : 'text-violet-700 decoration-violet-500'
-                    : isHoliday ? darkMode ? 'text-rose-400 decoration-rose-400' : 'text-rose-500 decoration-rose-500'
-                    : isWeekend ? darkMode ? 'text-rose-400 decoration-rose-400' : 'text-rose-600 decoration-rose-600'
-                    : darkMode ? 'text-gray-200 decoration-gray-400' : 'text-gray-700 decoration-gray-700',
-                ].join(' ')}>
-                  {day}. {dowLabel}{isHoliday && !isWeekend ? ' 🔴' : ''}
-                </span>
+                <div className="flex items-baseline flex-1 gap-0">
+                  <span className={[
+                    'text-[17px] tabular-nums inline-block w-10 flex-shrink-0',
+                    dow === 0 ? 'font-bold' : 'font-semibold',
+                    isToday ? darkMode ? 'text-violet-300' : 'text-violet-700'
+                      : isHoliday ? darkMode ? 'text-rose-400' : 'text-rose-500'
+                      : isWeekend ? darkMode ? 'text-rose-400' : 'text-rose-600'
+                      : darkMode ? 'text-gray-200' : 'text-gray-700',
+                  ].join(' ')}>
+                    {day}.
+                  </span>
+                  <span className={[
+                    'text-[17px] underline underline-offset-4',
+                    dow === 0 ? 'font-bold' : 'font-semibold',
+                    isToday ? darkMode ? 'text-violet-300 decoration-violet-400' : 'text-violet-700 decoration-violet-500'
+                      : isHoliday ? darkMode ? 'text-rose-400 decoration-rose-400' : 'text-rose-500 decoration-rose-500'
+                      : isWeekend ? darkMode ? 'text-rose-400 decoration-rose-400' : 'text-rose-600 decoration-rose-600'
+                      : darkMode ? 'text-gray-200 decoration-gray-400' : 'text-gray-700 decoration-gray-700',
+                  ].join(' ')}>
+                    {dowLabel}{isHoliday && !isWeekend ? ' 🔴' : ''}
+                  </span>
+                </div>
                 {dayScheds.length > 0 && (
                   <span className={`flex-shrink-0 text-xs font-semibold rounded-full px-2 py-0.5 ${darkMode ? 'bg-black/30 text-gray-300' : 'bg-black/10 text-gray-600'}`}>
                     {dayScheds.length} műszak
