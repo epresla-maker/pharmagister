@@ -405,6 +405,7 @@ const HU_DAYS_LONG = ['Vasárnap', 'Hétfő', 'Kedd', 'Szerda', 'Csütörtök', 
 function PharmacyScheduleCalendar({
   year, month, onChangeMonth, onClose,
   schedules, employees,
+  preferences,
   user, userData, darkMode,
   onSaveDaySchedules, saving,
   // action handlers passed through for the overlay toolbar
@@ -723,6 +724,16 @@ function PharmacyScheduleCalendar({
               {employeeRows.map((row, idx) => {
                 const st = getShiftType(row.shiftType);
                 const hrs = calcHours(row.from, row.to);
+                // Find this employee's draft preference for the selected day
+                const dayKey = selectedDay ? formatDateKey(year, month, selectedDay) : null;
+                const empPref = dayKey && preferences
+                  ? preferences.find(p =>
+                      p.date === dayKey &&
+                      p.status !== 'deleted' &&
+                      (p.employeeId === row.employeeId ||
+                        (p.linkedUserId && p.linkedUserId === row.linkedUserId))
+                    )
+                  : null;
                 return (
                   <div
                     key={row.employeeId}
@@ -794,6 +805,25 @@ function PharmacyScheduleCalendar({
                         </span>
                       )}
                     </div>
+                    {/* Employee preference indicator */}
+                    {empPref && (
+                      <div className={`w-full mt-2 flex items-start gap-2 rounded-lg px-3 py-2 border ${darkMode ? 'border-emerald-800 bg-emerald-900/25' : 'border-emerald-200 bg-emerald-50'}`}>
+                        <span className="flex-shrink-0 text-emerald-500 text-sm mt-0.5">👁</span>
+                        <div className="flex-1 min-w-0">
+                          <span className={`text-[11px] font-bold uppercase tracking-wide ${darkMode ? 'text-emerald-400' : 'text-emerald-700'}`}>Preferencia tervezet</span>
+                          <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                            {empPref.shiftType && (
+                              <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-black ${getShiftType(empPref.shiftType).bg} ${getShiftType(empPref.shiftType).text}`}>{empPref.shiftType}</span>
+                            )}
+                            {empPref.startTime && empPref.endTime && (
+                              <span className={`text-xs tabular-nums ${darkMode ? 'text-emerald-300' : 'text-emerald-700'}`}>{empPref.startTime}–{empPref.endTime}</span>
+                            )}
+                            {(() => { const h = calcHours(empPref.startTime, empPref.endTime); return h ? <span className={`text-xs font-semibold ${darkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>{h}</span> : null; })()}
+                            {empPref.notes && <span className={`text-xs italic ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>"{empPref.notes}"</span>}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -815,6 +845,291 @@ function PharmacyScheduleCalendar({
                 className="rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 px-8 py-2.5 text-sm font-bold text-white shadow-lg shadow-violet-200 disabled:opacity-60 transition-all"
               >
                 {modalSaving ? 'Mentés...' : 'Mentés'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Employee preference / draft calendar ─────────────────────────────────────
+// Same UX as PharmacyScheduleCalendar, but only the current employee's own
+// row is editable. All others' drafts are shown as read-only indicators.
+function EmployeePreferenceCalendar({
+  year, month, onChangeMonth, onClose,
+  preferences,          // all schedulePreferences for this pharmacy+year+month
+  ownEmployeeRecord,    // { id, name, email, linkedUserId, ... }
+  user, darkMode,
+  onSaveDayPreferences, saving,
+}) {
+  const [selectedDay, setSelectedDay] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [shiftType, setShiftType] = useState('N');
+  const [from, setFrom] = useState('08:00');
+  const [to, setTo] = useState('20:00');
+  const [notes, setNotes] = useState('');
+  const [modalSaving, setModalSaving] = useState(false);
+  const [checked, setChecked] = useState(true);
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('calendar-overlay-open'));
+    return () => window.dispatchEvent(new CustomEvent('calendar-overlay-close'));
+  }, []);
+
+  const today = getTodayKey();
+  const monthLabel = MONTHS_HU[month - 1];
+  const holidays = getHungarianHolidays(year);
+  const DOW_LABELS = ['Vasárnap','Hétfő','Kedd','Szerda','Csütörtök','Péntek','Szombat'];
+
+  const ownPrefs = preferences.filter(p =>
+    p.status !== 'deleted' &&
+    (p.employeeId === ownEmployeeRecord?.id ||
+      (p.linkedUserId && p.linkedUserId === user?.uid) ||
+      (p.employeeEmail && user?.email && p.employeeEmail.toLowerCase() === user.email.toLowerCase()))
+  );
+  const othersPrefs = preferences.filter(p =>
+    p.status !== 'deleted' &&
+    !(p.employeeId === ownEmployeeRecord?.id ||
+      (p.linkedUserId && p.linkedUserId === user?.uid) ||
+      (p.employeeEmail && user?.email && p.employeeEmail.toLowerCase() === user.email.toLowerCase()))
+  );
+
+  const ownMonthCount = ownPrefs.length;
+
+  function openDay(day) {
+    const dateKey = formatDateKey(year, month, day);
+    const own = ownPrefs.find(p => p.date === dateKey);
+    setChecked(!!own);
+    setShiftType(own?.shiftType || 'N');
+    setFrom(own?.startTime || '08:00');
+    setTo(own?.endTime || '20:00');
+    setNotes(own?.notes || '');
+    setSelectedDay(day);
+    setShowModal(true);
+  }
+
+  async function handleSave() {
+    setModalSaving(true);
+    try {
+      const dateKey = formatDateKey(year, month, day_);
+      await onSaveDayPreferences(dateKey, { checked, shiftType, from, to, notes });
+      setShowModal(false);
+    } finally {
+      setModalSaving(false);
+    }
+  }
+  // helper — avoid shadowing `day` in the map
+  const day_ = selectedDay;
+
+  const selectedDayName = selectedDay
+    ? HU_DAYS_LONG[new Date(year, month - 1, selectedDay).getDay()]
+    : '';
+
+  return (
+    <div className={`fixed inset-0 z-40 flex flex-col ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
+      {/* Header */}
+      <div className={`flex-shrink-0 flex items-center gap-2 px-3 border-b ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-[#E5E7EB] bg-gradient-to-r from-emerald-600 to-teal-600'}`} style={{height:'56px'}}>
+        <button type="button" onClick={onClose} className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold text-xl leading-none">×</button>
+        <button type="button" onClick={() => onChangeMonth('prev')} className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold text-xl leading-none">‹</button>
+        <div className="flex-1 text-center">
+          <span className="text-white font-bold text-base tracking-tight">{monthLabel} {year}</span>
+          <span className="ml-2 text-xs font-medium text-white/70">{ownMonthCount} tervezett nap</span>
+        </div>
+        <button type="button" onClick={() => onChangeMonth('next')} className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold text-xl leading-none">›</button>
+      </div>
+
+      {/* Legend */}
+      <div className={`flex-shrink-0 flex items-center gap-4 px-4 py-2 text-xs border-b ${darkMode ? 'border-gray-800 bg-gray-850 text-gray-400' : 'border-gray-100 bg-gray-50 text-gray-500'}`}>
+        <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-full bg-emerald-500"/> Saját tervem</span>
+        <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-full bg-gray-400"/> Kollégák tervei</span>
+      </div>
+
+      {/* Day list */}
+      <div className="flex-1 overflow-y-auto overscroll-contain">
+        {Array.from({ length: getDaysInMonth(year, month) }, (_, i) => i + 1).map(d => {
+          const dateKey = formatDateKey(year, month, d);
+          const isToday = dateKey === today;
+          const dow = new Date(year, month - 1, d).getDay();
+          const isWeekend = dow === 0 || dow === 6;
+          const mmdd = `${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+          const isHoliday = holidays.has(mmdd);
+          const dowLabel = DOW_LABELS[dow];
+          const dayOwn = ownPrefs.filter(p => p.date === dateKey);
+          const dayOthers = othersPrefs.filter(p => p.date === dateKey);
+          const pastel = DAY_PASTEL[dow];
+          const rowBg = isToday ? '#EDE9FE' : pastel.bg;
+
+          return (
+            <button
+              key={dateKey}
+              type="button"
+              onClick={() => openDay(d)}
+              style={{ background: darkMode ? (isToday ? 'rgba(109,40,217,0.22)' : DAY_PASTEL_DARK[dow].bg) : rowBg }}
+              className={[
+                'w-full text-left px-4 py-3 transition-colors',
+                isWeekend
+                  ? darkMode ? 'border-b-2 border-gray-700' : 'border-b-2 border-gray-200'
+                  : darkMode ? 'border-b border-gray-800/60' : 'border-b border-gray-200/70',
+              ].join(' ')}
+            >
+              <div className="flex items-center mb-1.5">
+                <div className="flex items-baseline flex-1 gap-0">
+                  <span className={[
+                    'text-[17px] tabular-nums inline-block w-10 flex-shrink-0',
+                    dow === 0 ? 'font-bold' : 'font-semibold',
+                    isToday ? darkMode ? 'text-violet-300' : 'text-violet-700'
+                      : isHoliday ? darkMode ? 'text-rose-400' : 'text-rose-500'
+                      : isWeekend ? darkMode ? 'text-rose-400' : 'text-rose-600'
+                      : darkMode ? 'text-gray-200' : 'text-gray-700',
+                  ].join(' ')}>{d}.</span>
+                  <span className={[
+                    'text-[17px] underline underline-offset-4',
+                    dow === 0 ? 'font-bold' : 'font-semibold',
+                    isToday ? darkMode ? 'text-violet-300 decoration-violet-400' : 'text-violet-700 decoration-violet-500'
+                      : isHoliday ? darkMode ? 'text-rose-400 decoration-rose-400' : 'text-rose-500 decoration-rose-500'
+                      : isWeekend ? darkMode ? 'text-rose-400 decoration-rose-400' : 'text-rose-600 decoration-rose-600'
+                      : darkMode ? 'text-gray-200 decoration-gray-400' : 'text-gray-700 decoration-gray-700',
+                  ].join(' ')}>{dowLabel}{isHoliday && !isWeekend ? ' 🔴' : ''}</span>
+                </div>
+                {(dayOwn.length + dayOthers.length) > 0 && (
+                  <span className={`flex-shrink-0 text-xs font-semibold rounded-full px-2 py-0.5 ${darkMode ? 'bg-black/30 text-gray-300' : 'bg-black/10 text-gray-600'}`}>
+                    {dayOwn.length + dayOthers.length} terv
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-col gap-1">
+                {dayOwn.map(p => {
+                  const st = getShiftType(p.shiftType || 'N');
+                  const hrs = calcHours(p.startTime, p.endTime);
+                  return (
+                    <div key={p.id} className={`flex items-center gap-2 rounded-xl px-3 py-2 border border-emerald-200 ${darkMode ? 'bg-emerald-900/30' : 'bg-emerald-50'}`}>
+                      <span className={`flex-shrink-0 inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-black ${st.bg} ${st.text}`}>{st.label}</span>
+                      <span className={`flex-1 text-sm font-medium ${darkMode ? 'text-emerald-200' : 'text-emerald-800'}`}>Saját tervem</span>
+                      {hrs && <span className="flex-shrink-0 text-xs font-semibold tabular-nums text-emerald-600">{hrs}</span>}
+                      {p.startTime && p.endTime && <span className="flex-shrink-0 text-xs tabular-nums text-emerald-500">{p.startTime}–{p.endTime}</span>}
+                    </div>
+                  );
+                })}
+                {dayOthers.map(p => {
+                  const st = getShiftType(p.shiftType || 'N');
+                  const hrs = calcHours(p.startTime, p.endTime);
+                  return (
+                    <div key={p.id} className={`flex items-center gap-2 rounded-xl px-3 py-2 border ${darkMode ? 'border-gray-700 bg-gray-800/60' : 'border-gray-200 bg-white/70'}`}>
+                      <span className={`flex-shrink-0 inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-black ${st.bg} ${st.text}`}>{st.label}</span>
+                      <span className={`flex-1 text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>{p.employeeName}</span>
+                      {hrs && <span className={`flex-shrink-0 text-xs font-semibold tabular-nums ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{hrs}</span>}
+                      {p.startTime && p.endTime && <span className={`flex-shrink-0 text-xs tabular-nums ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>{p.startTime}–{p.endTime}</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Day preference modal */}
+      {showModal && selectedDay && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{backdropFilter:'blur(6px)', background:'rgba(0,0,0,0.55)'}}>
+          <div className={`relative w-full max-w-lg flex flex-col rounded-2xl shadow-2xl overflow-hidden ${darkMode ? 'bg-gray-900 border border-gray-700' : 'bg-white'}`} onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="bg-gradient-to-br from-emerald-600 to-teal-600 px-6 py-5 flex-shrink-0">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-emerald-200 text-xs font-semibold uppercase tracking-widest mb-1">{monthLabel} {year} – tervezet</p>
+                  <h3 className="text-2xl font-black text-white">{selectedDayName}, {selectedDay}.</h3>
+                </div>
+                <button type="button" onClick={() => setShowModal(false)} className="text-white/70 hover:text-white text-2xl leading-none ml-4 mt-1">×</button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto p-5 space-y-5">
+              {/* Want to work toggle */}
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setChecked(v => !v)}
+                  className={`relative inline-flex h-7 w-12 flex-shrink-0 rounded-full border-2 transition-colors ${checked ? 'bg-emerald-500 border-emerald-500' : darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-200 border-gray-200'}`}
+                >
+                  <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform mt-0.5 ${checked ? 'translate-x-5' : 'translate-x-0.5'}`}/>
+                </button>
+                <span className={`text-sm font-semibold ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                  {checked ? 'Erre a napra szeretnék dolgozni' : 'Erre a napra nem kérek beosztást'}
+                </span>
+              </div>
+              {checked && (
+                <>
+                  {/* Shift type */}
+                  <div>
+                    <p className={`text-xs font-bold uppercase tracking-widest mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Preferált műszak típusa</p>
+                    <div className="flex gap-2 flex-wrap">
+                      {SHIFT_TYPES.map(st => (
+                        <button
+                          key={st.key}
+                          type="button"
+                          onClick={() => setShiftType(st.key)}
+                          className={`flex flex-col items-center rounded-2xl px-4 py-3 border-2 font-bold text-sm transition-all ${shiftType === st.key ? `${st.bg} ${st.text} border-transparent shadow-md` : darkMode ? 'border-gray-700 text-gray-300 hover:border-gray-500' : 'border-gray-200 text-gray-600 hover:border-gray-400'}`}
+                        >
+                          <span className="text-xl">{st.key}</span>
+                          <span className="text-[10px] font-normal mt-0.5">{st.title}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {/* Time */}
+                  <div>
+                    <p className={`text-xs font-bold uppercase tracking-widest mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Preferált időszak</p>
+                    <div className="flex items-center gap-3">
+                      <input type="time" value={from} onChange={e => setFrom(e.target.value)} className={`w-28 rounded-xl border px-3 py-2 text-sm tabular-nums ${darkMode ? 'bg-gray-800 border-gray-600 text-gray-200' : 'bg-white border-gray-300'}`}/>
+                      <span className={`font-bold ${darkMode ? 'text-gray-400' : 'text-gray-400'}`}>–</span>
+                      <input type="time" value={to} onChange={e => setTo(e.target.value)} className={`w-28 rounded-xl border px-3 py-2 text-sm tabular-nums ${darkMode ? 'bg-gray-800 border-gray-600 text-gray-200' : 'bg-white border-gray-300'}`}/>
+                    </div>
+                  </div>
+                  {/* Notes */}
+                  <div>
+                    <p className={`text-xs font-bold uppercase tracking-widest mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Megjegyzés (opcionális)</p>
+                    <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} className={`w-full rounded-xl border px-3 py-2 text-sm bg-transparent ${darkMode ? 'border-gray-600 text-gray-200' : 'border-gray-300'}`} placeholder="Pl. Csak délelőtt tudok, orvos délután..."/>
+                  </div>
+                </>
+              )}
+              {/* Others on this day */}
+              {(() => {
+                const dateKey = formatDateKey(year, month, selectedDay);
+                const dayOthers = othersPrefs.filter(p => p.date === dateKey);
+                if (dayOthers.length === 0) return null;
+                return (
+                  <div>
+                    <p className={`text-xs font-bold uppercase tracking-widest mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Kollégák erre a napra terveztek</p>
+                    <div className="flex flex-col gap-1.5">
+                      {dayOthers.map(p => {
+                        const st = getShiftType(p.shiftType || 'N');
+                        const hrs = calcHours(p.startTime, p.endTime);
+                        return (
+                          <div key={p.id} className={`flex items-center gap-2 rounded-xl px-3 py-2 border ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'}`}>
+                            <span className={`flex-shrink-0 inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-black ${st.bg} ${st.text}`}>{st.label}</span>
+                            <span className={`flex-1 text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>{p.employeeName}</span>
+                            {hrs && <span className={`text-xs tabular-nums ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{hrs}</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+            {/* Footer */}
+            <div className={`flex-shrink-0 flex gap-3 px-5 py-4 border-t ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-100 bg-gray-50'}`}>
+              <button type="button" onClick={() => setShowModal(false)} className={`rounded-xl px-5 py-2.5 text-sm font-semibold ${darkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-200' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}>Mégse</button>
+              <button type="button" onClick={async () => {
+                setModalSaving(true);
+                try {
+                  const dateKey = formatDateKey(year, month, selectedDay);
+                  await onSaveDayPreferences(dateKey, { checked, shiftType, from, to, notes });
+                  setShowModal(false);
+                } finally { setModalSaving(false); }
+              }} disabled={modalSaving} className="flex-1 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 px-8 py-2.5 text-sm font-bold text-white shadow-lg disabled:opacity-60">
+                {modalSaving ? 'Mentés...' : 'Terv mentése'}
               </button>
             </div>
           </div>
@@ -887,6 +1202,10 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
   // Full-screen calendar overlay (pharmacy schedule)
   const [calendarOpen, setCalendarOpen] = useState(false);
+  // Full-screen preference calendar overlay (employee draft)
+  const [preferenceCalendarOpen, setPreferenceCalendarOpen] = useState(false);
+  // schedulePreferences drafts
+  const [schedulePreferences, setSchedulePreferences] = useState([]);
 
   // Quick swap: which own schedule is currently open for partner selection
   const [quickSwapScheduleId, setQuickSwapScheduleId] = useState(null);
@@ -990,17 +1309,19 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   }
 
   async function loadPharmacyData() {
-    const [employeesSnapshot, schedulesSnapshot, swapSnapshot, vacationSnapshot] = await Promise.all([
+    const [employeesSnapshot, schedulesSnapshot, swapSnapshot, vacationSnapshot, prefsSnapshot] = await Promise.all([
       getDocs(query(collection(db, 'pharmacyEmployees'), where('pharmacyId', '==', user.uid))),
       getDocs(query(collection(db, 'pharmacySchedules'), where('pharmacyId', '==', user.uid), where('year', '==', year), where('month', '==', month))),
       getDocs(query(collection(db, 'scheduleSwapRequests'), where('pharmacyId', '==', user.uid))),
       getDocs(query(collection(db, 'scheduleVacationRequests'), where('pharmacyId', '==', user.uid))),
+      getDocs(query(collection(db, 'schedulePreferences'), where('pharmacyId', '==', user.uid), where('year', '==', year), where('month', '==', month))),
     ]);
 
     setEmployees(employeesSnapshot.docs.map(item => ({ id: item.id, ...item.data() })));
     setSchedules(sortByDateAndTime(schedulesSnapshot.docs.map(item => ({ id: item.id, ...item.data() }))));
     setSwapRequests(swapSnapshot.docs.map(item => ({ id: item.id, ...item.data() })));
     setVacationRequests(vacationSnapshot.docs.map(item => ({ id: item.id, ...item.data() })));
+    setSchedulePreferences(prefsSnapshot.docs.map(item => ({ id: item.id, ...item.data() })));
   }
 
   async function loadEmployeeData() {
@@ -1036,6 +1357,15 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       collectedSwapRequests.push(...requesterSwapsSnapshot.docs.map(item => ({ id: item.id, ...item.data() })));
       collectedSwapRequests.push(...targetSwapsSnapshot.docs.map(item => ({ id: item.id, ...item.data() })));
       collectedVacationRequests.push(...vacationSnapshot.docs.map(item => ({ id: item.id, ...item.data() })));
+
+      // Load all preferences for this pharmacy+year+month so employees can see each other's drafts
+      const prefsSnapshot = await getDocs(query(
+        collection(db, 'schedulePreferences'),
+        where('pharmacyId', '==', pharmacyId),
+        where('year', '==', year),
+        where('month', '==', month)
+      ));
+      setSchedulePreferences(prefsSnapshot.docs.map(item => ({ id: item.id, ...item.data() })));
     }
 
     const uniqueSwapMap = new Map();
@@ -1044,6 +1374,56 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     setSchedules(sortByDateAndTime(collectedSchedules));
     setSwapRequests([...uniqueSwapMap.values()]);
     setVacationRequests(collectedVacationRequests);
+  }
+
+  // Save a single employee's preference for one day
+  async function handleSavePreferenceDaySchedules(dateKey, { checked, shiftType, from, to, notes }) {
+    setSaving(true);
+    try {
+      const [syear, smonth, sday] = dateKey.split('-').map(Number);
+      const ownRec = ownEmployeeRecords[0];
+      const pharmacyId = ownRec?.pharmacyId;
+      if (!pharmacyId) { setSaving(false); return; }
+
+      // Find existing own preference doc for this date
+      const existing = schedulePreferences.find(p =>
+        p.date === dateKey &&
+        (p.employeeId === ownRec?.id ||
+          (p.linkedUserId && p.linkedUserId === user?.uid) ||
+          (p.employeeEmail && user?.email && p.employeeEmail.toLowerCase() === user.email.toLowerCase()))
+      );
+
+      if (checked) {
+        const payload = {
+          pharmacyId,
+          employeeId: ownRec?.id || '',
+          employeeName: ownRec?.name || userData?.name || user.email,
+          employeeEmail: normalizeEmail(user?.email) || '',
+          linkedUserId: user?.uid || null,
+          date: dateKey,
+          year: syear, month: smonth, day: sday,
+          shiftType: shiftType || 'N',
+          startTime: from,
+          endTime: to,
+          notes: notes || '',
+          status: 'draft',
+          updatedAt: serverTimestamp(),
+        };
+        if (existing) {
+          await updateDoc(doc(db, 'schedulePreferences', existing.id), payload);
+        } else {
+          await addDoc(collection(db, 'schedulePreferences'), { ...payload, createdAt: serverTimestamp() });
+        }
+      } else if (existing) {
+        await updateDoc(doc(db, 'schedulePreferences', existing.id), { status: 'deleted', updatedAt: serverTimestamp() });
+      }
+      await loadData();
+    } catch (err) {
+      console.error('handleSavePreferenceDaySchedules error:', err);
+      setStatusError('Nem sikerült menteni a tervezetet.');
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleAddEmployee(event) {
@@ -2520,6 +2900,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   onClose={() => setCalendarOpen(false)}
                   schedules={schedules.filter(s => s.status !== 'deleted')}
                   employees={employees}
+                  preferences={schedulePreferences}
                   user={user}
                   userData={userData}
                   darkMode={darkMode}
@@ -3131,6 +3512,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   onClose={() => setCalendarOpen(false)}
                   schedules={schedules.filter(s => s.status !== 'deleted')}
                   employees={employees}
+                  preferences={schedulePreferences}
                   user={user}
                   userData={userData}
                   darkMode={darkMode}
@@ -3361,6 +3743,86 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             </div>
           ) : null}
           {!isPharmacy && mainTab === 'preferences' ? (
+            <div className="space-y-6">
+
+              {/* ── Beosztás-tervezet: employee draft calendar ─────────── */}
+              {ownEmployeeRecords.length > 0 && (
+                <div className={`rounded-2xl border p-5 space-y-4 ${darkMode ? 'border-emerald-800 bg-emerald-950/20' : 'border-emerald-200 bg-emerald-50/40'}`}>
+                  <div>
+                    <h3 className={`text-lg font-semibold flex items-center gap-2 ${darkMode ? 'text-emerald-200' : 'text-emerald-800'}`}>
+                      <span>📅</span> Beosztás-tervezet
+                    </h3>
+                    <p className={`mt-1 text-sm ${darkMode ? 'text-emerald-300/70' : 'text-emerald-700/80'}`}>
+                      Add meg, hogy mikor szeretnél dolgozni. A tervezet látható lesz a gyógyszertár számára és a kollégáknak is.
+                    </p>
+                  </div>
+                  {/* Month picker for preference calendar */}
+                  {availableYears.map(y => {
+                    const startM = y === thisYear ? thisMonth : 1;
+                    const months = MONTHS_HU.slice(startM - 1).map((label, i) => ({ label, m: startM + i }));
+                    return (
+                      <div key={y}>
+                        <p className={`text-xs font-bold uppercase tracking-widest mb-2 px-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{y}</p>
+                        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                          {months.map(({ label, m }) => {
+                            const isActive = y === year && m === month && preferenceCalendarOpen;
+                            const myPrefs = schedulePreferences.filter(p =>
+                              p.status !== 'deleted' && p.year === y && p.month === m &&
+                              (p.linkedUserId === user?.uid || (p.employeeEmail && user?.email && p.employeeEmail.toLowerCase() === user.email.toLowerCase()))
+                            );
+                            return (
+                              <button
+                                key={m}
+                                type="button"
+                                onClick={() => { setYear(y); setMonth(m); setPreferenceCalendarOpen(true); }}
+                                className={[
+                                  'flex-shrink-0 flex flex-col items-center rounded-2xl px-4 py-3 transition-all border',
+                                  isActive
+                                    ? 'bg-gradient-to-br from-emerald-600 to-teal-600 text-white border-transparent shadow-lg shadow-emerald-200'
+                                    : darkMode
+                                      ? 'bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-700'
+                                      : 'bg-white border-gray-200 text-gray-800 hover:bg-emerald-50 hover:border-emerald-300',
+                                ].join(' ')}
+                              >
+                                <span className="font-bold text-sm whitespace-nowrap">{label}</span>
+                                {myPrefs.length > 0 && (
+                                  <span className={`mt-1 text-[10px] font-semibold rounded-full px-2 py-0.5 ${isActive ? 'bg-white/25 text-white' : darkMode ? 'bg-gray-700 text-gray-300' : 'bg-emerald-100 text-emerald-700'}`}>
+                                    {myPrefs.length} tervezett nap
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {/* Preference calendar overlay */}
+                  {preferenceCalendarOpen && ownEmployeeRecords[0] && (
+                    <EmployeePreferenceCalendar
+                      year={year}
+                      month={month}
+                      onChangeMonth={(dir) => {
+                        if (dir === 'prev') {
+                          const p = getPreviousMonth(year, month);
+                          setYear(p.year); setMonth(p.month);
+                        } else {
+                          const next = month === 12 ? { year: year + 1, month: 1 } : { year, month: month + 1 };
+                          setYear(next.year); setMonth(next.month);
+                        }
+                      }}
+                      onClose={() => setPreferenceCalendarOpen(false)}
+                      preferences={schedulePreferences.filter(p => p.year === year && p.month === month)}
+                      ownEmployeeRecord={ownEmployeeRecords[0]}
+                      user={user}
+                      darkMode={darkMode}
+                      onSaveDayPreferences={handleSavePreferenceDaySchedules}
+                      saving={saving}
+                    />
+                  )}
+                </div>
+              )}
+
             <div className={`rounded-2xl border p-5 space-y-6 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
               <div>
                 <h3 className="text-lg font-semibold">Egyéni beosztási preferenciák</h3>
@@ -3498,6 +3960,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   {preferencesSaving ? 'Mentés...' : 'Preferenciák mentése'}
                 </button>
               </div>
+            </div>
             </div>
           ) : null}
         </div>

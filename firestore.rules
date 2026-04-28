@@ -154,6 +154,15 @@ service cloud.firestore {
     match /scheduleVacationRequests/{requestId} {
       allow read, write: if isAdmin() || isAuthenticated();
     }
+
+    match /schedulePreferences/{prefId} {
+      allow read: if isAdmin() || isAuthenticated();
+      allow write: if isAdmin() || (isAuthenticated() && (
+        resource == null ||
+        resource.data.linkedUserId == request.auth.uid ||
+        request.resource.data.linkedUserId == request.auth.uid
+      ));
+    }
     
     // Sent emails - admin only
     match /sentEmails/{emailId} {
