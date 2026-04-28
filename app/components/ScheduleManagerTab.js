@@ -1641,6 +1641,19 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       } else {
         await addDoc(collection(db, 'schedulePreferences'), { ...payload, createdAt: serverTimestamp() });
       }
+
+      // Értesítés a gyógyszertárnak
+      await createNotificationWithPush({
+        userId: pharmacyId,
+        type: 'schedule_preference_saved',
+        title: 'Új beosztás tervezet',
+        message: `${payload.employeeName} beosztás tervezetet mentett: ${dateKey}.`,
+        data: { employeeId: ownRec?.id || '', date: dateKey },
+        url: '/pharmagister?tab=schedule-manager',
+        dedupeWindowSeconds: 60,
+        dedupeByDataKeys: ['employeeId', 'date'],
+      });
+
       await loadData();
     } catch (err) {
       console.error('handleSavePreferenceDaySchedules error:', err);
