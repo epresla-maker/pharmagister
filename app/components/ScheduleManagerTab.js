@@ -1062,8 +1062,7 @@ function EmployeePreferenceCalendar({
             <span className="text-white font-bold text-base tracking-tight">{monthLabel} {year}</span>
             {monthlyRequiredHours > 0 ? (
               <span className="text-xs font-medium text-white/80 whitespace-nowrap">
-                {Math.round(plannedHoursTotal)} / {monthlyRequiredHours} óra
-                {remainingHours > 0 ? ` · ${Math.round(remainingHours)} h` : ' ✓'}
+                havi {monthlyRequiredHours} · tervben {Math.round(plannedHoursTotal)} · maradt {remainingHours > 0 ? Math.round(remainingHours) : '✓'}
               </span>
             ) : annualVacDays > 0 ? (
               <span className="text-xs font-medium text-white/80 whitespace-nowrap">{ownMonthCount} nap</span>
