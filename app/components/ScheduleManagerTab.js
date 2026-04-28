@@ -895,11 +895,10 @@ function PharmacyScheduleCalendar({
                       <div className={`w-full mt-2 flex items-start gap-2 rounded-lg px-3 py-2 border ${darkMode ? 'border-emerald-800 bg-emerald-900/25' : 'border-emerald-200 bg-emerald-50'}`}>
                         <span className="flex-shrink-0 text-emerald-500 text-sm mt-0.5">👁</span>
                         <div className="flex-1 min-w-0">
-                          <span className={`text-[11px] font-bold uppercase tracking-wide ${darkMode ? 'text-emerald-400' : 'text-emerald-700'}`}>Preferencia tervezet</span>
+                          <span className={`text-[11px] font-bold ${darkMode ? 'text-emerald-400' : 'text-emerald-700'}`}>
+                            {row.name} szeretné ezt a műszakot: {getShiftType(empPref.shiftType).title}
+                          </span>
                           <div className="flex flex-wrap items-center gap-2 mt-0.5">
-                            {empPref.shiftType && (
-                              <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-black ${getShiftType(empPref.shiftType).bg} ${getShiftType(empPref.shiftType).text}`}>{empPref.shiftType}</span>
-                            )}
                             {empPref.startTime && empPref.endTime && (
                               <span className={`text-xs tabular-nums ${darkMode ? 'text-emerald-300' : 'text-emerald-700'}`}>{empPref.startTime}–{empPref.endTime}</span>
                             )}
