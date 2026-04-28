@@ -1465,6 +1465,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   const [plannerConfigSaving, setPlannerConfigSaving] = useState(false);
   const [plannerResult, setPlannerResult] = useState(null);
   const [plannerConfigForm, setPlannerConfigForm] = useState(getDefaultPlanningConfig());
+  const [showCriteriaPage, setShowCriteriaPage] = useState(false);
   const [replanForm, setReplanForm] = useState({
     employeeId: '',
     startDate: getTodayKey(),
@@ -3191,6 +3192,200 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     return <CheckCircle className="h-4 w-4" />;
   }
 
+  // ── Beosztási alapkritériumok teljes oldal ──────────────────────────────────
+  if (showCriteriaPage) {
+    return (
+      <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+        {/* Header */}
+        <div className={`sticky top-0 z-10 flex items-center gap-3 px-4 py-3 border-b ${darkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'}`}>
+          <button
+            type="button"
+            onClick={() => setShowCriteriaPage(false)}
+            className={`h-9 w-9 flex items-center justify-center rounded-xl font-bold text-lg ${darkMode ? 'bg-gray-800 text-gray-200 hover:bg-gray-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+          >
+            ‹
+          </button>
+          <div className="flex-1">
+            <h2 className={`font-bold text-base ${darkMode ? 'text-white' : 'text-gray-900'}`}>Beosztási alapkritériumok</h2>
+            <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Ezek alapján ellenőrzi és tervezi a rendszer a beosztásokat</p>
+          </div>
+          <button
+            type="button"
+            onClick={savePlannerConfig}
+            disabled={plannerConfigSaving}
+            className="rounded-xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+          >
+            {plannerConfigSaving ? 'Mentés...' : 'Mentés'}
+          </button>
+        </div>
+
+        <div className="p-4 space-y-5">
+
+          {/* ── Napi létszám ────────────────────────────────────────── */}
+          <div className={`rounded-2xl border p-4 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
+            <h3 className={`font-bold text-sm uppercase tracking-widest ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Napi létszám követelmények</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Minimum létszám / nap">
+                <input
+                  type="number" min="1"
+                  value={plannerConfigForm.minStaffPerShift}
+                  onChange={e => setPlannerConfigForm(prev => ({ ...prev, minStaffPerShift: Number(e.target.value || 1) }))}
+                  className={`w-full rounded-xl border px-3 py-2.5 text-base ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                />
+              </Field>
+              <Field label="Min. gyógyszerész / nap">
+                <input
+                  type="number" min="0"
+                  value={plannerConfigForm.minPharmacistsPerShift}
+                  onChange={e => setPlannerConfigForm(prev => ({ ...prev, minPharmacistsPerShift: Number(e.target.value || 0) }))}
+                  className={`w-full rounded-xl border px-3 py-2.5 text-base ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                />
+              </Field>
+            </div>
+            <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Az automatikus terv és az ellenőrzés ennek alapján figyeli a fedettséget.</p>
+          </div>
+
+          {/* ── Munkaügyi jog ─────────────────────────────────────── */}
+          <div className={`rounded-2xl border p-4 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
+            <div className="flex items-center justify-between">
+              <h3 className={`font-bold text-sm uppercase tracking-widest ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Magyar munkajogi határok</h3>
+              <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={plannerConfigForm.laborLaw?.enforceHungarianLaborLaw !== false}
+                  onChange={e => setPlannerConfigForm(prev => ({ ...prev, laborLaw: { ...(prev.laborLaw || {}), enforceHungarianLaborLaw: e.target.checked } }))}
+                  className="h-4 w-4 rounded"
+                />
+                <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>Bekapcsolva</span>
+              </label>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Max. napi óra">
+                <input type="number" min="1" max="24"
+                  value={plannerConfigForm.laborLaw?.maxDailyHoursLegal || 12}
+                  onChange={e => setPlannerConfigForm(prev => ({ ...prev, laborLaw: { ...(prev.laborLaw || {}), maxDailyHoursLegal: Number(e.target.value || 12) } }))}
+                  className={`w-full rounded-xl border px-3 py-2.5 text-base ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                />
+              </Field>
+              <Field label="Max. heti óra">
+                <input type="number" min="1" max="80"
+                  value={plannerConfigForm.laborLaw?.maxWeeklyHoursLegal || 48}
+                  onChange={e => setPlannerConfigForm(prev => ({ ...prev, laborLaw: { ...(prev.laborLaw || {}), maxWeeklyHoursLegal: Number(e.target.value || 48) } }))}
+                  className={`w-full rounded-xl border px-3 py-2.5 text-base ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                />
+              </Field>
+              <Field label="Min. napi pihenő (óra)">
+                <input type="number" min="1" max="24"
+                  value={plannerConfigForm.laborLaw?.minDailyRestHoursLegal || 11}
+                  onChange={e => setPlannerConfigForm(prev => ({ ...prev, laborLaw: { ...(prev.laborLaw || {}), minDailyRestHoursLegal: Number(e.target.value || 11) } }))}
+                  className={`w-full rounded-xl border px-3 py-2.5 text-base ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                />
+              </Field>
+              <Field label="Max. éjszakai műszak (óra)">
+                <input type="number" min="1" max="24"
+                  value={plannerConfigForm.laborLaw?.maxNightShiftHoursLegal || 8}
+                  onChange={e => setPlannerConfigForm(prev => ({ ...prev, laborLaw: { ...(prev.laborLaw || {}), maxNightShiftHoursLegal: Number(e.target.value || 8) } }))}
+                  className={`w-full rounded-xl border px-3 py-2.5 text-base ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                />
+              </Field>
+              <Field label="Kötelező szünet ettől (óra)">
+                <input type="number" min="1" max="12"
+                  value={plannerConfigForm.laborLaw?.requireBreakAfterHours || 6}
+                  onChange={e => setPlannerConfigForm(prev => ({ ...prev, laborLaw: { ...(prev.laborLaw || {}), requireBreakAfterHours: Number(e.target.value || 6) } }))}
+                  className={`w-full rounded-xl border px-3 py-2.5 text-base ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                />
+              </Field>
+            </div>
+          </div>
+
+          {/* ── Műszaksablonok ────────────────────────────────────── */}
+          <div className={`rounded-2xl border p-4 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
+            <div className="flex items-center justify-between">
+              <h3 className={`font-bold text-sm uppercase tracking-widest ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Műszaksablonok</h3>
+              <button
+                type="button"
+                onClick={addShiftTemplate}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white"
+              >
+                <Plus className="h-3.5 w-3.5" />Új műszak
+              </button>
+            </div>
+            <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Meghatározza, hogy naponta hány ember szükséges az egyes sávokban.</p>
+            {plannerConfigForm.shiftTemplates.map((template, index) => (
+              <div key={`${template.key}-${index}`} className={`rounded-xl border p-3 space-y-3 ${darkMode ? 'border-gray-600 bg-gray-900' : 'border-gray-200 bg-gray-50'}`}>
+                <div className="flex items-center justify-between">
+                  <p className={`text-sm font-bold ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>{template.key || `Műszak ${index + 1}`}</p>
+                  <button
+                    type="button"
+                    onClick={() => removeShiftTemplate(index)}
+                    disabled={plannerConfigForm.shiftTemplates.length <= 1}
+                    className="rounded-lg bg-rose-600 px-2.5 py-1 text-xs font-semibold text-white disabled:opacity-40"
+                  >
+                    Törlés
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <Field label="Kezdés">
+                    <input type="time" value={template.startTime}
+                      onChange={e => updateShiftTemplate(index, { startTime: e.target.value })}
+                      className={`w-full rounded-xl border px-3 py-2 text-sm ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  </Field>
+                  <Field label="Befejezés">
+                    <input type="time" value={template.endTime}
+                      onChange={e => updateShiftTemplate(index, { endTime: e.target.value })}
+                      className={`w-full rounded-xl border px-3 py-2 text-sm ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  </Field>
+                  <Field label="Szükséges létszám">
+                    <input type="number" min="1" value={template.requiredStaff}
+                      onChange={e => updateShiftTemplate(index, { requiredStaff: Number(e.target.value || 1) })}
+                      className={`w-full rounded-xl border px-3 py-2 text-sm ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  </Field>
+                  <Field label="Kötelező gyógyszerész">
+                    <input type="number" min="0" value={template.requiredPharmacists}
+                      onChange={e => updateShiftTemplate(index, { requiredPharmacists: Number(e.target.value || 0) })}
+                      className={`w-full rounded-xl border px-3 py-2 text-sm ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
+                  </Field>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* ── Mit néz a rendszer — összefoglaló ────────────────── */}
+          <div className={`rounded-2xl border p-4 space-y-3 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
+            <h3 className={`font-bold text-sm uppercase tracking-widest ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Mit ellenőriz a rendszer?</h3>
+            {[
+              { icon: '🔴', label: 'Napi óratúllépés', desc: `Max ${plannerConfigForm.laborLaw?.maxDailyHoursLegal || 12} óra/nap dolgozónként` },
+              { icon: '🔴', label: 'Heti óratúllépés', desc: `Max ${plannerConfigForm.laborLaw?.maxWeeklyHoursLegal || 48} óra/hét dolgozónként` },
+              { icon: '🔴', label: 'Átfedő műszakok', desc: 'Ugyanaz a dolgozó nem lehet kétszer ugyanazon a napon' },
+              { icon: '🔴', label: 'Szabadság sérülés', desc: 'Jóváhagyott szabadság alatt nem lehet beosztva' },
+              { icon: '🟡', label: 'Heti pihenőnap hiány', desc: 'Hetenként legalább 1 pihenőnap szükséges' },
+              { icon: '🟡', label: 'Havi órakeret túllépés', desc: 'Dolgozói havi órakeret figyelése' },
+              { icon: '🔵', label: 'Preferencia figyelmen kívül', desc: 'Dolgozó kért napja nem szerepel a beosztásban' },
+            ].map((item, i) => (
+              <div key={i} className={`flex items-start gap-3 rounded-xl px-3 py-2.5 ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+                <span className="flex-shrink-0 text-base">{item.icon}</span>
+                <div>
+                  <p className={`text-sm font-semibold ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>{item.label}</p>
+                  <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{item.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Save button at bottom */}
+          <button
+            type="button"
+            onClick={async () => { await savePlannerConfig(); setShowCriteriaPage(false); }}
+            disabled={plannerConfigSaving}
+            className="w-full rounded-2xl bg-violet-600 py-3.5 text-base font-bold text-white disabled:opacity-60"
+          >
+            {plannerConfigSaving ? 'Mentés...' : 'Mentés és visszatérés'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -3424,6 +3619,17 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                           : <><span className="text-lg">🔒</span><span className="text-sm font-semibold text-rose-500">Még nem publikált</span></>
                         }
                       </div>
+                    </div>
+                    {/* Kritériumok gomb */}
+                    <div className={`px-4 pb-3 border-t pt-3 ${darkMode ? 'border-violet-800' : 'border-violet-200'}`}>
+                      <button
+                        type="button"
+                        onClick={() => setShowCriteriaPage(true)}
+                        className={`w-full flex items-center justify-between rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors ${darkMode ? 'bg-violet-900/40 hover:bg-violet-800/60 text-violet-200' : 'bg-violet-100 hover:bg-violet-200 text-violet-700'}`}
+                      >
+                        <span>⚙️ Beosztási alapkritériumok</span>
+                        <span className="text-base">›</span>
+                      </button>
                     </div>
                   </div>
                 );
