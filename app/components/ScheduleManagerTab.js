@@ -1313,7 +1313,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   const isPharmacy = pharmaRole === 'pharmacy';
 
   const now = new Date();
-  const [mainTab, setMainTab] = useState(isPharmacy ? 'workers' : 'mine');
+  const [mainTab, setMainTab] = useState(isPharmacy ? 'schedule' : 'mine');
   const [workerTab, setWorkerTab] = useState('add');
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
@@ -2644,9 +2644,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
   const topTabs = isPharmacy
     ? [
-        { key: 'workers', label: 'Dolgozók', fullLabel: 'Dolgozók kezelése' },
         { key: 'schedule', label: 'Beosztás', fullLabel: 'Beosztások kezelése' },
-        { key: 'history', label: 'Múlt', fullLabel: 'Múlt beosztások' },
+        { key: 'workers', label: 'Dolgozók', fullLabel: 'Dolgozók kezelése' },
       ]
     : [
         { key: 'mine', label: 'Beosztásom' },
@@ -2655,9 +2654,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         { key: 'preferences', label: 'Preferenciák' },
       ];
 
-  const visibleSchedules = isPharmacy && mainTab === 'history'
-    ? schedules.filter(item => item.status !== 'deleted' && item.date < today)
-    : schedules.filter(item => item.status !== 'deleted');
+  const visibleSchedules = schedules.filter(item => item.status !== 'deleted');
 
   const pendingVacationRequests = vacationRequests
     .filter(item => item.status === 'pending')
@@ -2917,7 +2914,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         </h2>
         <p className={`mt-1 text-sm ${darkMode ? 'text-gray-400' : 'text-[#6B7280]'}`}>
           {isPharmacy
-            ? (mainTab === 'workers' ? 'Dolgozók hozzáadása, eltávolítása és preferenciáik megtekintése.' : mainTab === 'history' ? 'Korábbi hónapok beosztásai.' : 'Beosztások írása, publikálása és csereigények kezelése.')
+            ? (mainTab === 'workers' ? 'Dolgozók hozzáadása, eltávolítása és preferenciáik megtekintése.' : 'Beosztások írása, publikálása és csereigények kezelése.')
             : 'Saját beosztások, csereigények és szabadságigények egy helyen.'}
         </p>
       </div>
@@ -3085,7 +3082,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         </div>
       ) : null}
 
-      {!loading && ((isPharmacy && (mainTab === 'schedule' || mainTab === 'history')) || !isPharmacy) ? (
+      {!loading && ((isPharmacy && mainTab === 'schedule') || !isPharmacy) ? (
         <div className="space-y-6">
 
           {/* ── Full-screen pharmacy schedule calendar ─────────────────── */}
