@@ -1107,7 +1107,8 @@ function EmployeePreferenceCalendar({
                       ))}
                     </div>
                   </div>
-                  {/* Time */}
+                  {/* Time — hidden for Sz */}
+                  {shiftType !== 'Sz' && (
                   <div>
                     <p className={`text-xs font-bold uppercase tracking-widest mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Preferált időszak</p>
                     <div className="flex items-center gap-3">
@@ -1116,6 +1117,7 @@ function EmployeePreferenceCalendar({
                       <input type="time" value={to} onChange={e => setTo(e.target.value)} className={`w-28 rounded-xl border px-3 py-2 text-sm tabular-nums ${darkMode ? 'bg-gray-800 border-gray-600 text-gray-200' : 'bg-white border-gray-300'}`}/>
                     </div>
                   </div>
+                  )}
                   {/* Notes */}
                   <div>
                     <p className={`text-xs font-bold uppercase tracking-widest mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Megjegyzés (opcionális)</p>
@@ -1436,8 +1438,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         date: dateKey,
         year: syear, month: smonth, day: sday,
         shiftType: checked ? (shiftType || 'N') : 'Sz',
-        startTime: checked ? from : null,
-        endTime: checked ? to : null,
+        startTime: (checked && shiftType !== 'Sz') ? from : null,
+        endTime: (checked && shiftType !== 'Sz') ? to : null,
         notes: notes || '',
         status: 'draft',
         updatedAt: serverTimestamp(),
