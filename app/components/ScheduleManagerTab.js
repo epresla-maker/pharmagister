@@ -3722,7 +3722,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                       Add meg, hogy mikor szeretnél dolgozni. A tervezet látható lesz a gyógyszertár számára és a kollégáknak is.
                     </p>
                   </div>
-                  {availableYears.map(y => {
+                  {[thisYear, thisYear + 1].map(y => {
                     const startM = y === thisYear ? thisMonth : 1;
                     const months = MONTHS_HU.slice(startM - 1).map((label, i) => ({ label, m: startM + i }));
                     return (
