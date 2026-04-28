@@ -1053,8 +1053,11 @@ function EmployeePreferenceCalendar({
           {monthlyRequiredHours > 0 ? (
             <span className="ml-2 text-xs font-medium text-white/80">
               {Math.round(plannedHoursTotal)} / {monthlyRequiredHours} óra
-              {remainingHours > 0 ? ` · ${Math.round(remainingHours)} h maradék` : ' ✓'}
+              {remainingHours > 0 ? ` · ${Math.round(remainingHours)} h` : ' ✓'}
+              {annualVacDays > 0 ? ` · 🌴 ${Math.max(0, vacAfterThisMonth)} szabi` : ''}
             </span>
+          ) : annualVacDays > 0 ? (
+            <span className="ml-2 text-xs font-medium text-white/80">{ownMonthCount} nap · 🌴 {Math.max(0, vacAfterThisMonth)} szabi marad</span>
           ) : (
             <span className="ml-2 text-xs font-medium text-white/70">{ownMonthCount} tervezett nap</span>
           )}
@@ -2623,6 +2626,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     : [
         { key: 'mine', label: 'Beosztásom' },
         { key: 'planner', label: 'Beosztás-tervező' },
+        { key: 'vacations', label: 'Szabadságolások' },
         { key: 'preferences', label: 'Preferenciák' },
       ];
 
@@ -3188,7 +3192,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           ) : null}
 
           {/* ── Old month/day selectors + calendar (shown for history and employee views) ── */}
-          {!(isPharmacy && mainTab === 'schedule') && !(!isPharmacy && (mainTab === 'mine' || mainTab === 'preferences' || mainTab === 'planner')) ? (
+          {!(isPharmacy && mainTab === 'schedule') && !(!isPharmacy && (mainTab === 'mine' || mainTab === 'preferences' || mainTab === 'planner' || mainTab === 'vacations')) ? (
           <div className={`rounded-2xl border p-5 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Field label="Év">
@@ -4006,6 +4010,116 @@ export default function ScheduleManagerTab({ pharmaRole }) {
               )}
             </div>
           ) : null}
+
+          {!isPharmacy && mainTab === 'vacations' ? (() => {
+            // Collect all own Sz (vacation) preferences across all months
+            const ownSzPrefs = schedulePreferences.filter(p =>
+              p.status !== 'deleted' &&
+              p.shiftType === 'Sz' &&
+              (p.linkedUserId === user?.uid || (p.employeeEmail && user?.email && p.employeeEmail.toLowerCase() === user.email.toLowerCase()))
+            ).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+
+            const todayKey = getTodayKey();
+            const pastSz = ownSzPrefs.filter(p => p.date < todayKey);
+            const futureSz = ownSzPrefs.filter(p => p.date >= todayKey);
+
+            const annualVacDaysV = employeeProfile?.birthDate
+              ? calcAnnualVacationDays(employeeProfile.birthDate, employeeProfile.childrenCount, thisYear)
+              : 0;
+            const carryOverV = Number(employeeProfile?.vacationCarriedOver) || 0;
+            const takenV = Number(employeeProfile?.vacationTakenThisYear) || 0;
+            const totalRemV = annualVacDaysV + carryOverV - takenV;
+            const usedInPlannerV = ownSzPrefs.length;
+
+            const SzRow = ({ p }) => {
+              const d = new Date(p.date + 'T00:00:00');
+              const isPast = p.date < todayKey;
+              const monthLabel2 = MONTHS_HU[d.getMonth()];
+              const dow2 = ['V','H','K','Sze','Cs','P','Szo'][d.getDay()];
+              return (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setYear(d.getFullYear());
+                    setMonth(d.getMonth() + 1);
+                    setPreferenceCalendarOpen(true);
+                  }}
+                  className={`w-full text-left flex items-center gap-3 rounded-2xl border px-4 py-3 transition-all ${
+                    isPast
+                      ? darkMode ? 'border-gray-700 bg-gray-800/50 opacity-60' : 'border-gray-200 bg-gray-50 opacity-60'
+                      : darkMode ? 'border-orange-700/60 bg-orange-900/20 hover:bg-orange-900/30' : 'border-orange-200 bg-orange-50 hover:bg-orange-100'
+                  }`}
+                >
+                  <span className={`flex-shrink-0 inline-flex h-9 w-9 items-center justify-center rounded-xl text-sm font-black ${isPast ? darkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-200 text-gray-500' : 'bg-orange-100 text-orange-700'}`}>
+                    {isPast ? '✓' : '🌴'}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm font-semibold ${isPast ? darkMode ? 'text-gray-400' : 'text-gray-500' : darkMode ? 'text-orange-200' : 'text-orange-800'}`}>
+                      {d.getFullYear()}. {monthLabel2} {d.getDate()}. ({dow2})
+                    </p>
+                    {p.notes && <p className={`text-xs mt-0.5 truncate ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{p.notes}</p>}
+                  </div>
+                  <span className={`flex-shrink-0 text-xs font-medium ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>→</span>
+                </button>
+              );
+            };
+
+            return (
+              <div className="space-y-5">
+                {/* Summary card */}
+                {annualVacDaysV > 0 && (
+                  <div className={`rounded-2xl border p-4 ${darkMode ? 'border-orange-800/50 bg-orange-950/20' : 'border-orange-200 bg-orange-50/60'}`}>
+                    <div className="flex flex-wrap gap-4">
+                      <div className="text-center">
+                        <p className={`text-[11px] font-medium ${darkMode ? 'text-orange-400/80' : 'text-orange-600/80'}`}>Jár ({thisYear})</p>
+                        <p className={`text-xl font-black ${darkMode ? 'text-orange-200' : 'text-orange-700'}`}>{annualVacDaysV + carryOverV}</p>
+                        <p className={`text-[10px] ${darkMode ? 'text-orange-400/60' : 'text-orange-500/70'}`}>{carryOverV > 0 ? `+${carryOverV} áthozva` : 'nap'}</p>
+                      </div>
+                      <div className="text-center">
+                        <p className={`text-[11px] font-medium ${darkMode ? 'text-orange-400/80' : 'text-orange-600/80'}`}>Kivett</p>
+                        <p className={`text-xl font-black ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>{takenV}</p>
+                        <p className={`text-[10px] ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>rögzítve</p>
+                      </div>
+                      <div className="text-center">
+                        <p className={`text-[11px] font-medium ${darkMode ? 'text-orange-400/80' : 'text-orange-600/80'}`}>Tervezett</p>
+                        <p className={`text-xl font-black ${darkMode ? 'text-amber-300' : 'text-amber-600'}`}>{usedInPlannerV}</p>
+                        <p className={`text-[10px] ${darkMode ? 'text-amber-500/70' : 'text-amber-500/80'}`}>nap a tervben</p>
+                      </div>
+                      <div className="text-center">
+                        <p className={`text-[11px] font-medium ${darkMode ? 'text-orange-400/80' : 'text-orange-600/80'}`}>Marad</p>
+                        <p className={`text-xl font-black ${totalRemV - usedInPlannerV <= 3 ? 'text-rose-500' : darkMode ? 'text-emerald-300' : 'text-emerald-600'}`}>{Math.max(0, totalRemV - usedInPlannerV)}</p>
+                        <p className={`text-[10px] ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>nap</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Upcoming vacations */}
+                <div>
+                  <p className={`text-xs font-bold uppercase tracking-widest mb-2 px-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Tervezett szabadságok</p>
+                  {futureSz.length === 0 ? (
+                    <p className={`text-sm text-center py-6 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                      Nincs tervezett szabadság. Adj hozzá a Beosztás-tervezőben.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {futureSz.map(p => <SzRow key={p.id || p.date} p={p} />)}
+                    </div>
+                  )}
+                </div>
+
+                {/* Past vacations */}
+                {pastSz.length > 0 && (
+                  <div>
+                    <p className={`text-xs font-bold uppercase tracking-widest mb-2 px-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Letelt szabadságok</p>
+                    <div className="space-y-2">
+                      {[...pastSz].reverse().map(p => <SzRow key={p.id || p.date} p={p} />)}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })() : null}
 
           {!isPharmacy && mainTab === 'preferences' ? (
             <div className="space-y-6">
