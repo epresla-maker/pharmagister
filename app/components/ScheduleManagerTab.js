@@ -2712,7 +2712,38 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             onChange={setWorkerTab}
           />
 
-          {workerTab === 'add' ? (
+          {/* ── Always-visible employee list ─────────────────────────── */}
+          <div className={`rounded-2xl border p-5 space-y-3 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
+            <p className={`text-sm font-bold uppercase tracking-widest ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              Aktív dolgozók ({activeEmployees.length})
+            </p>
+            {activeEmployees.length === 0 ? (
+              <p className="text-sm text-gray-500">Még nincs aktív dolgozó.</p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {activeEmployees.map(employee => (
+                  <div key={employee.id} className={`flex items-center gap-3 rounded-xl border px-4 py-3 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'}`}>
+                    <div className={`flex-shrink-0 h-9 w-9 rounded-full flex items-center justify-center font-bold text-sm ${darkMode ? 'bg-violet-900 text-violet-300' : 'bg-violet-100 text-violet-700'}`}>
+                      {(employee.name || '?')[0].toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`font-semibold text-sm truncate ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>{employee.name}</p>
+                      <p className={`text-xs truncate ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{employee.email} · {prettyRole(employee.role)}</p>
+                    </div>
+                    {workerTab === 'remove' && (
+                      <button type="button" onClick={() => handleRemoveEmployee(employee.id)} className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-xl bg-red-600 px-3 py-1.5 text-xs font-medium text-white">
+                        <UserMinus className="h-3.5 w-3.5" />
+                        Eltávolítás
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* ── Add employee form (only on 'add' tab) ───────────────── */}
+          {workerTab === 'add' && (
             <form onSubmit={handleAddEmployee} className={`rounded-2xl border p-5 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Field label="Email cím" required hint="Csak regisztrált Pharmagister email adható meg. A szerepkört automatikusan a profilból vesszük át.">
@@ -2728,7 +2759,6 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   <input type="text" value={employeeForm.notes} onChange={e => setEmployeeForm(prev => ({ ...prev, notes: e.target.value }))} className="w-full rounded-xl border px-3 py-2 bg-transparent" />
                 </Field>
               </div>
-
               <div className="flex justify-end">
                 <button type="submit" disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-[#16a34a] px-4 py-2 font-medium text-white disabled:opacity-60">
                   <UserPlus className="h-4 w-4" />
@@ -2736,49 +2766,6 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                 </button>
               </div>
             </form>
-          ) : (
-            <div className={`rounded-2xl border p-5 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
-              {activeEmployees.length === 0 ? (
-                <p className="text-sm text-gray-500">Még nincs aktív dolgozó.</p>
-              ) : activeEmployees.map(employee => (
-                <div key={employee.id} className={`flex items-start justify-between gap-4 rounded-xl border p-4 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-[#E5E7EB] bg-[#F9FAFB]'}`}>
-                  <div>
-                    <p className="font-semibold">{employee.name}</p>
-                    <p className="text-sm text-gray-500">{prettyRole(employee.role)}</p>
-                    {employee.email ? <p className="text-sm text-gray-500">{employee.email}</p> : null}
-                    {(Array.isArray(employee.avoidWeekdays) && employee.avoidWeekdays.length > 0) || (Array.isArray(employee.preferWeekdays) && employee.preferWeekdays.length > 0) || employee.schedulingNotes ? (
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {(Array.isArray(employee.avoidWeekdays) ? employee.avoidWeekdays : []).map((d) => {
-                          const wd = WEEKDAY_DISPLAY.find((w) => w.day === d);
-                          return wd ? (
-                            <span key={d} className="rounded-full border border-red-300 bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-700">
-                              {wd.fullLabel}: kerüli
-                            </span>
-                          ) : null;
-                        })}
-                        {(Array.isArray(employee.preferWeekdays) ? employee.preferWeekdays : []).map((d) => {
-                          const wd = WEEKDAY_DISPLAY.find((w) => w.day === d);
-                          return wd ? (
-                            <span key={d} className="rounded-full border border-green-300 bg-green-50 px-2 py-0.5 text-[11px] font-medium text-green-700">
-                              {wd.fullLabel}: szívesen
-                            </span>
-                          ) : null;
-                        })}
-                        {employee.schedulingNotes ? (
-                          <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] text-blue-700" title={employee.schedulingNotes}>
-                            Megjegyzés
-                          </span>
-                        ) : null}
-                      </div>
-                    ) : null}
-                  </div>
-                  <button type="button" onClick={() => handleRemoveEmployee(employee.id)} className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-3 py-2 text-sm font-medium text-white">
-                    <UserMinus className="h-4 w-4" />
-                    Eltávolítás
-                  </button>
-                </div>
-              ))}
-            </div>
           )}
         </div>
       ) : null}
