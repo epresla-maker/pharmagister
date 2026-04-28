@@ -578,32 +578,20 @@ function PharmacyScheduleCalendar({
                       : darkMode ? 'border-b border-gray-800/60' : 'border-b border-gray-200/70',
                   ].join(' ')}
                 >
-                  {/* Row header: day number + name */}
-                  <div className="flex items-center gap-3 mb-2">
+                  {/* Row header: centered "1. Csütörtök" */}
+                  <div className="flex items-center mb-2">
                     <span className={[
-                      'inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-base font-bold',
-                      isToday
-                        ? 'bg-violet-600 text-white shadow-sm shadow-violet-300'
-                        : isHoliday
-                          ? darkMode ? 'text-rose-400 bg-rose-900/30' : 'text-rose-600 bg-rose-50'
-                          : isWeekend
-                            ? darkMode ? 'text-rose-400' : 'text-rose-600'
-                            : darkMode ? 'text-gray-100' : 'text-gray-800',
-                    ].join(' ')}>
-                      {day}
-                    </span>
-                    <span className={[
-                      'text-[15.4px]',
+                      'text-[17px] flex-1 text-center',
                       dow === 0 ? 'font-bold' : 'font-semibold',
                       isToday ? darkMode ? 'text-violet-300' : 'text-violet-700'
                         : isHoliday ? darkMode ? 'text-rose-400' : 'text-rose-500'
                         : isWeekend ? darkMode ? 'text-rose-400' : 'text-rose-600'
-                        : darkMode ? 'text-gray-400' : 'text-gray-500',
+                        : darkMode ? 'text-gray-200' : 'text-gray-700',
                     ].join(' ')}>
-                      {dowLabel}{isHoliday && !isWeekend ? ' 🔴' : ''}
+                      {day}. {dowLabel}{isHoliday && !isWeekend ? ' 🔴' : ''}
                     </span>
                     {dayScheds.length > 0 && (
-                      <span className={`ml-auto text-xs font-semibold rounded-full px-2 py-0.5 ${darkMode ? 'bg-black/30 text-gray-300' : 'bg-black/10 text-gray-600'}`}>
+                      <span className={`flex-shrink-0 text-xs font-semibold rounded-full px-2 py-0.5 ${darkMode ? 'bg-black/30 text-gray-300' : 'bg-black/10 text-gray-600'}`}>
                         {dayScheds.length} műszak
                       </span>
                     )}
