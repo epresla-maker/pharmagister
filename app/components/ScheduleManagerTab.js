@@ -382,6 +382,7 @@ const SHIFT_TYPES = [
   { key: 'É', label: 'É', title: 'Éjszakai',  bg: 'bg-indigo-500',   text: 'text-white', border: 'border-indigo-600' },
   { key: 'Ü', label: 'Ü', title: 'Ügyelet',   bg: 'bg-violet-500',   text: 'text-white', border: 'border-violet-600' },
   { key: 'B', label: 'B', title: 'Beteg',      bg: 'bg-rose-500',     text: 'text-white', border: 'border-rose-600' },
+  { key: 'Sz', label: 'Sz', title: 'Szabadnap', bg: 'bg-orange-400',  text: 'text-white', border: 'border-orange-500' },
 ];
 
 function getShiftType(key) {
@@ -658,7 +659,7 @@ function PharmacyScheduleCalendar({
                       >
                         <span className={`inline-flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-black ${st.bg} ${st.text}`}>{p.shiftType}</span>
                         {p.employeeName}
-                        {p.startTime && p.endTime && <span className="opacity-70">{p.startTime}–{p.endTime}</span>}
+                        {p.shiftType !== 'Sz' && p.startTime && p.endTime && <span className="opacity-70">{p.startTime}–{p.endTime}</span>}
                       </span>
                     );
                   })}
@@ -925,8 +926,9 @@ function EmployeePreferenceCalendar({
   function openDay(day) {
     const dateKey = formatDateKey(year, month, day);
     const own = ownPrefs.find(p => p.date === dateKey);
-    setChecked(!!own);
-    setShiftType(own?.shiftType || 'N');
+    const isSzabadon = own?.shiftType === 'Sz';
+    setChecked(own ? !isSzabadon : true);
+    setShiftType(own && !isSzabadon ? own.shiftType : 'N');
     setFrom(own?.startTime || '08:00');
     setTo(own?.endTime || '20:00');
     setNotes(own?.notes || '');
@@ -1022,13 +1024,19 @@ function EmployeePreferenceCalendar({
                 )}
               </div>
               <div className="flex flex-col gap-1">
+                {dayOwn.length === 0 && dayOthers.length === 0 && (
+                  <p className={`text-xs italic ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>Kattints a tervezéshez</p>
+                )}
                 {dayOwn.map(p => {
+                  const isSz = p.shiftType === 'Sz';
                   const st = getShiftType(p.shiftType || 'N');
                   const hrs = calcHours(p.startTime, p.endTime);
                   return (
-                    <div key={p.id} className={`flex items-center gap-2 rounded-xl px-3 py-2 border border-emerald-200 ${darkMode ? 'bg-emerald-900/30' : 'bg-emerald-50'}`}>
-                      <span className={`flex-shrink-0 inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-black ${st.bg} ${st.text}`}>{st.label}</span>
-                      <span className={`flex-1 text-sm font-medium ${darkMode ? 'text-emerald-200' : 'text-emerald-800'}`}>Saját tervem</span>
+                    <div key={p.id} className={`flex items-center gap-2 rounded-xl px-3 py-2 border ${isSz ? (darkMode ? 'border-orange-700/50 bg-orange-900/20' : 'border-orange-200 bg-orange-50') : (darkMode ? 'border-emerald-700/50 bg-emerald-900/30' : 'border-emerald-200 bg-emerald-50')}`}>
+                      <span className={`flex-shrink-0 inline-flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-black ${st.bg} ${st.text}`}>{st.label}</span>
+                      <span className={`flex-1 text-sm font-medium ${isSz ? (darkMode ? 'text-orange-300' : 'text-orange-700') : (darkMode ? 'text-emerald-200' : 'text-emerald-800')}`}>
+                        {isSz ? 'Szabadnapot kértem' : 'Saját tervem'}
+                      </span>
                       {hrs && <span className="flex-shrink-0 text-xs font-semibold tabular-nums text-emerald-600">{hrs}</span>}
                       {p.startTime && p.endTime && <span className="flex-shrink-0 text-xs tabular-nums text-emerald-500">{p.startTime}–{p.endTime}</span>}
                     </div>
@@ -1077,7 +1085,7 @@ function EmployeePreferenceCalendar({
                   <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform mt-0.5 ${checked ? 'translate-x-5' : 'translate-x-0.5'}`}/>
                 </button>
                 <span className={`text-sm font-semibold ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                  {checked ? 'Erre a napra szeretnék dolgozni' : 'Erre a napra nem kérek beosztást'}
+                  {checked ? 'Erre a napra szeretnék dolgozni' : 'Szabadnapot kérek'}
                 </span>
               </div>
               {checked && (
@@ -1419,29 +1427,25 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           (p.employeeEmail && user?.email && p.employeeEmail.toLowerCase() === user.email.toLowerCase()))
       );
 
-      if (checked) {
-        const payload = {
-          pharmacyId,
-          employeeId: ownRec?.id || '',
-          employeeName: ownRec?.name || userData?.name || user.email,
-          employeeEmail: normalizeEmail(user?.email) || '',
-          linkedUserId: user?.uid || null,
-          date: dateKey,
-          year: syear, month: smonth, day: sday,
-          shiftType: shiftType || 'N',
-          startTime: from,
-          endTime: to,
-          notes: notes || '',
-          status: 'draft',
-          updatedAt: serverTimestamp(),
-        };
-        if (existing) {
-          await updateDoc(doc(db, 'schedulePreferences', existing.id), payload);
-        } else {
-          await addDoc(collection(db, 'schedulePreferences'), { ...payload, createdAt: serverTimestamp() });
-        }
-      } else if (existing) {
-        await updateDoc(doc(db, 'schedulePreferences', existing.id), { status: 'deleted', updatedAt: serverTimestamp() });
+      const payload = {
+        pharmacyId,
+        employeeId: ownRec?.id || '',
+        employeeName: ownRec?.name || userData?.name || user.email,
+        employeeEmail: normalizeEmail(user?.email) || '',
+        linkedUserId: user?.uid || null,
+        date: dateKey,
+        year: syear, month: smonth, day: sday,
+        shiftType: checked ? (shiftType || 'N') : 'Sz',
+        startTime: checked ? from : null,
+        endTime: checked ? to : null,
+        notes: notes || '',
+        status: 'draft',
+        updatedAt: serverTimestamp(),
+      };
+      if (existing) {
+        await updateDoc(doc(db, 'schedulePreferences', existing.id), payload);
+      } else {
+        await addDoc(collection(db, 'schedulePreferences'), { ...payload, createdAt: serverTimestamp() });
       }
       await loadData();
     } catch (err) {
