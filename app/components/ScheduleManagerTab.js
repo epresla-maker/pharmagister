@@ -2448,6 +2448,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       ]
     : [
         { key: 'mine', label: 'Beosztásom' },
+        { key: 'planner', label: 'Beosztás-tervező' },
         { key: 'preferences', label: 'Preferenciák' },
       ];
 
@@ -3709,11 +3710,9 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             </div>
           ) : null}
 
-          {!isPharmacy && mainTab === 'preferences' ? (
+          {!isPharmacy && mainTab === 'planner' ? (
             <div className="space-y-6">
-
-              {/* ── Beosztás-tervezet: employee draft calendar ─────────── */}
-              {ownEmployeeRecords.length > 0 && (
+              {ownEmployeeRecords.length > 0 ? (
                 <div className={`rounded-2xl border p-5 space-y-4 ${darkMode ? 'border-emerald-800 bg-emerald-950/20' : 'border-emerald-200 bg-emerald-50/40'}`}>
                   <div>
                     <h3 className={`text-lg font-semibold flex items-center gap-2 ${darkMode ? 'text-emerald-200' : 'text-emerald-800'}`}>
@@ -3723,7 +3722,6 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                       Add meg, hogy mikor szeretnél dolgozni. A tervezet látható lesz a gyógyszertár számára és a kollégáknak is.
                     </p>
                   </div>
-                  {/* Month picker for preference calendar */}
                   {availableYears.map(y => {
                     const startM = y === thisYear ? thisMonth : 1;
                     const months = MONTHS_HU.slice(startM - 1).map((label, i) => ({ label, m: startM + i }));
@@ -3764,7 +3762,6 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                       </div>
                     );
                   })}
-                  {/* Preference calendar overlay */}
                   {preferenceCalendarOpen && ownEmployeeRecords[0] && (
                     <EmployeePreferenceCalendar
                       year={year}
@@ -3788,7 +3785,14 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                     />
                   )}
                 </div>
+              ) : (
+                <p className={`text-sm text-center py-8 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Nincs hozzárendelt dolgozói profil.</p>
               )}
+            </div>
+          ) : null}
+
+          {!isPharmacy && mainTab === 'preferences' ? (
+            <div className="space-y-6">
 
             <div className={`rounded-2xl border p-5 space-y-6 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
               <div>
