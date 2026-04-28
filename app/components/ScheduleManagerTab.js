@@ -477,6 +477,7 @@ function PharmacyScheduleCalendar({
   const [openTo, setOpenTo] = useState('20:00');
   const [employeeRows, setEmployeeRows] = useState([]);
   const [modalSaving, setModalSaving] = useState(false);
+  const [publishBlockModal, setPublishBlockModal] = useState(null);
 
   // Hide bottom nav while overlay is visible
   useEffect(() => {
@@ -553,6 +554,17 @@ function PharmacyScheduleCalendar({
     }
   }
 
+  async function handlePublishClick() {
+    if ((activeMonthSchedules ?? 0) === 0) {
+      setPublishBlockModal([{ message: 'Nincs kitöltött beosztás ebben a hónapban.' }]);
+      return;
+    }
+    const result = await onPublish();
+    if (result && !result.success && result.blockingErrors?.length > 0) {
+      setPublishBlockModal(result.blockingErrors);
+    }
+  }
+
   const selectedDateKey = selectedDay ? formatDateKey(year, month, selectedDay) : null;
   const selectedDayName = selectedDay
     ? HU_DAYS_LONG[new Date(year, month - 1, selectedDay).getDay()]
@@ -563,6 +575,29 @@ function PharmacyScheduleCalendar({
   // ── Calendar render — full-screen fixed overlay ───────────────────────────
   return (
     <div className={`fixed inset-0 z-40 flex flex-col ${darkMode ? 'bg-gray-900' : 'bg-white'}`} style={{touchAction:'pan-x'}}>
+      {/* Publish block modal (bottom sheet) */}
+      {publishBlockModal && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/60" onClick={() => setPublishBlockModal(null)}>
+          <div className={`rounded-t-2xl p-5 space-y-4 max-h-[60vh] overflow-y-auto ${darkMode ? 'bg-gray-800' : 'bg-white'}`} onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className={`font-bold text-base ${darkMode ? 'text-white' : 'text-gray-900'}`}>Miért nem publikálható?</h3>
+              <button type="button" onClick={() => setPublishBlockModal(null)} className={`h-8 w-8 flex items-center justify-center rounded-full text-lg font-bold ${darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>×</button>
+            </div>
+            <div className="space-y-2">
+              {publishBlockModal.map((err, i) => (
+                <div key={i} className={`rounded-xl border px-4 py-3 text-sm ${darkMode ? 'border-rose-700 bg-rose-900/30 text-rose-200' : 'border-rose-200 bg-rose-50 text-rose-700'}`}>
+                  <div className="flex items-start gap-2">
+                    <span className="flex-shrink-0">🚫</span>
+                    <span>{err.message}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Javítsd a hibákat, majd próbáld újra a publikálást.</p>
+          </div>
+        </div>
+      )}
+
       {/* Overlay header */}
       <div className={`flex-shrink-0 flex items-center gap-2 px-3 border-b ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-[#E5E7EB] bg-gradient-to-r from-violet-600 to-indigo-600'}`} style={{height:'56px'}}>
         {/* Close */}
@@ -603,12 +638,36 @@ function PharmacyScheduleCalendar({
             <button type="button" onClick={onExport} title="CSV export" className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 text-white">
               <Download className="h-4 w-4" />
             </button>
-            <button type="button" onClick={onPublish} disabled={saving || (activeMonthSchedules ?? 0) === 0} title="Publikálás" className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 text-white disabled:opacity-50">
+            <button type="button" onClick={handlePublishClick} disabled={saving} title="Publikálás" className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 text-white disabled:opacity-50">
               <Send className="h-4 w-4" />
             </button>
           </>
         )}
       </div>
+      {/* Publish status bar */}
+      {!readOnly && (() => {
+        const cnt = activeMonthSchedules ?? 0;
+        const canPublish = cnt > 0;
+        const alreadyPublished = publishedScheduleCount > 0;
+        const statusText = !canPublish
+          ? 'Nem publikálható – Nincs kitöltött beosztás'
+          : alreadyPublished
+            ? 'Már publikálva – Újra publikálható'
+            : 'Kész a publikálásra';
+        return (
+          <div className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 text-xs font-semibold border-b ${
+            !canPublish
+              ? (darkMode ? 'bg-rose-900/30 border-rose-800/60 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-600')
+              : alreadyPublished
+                ? (darkMode ? 'bg-violet-900/30 border-violet-800/60 text-violet-300' : 'bg-violet-50 border-violet-200 text-violet-700')
+                : (darkMode ? 'bg-emerald-900/30 border-emerald-800/60 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700')
+          }`}>
+            <span>{!canPublish ? '⛔' : alreadyPublished ? '✅' : '✅'}</span>
+            <span>{statusText}</span>
+          </div>
+        );
+      })()}
+
       {/* Day list — full width, vertically scrollable */}
       <div className="flex-1 overflow-y-auto overscroll-contain">
         {Array.from({ length: getDaysInMonth(year, month) }, (_, i) => i + 1).map(day => {
@@ -2452,7 +2511,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   async function handlePublishSchedules() {
     if (!user || activeMonthSchedules.length === 0) {
       setStatusError('Nincs publikálható beosztás a kiválasztott hónapban.');
-      return;
+      return { success: false, blockingErrors: [{ message: 'Nincs kitöltött beosztás ebben a hónapban.' }] };
     }
 
     setSaving(true);
@@ -2486,7 +2545,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       const blockingErrors = (result.conflicts || []).filter(item => item.severity === 'error');
       if (blockingErrors.length > 0) {
         setPlannerResult(result);
-        throw new Error(`A publikálás blokkolva: ${blockingErrors.length} piros hiba maradt a beosztásban.`);
+        setStatusError(`A publikálás blokkolva: ${blockingErrors.length} piros hiba maradt a beosztásban.`);
+        return { success: false, blockingErrors };
       }
 
       const publishedAtIso = new Date().toISOString();
@@ -2532,9 +2592,12 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         setStatusMessage(`A ${MONTHS_HU[month - 1]} ${year}. havi beosztas publikalva lett. Ertesites elkuldve minden erintett dolgozonak.`);
       }
       await loadData();
+      return { success: true };
     } catch (error) {
       console.error('Publish schedules error:', error);
-      setStatusError(error.message || 'Nem sikerült publikálni a beosztásokat.');
+      const msg = error.message || 'Nem sikerült publikálni a beosztásokat.';
+      setStatusError(msg);
+      return { success: false, blockingErrors: [{ message: msg }] };
     } finally {
       setSaving(false);
     }
