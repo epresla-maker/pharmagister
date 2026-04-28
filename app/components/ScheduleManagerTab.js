@@ -577,12 +577,12 @@ function PharmacyScheduleCalendar({
               {/* Row header: centered "1. Csütörtök" */}
               <div className="flex items-center mb-2">
                 <span className={[
-                  'text-[17px] flex-1 text-center',
+                  'text-[17px] flex-1 text-center underline underline-offset-4',
                   dow === 0 ? 'font-bold' : 'font-semibold',
-                  isToday ? darkMode ? 'text-violet-300' : 'text-violet-700'
-                    : isHoliday ? darkMode ? 'text-rose-400' : 'text-rose-500'
-                    : isWeekend ? darkMode ? 'text-rose-400' : 'text-rose-600'
-                    : darkMode ? 'text-gray-200' : 'text-gray-700',
+                  isToday ? darkMode ? 'text-violet-300 decoration-violet-400' : 'text-violet-700 decoration-violet-500'
+                    : isHoliday ? darkMode ? 'text-rose-400 decoration-rose-400' : 'text-rose-500 decoration-rose-500'
+                    : isWeekend ? darkMode ? 'text-rose-400 decoration-rose-400' : 'text-rose-600 decoration-rose-600'
+                    : darkMode ? 'text-gray-200 decoration-gray-400' : 'text-gray-700 decoration-gray-700',
                 ].join(' ')}>
                   {day}. {dowLabel}{isHoliday && !isWeekend ? ' 🔴' : ''}
                 </span>
