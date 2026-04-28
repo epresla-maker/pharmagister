@@ -3116,6 +3116,100 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     }
   }
 
+  // Intelligens generálás + azonnali mentés egylépésben (a dashboard "Generálás" gomb)
+  async function generateAndApplySchedule() {
+    if (!user) return;
+    setPlannerLoading(true);
+    setStatusError('');
+    setStatusMessage('');
+
+    try {
+      const token = await user.getIdToken();
+      const response = await fetch('/api/pharmagister/schedule-planner', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          employees: activeEmployees,
+          schedules,
+          vacationRequests,
+          year,
+          month,
+          config: normalizePlanningConfig(plannerConfigForm),
+          action: 'plan',
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.error || 'Automatikus tervezési hiba történt.');
+      }
+
+      const proposed = result.proposedShifts || [];
+      if (proposed.length === 0) {
+        setStatusMessage('Az automatikus tervező nem javasolt új műszakot (lehet már minden nap ki van töltve).');
+        return;
+      }
+
+      // Meglévő műszakok dedup key-jei
+      const existingSet = new Set(
+        schedules
+          .filter(item => item.status !== 'deleted')
+          .map(item => `${item.date}|${item.startTime}|${item.endTime}|${item.employeeId}`)
+      );
+      const employeeMap = new Map(activeEmployees.map(item => [item.id, item]));
+      const pharmacyName = userData?.pharmacyName || userData?.name || user.email;
+
+      let created = 0;
+      for (const item of proposed) {
+        const dedupeKey = `${item.date}|${item.startTime}|${item.endTime}|${item.employeeId}`;
+        if (existingSet.has(dedupeKey)) continue;
+        const employee = employeeMap.get(item.employeeId);
+        await addDoc(collection(db, 'pharmacySchedules'), {
+          pharmacyId: user.uid,
+          pharmacyName,
+          date: item.date,
+          year,
+          month,
+          day: Number(item.date.split('-')[2]),
+          employeeId: item.employeeId,
+          employeeName: item.employeeName || employee?.name || 'Ismeretlen dolgozó',
+          employeeEmail: item.employeeEmail || employee?.email || '',
+          linkedUserId: item.linkedUserId || employee?.linkedUserId || null,
+          role: item.role || employee?.role || 'other',
+          startTime: item.startTime,
+          endTime: item.endTime,
+          notes: 'Automatikus tervezés (AI)',
+          status: 'active',
+          createdBy: user.uid,
+          planningSource: 'auto-planner',
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+        existingSet.add(dedupeKey);
+        created++;
+      }
+
+      const errorCount = (result.conflicts || []).filter(c => c.severity === 'error').length;
+      const warningCount = (result.conflicts || []).filter(c => c.severity === 'warning').length;
+      setStatusMessage(
+        `✅ Intelligens beosztás generálva: ${created} műszak mentve` +
+        (errorCount ? `, ${errorCount} piros figyelmeztetés` : '') +
+        (warningCount ? `, ${warningCount} narancs figyelmeztetés` : '') +
+        '.'
+      );
+      setPlannerResult(result);
+      await loadData();
+    } catch (error) {
+      console.error('generateAndApply error:', error);
+      setStatusError(error.message || 'Nem sikerült lefuttatni az automatikus tervezést.');
+    } finally {
+      setPlannerLoading(false);
+    }
+  }
+
   async function handleApplyPlannerResult() {
     if (!plannerResult?.proposedShifts?.length) {
       setStatusError('Nincs alkalmazható javasolt műszak.');
@@ -3733,7 +3827,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   <button
                     type="button"
                     disabled={plannerLoading}
-                    onClick={() => runAutoPlanner({ action: 'plan' })}
+                    onClick={generateAndApplySchedule}
                     className="flex-shrink-0 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 px-4 py-2 text-sm font-bold text-white shadow disabled:opacity-60"
                   >
                     {plannerLoading ? 'Generálás...' : 'Generálás'}
