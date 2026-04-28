@@ -467,7 +467,7 @@ function PharmacyScheduleCalendar({
   user, userData, darkMode,
   onSaveDaySchedules, saving,
   // action handlers passed through for the overlay toolbar
-  onCopyPrev, onExport, onPublish,
+  onCopyPrev, onExport, onPublish, onAutoFix,
   activeMonthSchedules, publishedScheduleCount,
   readOnly, ownScheduleIds,
 }) {
@@ -478,6 +478,8 @@ function PharmacyScheduleCalendar({
   const [employeeRows, setEmployeeRows] = useState([]);
   const [modalSaving, setModalSaving] = useState(false);
   const [publishBlockModal, setPublishBlockModal] = useState(null);
+  const [autoFixing, setAutoFixing] = useState(false);
+  const [autoFixResult, setAutoFixResult] = useState(null);
 
   // Hide bottom nav while overlay is visible
   useEffect(() => {
@@ -581,8 +583,53 @@ function PharmacyScheduleCalendar({
           <div className={`rounded-t-2xl p-5 space-y-4 max-h-[60vh] overflow-y-auto ${darkMode ? 'bg-gray-800' : 'bg-white'}`} onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h3 className={`font-bold text-base ${darkMode ? 'text-white' : 'text-gray-900'}`}>Miért nem publikálható?</h3>
-              <button type="button" onClick={() => setPublishBlockModal(null)} className={`h-8 w-8 flex items-center justify-center rounded-full text-lg font-bold ${darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>×</button>
+              <button type="button" onClick={() => { setPublishBlockModal(null); setAutoFixResult(null); }} className={`h-8 w-8 flex items-center justify-center rounded-full text-lg font-bold ${darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>×</button>
             </div>
+
+            {/* Auto-fix button */}
+            {onAutoFix && (
+              <button
+                type="button"
+                disabled={autoFixing}
+                onClick={async () => {
+                  setAutoFixing(true);
+                  setAutoFixResult(null);
+                  const res = await onAutoFix(publishBlockModal);
+                  setAutoFixing(false);
+                  setAutoFixResult(res);
+                  // Re-run publish check to get fresh error list
+                  const fresh = await onPublish();
+                  if (fresh?.success) {
+                    setPublishBlockModal(null);
+                    setAutoFixResult(null);
+                  } else if (fresh?.blockingErrors?.length > 0) {
+                    setPublishBlockModal(fresh.blockingErrors);
+                  }
+                }}
+                className={`w-full flex items-center justify-center gap-2 rounded-xl px-4 py-3 font-semibold text-sm transition-colors ${
+                  autoFixing
+                    ? 'opacity-60 cursor-not-allowed bg-violet-500 text-white'
+                    : darkMode ? 'bg-violet-700 hover:bg-violet-600 text-white' : 'bg-violet-600 hover:bg-violet-700 text-white'
+                }`}
+              >
+                {autoFixing ? (
+                  <><span className="animate-spin inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full" /><span>Javítás folyamatban...</span></>
+                ) : (
+                  <><span>✨</span><span>Automatikus javítás</span></>
+                )}
+              </button>
+            )}
+
+            {autoFixResult && (
+              <div className={`rounded-xl px-4 py-3 text-sm font-medium ${
+                autoFixResult.fixed > 0
+                  ? (darkMode ? 'bg-emerald-900/40 text-emerald-300' : 'bg-emerald-50 text-emerald-700')
+                  : (darkMode ? 'bg-amber-900/40 text-amber-300' : 'bg-amber-50 text-amber-700')
+              }`}>
+                {autoFixResult.fixed > 0 ? `✅ ${autoFixResult.fixed} műszak javítva – ellenőrzés folyamatban...` : '⚠️ Nem találtam automatikusan javítható hibát. Kézzel ellenőrizd a beosztást.'}
+              </div>
+            )}
+
             <div className="space-y-2">
               {publishBlockModal.map((err, i) => (
                 <div key={i} className={`rounded-xl border px-4 py-3 text-sm ${darkMode ? 'border-rose-700 bg-rose-900/30 text-rose-200' : 'border-rose-200 bg-rose-50 text-rose-700'}`}>
@@ -2603,6 +2650,84 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     }
   }
 
+  async function handleAutoFixSchedules(blockingErrors) {
+    if (!user || !blockingErrors?.length) return { fixed: 0 };
+    setSaving(true);
+    let fixedCount = 0;
+    try {
+      // Group errors by employeeId+date for efficient lookup
+      const MAX_DAILY = 12; // safe default for Hungarian labor law
+      const DEFAULT_FROM = '08:00';
+      const DEFAULT_TO = '20:00';
+
+      // Collect affected (employeeId, date) pairs per error type
+      const fixHours = new Set(); // key: `${employeeId}|${date}` — fix times
+      const deleteViolation = new Set(); // key: `${employeeId}|${date}` — remove
+      const fixWeek = new Set(); // key: `${employeeId}|${week}` — trim week
+
+      for (const err of blockingErrors) {
+        if (err.code === 'max_daily_hours' || err.code === 'legal_max_daily_hours' || err.code === 'double_shift') {
+          if (err.employeeId && err.date) fixHours.add(`${err.employeeId}|${err.date}`);
+        } else if (err.code === 'time_off_violation') {
+          if (err.employeeId && err.date) deleteViolation.add(`${err.employeeId}|${err.date}`);
+        } else if (err.code === 'legal_weekly_hours_limit') {
+          if (err.employeeId && err.week) fixWeek.add(`${err.employeeId}|${err.week}`);
+        }
+      }
+
+      // Process each affected schedule
+      for (const item of activeMonthSchedules) {
+        if (item.publishedAt) continue; // never touch published
+        const empDateKey = `${item.employeeId}|${item.date}`;
+
+        // Delete time-off violations
+        if (deleteViolation.has(empDateKey)) {
+          await updateDoc(doc(db, 'pharmacySchedules', item.id), { status: 'deleted', updatedAt: serverTimestamp() });
+          fixedCount++;
+          continue;
+        }
+
+        // Fix 00:00-00:00 (=24h) or any daily hour overflow
+        if (fixHours.has(empDateKey)) {
+          const isAllDay = item.startTime === '00:00' && item.endTime === '00:00';
+          if (isAllDay) {
+            await updateDoc(doc(db, 'pharmacySchedules', item.id), {
+              startTime: DEFAULT_FROM,
+              endTime: DEFAULT_TO,
+              updatedAt: serverTimestamp(),
+            });
+            fixedCount++;
+          }
+        }
+      }
+
+      // For double_shift: after fixing times, delete duplicate shifts (same employee+date, keep only first)
+      const doubleShiftKeys = new Set(blockingErrors.filter(e => e.code === 'double_shift' && e.employeeId && e.date).map(e => `${e.employeeId}|${e.date}`));
+      if (doubleShiftKeys.size > 0) {
+        const seenEmpDate = new Set();
+        for (const item of activeMonthSchedules) {
+          if (item.publishedAt || item.status === 'deleted') continue;
+          const k = `${item.employeeId}|${item.date}`;
+          if (!doubleShiftKeys.has(k)) continue;
+          if (seenEmpDate.has(k)) {
+            await updateDoc(doc(db, 'pharmacySchedules', item.id), { status: 'deleted', updatedAt: serverTimestamp() });
+            fixedCount++;
+          } else {
+            seenEmpDate.add(k);
+          }
+        }
+      }
+
+      await loadData();
+      return { fixed: fixedCount };
+    } catch (err) {
+      console.error('AutoFix error:', err);
+      return { fixed: fixedCount };
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function handleCopyPreviousMonth() {
     if (!user) return;
 
@@ -3391,6 +3516,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   onCopyPrev={handleCopyPreviousMonth}
                   onExport={handleExportSchedules}
                   onPublish={handlePublishSchedules}
+                  onAutoFix={handleAutoFixSchedules}
                   activeMonthSchedules={activeMonthSchedules.length}
                   publishedScheduleCount={publishedScheduleCount}
                 />
