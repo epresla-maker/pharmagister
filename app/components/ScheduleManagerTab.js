@@ -1054,22 +1054,20 @@ function EmployeePreferenceCalendar({
   return (
     <div className={`fixed inset-0 z-40 flex flex-col ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
       {/* Header */}
-      <div className={`flex-shrink-0 flex items-center gap-2 px-3 border-b ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-[#E5E7EB] bg-gradient-to-r from-emerald-600 to-teal-600'}`} style={{height:'56px'}}>
+      <div className={`flex-shrink-0 flex items-center gap-2 px-3 border-b ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-[#E5E7EB] bg-gradient-to-r from-emerald-600 to-teal-600'}`} style={{minHeight:'56px', paddingTop:'8px', paddingBottom:'8px'}}>
         <button type="button" onClick={onClose} className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold text-xl leading-none">×</button>
         <button type="button" onClick={() => onChangeMonth('prev')} className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold text-xl leading-none">‹</button>
         <div className="flex-1 text-center">
-          <div className="flex items-center justify-center gap-1">
-            <span className="text-white font-bold text-base tracking-tight">{monthLabel} {year}</span>
-            {monthlyRequiredHours > 0 ? (
-              <span className="text-xs font-medium text-white/80 whitespace-nowrap">
-                havi {monthlyRequiredHours} · tervben {Math.round(plannedHoursTotal)} · maradt {remainingHours > 0 ? Math.round(remainingHours) : '✓'}
-              </span>
-            ) : annualVacDays > 0 ? (
-              <span className="text-xs font-medium text-white/80 whitespace-nowrap">{ownMonthCount} nap</span>
-            ) : (
-              <span className="text-xs font-medium text-white/70">{ownMonthCount} tervezett nap</span>
-            )}
-          </div>
+          <div className="text-white font-bold text-base tracking-tight whitespace-nowrap">{monthLabel} {year}</div>
+          {monthlyRequiredHours > 0 ? (
+            <div className="text-xs font-medium text-white/80 whitespace-nowrap">
+              havi {monthlyRequiredHours} · tervben {Math.round(plannedHoursTotal)} · maradt {remainingHours > 0 ? Math.round(remainingHours) : '✓'}
+            </div>
+          ) : annualVacDays > 0 ? (
+            <div className="text-xs font-medium text-white/80 whitespace-nowrap">{ownMonthCount} nap</div>
+          ) : (
+            <div className="text-xs font-medium text-white/70">{ownMonthCount} tervezett nap</div>
+          )}
           {annualVacDays > 0 && (
             <div className="text-xs font-medium text-white/80 whitespace-nowrap">maradék szabi: {Math.max(0, vacAfterThisMonth)}</div>
           )}
