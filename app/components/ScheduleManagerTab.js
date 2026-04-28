@@ -438,7 +438,9 @@ const SHIFT_TYPES = [
   { key: 'Ü', label: 'Ü', title: 'Ügyelet',   bg: 'bg-violet-500',   text: 'text-white', border: 'border-violet-600' },
   { key: 'B', label: 'B', title: 'Beteg',      bg: 'bg-rose-500',     text: 'text-white', border: 'border-rose-600' },
   { key: 'Sz', label: 'Sz', title: 'Szabadnap', bg: 'bg-orange-400',  text: 'text-white', border: 'border-orange-500' },
+  { key: 'P', label: 'P', title: 'Pihenő',    bg: 'bg-sky-400',      text: 'text-white', border: 'border-sky-500' },
 ];
+function isOffShift(shiftType) { return shiftType === 'Sz' || shiftType === 'P'; }
 
 function getShiftType(key) {
   return SHIFT_TYPES.find(t => t.key === key) || SHIFT_TYPES[0];
@@ -719,7 +721,7 @@ function PharmacyScheduleCalendar({
                       >
                         <span className={`inline-flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-black ${st.bg} ${st.text}`}>{p.shiftType}</span>
                         {p.employeeName}
-                        {p.shiftType !== 'Sz' && p.startTime && p.endTime && <span className="opacity-70">{p.startTime}–{p.endTime}</span>}
+                        {!isOffShift(p.shiftType) && p.startTime && p.endTime && <span className="opacity-70">{p.startTime}–{p.endTime}</span>}
                       </span>
                     );
                   })}
@@ -987,8 +989,8 @@ function EmployeePreferenceCalendar({
   // ── Havi óra + szabadság számítás ──────────────────────────────────────
   const contractHours = Number(employeeProfile?.contractHours) || 0;
   const monthlyRequiredHours = contractHours ? calcMonthlyRequiredHours(contractHours, year, month) : 0;
-  // Sum up planned working hours (non-Sz prefs)
-  const plannedWorkPrefs = ownPrefs.filter(p => p.shiftType !== 'Sz');
+  // Sum up planned working hours (non-off prefs)
+  const plannedWorkPrefs = ownPrefs.filter(p => !isOffShift(p.shiftType));
   const plannedSzPrefs = ownPrefs.filter(p => p.shiftType === 'Sz');
   const plannedHoursTotal = plannedWorkPrefs.reduce((sum, p) => {
     if (!p.startTime || !p.endTime) return sum + contractHours;
@@ -1015,7 +1017,7 @@ function EmployeePreferenceCalendar({
   function openDay(day) {
     const dateKey = formatDateKey(year, month, day);
     const own = ownPrefs.find(p => p.date === dateKey);
-    const isSzabadon = own?.shiftType === 'Sz';
+    const isSzabadon = isOffShift(own?.shiftType);
     setChecked(own ? !isSzabadon : true);
     setShiftType(own && !isSzabadon ? own.shiftType : 'N');
     setFrom(own?.startTime || '08:00');
@@ -1136,7 +1138,7 @@ function EmployeePreferenceCalendar({
                   <p className={`text-xs italic ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>Kattints a tervezéshez</p>
                 )}
                 {dayOwn.map(p => {
-                  const isSz = p.shiftType === 'Sz';
+                  const isSz = isOffShift(p.shiftType);
                   const st = getShiftType(p.shiftType || 'N');
                   const hrs = calcHours(p.startTime, p.endTime);
                   // running hours up to this day
@@ -1241,8 +1243,8 @@ function EmployeePreferenceCalendar({
                       ))}
                     </div>
                   </div>
-                  {/* Time — hidden for Sz */}
-                  {shiftType !== 'Sz' && (
+                  {/* Time — hidden for Sz/P */}
+                  {!isOffShift(shiftType) && (
                   <div>
                     <p className={`text-xs font-bold uppercase tracking-widest mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Preferált időszak</p>
                     <div className="flex items-center gap-3">
@@ -1630,8 +1632,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         date: dateKey,
         year: syear, month: smonth, day: sday,
         shiftType: checked ? (shiftType || 'N') : 'Sz',
-        startTime: (checked && shiftType !== 'Sz') ? from : null,
-        endTime: (checked && shiftType !== 'Sz') ? to : null,
+        startTime: (checked && !isOffShift(shiftType)) ? from : null,
+        endTime: (checked && !isOffShift(shiftType)) ? to : null,
         notes: notes || '',
         status: 'draft',
         updatedAt: serverTimestamp(),
