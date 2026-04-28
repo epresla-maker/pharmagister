@@ -593,7 +593,7 @@ function PharmacyScheduleCalendar({
                       {day}
                     </span>
                     <span className={[
-                      'text-sm',
+                      'text-[15.4px]',
                       dow === 0 ? 'font-bold' : 'font-semibold',
                       isToday ? darkMode ? 'text-violet-300' : 'text-violet-700'
                         : isHoliday ? darkMode ? 'text-rose-400' : 'text-rose-500'
