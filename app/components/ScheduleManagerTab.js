@@ -1206,6 +1206,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   const [preferenceCalendarOpen, setPreferenceCalendarOpen] = useState(false);
   // schedulePreferences drafts
   const [schedulePreferences, setSchedulePreferences] = useState([]);
+  const [allPreferences, setAllPreferences] = useState([]);
+  const [expandedWorker, setExpandedWorker] = useState(null);
 
   // Quick swap: which own schedule is currently open for partner selection
   const [quickSwapScheduleId, setQuickSwapScheduleId] = useState(null);
@@ -1309,12 +1311,13 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   }
 
   async function loadPharmacyData() {
-    const [employeesSnapshot, schedulesSnapshot, swapSnapshot, vacationSnapshot, prefsSnapshot] = await Promise.all([
+    const [employeesSnapshot, schedulesSnapshot, swapSnapshot, vacationSnapshot, prefsSnapshot, allPrefsSnapshot] = await Promise.all([
       getDocs(query(collection(db, 'pharmacyEmployees'), where('pharmacyId', '==', user.uid))),
       getDocs(query(collection(db, 'pharmacySchedules'), where('pharmacyId', '==', user.uid), where('year', '==', year), where('month', '==', month))),
       getDocs(query(collection(db, 'scheduleSwapRequests'), where('pharmacyId', '==', user.uid))),
       getDocs(query(collection(db, 'scheduleVacationRequests'), where('pharmacyId', '==', user.uid))),
       getDocs(query(collection(db, 'schedulePreferences'), where('pharmacyId', '==', user.uid), where('year', '==', year), where('month', '==', month))),
+      getDocs(query(collection(db, 'schedulePreferences'), where('pharmacyId', '==', user.uid))),
     ]);
 
     setEmployees(employeesSnapshot.docs.map(item => ({ id: item.id, ...item.data() })));
@@ -1322,6 +1325,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     setSwapRequests(swapSnapshot.docs.map(item => ({ id: item.id, ...item.data() })));
     setVacationRequests(vacationSnapshot.docs.map(item => ({ id: item.id, ...item.data() })));
     setSchedulePreferences(prefsSnapshot.docs.map(item => ({ id: item.id, ...item.data() })));
+    setAllPreferences(allPrefsSnapshot.docs.map(item => ({ id: item.id, ...item.data() })).filter(p => p.status !== 'deleted'));
   }
 
   async function loadEmployeeData() {
@@ -2721,23 +2725,97 @@ export default function ScheduleManagerTab({ pharmaRole }) {
               <p className="text-sm text-gray-500">Még nincs aktív dolgozó.</p>
             ) : (
               <div className="flex flex-col gap-2">
-                {activeEmployees.map(employee => (
-                  <div key={employee.id} className={`flex items-center gap-3 rounded-xl border px-4 py-3 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'}`}>
-                    <div className={`flex-shrink-0 h-9 w-9 rounded-full flex items-center justify-center font-bold text-sm ${darkMode ? 'bg-violet-900 text-violet-300' : 'bg-violet-100 text-violet-700'}`}>
-                      {(employee.name || '?')[0].toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className={`font-semibold text-sm truncate ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>{employee.name}</p>
-                      <p className={`text-xs truncate ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{employee.email} · {prettyRole(employee.role)}</p>
-                    </div>
-                    {workerTab === 'remove' && (
-                      <button type="button" onClick={() => handleRemoveEmployee(employee.id)} className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-xl bg-red-600 px-3 py-1.5 text-xs font-medium text-white">
-                        <UserMinus className="h-3.5 w-3.5" />
-                        Eltávolítás
+                {activeEmployees.map(employee => {
+                  const empPrefs = allPreferences.filter(p =>
+                    p.employeeId === employee.id ||
+                    (p.linkedUserId && p.linkedUserId === employee.linkedUserId) ||
+                    (p.employeeEmail && employee.email && p.employeeEmail.toLowerCase() === employee.email.toLowerCase())
+                  );
+                  // Group by year-month
+                  const byMonth = {};
+                  empPrefs.forEach(p => {
+                    const key = `${p.year}-${String(p.month).padStart(2,'0')}`;
+                    if (!byMonth[key]) byMonth[key] = { year: p.year, month: p.month, entries: [] };
+                    byMonth[key].entries.push(p);
+                  });
+                  const monthKeys = Object.keys(byMonth).sort();
+                  const isExpanded = expandedWorker === employee.id;
+
+                  return (
+                    <div key={employee.id} className={`rounded-xl border transition-all ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                      {/* Card header — clickable */}
+                      <button
+                        type="button"
+                        onClick={() => setExpandedWorker(isExpanded ? null : employee.id)}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors ${darkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-50'}`}
+                      >
+                        <div className={`flex-shrink-0 h-9 w-9 rounded-full flex items-center justify-center font-bold text-sm ${darkMode ? 'bg-violet-900 text-violet-300' : 'bg-violet-100 text-violet-700'}`}>
+                          {(employee.name || '?')[0].toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={`font-semibold text-sm truncate ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>{employee.name}</p>
+                          <p className={`text-xs truncate ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{employee.email} · {prettyRole(employee.role)}</p>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {empPrefs.length > 0 && (
+                            <span className={`text-[11px] font-semibold rounded-full px-2 py-0.5 ${darkMode ? 'bg-emerald-900/50 text-emerald-300' : 'bg-emerald-100 text-emerald-700'}`}>
+                              {empPrefs.length} preferencia
+                            </span>
+                          )}
+                          {workerTab === 'remove' && (
+                            <button
+                              type="button"
+                              onClick={e => { e.stopPropagation(); handleRemoveEmployee(employee.id); }}
+                              className="inline-flex items-center gap-1.5 rounded-xl bg-red-600 px-3 py-1.5 text-xs font-medium text-white"
+                            >
+                              <UserMinus className="h-3.5 w-3.5" />
+                              Eltávolítás
+                            </button>
+                          )}
+                          <span className={`text-xs font-bold ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{isExpanded ? '▲' : '▼'}</span>
+                        </div>
                       </button>
-                    )}
-                  </div>
-                ))}
+
+                      {/* Expanded: preferences grouped by month */}
+                      {isExpanded && (
+                        <div className={`px-4 pb-4 pt-1 border-t space-y-3 ${darkMode ? 'border-gray-700' : 'border-gray-100'}`}>
+                          {monthKeys.length === 0 ? (
+                            <p className={`text-sm italic ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Még nincs mentett preferencia.</p>
+                          ) : monthKeys.map(mk => {
+                            const { year: y, month: m, entries } = byMonth[mk];
+                            const label = `${MONTHS_HU[m - 1]} ${y}`;
+                            const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
+                            return (
+                              <div key={mk}>
+                                <p className={`text-xs font-bold uppercase tracking-wider mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{label}</p>
+                                <div className="flex flex-col gap-1">
+                                  {sorted.map(p => {
+                                    const st = getShiftType(p.shiftType || 'N');
+                                    const hrs = calcHours(p.startTime, p.endTime);
+                                    const dow = new Date(p.year, p.month - 1, p.day || parseInt(p.date.split('-')[2])).getDay();
+                                    const DOW_SHORT = ['V','H','K','Sz','Cs','P','Szo'];
+                                    return (
+                                      <div key={p.id} className={`flex items-center gap-2 rounded-lg px-3 py-2 ${darkMode ? 'bg-gray-800' : 'bg-gray-50'}`}>
+                                        <span className={`flex-shrink-0 text-xs font-bold w-6 text-center ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{DOW_SHORT[dow]}</span>
+                                        <span className={`flex-shrink-0 text-sm font-semibold tabular-nums w-6 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>{p.date.split('-')[2]}.</span>
+                                        <span className={`flex-shrink-0 inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-black ${st.bg} ${st.text}`}>{st.label}</span>
+                                        {p.startTime && p.endTime ? (
+                                          <span className={`text-xs tabular-nums ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>{p.startTime}–{p.endTime}</span>
+                                        ) : null}
+                                        {hrs ? <span className={`text-xs font-semibold ${darkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>{hrs}</span> : null}
+                                        {p.notes ? <span className={`flex-1 text-xs italic truncate ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{p.notes}</span> : null}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
