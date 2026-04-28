@@ -1062,7 +1062,7 @@ function EmployeePreferenceCalendar({
 
       {/* Day preference modal */}
       {showModal && selectedDay && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-14 px-4 pb-4" style={{backdropFilter:'blur(6px)', background:'rgba(0,0,0,0.55)'}}>
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-4 px-4 pb-4" style={{backdropFilter:'blur(6px)', background:'rgba(0,0,0,0.55)'}}>
           <div className={`relative w-full max-w-lg flex flex-col rounded-2xl shadow-2xl overflow-hidden ${darkMode ? 'bg-gray-900 border border-gray-700' : 'bg-white'}`} onClick={e => e.stopPropagation()}>
             {/* Header */}
             <div className="bg-gradient-to-br from-emerald-600 to-teal-600 px-6 py-5 flex-shrink-0">
@@ -1093,16 +1093,16 @@ function EmployeePreferenceCalendar({
                   {/* Shift type */}
                   <div>
                     <p className={`text-xs font-bold uppercase tracking-widest mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Preferált műszak típusa</p>
-                    <div className="flex gap-2 flex-wrap">
+                    <div className="flex gap-1.5">
                       {SHIFT_TYPES.map(st => (
                         <button
                           key={st.key}
                           type="button"
                           onClick={() => setShiftType(st.key)}
-                          className={`flex flex-col items-center rounded-2xl px-4 py-3 border-2 font-bold text-sm transition-all ${shiftType === st.key ? `${st.bg} ${st.text} border-transparent shadow-md` : darkMode ? 'border-gray-700 text-gray-300 hover:border-gray-500' : 'border-gray-200 text-gray-600 hover:border-gray-400'}`}
+                          className={`flex-1 flex flex-col items-center rounded-xl px-1 py-2 border-2 font-bold transition-all ${shiftType === st.key ? `${st.bg} ${st.text} border-transparent shadow-md` : darkMode ? 'border-gray-700 text-gray-300 hover:border-gray-500' : 'border-gray-200 text-gray-600 hover:border-gray-400'}`}
                         >
-                          <span className="text-xl">{st.key}</span>
-                          <span className="text-[10px] font-normal mt-0.5">{st.title}</span>
+                          <span className="text-base font-black">{st.key}</span>
+                          <span className="text-[9px] font-normal mt-0.5 leading-tight text-center">{st.title}</span>
                         </button>
                       ))}
                     </div>
