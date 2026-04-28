@@ -1085,7 +1085,7 @@ function EmployeePreferenceCalendar({
                   <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform mt-0.5 ${checked ? 'translate-x-5' : 'translate-x-0.5'}`}/>
                 </button>
                 <span className={`text-sm font-semibold ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                  {checked ? 'Erre a napra szeretnék dolgozni' : 'Szabadnapot kérek'}
+                  {checked ? 'Ezen a napon szeretnék dolgozni' : 'Szabadnapot kérek'}
                 </span>
               </div>
               {checked && (
