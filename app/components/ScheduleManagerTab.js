@@ -437,7 +437,7 @@ const SHIFT_TYPES = [
   { key: 'É', label: 'É', title: 'Éjszakai',  bg: 'bg-indigo-500',   text: 'text-white', border: 'border-indigo-600' },
   { key: 'Ü', label: 'Ü', title: 'Ügyelet',   bg: 'bg-violet-500',   text: 'text-white', border: 'border-violet-600' },
   { key: 'B', label: 'B', title: 'Beteg',      bg: 'bg-rose-500',     text: 'text-white', border: 'border-rose-600' },
-  { key: 'Sz', label: 'Sz', title: 'Szabadnap', bg: 'bg-orange-400',  text: 'text-white', border: 'border-orange-500' },
+  { key: 'Sz', label: 'Sz', title: 'Szabadság', bg: 'bg-orange-400',  text: 'text-white', border: 'border-orange-500' },
   { key: 'P', label: 'P', title: 'Pihenő',    bg: 'bg-sky-400',      text: 'text-white', border: 'border-sky-500' },
 ];
 function isOffShift(shiftType) { return shiftType === 'Sz' || shiftType === 'P'; }
@@ -1156,7 +1156,7 @@ function EmployeePreferenceCalendar({
                       <div className="flex items-center gap-2">
                         <span className={`flex-shrink-0 inline-flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-black ${st.bg} ${st.text}`}>{st.label}</span>
                         <span className={`flex-1 text-sm font-medium ${isSz ? (darkMode ? 'text-orange-300' : 'text-orange-700') : (darkMode ? 'text-emerald-200' : 'text-emerald-800')}`}>
-                          {isSz ? 'Szabadnapot kértem' : 'Saját tervem'}
+                          {isSz ? 'Szabadságot kértem' : 'Saját tervem'}
                         </span>
                         {!isSz && contractHours > 0 && (
                           <span className="flex-shrink-0 text-xs font-bold tabular-nums text-emerald-600">{hrs || `${contractHours}.00`}</span>
@@ -1221,7 +1221,7 @@ function EmployeePreferenceCalendar({
                   <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform mt-0.5 ${checked ? 'translate-x-5' : 'translate-x-0.5'}`}/>
                 </button>
                 <span className={`text-sm font-semibold ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                  {checked ? 'Ezen a napon szeretnék dolgozni' : 'Szabadnapot kérek'}
+                  {checked ? 'Ezen a napon szeretnék dolgozni' : 'Szabadságot kérek'}
                 </span>
               </div>
               {checked && (
@@ -1297,7 +1297,7 @@ function EmployeePreferenceCalendar({
                   setShowModal(false);
                 } finally { setModalSaving(false); }
               }} disabled={modalSaving} className="flex-1 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 px-8 py-2.5 text-sm font-bold text-white shadow-lg disabled:opacity-60">
-                {modalSaving ? 'Mentés...' : checked ? 'Terv mentése' : 'Szabadnap kérése'}
+                {modalSaving ? 'Mentés...' : checked ? 'Terv mentése' : 'Szabadság kérése'}
               </button>
             </div>
           </div>
