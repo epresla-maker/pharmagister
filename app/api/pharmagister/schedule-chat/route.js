@@ -618,6 +618,78 @@ export async function POST(request) {
       }
     }
 
+    if (parsed.intent === 'list_employees') {
+      reply = `Rendben, listazom az alkalmazottaidat. Osszesen ${context?.employees?.length || 0} aktiv dolgozod van.`;
+      payload = {
+        ...payload,
+        action: 'list_employees',
+      };
+    }
+
+    if (parsed.intent === 'show_vacation_requests') {
+      const requestedMonth = detectMonthReference(message);
+      if (!requestedMonth) {
+        reply = 'Rendben, melyik honapra szeretned latni az igenyelt szabadsagokat?';
+        payload = {
+          ...payload,
+          action: 'clarify_with_options',
+          suggestedAction: 'show_vacation_requests',
+        };
+        quickActionsOverride = buildMonthQuickActions('szabadsag');
+      } else {
+        reply = `Rendben, megmutatom a szabadsag igeenyeket a ${requestedMonth.label} idoszakra.`;
+        payload = {
+          ...payload,
+          action: 'show_vacation_requests',
+          entities: {
+            ...(payload.entities || {}),
+            monthOffset: requestedMonth.monthOffset,
+            monthLabel: requestedMonth.label,
+          },
+        };
+      }
+    }
+
+    if (parsed.intent === 'missing_drafts') {
+      const requestedMonth = detectMonthReference(message);
+      if (!requestedMonth) {
+        reply = 'Rendben, melyik honapra ellenorizzem az elkeszult tervezeteket?';
+        payload = {
+          ...payload,
+          action: 'clarify_with_options',
+          suggestedAction: 'missing_drafts',
+        };
+        quickActionsOverride = buildMonthQuickActions('tervezet');
+      } else {
+        reply = `Rendben, ellenorizzem ki nem irta meg meg a ${requestedMonth.label} tervezetet.`;
+        payload = {
+          ...payload,
+          action: 'missing_drafts',
+          entities: {
+            ...(payload.entities || {}),
+            monthOffset: requestedMonth.monthOffset,
+            monthLabel: requestedMonth.label,
+          },
+        };
+      }
+    }
+
+    if (parsed.intent === 'add_employee') {
+      reply = 'Rendben, felvethetel egy uj dolgozot. Kerem add meg az email cimet.';
+      payload = {
+        ...payload,
+        action: 'add_employee',
+      };
+    }
+
+    if (parsed.intent === 'remove_employee') {
+      reply = 'Melyik dolgozot szeretned eltavolitani?';
+      payload = {
+        ...payload,
+        action: 'remove_employee',
+      };
+    }
+
     if (parsed.intent === 'capabilities' || parsed.intent === 'help') {
       reply = 'Ebben tudok segiteni:\n- Sajat beosztas es kovetkezo muszakok\n- Szabadsagok es szabadnapok\n- Tulora attekintes\n- Muszakhelyettesites\n- Ujratervezes (teljes vagy napi)\n\nIrd peldaul: "Mi a beosztasom?" vagy "Mutasd a tulorasokat".';
     }

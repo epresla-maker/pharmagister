@@ -3598,6 +3598,92 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       await runAutoPlanner({ action: 'plan' });
       return;
     }
+
+    // Pharmacy manager actions
+    if (action === 'list_employees') {
+      if (!isPharmacy) {
+        appendBettiMessage('Ez a funkcio csak a gyogyszertari nezet szamara erhelmes.');
+        return;
+      }
+
+      const activeEmps = employees.filter((e) => e.status !== 'inactive').sort((a, b) => a.name.localeCompare(b.name, 'hu'));
+      if (activeEmps.length === 0) {
+        appendBettiMessage('Jelenleg nincsenek aktiv alkalmazottaid.');
+        return;
+      }
+
+      const empList = activeEmps.slice(0, 15).map((e) => `${e.name}${e.role ? ` (${e.role})` : ''}`).join('\n- ');
+      const suffix = activeEmps.length > 15 ? `\n... es meg ${activeEmps.length - 15} alkalmazott` : '';
+      appendBettiMessage(`Alkalmazottaid (${activeEmps.length} db):\n- ${empList}${suffix}`);
+      return;
+    }
+
+    if (action === 'show_vacation_requests') {
+      if (!isPharmacy) {
+        appendBettiMessage('Ez a funkcio csak a gyogyszertari nezet szamara erhelmes.');
+        return;
+      }
+
+      const { targetYear, targetMonth, monthLabel } = resolveTargetMonth();
+      const monthVacationRequests = vacationRequests.filter(
+        (v) => v.year === targetYear && v.month === targetMonth && v.status !== 'declined'
+      );
+
+      if (monthVacationRequests.length === 0) {
+        appendBettiMessage(`A ${monthLabel} honapban nincsenek szabadsag igenyelt.`);
+        return;
+      }
+
+      const vacList = monthVacationRequests.slice(0, 10)
+        .map((v) => `${v.employeeName}: ${v.startDate} - ${v.endDate}${v.status === 'pending' ? ' ⏳' : ' ✅'}`)
+        .join('\n- ');
+      const suffix = monthVacationRequests.length > 10 ? `\n... es meg ${monthVacationRequests.length - 10} igeny` : '';
+      appendBettiMessage(`Szabadsag igenyelt (${monthLabel}):\n- ${vacList}${suffix}`);
+      return;
+    }
+
+    if (action === 'missing_drafts') {
+      if (!isPharmacy) {
+        appendBettiMessage('Ez a funkcio csak a gyogyszertari nezet szamara erhelmes.');
+        return;
+      }
+
+      const { targetYear, targetMonth, monthLabel } = resolveTargetMonth();
+      const activeEmps = employees.filter((e) => e.status !== 'inactive');
+      const empsWithDrafts = schedulePreferences
+        .filter((p) => p.year === targetYear && p.month === targetMonth && p.status === 'draft')
+        .map((p) => p.employeeId || p.linkedUserId);
+      const uniqueDraftEmps = new Set(empsWithDrafts.filter(Boolean));
+
+      const missing = activeEmps.filter((e) => !uniqueDraftEmps.has(e.id) && !uniqueDraftEmps.has(e.linkedUserId));
+      if (missing.length === 0) {
+        appendBettiMessage(`Az osszes alkalmazott elkeszitette a ${monthLabel} tervezetet!`);
+        return;
+      }
+
+      const missingList = missing.slice(0, 10).map((e) => e.name).join(', ');
+      const suffix = missing.length > 10 ? `, es meg ${missing.length - 10} ember` : '';
+      appendBettiMessage(`A kovetkezo ${missing.length} alkalmazott nem irta meg meg a ${monthLabel} tervezetet:\n${missingList}${suffix}`);
+      return;
+    }
+
+    if (action === 'add_employee') {
+      if (!isPharmacy) {
+        appendBettiMessage('Ez a funkcio csak a gyogyszertari nezet szamara erhelmes.');
+        return;
+      }
+      appendBettiMessage('Kerlek add meg az uj alkalmazott email cimet a "Dolgozok" fuelken.');
+      return;
+    }
+
+    if (action === 'remove_employee') {
+      if (!isPharmacy) {
+        appendBettiMessage('Ez a funkcio csak a gyogyszertari nezet szamara erhelmes.');
+        return;
+      }
+      appendBettiMessage('Valaszd ki az eltavolitando dolgozot a "Dolgozok" fuelken.');
+      return;
+    }
   }
 
   async function sendBettiChatMessage(messageText, options = {}) {
