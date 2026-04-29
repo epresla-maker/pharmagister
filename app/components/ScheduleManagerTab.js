@@ -3515,6 +3515,27 @@ export default function ScheduleManagerTab({ pharmaRole }) {
               </div>
             )}
 
+            {/* Betti bemutatkozás – csak az első lépésnél */}
+            {safeWizardStepIndex === 0 && (
+              <div className="flex items-start gap-3">
+                <div className="flex flex-col items-center gap-0.5 shrink-0 pt-1">
+                  <div className={`h-10 w-10 rounded-full flex items-center justify-center text-xl shadow-sm ${darkMode ? 'bg-violet-800' : 'bg-violet-100'}`}>
+                    👩‍⚕️
+                  </div>
+                  <span className={`text-[10px] font-bold ${darkMode ? 'text-violet-300' : 'text-violet-700'}`}>Betti</span>
+                </div>
+                <div className="flex-1 relative">
+                  <div className={`absolute left-[-7px] top-4 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-r-[7px] ${darkMode ? 'border-r-violet-900' : 'border-r-violet-100'}`} />
+                  <div className={`rounded-2xl rounded-tl-sm border px-4 py-3 shadow-sm ${darkMode ? 'border-violet-700 bg-violet-900/40' : 'border-violet-200 bg-violet-50'}`}>
+                    <p className={`text-sm font-semibold ${darkMode ? 'text-violet-100' : 'text-violet-900'}`}>Szia! Én vagyok Betti 👋</p>
+                    <p className={`text-xs mt-1 leading-relaxed ${darkMode ? 'text-violet-200/80' : 'text-violet-800/80'}`}>
+                      A Pharmagister beosztástervező asszisztense vagyok. Néhány rövid kérdéssel segítek beállítani a gyógyszertárad működési kritériumait, hogy az automatikus beosztás a legjobban illeszkedjen hozzátok. Minden válasz azonnal mentődik. Kezdjük! 🚀
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Speech bubble from Betti */}
             <div className="flex items-start gap-3">
               {/* Avatar */}
@@ -3649,6 +3670,27 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                 </div>
               </div>
             </div>
+
+            {/* Betti záró üzenet – csak az utolsó lépésnél */}
+            {safeWizardStepIndex === wizardTotal - 1 && (
+              <div className="flex items-start gap-3">
+                <div className="flex flex-col items-center gap-0.5 shrink-0 pt-1">
+                  <div className={`h-10 w-10 rounded-full flex items-center justify-center text-xl shadow-sm ${darkMode ? 'bg-violet-800' : 'bg-violet-100'}`}>
+                    👩‍⚕️
+                  </div>
+                  <span className={`text-[10px] font-bold ${darkMode ? 'text-violet-300' : 'text-violet-700'}`}>Betti</span>
+                </div>
+                <div className="flex-1 relative">
+                  <div className={`absolute left-[-7px] top-4 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-r-[7px] ${darkMode ? 'border-r-emerald-900' : 'border-r-emerald-50'}`} />
+                  <div className={`rounded-2xl rounded-tl-sm border px-4 py-3 shadow-sm ${darkMode ? 'border-emerald-700 bg-emerald-900/30' : 'border-emerald-200 bg-emerald-50'}`}>
+                    <p className={`text-sm font-semibold ${darkMode ? 'text-emerald-100' : 'text-emerald-900'}`}>Szuper, minden megvan! 🎉</p>
+                    <p className={`text-xs mt-1 leading-relaxed ${darkMode ? 'text-emerald-200/80' : 'text-emerald-800/80'}`}>
+                      Összegyűjtöttem a beállításaitokat. Nézd át az összefoglalót, és ha minden rendben, kattints a <strong>Jóváhagyom</strong> gombra – ezek alapján fogom elkészíteni a beosztást. 💊
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className={`rounded-xl border px-3 py-3 ${darkMode ? 'border-emerald-700 bg-emerald-900/20' : 'border-emerald-200 bg-emerald-50'}`}>
               <div className="flex items-center justify-between gap-3">
