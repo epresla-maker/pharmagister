@@ -5,9 +5,12 @@ import { normalizeHungarianChatInput } from '@/lib/huDictionary';
 import { explainAssignmentDecision } from '@/lib/explanationEngine';
 import { buildProactiveWarnings } from '@/lib/suggestionEngine';
 import {
+  appendBettiWeightSuggestion,
   detectTrainingInput,
+  loadBettiLongTermMemory,
   loadTrainingPatterns,
   recordTrainingPatternUsage,
+  saveBettiLongTermMemory,
   saveTrainingPattern,
   buildTrainingPattern,
 } from '@/lib/bettiTraining';
@@ -51,6 +54,27 @@ const DECISION_WEIGHTS = {
   mood: 0.1,
   risk: 0.1,
 };
+
+function normalizeDecisionWeights(candidate) {
+  const base = { ...DECISION_WEIGHTS };
+  if (!candidate || typeof candidate !== 'object') return base;
+
+  const keys = Object.keys(base);
+  const raw = {};
+  let total = 0;
+  keys.forEach((k) => {
+    const v = Number(candidate[k]);
+    raw[k] = Number.isFinite(v) && v >= 0 ? v : base[k];
+    total += raw[k];
+  });
+
+  if (total <= 0) return base;
+  const normalized = {};
+  keys.forEach((k) => {
+    normalized[k] = Number((raw[k] / total).toFixed(4));
+  });
+  return normalized;
+}
 
 const SYNONYM_REPLACEMENTS = [
   [/\b(szabi|szabin|szabira|szabadsagra)\b/g, 'szabadsag'],
@@ -564,6 +588,37 @@ function applyMoodTone({ reply, mood, intent, action }) {
   return reply;
 }
 
+function applyUserPreferences({ reply, preferences, action }) {
+  if (!reply || !preferences) return reply;
+
+  let next = reply;
+  const tone = preferences.tone || 'balanced';
+  const detail = preferences.detailLevel || 'medium';
+
+  if (tone === 'short') {
+    const firstSentence = next.split(/[.!?]\s+/)[0];
+    next = firstSentence ? firstSentence.trim() : next;
+  }
+
+  if (tone === 'formal') {
+    next = next
+      .replace(/^Szia!/i, 'Udvozollek!')
+      .replace(/Szuper/i, 'Rendben');
+  }
+
+  if (detail === 'low' && action === 'clarify_with_options') {
+    next = `${next.split('\n')[0]} Valassz egy opciot lent.`;
+  }
+
+  if (detail === 'high' && action !== 'clarify_with_options') {
+    if (!next.includes('Ha szeretned')) {
+      next = `${next} Ha szeretned, adok rovid magyarazatot is.`;
+    }
+  }
+
+  return next;
+}
+
 function clamp01(value) {
   if (Number.isNaN(Number(value))) return 0;
   return Math.max(0, Math.min(1, Number(value)));
@@ -705,7 +760,7 @@ function buildDecisionReasoning({ parsed, scores, features, strategyScores, best
   return lines;
 }
 
-function buildDecisionPipeline({ message, parsed, mood, chatRole, recentConversation, lastAssistantAction, lastAssistantEntities, selectedAction }) {
+function buildDecisionPipeline({ message, parsed, mood, chatRole, recentConversation, lastAssistantAction, lastAssistantEntities, selectedAction, weights }) {
   const intentScore = clamp01(parsed?.confidence || 0);
   const moodScore = clamp01(mood?.confidence || 0);
   const contextScore = computeContextScore({
@@ -741,7 +796,8 @@ function buildDecisionPipeline({ message, parsed, mood, chatRole, recentConversa
     riskSignals,
   });
 
-  const weightedScore = Number(computeWeightedDecisionScore({ scores }).toFixed(3));
+  const effectiveWeights = normalizeDecisionWeights(weights || DECISION_WEIGHTS);
+  const weightedScore = Number(computeWeightedDecisionScore({ scores, weights: effectiveWeights }).toFixed(3));
   const strategyScores = scoreStrategies({ weightedScore, scores, features });
   const bestStrategy = pickMaxStrategy(strategyScores);
   const reasoning = buildDecisionReasoning({ parsed, scores, features, strategyScores, bestStrategy });
@@ -755,7 +811,7 @@ function buildDecisionPipeline({ message, parsed, mood, chatRole, recentConversa
     },
     features,
     scores,
-    weights: DECISION_WEIGHTS,
+    weights: effectiveWeights,
     weightedScore,
     strategyScores,
     bestStrategy,
@@ -995,6 +1051,7 @@ export async function POST(request) {
     const lastAssistantEntities = context?.lastAssistantEntities || null;
     const learningFeedback = body?.learningFeedback || null;
     const mood = detectConversationalMood({ message, recentConversation });
+    const longTermMemory = await loadBettiLongTermMemory(uid);
 
     // Check if this is a training input (starts with "xx ")
     const training = detectTrainingInput(originalMessage);
@@ -1037,6 +1094,17 @@ export async function POST(request) {
       console.log('[Betti Training] Pattern to save:', pattern);
       const saveResult = await saveTrainingPattern(uid, pattern);
       console.log('[Betti Training] Save result:', saveResult);
+
+      const stats = longTermMemory?.stats || {};
+      await saveBettiLongTermMemory(uid, {
+        stats: {
+          ...stats,
+          trainingCount: Number(stats.trainingCount || 0) + 1,
+          totalMessages: Number(stats.totalMessages || 0) + 1,
+          lastSeenIntent: 'training_saved',
+          lastSeenAt: new Date().toISOString(),
+        },
+      });
       
       if (saveResult.success) {
         // Force reload patterns after saving (small delay for Firestore consistency)
@@ -1088,6 +1156,18 @@ export async function POST(request) {
         autoPattern.action = selectedParsed.action;
         autoPattern.source = 'quick_action_selection';
         await saveTrainingPattern(uid, autoPattern);
+
+        const stats = longTermMemory?.stats || {};
+        await saveBettiLongTermMemory(uid, {
+          userPreferences: {
+            ...(longTermMemory?.userPreferences || {}),
+            frequentIntent: selectedParsed.intent,
+          },
+          stats: {
+            ...stats,
+            correctedByQuickActionCount: Number(stats.correctedByQuickActionCount || 0) + 1,
+          },
+        });
       }
     }
 
@@ -1536,6 +1616,7 @@ export async function POST(request) {
       lastAssistantAction,
       lastAssistantEntities,
       selectedAction,
+      weights: longTermMemory?.userPreferences?.decisionWeights,
     });
     const actionPlan = buildActionPlan(selectedAction, payload?.entities || parsed.entities || {});
 
@@ -1551,12 +1632,54 @@ export async function POST(request) {
       action: selectedAction,
     });
 
+    reply = applyUserPreferences({
+      reply,
+      preferences: longTermMemory?.userPreferences,
+      action: selectedAction,
+    });
+
+    const stats = longTermMemory?.stats || {};
+    const unknownIncrement = parsed.intent === 'unknown' ? 1 : 0;
+    await saveBettiLongTermMemory(uid, {
+      stats: {
+        ...stats,
+        totalMessages: Number(stats.totalMessages || 0) + 1,
+        unknownCount: Number(stats.unknownCount || 0) + unknownIncrement,
+        lastSeenIntent: parsed.intent,
+        lastSeenAt: new Date().toISOString(),
+      },
+      userPreferences: {
+        ...(longTermMemory?.userPreferences || {}),
+        frequentIntent: parsed.intent !== 'unknown' ? parsed.intent : (longTermMemory?.userPreferences?.frequentIntent || null),
+      },
+    });
+
+    if (learningFeedback?.type === 'intent_selection' && decisionPipeline.scores.intent < LOW_CONFIDENCE_THRESHOLD) {
+      const currentWeights = decisionPipeline.weights;
+      const suggestedWeights = normalizeDecisionWeights({
+        ...currentWeights,
+        intent: Number(currentWeights.intent || 0) + 0.03,
+        context: Number(currentWeights.context || 0) + 0.02,
+        risk: Math.max(0.02, Number(currentWeights.risk || 0) - 0.03),
+      });
+
+      await appendBettiWeightSuggestion(uid, {
+        trigger: 'quick_action_correction',
+        previousWeights: currentWeights,
+        suggestedWeights,
+        observedIntent: parsed.intent,
+        observedAction: selectedAction,
+        scores: decisionPipeline.scores,
+      });
+    }
+
     payload = {
       ...payload,
       strategy: decisionPipeline.bestStrategy,
       scores: decisionPipeline.scores,
       executionPlan: actionPlan,
       decisionReasoning: decisionPipeline.reasoning,
+      userPreferences: longTermMemory?.userPreferences || {},
     };
 
     const latencyMs = Date.now() - requestStartTs;
@@ -1589,6 +1712,10 @@ export async function POST(request) {
         decisionPipeline,
         actionPlan,
         latencyMs,
+        longTermMemory: {
+          userPreferences: longTermMemory?.userPreferences || {},
+          stats: longTermMemory?.stats || {},
+        },
       },
       proactiveWarnings,
       quickActions,
