@@ -77,6 +77,14 @@ export async function POST(request) {
       reply = 'Rendben, segitek beosztas-tervezetet irni. Nyisd meg a Beosztas-tervezo reszt, vagy mondd: "Beosztast szeretnek irni".';
     }
 
+    if (parsed.intent === 'greeting') {
+      reply = 'Szia! Betti vagyok 👋 Kerdezhetsz ilyet is: "Mi a beosztasom?", "Mikor vagyok szabin?", vagy "Mutasd a tulorasokat".';
+    }
+
+    if (parsed.intent === 'thanks' || parsed.intent === 'ack') {
+      reply = 'Szivesen! Ha szeretned, mar most megmutatom a kovetkezo muszakjaidat vagy szabadnapjaidat.';
+    }
+
     return NextResponse.json({
       success: true,
       intent: parsed.intent,
