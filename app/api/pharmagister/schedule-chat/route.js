@@ -69,6 +69,26 @@ const STABILITY_INDEX_THRESHOLD = 0.35;
 const SAFETY_OVERRIDE_DRIFT_SPIKE = 0.5;
 const SAFETY_OVERRIDE_PERF_DROP = 0.1;
 const CONTEXT_DECAY_LAMBDA = 0.08;
+const STABILITY_GUARD_THRESHOLD = 0.7;
+
+const STRATEGY_KEYS = [
+  'direct_answer',
+  'clarify',
+  'safe_clarify',
+  'empathetic_support',
+  'empathetic_clarify',
+  'role_redirect',
+];
+const STABILITY_GUARD_THRESHOLD = 0.7;
+
+const STRATEGY_KEYS = [
+  'direct_answer',
+  'clarify',
+  'safe_clarify',
+  'empathetic_support',
+  'empathetic_clarify',
+  'role_redirect',
+];
 
 function normalizeDecisionWeights(candidate) {
   const base = { ...DECISION_WEIGHTS };
@@ -91,23 +111,267 @@ function normalizeDecisionWeights(candidate) {
   return normalized;
 }
 
+function normalizeByImpactHistory(memory, baseWeights) {
+  const weights = normalizeDecisionWeights(baseWeights || DECISION_WEIGHTS);
+  const taxonomy = memory?.stats?.errorTaxonomy || {};
+
+  const adjusted = {
+    ...weights,
+    intent: weights.intent + (Number(taxonomy.intent_miss || 0) > 5 ? 0.03 : 0),
+    context: weights.context + (Number(taxonomy.context_miss || 0) > 5 ? 0.03 : 0),
+    role: weights.role + (Number(taxonomy.role_violation || 0) > 3 ? 0.04 : 0),
+    mood: weights.mood + (Number(taxonomy.tone_mismatch || 0) > 5 ? 0.03 : 0),
+    risk: weights.risk + (Number(taxonomy.strategy_miss || 0) > 5 ? 0.02 : 0),
+  };
+
+  return normalizeDecisionWeights(adjusted);
+}
+
+function validatePolicyConsistency(policyVersion) {
+  if (!policyVersion) return { valid: false, reasons: ['missing_policy'] };
+  const reasons = [];
+  const weights = normalizeDecisionWeights(policyVersion.weights || {});
+  const sum = Object.values(weights).reduce((a, b) => a + Number(b || 0), 0);
+  if (Math.abs(sum - 1) > 0.01) reasons.push('weight_sum_invalid');
+  if (Object.values(weights).some((w) => Number(w) < 0)) reasons.push('negative_weight_detected');
+
+  const mapping = policyVersion.strategyMapping || {};
+  const scores = mapping.scores || {};
+  const coverage = STRATEGY_KEYS.every((k) => Object.prototype.hasOwnProperty.call(scores, k));
+  if (!coverage) reasons.push('strategy_mapping_coverage_incomplete');
+
+  const unreachable = STRATEGY_KEYS.filter((k) => Number(scores[k] || 0) <= 0);
+  if (unreachable.length === STRATEGY_KEYS.length) reasons.push('all_strategies_unreachable');
+
+  const intentRouting = mapping.intentRouting || {};
+  const knownIntents = new Set([
+    'my_schedule', 'my_schedule_presence', 'my_vacation', 'my_free_days', 'report_overtime',
+    'list_employees', 'show_vacation_requests', 'missing_drafts', 'add_employee', 'remove_employee',
+    'greeting', 'identity', 'thanks', 'ack', 'affirmative', 'negative', 'hesitation', 'unknown',
+  ]);
+  const orphanIntents = Object.keys(intentRouting).filter((intent) => !knownIntents.has(intent));
+  if (orphanIntents.length > 0) reasons.push('orphan_intents_detected');
+
+  return {
+    valid: reasons.length === 0,
+    reasons,
+    unreachableStrategies: unreachable,
+    orphanIntents,
+  };
+}
+
+function resolveStrategyConflict({ weightedSuggested, strategySuggested, intentConfidence, contextUncertainty }) {
+  if (!weightedSuggested || !strategySuggested || weightedSuggested === strategySuggested) {
+    return { resolved: strategySuggested || weightedSuggested || 'clarify', hadConflict: false, confidenceGap: 0 };
+  }
+
+  const conflictPair = new Set([weightedSuggested, strategySuggested]);
+  const directVsClarify = conflictPair.has('direct_answer') && conflictPair.has('clarify');
+  if (!directVsClarify) {
+    return { resolved: strategySuggested, hadConflict: true, confidenceGap: 0, reason: 'fallback_strategy_engine' };
+  }
+
+  const gap = Number((Number(intentConfidence || 0) - Number(contextUncertainty || 0)).toFixed(4));
+  return {
+    resolved: gap > 0.2 ? 'direct_answer' : 'clarify',
+    hadConflict: true,
+    confidenceGap: gap,
+    reason: 'direct_vs_clarify_gap_rule',
+  };
+}
+
+function predictDriftNextN(policies = [], n = 10) {
+  const items = Array.isArray(policies) ? policies.slice(-Math.max(2, n)) : [];
+  if (items.length < 2) {
+    return { expectedDriftTrend: 0, riskSlope: 0, stabilityForecast: 0.5, shouldPreventUpdate: false };
+  }
+
+  const drifts = [];
+  for (let i = 1; i < items.length; i += 1) {
+    drifts.push(calculateWeightDistance(items[i - 1]?.weights, items[i]?.weights));
+  }
+
+  const xMean = (drifts.length - 1) / 2;
+  const yMean = drifts.reduce((a, b) => a + b, 0) / drifts.length;
+  let num = 0;
+  let den = 0;
+  drifts.forEach((y, idx) => {
+    const x = idx;
+    num += (x - xMean) * (y - yMean);
+    den += (x - xMean) ** 2;
+  });
+  const slope = den === 0 ? 0 : num / den;
+  const expectedDriftTrend = yMean + slope * Math.min(n, 10);
+  const stabilityForecast = clamp01(1 - expectedDriftTrend);
+
+  return {
+    expectedDriftTrend: Number(expectedDriftTrend.toFixed(4)),
+    riskSlope: Number(slope.toFixed(4)),
+    stabilityForecast: Number(stabilityForecast.toFixed(4)),
+    shouldPreventUpdate: slope > 0,
+  };
+}
+
+function compressPolicies(policies = []) {
+  const source = Array.isArray(policies) ? policies : [];
+  if (source.length <= 3) return source;
+
+  const compressed = [source[0]];
+  for (let i = 1; i < source.length; i += 1) {
+    const prev = compressed[compressed.length - 1];
+    const curr = source[i];
+    const wDist = calculateWeightDistance(prev?.weights, curr?.weights);
+    const pDist = Math.abs(Number(prev?.performanceScore || 0) - Number(curr?.performanceScore || 0));
+    if (wDist < 0.02 && pDist < 0.01) {
+      continue;
+    }
+    compressed.push(curr);
+  }
+
+  return compressed.slice(-50);
+}
+
+function normalizeByImpactHistory(memory, baseWeights) {
+  const weights = normalizeDecisionWeights(baseWeights || DECISION_WEIGHTS);
+  const taxonomy = memory?.stats?.errorTaxonomy || {};
+
+  const adjusted = {
+    ...weights,
+    intent: weights.intent + (Number(taxonomy.intent_miss || 0) > 5 ? 0.03 : 0),
+    context: weights.context + (Number(taxonomy.context_miss || 0) > 5 ? 0.03 : 0),
+    role: weights.role + (Number(taxonomy.role_violation || 0) > 3 ? 0.04 : 0),
+    mood: weights.mood + (Number(taxonomy.tone_mismatch || 0) > 5 ? 0.03 : 0),
+    risk: weights.risk + (Number(taxonomy.strategy_miss || 0) > 5 ? 0.02 : 0),
+  };
+
+  return normalizeDecisionWeights(adjusted);
+}
+
+function validatePolicyConsistency(policyVersion) {
+  if (!policyVersion) return { valid: false, reasons: ['missing_policy'] };
+  const reasons = [];
+  const weights = normalizeDecisionWeights(policyVersion.weights || {});
+  const sum = Object.values(weights).reduce((a, b) => a + Number(b || 0), 0);
+  if (Math.abs(sum - 1) > 0.01) reasons.push('weight_sum_invalid');
+  if (Object.values(weights).some((w) => Number(w) < 0)) reasons.push('negative_weight_detected');
+
+  const mapping = policyVersion.strategyMapping || {};
+  const scores = mapping.scores || {};
+  const coverage = STRATEGY_KEYS.every((k) => Object.prototype.hasOwnProperty.call(scores, k));
+  if (!coverage) reasons.push('strategy_mapping_coverage_incomplete');
+
+  const unreachable = STRATEGY_KEYS.filter((k) => Number(scores[k] || 0) <= 0);
+  if (unreachable.length === STRATEGY_KEYS.length) reasons.push('all_strategies_unreachable');
+
+  const intentRouting = mapping.intentRouting || {};
+  const knownIntents = new Set([
+    'my_schedule', 'my_schedule_presence', 'my_vacation', 'my_free_days', 'report_overtime',
+    'list_employees', 'show_vacation_requests', 'missing_drafts', 'add_employee', 'remove_employee',
+    'greeting', 'identity', 'thanks', 'ack', 'affirmative', 'negative', 'hesitation', 'unknown',
+  ]);
+  const orphanIntents = Object.keys(intentRouting).filter((intent) => !knownIntents.has(intent));
+  if (orphanIntents.length > 0) reasons.push('orphan_intents_detected');
+
+  return {
+    valid: reasons.length === 0,
+    reasons,
+    unreachableStrategies: unreachable,
+    orphanIntents,
+  };
+}
+
+function resolveStrategyConflict({ weightedSuggested, strategySuggested, intentConfidence, contextUncertainty }) {
+  if (!weightedSuggested || !strategySuggested || weightedSuggested === strategySuggested) {
+    return { resolved: strategySuggested || weightedSuggested || 'clarify', hadConflict: false, confidenceGap: 0 };
+  }
+
+  const conflictPair = new Set([weightedSuggested, strategySuggested]);
+  const directVsClarify = conflictPair.has('direct_answer') && conflictPair.has('clarify');
+  if (!directVsClarify) {
+    return { resolved: strategySuggested, hadConflict: true, confidenceGap: 0, reason: 'fallback_strategy_engine' };
+  }
+
+  const gap = Number((Number(intentConfidence || 0) - Number(contextUncertainty || 0)).toFixed(4));
+  return {
+    resolved: gap > 0.2 ? 'direct_answer' : 'clarify',
+    hadConflict: true,
+    confidenceGap: gap,
+    reason: 'direct_vs_clarify_gap_rule',
+  };
+}
+
+function predictDriftNextN(policies = [], n = 10) {
+  const items = Array.isArray(policies) ? policies.slice(-Math.max(2, n)) : [];
+  if (items.length < 2) {
+    return { expectedDriftTrend: 0, riskSlope: 0, stabilityForecast: 0.5, shouldPreventUpdate: false };
+  }
+
+  const drifts = [];
+  for (let i = 1; i < items.length; i += 1) {
+    drifts.push(calculateWeightDistance(items[i - 1]?.weights, items[i]?.weights));
+  }
+
+  const xMean = (drifts.length - 1) / 2;
+  const yMean = drifts.reduce((a, b) => a + b, 0) / drifts.length;
+  let num = 0;
+  let den = 0;
+  drifts.forEach((y, idx) => {
+    const x = idx;
+    num += (x - xMean) * (y - yMean);
+    den += (x - xMean) ** 2;
+  });
+  const slope = den === 0 ? 0 : num / den;
+  const expectedDriftTrend = yMean + slope * Math.min(n, 10);
+  const stabilityForecast = clamp01(1 - expectedDriftTrend);
+
+  return {
+    expectedDriftTrend: Number(expectedDriftTrend.toFixed(4)),
+    riskSlope: Number(slope.toFixed(4)),
+    stabilityForecast: Number(stabilityForecast.toFixed(4)),
+    shouldPreventUpdate: slope > 0,
+  };
+}
+
+function compressPolicies(policies = []) {
+  const source = Array.isArray(policies) ? policies : [];
+  if (source.length <= 3) return source;
+
+  const compressed = [source[0]];
+  for (let i = 1; i < source.length; i += 1) {
+    const prev = compressed[compressed.length - 1];
+    const curr = source[i];
+    const wDist = calculateWeightDistance(prev?.weights, curr?.weights);
+    const pDist = Math.abs(Number(prev?.performanceScore || 0) - Number(curr?.performanceScore || 0));
+    if (wDist < 0.02 && pDist < 0.01) {
+      continue;
+    }
+    compressed.push(curr);
+  }
+
+  return compressed.slice(-50);
+}
+
 function getTimeMillis(value) {
   if (!value) return 0;
   const ts = new Date(value).getTime();
   return Number.isNaN(ts) ? 0 : ts;
 }
 
-function averageSuggestedWeights(suggestions = []) {
+function averageSuggestedWeights(suggestions = [], nowTs = Date.now()) {
   if (!Array.isArray(suggestions) || suggestions.length === 0) return null;
 
   const sum = { intent: 0, context: 0, role: 0, mood: 0, risk: 0 };
+  let totalWeight = 0;
   suggestions.forEach((item) => {
     const sw = normalizeDecisionWeights(item?.suggestedWeights || {});
-    Object.keys(sum).forEach((k) => { sum[k] += Number(sw[k] || 0); });
+    const ageDays = Math.max(0, (nowTs - getTimeMillis(item?.createdAt)) / (24 * 60 * 60 * 1000));
+    const feedbackTimeWeight = Math.exp(-0.15 * ageDays);
+    totalWeight += feedbackTimeWeight;
+    Object.keys(sum).forEach((k) => { sum[k] += Number(sw[k] || 0) * feedbackTimeWeight; });
   });
 
   const avg = {};
-  Object.keys(sum).forEach((k) => { avg[k] = sum[k] / suggestions.length; });
+  Object.keys(sum).forEach((k) => { avg[k] = sum[k] / Math.max(0.0001, totalWeight); });
   return normalizeDecisionWeights(avg);
 }
 
@@ -144,7 +408,7 @@ function evaluateAutoWeightApply(memory, nowTs = Date.now()) {
     return { shouldApply: false, reason: 'cooldown_active' };
   }
 
-  const avgSuggested = averageSuggestedWeights(recent);
+  const avgSuggested = averageSuggestedWeights(recent, nowTs);
   if (!avgSuggested) {
     return { shouldApply: false, reason: 'no_average_weight' };
   }
@@ -1234,7 +1498,7 @@ function buildDecisionReasoning({ parsed, scores, features, strategyScores, best
   return lines;
 }
 
-function buildDecisionPipeline({ message, parsed, mood, chatRole, recentConversation, lastAssistantAction, lastAssistantEntities, selectedAction, weights }) {
+function buildDecisionPipeline({ message, parsed, mood, chatRole, recentConversation, lastAssistantAction, lastAssistantEntities, selectedAction, weights, memory }) {
   const intentScore = clamp01(parsed?.confidence || 0);
   const moodScore = clamp01(mood?.confidence || 0);
   const contextScore = computeContextScore({
@@ -1270,10 +1534,18 @@ function buildDecisionPipeline({ message, parsed, mood, chatRole, recentConversa
     riskSignals,
   });
 
-  const effectiveWeights = normalizeDecisionWeights(weights || DECISION_WEIGHTS);
+  const effectiveWeights = normalizeByImpactHistory(memory, normalizeDecisionWeights(weights || DECISION_WEIGHTS));
   const weightedScore = Number(computeWeightedDecisionScore({ scores, weights: effectiveWeights }).toFixed(3));
   const strategyScores = scoreStrategies({ weightedScore, scores, features });
-  const bestStrategy = pickMaxStrategy(strategyScores);
+  const weightedSuggested = weightedScore > 0.55 ? 'direct_answer' : 'clarify';
+  const strategySuggested = pickMaxStrategy(strategyScores);
+  const conflictResolution = resolveStrategyConflict({
+    weightedSuggested,
+    strategySuggested,
+    intentConfidence: scores.intent,
+    contextUncertainty: 1 - scores.context,
+  });
+  const bestStrategy = conflictResolution.resolved;
   const reasoning = buildDecisionReasoning({ parsed, scores, features, strategyScores, bestStrategy });
 
   return {
@@ -1288,6 +1560,9 @@ function buildDecisionPipeline({ message, parsed, mood, chatRole, recentConversa
     weights: effectiveWeights,
     weightedScore,
     strategyScores,
+    weightedSuggested,
+    strategySuggested,
+    conflictResolution,
     bestStrategy,
     reasoning,
   };
@@ -1524,6 +1799,7 @@ export async function POST(request) {
     const lastAssistantSuggestedAction = context?.lastAssistantSuggestedAction || '';
     const lastAssistantEntities = context?.lastAssistantEntities || null;
     const learningFeedback = body?.learningFeedback || null;
+    const externalValidationSignal = body?.externalValidationSignal || context?.externalValidationSignal || null;
     const mood = detectConversationalMood({ message, recentConversation });
     let longTermMemory = await loadBettiLongTermMemory(uid);
 
@@ -2091,6 +2367,7 @@ export async function POST(request) {
       lastAssistantEntities,
       selectedAction,
       weights: longTermMemory?.userPreferences?.decisionWeights,
+      memory: longTermMemory,
     });
     const actionPlan = buildActionPlan(selectedAction, payload?.entities || parsed.entities || {});
 
@@ -2222,6 +2499,15 @@ export async function POST(request) {
       performanceScore,
     });
 
+    const driftForecast = predictDriftNextN(longTermMemory?.policyVersions || [], 10);
+    const externalSupport = (
+      typeof externalValidationSignal?.supportsTuning === 'boolean'
+        ? externalValidationSignal.supportsTuning
+        : (typeof externalValidationSignal === 'boolean' ? externalValidationSignal : true)
+    );
+    const learningRateFactor = stability.stabilityIndex > STABILITY_GUARD_THRESHOLD ? 0.5 : 1;
+    const validationStrictness = stability.stabilityIndex > STABILITY_GUARD_THRESHOLD ? 1.25 : 1;
+
     const modeDecision = evaluateAutoTuningMode({
       memory: longTermMemory,
       driftStatus,
@@ -2243,6 +2529,9 @@ export async function POST(request) {
     }
     if (safetyOverride.active) {
       effectiveMode = safetyOverride.forceMode;
+    }
+    if (driftForecast.shouldPreventUpdate && effectiveMode === 'CONTROLLED_APPLY') {
+      effectiveMode = 'LEARNING_ONLY';
     }
     let rollback = {
       applied: false,
@@ -2299,6 +2588,50 @@ export async function POST(request) {
       longTermMemory = await loadBettiLongTermMemory(uid);
     }
 
+    const regressionDetected = (
+      !rollback.applied
+      && latestStableGolden?.weights
+      && baselinePerformanceScore > 0
+      && (baselinePerformanceScore - performanceScore) > 0.12
+    );
+
+    if (regressionDetected) {
+      effectiveMode = 'FULL_LOCK';
+      rollback = {
+        applied: true,
+        reason: 'auto_regression_detected',
+        restoredSnapshotVersion: latestStableGolden.version || null,
+      };
+      await saveBettiLongTermMemory(uid, {
+        userPreferences: {
+          ...(longTermMemory?.userPreferences || {}),
+          decisionWeights: normalizeDecisionWeights(latestStableGolden.weights),
+          frequentIntent: parsed.intent !== 'unknown' ? parsed.intent : (longTermMemory?.userPreferences?.frequentIntent || null),
+        },
+        stats: {
+          ...updatedStats,
+          lastRollbackAt: new Date().toISOString(),
+        },
+        autoTuning: {
+          ...(longTermMemory?.autoTuning || {}),
+          mode: 'FULL_LOCK',
+          freezeReason: rollback.reason,
+          lastModeChangeAt: new Date().toISOString(),
+          lastRollbackAt: new Date().toISOString(),
+          lastDriftScore: driftStatus.driftScore,
+          lastPerformanceScore: performanceScore,
+          lastConfidenceVariance: confidenceVariance,
+          safetyOverride: {
+            forceMode: 'FULL_LOCK',
+            reason: rollback.reason,
+            active: true,
+            updatedAt: new Date().toISOString(),
+          },
+        },
+      });
+      longTermMemory = await loadBettiLongTermMemory(uid);
+    }
+
     let autoWeightTuning = {
       applied: false,
       reason: 'not_triggered',
@@ -2309,9 +2642,13 @@ export async function POST(request) {
       learningBoundary,
       antiOverfit,
       drift: driftStatus,
+      driftForecast,
       performanceScore,
       stability,
       safetyOverride,
+      learningRateFactor,
+      validationStrictness,
+      externalValidationSupported: externalSupport,
       strategyLearningInput: {
         strategy: decisionPipeline.bestStrategy,
         strategyScores: decisionPipeline.strategyScores,
@@ -2332,13 +2669,15 @@ export async function POST(request) {
         && clusterGate.passes
         && learningBoundary.allow
         && causalGate.allow
+        && externalSupport
+        && !driftForecast.shouldPreventUpdate
         && effectiveMode !== 'OFF'
         && effectiveMode !== 'FULL_LOCK'
       );
 
       if (shouldConsiderSuggestion) {
         const populationImpact = computePopulationNormalizedImpact(antiOverfit.singleUserImpactFactor, longTermMemory);
-        const impact = Math.max(0.05, Math.min(0.4, populationImpact.normalizedImpact));
+        const impact = Math.max(0.05, Math.min(0.4, populationImpact.normalizedImpact * learningRateFactor));
         const suggestedWeights = normalizeDecisionWeights({
           ...currentWeights,
           intent: Number(currentWeights.intent || 0) + (0.03 * impact),
@@ -2375,10 +2714,29 @@ export async function POST(request) {
         followUpCorrectionCount: Number((refreshedMemory?.stats?.followUpCorrectionCount || updatedStats.followUpCorrectionCount || 0)) + (feedbackQuality.followUpBehavior ? 1 : 0),
         sentimentShiftCorrectionCount: Number((refreshedMemory?.stats?.sentimentShiftCorrectionCount || updatedStats.sentimentShiftCorrectionCount || 0)) + (feedbackQuality.sentimentShift ? 1 : 0),
         feedbackQualityAvg: Number((((Number(refreshedMemory?.stats?.feedbackQualityAvg || 0) * 0.85) + (feedbackQuality.feedbackWeight * 0.15))).toFixed(4)),
+        errorTaxonomy: {
+          intent_miss: Number(refreshedMemory?.stats?.errorTaxonomy?.intent_miss || 0) + (feedbackQuality.hasExplicitCorrection ? 1 : 0),
+          strategy_miss: Number(refreshedMemory?.stats?.errorTaxonomy?.strategy_miss || 0) + (decisionPipeline?.conflictResolution?.hadConflict ? 1 : 0),
+          context_miss: Number(refreshedMemory?.stats?.errorTaxonomy?.context_miss || 0) + (feedbackQuality.followUpBehavior ? 1 : 0),
+          role_violation: Number(refreshedMemory?.stats?.errorTaxonomy?.role_violation || 0) + ((parsed?.intent === 'unknown' && chatRole === 'manager') ? 1 : 0),
+          tone_mismatch: Number(refreshedMemory?.stats?.errorTaxonomy?.tone_mismatch || 0) + (feedbackQuality.sentimentShift ? 1 : 0),
+        },
+        externalValidationPassCount: Number(refreshedMemory?.stats?.externalValidationPassCount || 0) + (externalSupport ? 1 : 0),
+        externalValidationFailCount: Number(refreshedMemory?.stats?.externalValidationFailCount || 0) + (externalSupport ? 0 : 1),
+        totalUsersAffected: Math.max(
+          Number(refreshedMemory?.stats?.totalUsersAffected || 0),
+          Number(externalValidationSignal?.usersAffected || 0),
+        ),
       };
 
       const autoTuneEval = evaluateAutoWeightApply(refreshedMemory, Date.now());
-      const shouldControlledApply = effectiveMode === 'CONTROLLED_APPLY' && !driftStatus.shouldFreeze && !driftStatus.shouldRollback;
+      const shouldControlledApply = (
+        effectiveMode === 'CONTROLLED_APPLY'
+        && !driftStatus.shouldFreeze
+        && !driftStatus.shouldRollback
+        && !driftForecast.shouldPreventUpdate
+        && externalSupport
+      );
 
       if (shouldControlledApply && autoTuneEval.shouldApply) {
         const impactReport = simulateUpdateImpact({
@@ -2402,8 +2760,10 @@ export async function POST(request) {
         });
 
         const validChangeLog = isWeightChangeLogValid(weightChangeLog);
+        const strictImpactOk = impactReport.predictedPerformanceDelta >= (-0.01 * validationStrictness);
+        let policyConsistency = { valid: false, reasons: ['not_built'] };
 
-        if (!impactReport.blocked && validChangeLog) {
+        if (!impactReport.blocked && validChangeLog && strictImpactOk) {
           const policyVersion = buildPolicyVersion({
             memory: refreshedMemory,
             weights: autoTuneEval.nextWeights,
@@ -2414,6 +2774,17 @@ export async function POST(request) {
             performanceScore,
             stabilityIndex: stability.stabilityIndex,
           });
+          policyConsistency = validatePolicyConsistency(policyVersion);
+
+          if (!policyConsistency.valid) {
+            autoWeightTuning = {
+              ...autoWeightTuning,
+              applied: false,
+              reason: 'policy_consistency_failed',
+              policyConsistency,
+              impactReport,
+            };
+          } else {
 
         await saveBettiLongTermMemory(uid, {
           userPreferences: {
@@ -2459,6 +2830,14 @@ export async function POST(request) {
           feedbackClusters: nextFeedbackClusters,
           recentFeedbackWindow: nextFeedbackWindow,
           stability,
+          externalValidationHistory: [
+            ...((Array.isArray(refreshedMemory?.externalValidationHistory) ? refreshedMemory.externalValidationHistory : []).slice(-49)),
+            {
+              at: new Date().toISOString(),
+              supportsTuning: externalSupport,
+              usersAffected: Number(externalValidationSignal?.usersAffected || 0),
+            },
+          ],
           weightChangeLogs: [
             ...(Array.isArray(refreshedMemory?.weightChangeLogs) ? refreshedMemory.weightChangeLogs : []),
             weightChangeLog,
@@ -2466,8 +2845,14 @@ export async function POST(request) {
           policyVersions: [
             ...(Array.isArray(refreshedMemory?.policyVersions) ? refreshedMemory.policyVersions : []),
             policyVersion,
-          ].slice(-50),
+          ],
           activePolicyVersion: policyVersion.id,
+        });
+
+        await saveBettiLongTermMemory(uid, {
+          policyVersions: compressPolicies(Array.isArray(refreshedMemory?.policyVersions)
+            ? [...refreshedMemory.policyVersions, policyVersion]
+            : [policyVersion]),
         });
 
         longTermMemory = await loadBettiLongTermMemory(uid);
@@ -2482,13 +2867,17 @@ export async function POST(request) {
           mode: longTermMemory?.autoTuning?.mode || effectiveMode,
           impactReport,
           weightChangeLog,
+          policyConsistency,
           policyVersionId: longTermMemory?.activePolicyVersion || null,
         };
+          }
         } else {
           autoWeightTuning = {
             ...autoWeightTuning,
             applied: false,
-            reason: !validChangeLog ? 'invalid_weight_change_explanation' : 'impact_risk_blocked',
+            reason: !validChangeLog
+              ? 'invalid_weight_change_explanation'
+              : (!strictImpactOk ? 'strict_impact_validation_failed' : 'impact_risk_blocked'),
             impactReport,
             weightChangeLog: validChangeLog ? weightChangeLog : null,
           };
@@ -2532,6 +2921,14 @@ export async function POST(request) {
           feedbackClusters: nextFeedbackClusters,
           recentFeedbackWindow: nextFeedbackWindow,
           stability,
+          externalValidationHistory: [
+            ...((Array.isArray(refreshedMemory?.externalValidationHistory) ? refreshedMemory.externalValidationHistory : []).slice(-49)),
+            {
+              at: new Date().toISOString(),
+              supportsTuning: externalSupport,
+              usersAffected: Number(externalValidationSignal?.usersAffected || 0),
+            },
+          ],
         });
         longTermMemory = await loadBettiLongTermMemory(uid);
         autoWeightTuning = {
@@ -2559,6 +2956,7 @@ export async function POST(request) {
     payload = {
       ...payload,
       strategy: decisionPipeline.bestStrategy,
+      strategyConflict: decisionPipeline.conflictResolution,
       scores: decisionPipeline.scores,
       executionPlan: actionPlan,
       decisionReasoning: decisionPipeline.reasoning,
