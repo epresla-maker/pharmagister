@@ -289,6 +289,10 @@ export async function POST(request) {
       reply = 'Rendben, kilistazom a kovetkezo szabadnapjaidat.';
     }
 
+    if (parsed.intent === 'capabilities' || parsed.intent === 'help') {
+      reply = 'Ebben tudok segiteni:\n- Sajat beosztas es kovetkezo muszakok\n- Szabadsagok es szabadnapok\n- Tulora attekintes\n- Muszakhelyettesites\n- Ujratervezes (teljes vagy napi)\n\nIrd peldaul: "Mi a beosztasom?" vagy "Mutasd a tulorasokat".';
+    }
+
     if (parsed.intent === 'write_schedule_plan') {
       reply = 'Rendben, segitek beosztas-tervezetet irni. Nyisd meg a Beosztas-tervezo reszt, vagy mondd: "Beosztast szeretnek irni".';
     }
