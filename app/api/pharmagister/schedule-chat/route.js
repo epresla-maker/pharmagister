@@ -70,16 +70,10 @@ const SAFETY_OVERRIDE_DRIFT_SPIKE = 0.5;
 const SAFETY_OVERRIDE_PERF_DROP = 0.1;
 const CONTEXT_DECAY_LAMBDA = 0.08;
 const STABILITY_GUARD_THRESHOLD = 0.7;
-
-const STRATEGY_KEYS = [
-  'direct_answer',
-  'clarify',
-  'safe_clarify',
-  'empathetic_support',
-  'empathetic_clarify',
-  'role_redirect',
-];
-const STABILITY_GUARD_THRESHOLD = 0.7;
+const BASELINE_LOOKBACK_DAYS = 14;
+const TUNING_MIN_PERFORMANCE_DELTA = 0.02;
+const STRATEGY_LATENCY_BAD_MS = 1800;
+const POLICY_EVOLUTION_MIN_SCORE = 0;
 
 const STRATEGY_KEYS = [
   'direct_answer',
@@ -109,126 +103,6 @@ function normalizeDecisionWeights(candidate) {
     normalized[k] = Number((raw[k] / total).toFixed(4));
   });
   return normalized;
-}
-
-function normalizeByImpactHistory(memory, baseWeights) {
-  const weights = normalizeDecisionWeights(baseWeights || DECISION_WEIGHTS);
-  const taxonomy = memory?.stats?.errorTaxonomy || {};
-
-  const adjusted = {
-    ...weights,
-    intent: weights.intent + (Number(taxonomy.intent_miss || 0) > 5 ? 0.03 : 0),
-    context: weights.context + (Number(taxonomy.context_miss || 0) > 5 ? 0.03 : 0),
-    role: weights.role + (Number(taxonomy.role_violation || 0) > 3 ? 0.04 : 0),
-    mood: weights.mood + (Number(taxonomy.tone_mismatch || 0) > 5 ? 0.03 : 0),
-    risk: weights.risk + (Number(taxonomy.strategy_miss || 0) > 5 ? 0.02 : 0),
-  };
-
-  return normalizeDecisionWeights(adjusted);
-}
-
-function validatePolicyConsistency(policyVersion) {
-  if (!policyVersion) return { valid: false, reasons: ['missing_policy'] };
-  const reasons = [];
-  const weights = normalizeDecisionWeights(policyVersion.weights || {});
-  const sum = Object.values(weights).reduce((a, b) => a + Number(b || 0), 0);
-  if (Math.abs(sum - 1) > 0.01) reasons.push('weight_sum_invalid');
-  if (Object.values(weights).some((w) => Number(w) < 0)) reasons.push('negative_weight_detected');
-
-  const mapping = policyVersion.strategyMapping || {};
-  const scores = mapping.scores || {};
-  const coverage = STRATEGY_KEYS.every((k) => Object.prototype.hasOwnProperty.call(scores, k));
-  if (!coverage) reasons.push('strategy_mapping_coverage_incomplete');
-
-  const unreachable = STRATEGY_KEYS.filter((k) => Number(scores[k] || 0) <= 0);
-  if (unreachable.length === STRATEGY_KEYS.length) reasons.push('all_strategies_unreachable');
-
-  const intentRouting = mapping.intentRouting || {};
-  const knownIntents = new Set([
-    'my_schedule', 'my_schedule_presence', 'my_vacation', 'my_free_days', 'report_overtime',
-    'list_employees', 'show_vacation_requests', 'missing_drafts', 'add_employee', 'remove_employee',
-    'greeting', 'identity', 'thanks', 'ack', 'affirmative', 'negative', 'hesitation', 'unknown',
-  ]);
-  const orphanIntents = Object.keys(intentRouting).filter((intent) => !knownIntents.has(intent));
-  if (orphanIntents.length > 0) reasons.push('orphan_intents_detected');
-
-  return {
-    valid: reasons.length === 0,
-    reasons,
-    unreachableStrategies: unreachable,
-    orphanIntents,
-  };
-}
-
-function resolveStrategyConflict({ weightedSuggested, strategySuggested, intentConfidence, contextUncertainty }) {
-  if (!weightedSuggested || !strategySuggested || weightedSuggested === strategySuggested) {
-    return { resolved: strategySuggested || weightedSuggested || 'clarify', hadConflict: false, confidenceGap: 0 };
-  }
-
-  const conflictPair = new Set([weightedSuggested, strategySuggested]);
-  const directVsClarify = conflictPair.has('direct_answer') && conflictPair.has('clarify');
-  if (!directVsClarify) {
-    return { resolved: strategySuggested, hadConflict: true, confidenceGap: 0, reason: 'fallback_strategy_engine' };
-  }
-
-  const gap = Number((Number(intentConfidence || 0) - Number(contextUncertainty || 0)).toFixed(4));
-  return {
-    resolved: gap > 0.2 ? 'direct_answer' : 'clarify',
-    hadConflict: true,
-    confidenceGap: gap,
-    reason: 'direct_vs_clarify_gap_rule',
-  };
-}
-
-function predictDriftNextN(policies = [], n = 10) {
-  const items = Array.isArray(policies) ? policies.slice(-Math.max(2, n)) : [];
-  if (items.length < 2) {
-    return { expectedDriftTrend: 0, riskSlope: 0, stabilityForecast: 0.5, shouldPreventUpdate: false };
-  }
-
-  const drifts = [];
-  for (let i = 1; i < items.length; i += 1) {
-    drifts.push(calculateWeightDistance(items[i - 1]?.weights, items[i]?.weights));
-  }
-
-  const xMean = (drifts.length - 1) / 2;
-  const yMean = drifts.reduce((a, b) => a + b, 0) / drifts.length;
-  let num = 0;
-  let den = 0;
-  drifts.forEach((y, idx) => {
-    const x = idx;
-    num += (x - xMean) * (y - yMean);
-    den += (x - xMean) ** 2;
-  });
-  const slope = den === 0 ? 0 : num / den;
-  const expectedDriftTrend = yMean + slope * Math.min(n, 10);
-  const stabilityForecast = clamp01(1 - expectedDriftTrend);
-
-  return {
-    expectedDriftTrend: Number(expectedDriftTrend.toFixed(4)),
-    riskSlope: Number(slope.toFixed(4)),
-    stabilityForecast: Number(stabilityForecast.toFixed(4)),
-    shouldPreventUpdate: slope > 0,
-  };
-}
-
-function compressPolicies(policies = []) {
-  const source = Array.isArray(policies) ? policies : [];
-  if (source.length <= 3) return source;
-
-  const compressed = [source[0]];
-  for (let i = 1; i < source.length; i += 1) {
-    const prev = compressed[compressed.length - 1];
-    const curr = source[i];
-    const wDist = calculateWeightDistance(prev?.weights, curr?.weights);
-    const pDist = Math.abs(Number(prev?.performanceScore || 0) - Number(curr?.performanceScore || 0));
-    if (wDist < 0.02 && pDist < 0.01) {
-      continue;
-    }
-    compressed.push(curr);
-  }
-
-  return compressed.slice(-50);
 }
 
 function normalizeByImpactHistory(memory, baseWeights) {
@@ -489,18 +363,112 @@ function computePerformanceScore(stats = {}, previous = null) {
   return Number(clamp01(score).toFixed(4));
 }
 
+function stableSerialize(value) {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map((v) => stableSerialize(v)).join(',')}]`;
+  const keys = Object.keys(value).sort();
+  return `{${keys.map((k) => `${JSON.stringify(k)}:${stableSerialize(value[k])}`).join(',')}}`;
+}
+
+function hashString(input) {
+  const text = String(input || '');
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i += 1) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return `h${(h >>> 0).toString(16)}`;
+}
+
+function computeSystemIntegrityHash({ activePolicyVersion, weights, strategyMapping, featureWeights }) {
+  return hashString(stableSerialize({
+    activePolicyVersion: activePolicyVersion || 'none',
+    weights: normalizeDecisionWeights(weights || DECISION_WEIGHTS),
+    strategyMapping: strategyMapping || {},
+    featureWeights: featureWeights || DECISION_WEIGHTS,
+  }));
+}
+
+function computeRollingBaseline(memory, lookbackDays = BASELINE_LOOKBACK_DAYS, nowTs = Date.now()) {
+  const history = Array.isArray(memory?.performance?.recentScoreHistory) ? memory.performance.recentScoreHistory : [];
+  const minTs = nowTs - (lookbackDays * 24 * 60 * 60 * 1000);
+  const window = history.filter((item) => getTimeMillis(item?.at) >= minTs);
+  const points = window.length > 0
+    ? window.map((item) => Number(item?.score || 0))
+    : (Array.isArray(memory?.performance?.recentScores) ? memory.performance.recentScores.slice(-30) : []);
+
+  if (points.length === 0) return 0;
+  const baseline = points.reduce((a, b) => a + Number(b || 0), 0) / points.length;
+  return Number(clamp01(baseline).toFixed(4));
+}
+
+function computePerformanceDelta(current, baseline) {
+  const safeBaseline = Math.max(0.0001, Number(baseline || 0));
+  return Number((((Number(current || 0) - safeBaseline) / safeBaseline)).toFixed(4));
+}
+
+function computeCausalImpactScore({ learningFeedback, feedbackQuality, clusterGate, behaviorAligned }) {
+  const hasAB = Boolean(learningFeedback?.abGroup || learningFeedback?.experimentId || learningFeedback?.abTest);
+  const repeatedPattern = Number(clusterGate?.clusterSize || 0) >= Number(clusterGate?.minClusterSize || 3);
+  const feedbackAligned = Number(feedbackQuality?.feedbackWeight || 0) >= MIN_FEEDBACK_WEIGHT_FOR_TUNING;
+  const allow = (hasAB || repeatedPattern) && feedbackAligned && behaviorAligned;
+  const score = clamp01((hasAB ? 0.5 : 0) + (repeatedPattern ? 0.3 : 0) + (feedbackAligned ? 0.2 : 0));
+  return {
+    allow,
+    score: Number(score.toFixed(4)),
+    hasAB,
+    repeatedPattern,
+    feedbackAligned,
+    behaviorAligned,
+  };
+}
+
+function classifyFailureMode({ feedbackQuality, parsed, chatRole, decisionPipeline }) {
+  if (decisionPipeline?.scores?.role < 0.45 || (chatRole === 'manager' && parsed?.intent === 'unknown')) return 'role_violation';
+  if (feedbackQuality?.sentimentShift) return 'wrong_tone';
+  if (feedbackQuality?.followUpBehavior) return 'missing_context';
+  if (feedbackQuality?.quickActionReject) return 'wrong_action';
+  return 'misunderstanding';
+}
+
+function evaluateCircuitBreaker(memory, driftStatus, rollbackApplied, perfDrop) {
+  const existing = Array.isArray(memory?.autoTuning?.safetyEvents) ? memory.autoTuning.safetyEvents : [];
+  const hazard = rollbackApplied || Number(driftStatus?.driftScore || 0) > DRIFT_FREEZE_THRESHOLD || Number(perfDrop || 0) > SAFETY_OVERRIDE_PERF_DROP;
+  const next = [...existing.slice(-2), hazard ? 1 : 0];
+  const shouldLock = next.length >= 3 && next.every((v) => v === 1);
+  return {
+    hazard,
+    events: next,
+    shouldLock,
+  };
+}
+
+function computePolicyEvolutionScore({ improvementRate, instabilityRate, rollbackFrequency, externalValidationScore }) {
+  const score = Number(improvementRate || 0)
+    - Number(instabilityRate || 0)
+    - Number(rollbackFrequency || 0)
+    + Number(externalValidationScore || 0);
+  return Number(score.toFixed(4));
+}
+
 function computeDriftStatus({ currentWeights, goldenWeights, performanceScore, baselinePerformanceScore, confidenceVariance }) {
   const weightDistance = calculateWeightDistance(currentWeights, goldenWeights);
   const perfDropRaw = Math.max(0, Number(baselinePerformanceScore || 0) - Number(performanceScore || 0));
   const performanceDrop = clamp01(perfDropRaw);
   const confVar = clamp01(confidenceVariance || 0);
   const driftScore = clamp01(weightDistance + performanceDrop + confVar);
+  const modelDrift = clamp01(weightDistance * 0.7 + performanceDrop * 0.3);
+  const dataDrift = clamp01(confVar * 0.7 + performanceDrop * 0.3);
+  const driftType = modelDrift >= dataDrift ? 'modelDrift' : 'dataDrift';
 
   return {
     driftScore: Number(driftScore.toFixed(4)),
     weightDistance: Number(weightDistance.toFixed(4)),
     performanceDrop: Number(performanceDrop.toFixed(4)),
     confidenceVariance: Number(confVar.toFixed(4)),
+    modelDrift: Number(modelDrift.toFixed(4)),
+    dataDrift: Number(dataDrift.toFixed(4)),
+    driftType,
     shouldFreeze: driftScore > DRIFT_FREEZE_THRESHOLD,
     shouldRollback: driftScore > DRIFT_ROLLBACK_THRESHOLD,
   };
@@ -532,24 +500,30 @@ function causalValidationGate({ parsed, decisionPipeline, feedbackQuality, stats
   const intentCorrect = Number(decisionPipeline?.scores?.intent || 0) >= 0.7 && parsed?.intent !== 'unknown';
   const strategyLikelyWrong = ['clarify', 'safe_clarify', 'role_redirect'].includes(decisionPipeline?.bestStrategy);
   const explicitOrRepeated = feedbackQuality?.hasExplicitCorrection || Number(stats?.correctedByQuickActionCount || 0) >= 3;
+  const behaviorAligned = Number(stats?.followUpCorrectionCount || 0) > 0 || Number(stats?.explicitCorrectionCount || 0) > 0;
 
-  const allow = intentCorrect && strategyLikelyWrong && explicitOrRepeated;
+  const allow = intentCorrect && strategyLikelyWrong && explicitOrRepeated && behaviorAligned;
   return {
     allow,
     intentCorrect,
     strategyLikelyWrong,
     explicitOrRepeated,
+    behaviorAligned,
   };
 }
 
-function evaluateAutoTuningMode({ memory, driftStatus, feedbackQuality, performanceScore }) {
+function evaluateAutoTuningMode({ memory, driftStatus, feedbackQuality, performanceScore, policyEvolutionScore }) {
   const currentMode = memory?.autoTuning?.mode || 'LEARNING_ONLY';
 
   if (driftStatus?.shouldRollback || driftStatus?.shouldFreeze) {
     return { nextMode: 'FULL_LOCK', reason: driftStatus.shouldRollback ? 'drift_rollback' : 'drift_freeze' };
   }
 
-  if (currentMode === 'OFF' || currentMode === 'FULL_LOCK') {
+  if (Number(policyEvolutionScore || 0) < POLICY_EVOLUTION_MIN_SCORE) {
+    return { nextMode: 'OFF', reason: 'negative_policy_evolution_score' };
+  }
+
+  if (currentMode === 'OFF' || currentMode === 'FULL_LOCK' || currentMode === 'SAFE_MODE') {
     return { nextMode: currentMode, reason: 'manual_or_locked' };
   }
 
@@ -1482,6 +1456,32 @@ function scoreStrategies({ weightedScore, scores, features }) {
   );
 }
 
+function applyStrategyPenaltyFromMetrics(strategyScores, strategyMetrics = {}) {
+  const next = { ...(strategyScores || {}) };
+  Object.keys(next).forEach((strategy) => {
+    const metric = strategyMetrics?.[strategy] || {};
+    const avgLatencyMs = Number(metric?.avgLatencyMs || 0);
+    const successRate = Number(metric?.successRate || 0.7);
+    const latencyPenalty = avgLatencyMs > STRATEGY_LATENCY_BAD_MS ? 0.12 : 0;
+    const successPenalty = successRate < 0.45 ? 0.18 : 0;
+    next[strategy] = Number(clamp01(next[strategy] - latencyPenalty - successPenalty).toFixed(3));
+  });
+  return next;
+}
+
+function applyStrategyMemoryAdjustment(strategyScores, strategyMemory = {}) {
+  const next = { ...(strategyScores || {}) };
+  Object.keys(next).forEach((strategy) => {
+    const memory = strategyMemory?.[strategy] || {};
+    const successTrend = Number(memory?.successTrend || 0);
+    const failureTrend = Number(memory?.failureTrend || 0);
+    const contextSensitivity = Number(memory?.contextSensitivity || 0);
+    const adjustment = (successTrend * 0.12) - (failureTrend * 0.15) + (contextSensitivity * 0.08);
+    next[strategy] = Number(clamp01(next[strategy] + adjustment).toFixed(3));
+  });
+  return next;
+}
+
 function pickMaxStrategy(strategyScores) {
   return Object.entries(strategyScores)
     .sort((a, b) => b[1] - a[1])[0]?.[0] || 'clarify';
@@ -1536,7 +1536,9 @@ function buildDecisionPipeline({ message, parsed, mood, chatRole, recentConversa
 
   const effectiveWeights = normalizeByImpactHistory(memory, normalizeDecisionWeights(weights || DECISION_WEIGHTS));
   const weightedScore = Number(computeWeightedDecisionScore({ scores, weights: effectiveWeights }).toFixed(3));
-  const strategyScores = scoreStrategies({ weightedScore, scores, features });
+  const baseStrategyScores = scoreStrategies({ weightedScore, scores, features });
+  const withLatencyPenalty = applyStrategyPenaltyFromMetrics(baseStrategyScores, memory?.strategyMetrics || {});
+  const strategyScores = applyStrategyMemoryAdjustment(withLatencyPenalty, memory?.strategyMemory || {});
   const weightedSuggested = weightedScore > 0.55 ? 'direct_answer' : 'clarify';
   const strategySuggested = pickMaxStrategy(strategyScores);
   const conflictResolution = resolveStrategyConflict({
@@ -1800,6 +1802,7 @@ export async function POST(request) {
     const lastAssistantEntities = context?.lastAssistantEntities || null;
     const learningFeedback = body?.learningFeedback || null;
     const externalValidationSignal = body?.externalValidationSignal || context?.externalValidationSignal || null;
+    const overrideLayer = body?.overrideLayer || body?.adminOverride || context?.overrideLayer || null;
     const mood = detectConversationalMood({ message, recentConversation });
     let longTermMemory = await loadBettiLongTermMemory(uid);
 
@@ -2416,11 +2419,14 @@ export async function POST(request) {
     const latestStableGolden = getLatestStableGoldenSnapshot(longTermMemory) || getLatestGoldenSnapshot(longTermMemory);
     const goldenWeights = latestStableGolden?.weights || DECISION_WEIGHTS;
     const confidenceVariance = calculateConfidenceVariance(nextIntentConfidences);
+    const baselineModel = computeRollingBaseline(longTermMemory, BASELINE_LOOKBACK_DAYS, requestStartTs);
     const baselinePerformanceScore = Number(
-      longTermMemory?.performance?.baselineScore
+      baselineModel
+      || longTermMemory?.performance?.baselineScore
       || latestStableGolden?.performanceScore
       || performanceScore
     );
+    const performanceDelta = computePerformanceDelta(performanceScore, baselinePerformanceScore);
     const driftStatus = computeDriftStatus({
       currentWeights,
       goldenWeights,
@@ -2428,6 +2434,18 @@ export async function POST(request) {
       baselinePerformanceScore,
       confidenceVariance,
     });
+
+    const activePolicy = (Array.isArray(longTermMemory?.policyVersions)
+      ? longTermMemory.policyVersions.find((p) => p?.id === longTermMemory?.activePolicyVersion)
+      : null) || null;
+    const runtimeIntegrityHash = computeSystemIntegrityHash({
+      activePolicyVersion: longTermMemory?.activePolicyVersion || activePolicy?.id || null,
+      weights: currentWeights,
+      strategyMapping: activePolicy?.strategyMapping || {},
+      featureWeights: longTermMemory?.autoTuning?.featureWeights || decisionPipeline.weights,
+    });
+    const storedIntegrityHash = longTermMemory?.integrity?.storedHash || null;
+    const integrityMismatch = Boolean(storedIntegrityHash) && storedIntegrityHash !== runtimeIntegrityHash;
 
     const feedbackQuality = scoreFeedbackQuality({
       learningFeedback,
@@ -2491,6 +2509,19 @@ export async function POST(request) {
       passes: clusterSize >= MIN_CLUSTER_SIZE,
     };
 
+    const failureMode = classifyFailureMode({
+      feedbackQuality,
+      parsed,
+      chatRole,
+      decisionPipeline,
+    });
+    const causalImpactScore = computeCausalImpactScore({
+      learningFeedback,
+      feedbackQuality,
+      clusterGate,
+      behaviorAligned: causalGate.behaviorAligned,
+    });
+
     const contradictoryFeedback = detectContradictoryFeedback(nextFeedbackWindow);
 
     const stability = computeStabilityIndex({
@@ -2507,12 +2538,25 @@ export async function POST(request) {
     );
     const learningRateFactor = stability.stabilityIndex > STABILITY_GUARD_THRESHOLD ? 0.5 : 1;
     const validationStrictness = stability.stabilityIndex > STABILITY_GUARD_THRESHOLD ? 1.25 : 1;
+    const improvementRate = Math.max(0, performanceDelta);
+    const instabilityRate = Number(driftStatus?.driftScore || 0);
+    const rollbackFrequency = Number(stability?.rollbackRate || 0);
+    const externalPass = Number(longTermMemory?.stats?.externalValidationPassCount || 0);
+    const externalFail = Number(longTermMemory?.stats?.externalValidationFailCount || 0);
+    const externalValidationScore = Number((externalPass / Math.max(1, externalPass + externalFail)).toFixed(4));
+    const policyEvolutionScore = computePolicyEvolutionScore({
+      improvementRate,
+      instabilityRate,
+      rollbackFrequency,
+      externalValidationScore,
+    });
 
     const modeDecision = evaluateAutoTuningMode({
       memory: longTermMemory,
       driftStatus,
       feedbackQuality,
       performanceScore,
+      policyEvolutionScore,
     });
 
     const safetyOverride = evaluateSafetyOverride({
@@ -2532,6 +2576,18 @@ export async function POST(request) {
     }
     if (driftForecast.shouldPreventUpdate && effectiveMode === 'CONTROLLED_APPLY') {
       effectiveMode = 'LEARNING_ONLY';
+    }
+    if (integrityMismatch) {
+      effectiveMode = 'SAFE_MODE';
+    }
+    if (overrideLayer?.emergencyTuningDisable) {
+      effectiveMode = 'OFF';
+    }
+    if (overrideLayer?.adminForceFreeze) {
+      effectiveMode = 'FULL_LOCK';
+    }
+    if (overrideLayer?.manualWeightLock) {
+      effectiveMode = 'OFF';
     }
     let rollback = {
       applied: false,
@@ -2588,6 +2644,30 @@ export async function POST(request) {
       longTermMemory = await loadBettiLongTermMemory(uid);
     }
 
+    if (!rollback.applied && overrideLayer?.policyRollbackTrigger && latestStableGolden?.weights) {
+      effectiveMode = 'FULL_LOCK';
+      rollback = {
+        applied: true,
+        reason: 'manual_policy_rollback_triggered',
+        restoredSnapshotVersion: latestStableGolden.version || null,
+      };
+      await saveBettiLongTermMemory(uid, {
+        userPreferences: {
+          ...(longTermMemory?.userPreferences || {}),
+          decisionWeights: normalizeDecisionWeights(latestStableGolden.weights),
+          frequentIntent: parsed.intent !== 'unknown' ? parsed.intent : (longTermMemory?.userPreferences?.frequentIntent || null),
+        },
+        autoTuning: {
+          ...(longTermMemory?.autoTuning || {}),
+          mode: 'FULL_LOCK',
+          freezeReason: rollback.reason,
+          lastModeChangeAt: new Date().toISOString(),
+          lastRollbackAt: new Date().toISOString(),
+        },
+      });
+      longTermMemory = await loadBettiLongTermMemory(uid);
+    }
+
     const regressionDetected = (
       !rollback.applied
       && latestStableGolden?.weights
@@ -2632,6 +2712,12 @@ export async function POST(request) {
       longTermMemory = await loadBettiLongTermMemory(uid);
     }
 
+    const perfDropForCircuit = Math.max(0, baselinePerformanceScore - performanceScore);
+    const circuitBreaker = evaluateCircuitBreaker(longTermMemory, driftStatus, rollback.applied, perfDropForCircuit);
+    if (circuitBreaker.shouldLock) {
+      effectiveMode = 'FULL_SYSTEM_LOCK';
+    }
+
     let autoWeightTuning = {
       applied: false,
       reason: 'not_triggered',
@@ -2644,8 +2730,19 @@ export async function POST(request) {
       drift: driftStatus,
       driftForecast,
       performanceScore,
+      performanceBaseline: baselinePerformanceScore,
+      performanceDelta,
+      policyEvolutionScore,
       stability,
       safetyOverride,
+      failureMode,
+      causalImpactScore,
+      circuitBreaker,
+      integrity: {
+        runtimeHash: runtimeIntegrityHash,
+        storedHash: storedIntegrityHash,
+        mismatch: integrityMismatch,
+      },
       learningRateFactor,
       validationStrictness,
       externalValidationSupported: externalSupport,
@@ -2665,14 +2762,19 @@ export async function POST(request) {
       const shouldConsiderSuggestion = (
         learningFeedback?.type === 'intent_selection'
         && feedbackQuality.feedbackWeight > MIN_FEEDBACK_WEIGHT_FOR_TUNING
+        && performanceDelta > TUNING_MIN_PERFORMANCE_DELTA
         && antiOverfit.passesFrequency
         && clusterGate.passes
         && learningBoundary.allow
         && causalGate.allow
+        && causalImpactScore.allow
+        && ['misunderstanding', 'wrong_action', 'missing_context', 'wrong_tone', 'role_violation'].includes(failureMode)
         && externalSupport
         && !driftForecast.shouldPreventUpdate
         && effectiveMode !== 'OFF'
         && effectiveMode !== 'FULL_LOCK'
+        && effectiveMode !== 'SAFE_MODE'
+        && effectiveMode !== 'FULL_SYSTEM_LOCK'
       );
 
       if (shouldConsiderSuggestion) {
@@ -2707,6 +2809,18 @@ export async function POST(request) {
 
       const refreshedMemory = await loadBettiLongTermMemory(uid);
       longTermMemory = refreshedMemory;
+      const responseLatencyMs = Math.max(1, Date.now() - requestStartTs);
+      const strategySuccess = parsed.intent !== 'unknown' && selectedAction !== 'clarify_with_options';
+      const existingStrategyMetrics = refreshedMemory?.strategyMetrics?.[decisionPipeline.bestStrategy] || {};
+      const strategyCount = Number(existingStrategyMetrics.count || 0) + 1;
+      const strategySuccessCount = Number(existingStrategyMetrics.successCount || 0) + (strategySuccess ? 1 : 0);
+      const prevAvgLatency = Number(existingStrategyMetrics.avgLatencyMs || responseLatencyMs);
+      const nextAvgLatency = ((prevAvgLatency * (strategyCount - 1)) + responseLatencyMs) / strategyCount;
+      const strategySuccessRate = strategySuccessCount / Math.max(1, strategyCount);
+      const existingStrategyMemory = refreshedMemory?.strategyMemory?.[decisionPipeline.bestStrategy] || {};
+      const nextSuccessTrend = Number((((Number(existingStrategyMemory.successTrend || 0) * 0.8) + (strategySuccess ? 0.2 : 0))).toFixed(4));
+      const nextFailureTrend = Number((((Number(existingStrategyMemory.failureTrend || 0) * 0.8) + (strategySuccess ? 0 : 0.2))).toFixed(4));
+      const nextContextSensitivity = Number((((Number(existingStrategyMemory.contextSensitivity || 0) * 0.7) + (decisionPipeline.features.isFollowUp ? 0.3 : 0))).toFixed(4));
       const stableStats = {
         ...(refreshedMemory?.stats || updatedStats),
         explicitCorrectionCount: Number((refreshedMemory?.stats?.explicitCorrectionCount || updatedStats.explicitCorrectionCount || 0)) + (feedbackQuality.hasExplicitCorrection ? 1 : 0),
@@ -2735,6 +2849,9 @@ export async function POST(request) {
         && !driftStatus.shouldFreeze
         && !driftStatus.shouldRollback
         && !driftForecast.shouldPreventUpdate
+        && performanceDelta > TUNING_MIN_PERFORMANCE_DELTA
+        && causalImpactScore.allow
+        && policyEvolutionScore >= POLICY_EVOLUTION_MIN_SCORE
         && externalSupport
       );
 
@@ -2803,8 +2920,13 @@ export async function POST(request) {
             freezeReason: driftStatus.shouldFreeze ? 'drift_freeze' : null,
             lastModeChangeAt: new Date().toISOString(),
             lastDriftScore: driftStatus.driftScore,
+            lastDriftType: driftStatus.driftType,
             lastPerformanceScore: performanceScore,
+            lastPerformanceDelta: performanceDelta,
             lastConfidenceVariance: confidenceVariance,
+            lastPolicyEvolutionScore: policyEvolutionScore,
+            safetyEvents: circuitBreaker.events,
+            featureWeights: decisionPipeline.weights,
             tuningAttemptCount: Number(refreshedMemory?.autoTuning?.tuningAttemptCount || 0) + 1,
             tuningApplyCount: Number(refreshedMemory?.autoTuning?.tuningApplyCount || 0) + 1,
             safetyOverride: safetyOverride.active
@@ -2826,6 +2948,30 @@ export async function POST(request) {
               ...((Array.isArray(refreshedMemory?.performance?.recentScores) ? refreshedMemory.performance.recentScores : []).slice(-59)),
               performanceScore,
             ],
+            recentScoreHistory: [
+              ...((Array.isArray(refreshedMemory?.performance?.recentScoreHistory) ? refreshedMemory.performance.recentScoreHistory : []).slice(-199)),
+              { at: new Date().toISOString(), score: performanceScore },
+            ],
+          },
+          strategyMetrics: {
+            ...(refreshedMemory?.strategyMetrics || {}),
+            [decisionPipeline.bestStrategy]: {
+              count: strategyCount,
+              successCount: strategySuccessCount,
+              successRate: Number(strategySuccessRate.toFixed(4)),
+              avgLatencyMs: Number(nextAvgLatency.toFixed(2)),
+              lastLatencyMs: responseLatencyMs,
+              updatedAt: new Date().toISOString(),
+            },
+          },
+          strategyMemory: {
+            ...(refreshedMemory?.strategyMemory || {}),
+            [decisionPipeline.bestStrategy]: {
+              successTrend: nextSuccessTrend,
+              failureTrend: nextFailureTrend,
+              contextSensitivity: nextContextSensitivity,
+              updatedAt: new Date().toISOString(),
+            },
           },
           feedbackClusters: nextFeedbackClusters,
           recentFeedbackWindow: nextFeedbackWindow,
@@ -2847,6 +2993,16 @@ export async function POST(request) {
             policyVersion,
           ],
           activePolicyVersion: policyVersion.id,
+          integrity: {
+            storedHash: computeSystemIntegrityHash({
+              activePolicyVersion: policyVersion.id,
+              weights: autoTuneEval.nextWeights,
+              strategyMapping: policyVersion.strategyMapping,
+              featureWeights: decisionPipeline.weights,
+            }),
+            lastValidatedAt: new Date().toISOString(),
+            mismatchCount: Number(refreshedMemory?.integrity?.mismatchCount || 0) + (integrityMismatch ? 1 : 0),
+          },
         });
 
         await saveBettiLongTermMemory(uid, {
@@ -2895,8 +3051,13 @@ export async function POST(request) {
             freezeReason: driftStatus.shouldFreeze ? 'drift_freeze' : null,
             lastModeChangeAt: new Date().toISOString(),
             lastDriftScore: driftStatus.driftScore,
+            lastDriftType: driftStatus.driftType,
             lastPerformanceScore: performanceScore,
+            lastPerformanceDelta: performanceDelta,
             lastConfidenceVariance: confidenceVariance,
+            lastPolicyEvolutionScore: policyEvolutionScore,
+            safetyEvents: circuitBreaker.events,
+            featureWeights: decisionPipeline.weights,
             tuningAttemptCount: Number(refreshedMemory?.autoTuning?.tuningAttemptCount || 0) + 1,
             safetyOverride: safetyOverride.active
               ? {
@@ -2917,6 +3078,30 @@ export async function POST(request) {
               ...((Array.isArray(refreshedMemory?.performance?.recentScores) ? refreshedMemory.performance.recentScores : []).slice(-59)),
               performanceScore,
             ],
+            recentScoreHistory: [
+              ...((Array.isArray(refreshedMemory?.performance?.recentScoreHistory) ? refreshedMemory.performance.recentScoreHistory : []).slice(-199)),
+              { at: new Date().toISOString(), score: performanceScore },
+            ],
+          },
+          strategyMetrics: {
+            ...(refreshedMemory?.strategyMetrics || {}),
+            [decisionPipeline.bestStrategy]: {
+              count: strategyCount,
+              successCount: strategySuccessCount,
+              successRate: Number(strategySuccessRate.toFixed(4)),
+              avgLatencyMs: Number(nextAvgLatency.toFixed(2)),
+              lastLatencyMs: responseLatencyMs,
+              updatedAt: new Date().toISOString(),
+            },
+          },
+          strategyMemory: {
+            ...(refreshedMemory?.strategyMemory || {}),
+            [decisionPipeline.bestStrategy]: {
+              successTrend: nextSuccessTrend,
+              failureTrend: nextFailureTrend,
+              contextSensitivity: nextContextSensitivity,
+              updatedAt: new Date().toISOString(),
+            },
           },
           feedbackClusters: nextFeedbackClusters,
           recentFeedbackWindow: nextFeedbackWindow,
@@ -2929,6 +3114,11 @@ export async function POST(request) {
               usersAffected: Number(externalValidationSignal?.usersAffected || 0),
             },
           ],
+          integrity: {
+            storedHash: runtimeIntegrityHash,
+            lastValidatedAt: new Date().toISOString(),
+            mismatchCount: Number(refreshedMemory?.integrity?.mismatchCount || 0) + (integrityMismatch ? 1 : 0),
+          },
         });
         longTermMemory = await loadBettiLongTermMemory(uid);
         autoWeightTuning = {
