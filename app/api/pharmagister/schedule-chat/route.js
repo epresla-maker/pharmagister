@@ -3,6 +3,13 @@ import { verifyAuth } from '@/lib/apiAuth';
 import { parseBettiIntent } from '@/lib/intentParser';
 import { explainAssignmentDecision } from '@/lib/explanationEngine';
 import { buildProactiveWarnings } from '@/lib/suggestionEngine';
+import {
+  detectTrainingInput,
+  loadTrainingPatterns,
+  saveTrainingPattern,
+  buildTrainingPattern,
+} from '@/lib/bettiTraining';
+import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 
 export const runtime = 'nodejs';
 
@@ -16,8 +23,42 @@ export async function POST(request) {
     const body = await request.json();
     const message = body?.message || '';
     const context = body?.context || {};
+    const uid = authUser.uid;
+    const previousMessageIntent = body?.previousMessageIntent;
 
-    const parsed = parseBettiIntent(message);
+    // Load learned patterns from Firestore
+    const learnedPatterns = await loadTrainingPatterns(uid);
+
+    // Check if this is a training input (starts with "xx ")
+    const training = detectTrainingInput(message);
+    
+    if (training.isTraining && previousMessageIntent) {
+      // This is a training message - save the pattern
+      const pattern = buildTrainingPattern(
+        previousMessageIntent,
+        context.lastUserMessage || 'unknown',
+        training.trainingResponse
+      );
+      
+      const saveResult = await saveTrainingPattern(uid, pattern);
+      
+      if (saveResult.success) {
+        return NextResponse.json({
+          success: true,
+          isTraining: true,
+          intent: 'training_saved',
+          reply: `✓ Megtanultam! Legközelebb erre "${training.trainingResponse}" válaszolok.`,
+          payload: {
+            action: 'training_saved',
+            pattern,
+          },
+          quickActions: [],
+        });
+      }
+    }
+
+    // Normal message processing with learned patterns
+    const parsed = parseBettiIntent(message, learnedPatterns);
     const proactiveWarnings = buildProactiveWarnings({
       stats: context.stats || null,
       conflicts: Array.isArray(context.conflicts) ? context.conflicts : [],

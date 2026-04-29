@@ -214,6 +214,13 @@ service cloud.firestore {
       }
     }
     
+    // Employee profiles (Alap adataim - szabadság, szerződés típus)
+    match /employeeProfiles/{profileId} {
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
     // Deny everything else by default (no wildcard catch-all)
   }
 }

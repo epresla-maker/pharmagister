@@ -3446,6 +3446,15 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     const text = String(messageText || '').trim();
     if (!text || !user) return;
 
+    // Track last user message for training
+    const lastUserMessage = text;
+    
+    // Get the intent of the last Betti message (for training context)
+    const previousMessage = bettiChatMessages[bettiChatMessages.length - 1];
+    const previousMessageIntent = previousMessage?.role === 'assistant' 
+      ? previousMessage?.intent 
+      : undefined;
+
     setBettiChatMessages((prev) => [...prev, { role: 'user', text }]);
     setBettiChatInput('');
     setBettiChatLoading(true);
@@ -3453,7 +3462,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     try {
       const localReply = getLocalBettiPersonalReply(text);
       if (localReply.handled) {
-        setBettiChatMessages((prev) => [...prev, { role: 'assistant', text: localReply.reply }]);
+        setBettiChatMessages((prev) => [...prev, { role: 'assistant', text: localReply.reply, intent: 'local_reply' }]);
         return;
       }
 
@@ -3466,10 +3475,12 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         },
         body: JSON.stringify({
           message: text,
+          previousMessageIntent,
           context: {
             stats: plannerResult?.stats || null,
             conflicts: plannerResult?.conflicts || [],
             assignmentReasons: plannerResult?.assignmentReasons || [],
+            lastUserMessage,
           },
         }),
       });
@@ -3479,14 +3490,14 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         throw new Error(result?.error || 'Betti most nem elerheto.');
       }
 
-      setBettiChatMessages((prev) => [...prev, { role: 'assistant', text: result.reply || 'Rendben, rajta vagyok.' }]);
+      setBettiChatMessages((prev) => [...prev, { role: 'assistant', text: result.reply || 'Rendben, rajta vagyok.', intent: result.intent }]);
       setBettiQuickActions(Array.isArray(result.quickActions) ? result.quickActions : []);
 
       if (result?.payload?.action) {
         await handleBettiAction(result.payload.action, result.payload.entities || {});
       }
     } catch (error) {
-      setBettiChatMessages((prev) => [...prev, { role: 'assistant', text: error.message || 'Betti: Nem sikerult ertelmezni a kerdest.' }]);
+      setBettiChatMessages((prev) => [...prev, { role: 'assistant', text: error.message || 'Betti: Nem sikerult ertelmezni a kerdest.', intent: 'error' }]);
     } finally {
       setBettiChatLoading(false);
     }
