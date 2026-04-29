@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/apiAuth';
-import { isAffirmativeText, parseBettiIntent } from '@/lib/intentParser';
+import { isAffirmativeText, isNegativeText, parseBettiIntent } from '@/lib/intentParser';
 import { normalizeHungarianChatInput } from '@/lib/huDictionary';
 import { explainAssignmentDecision } from '@/lib/explanationEngine';
 import { buildProactiveWarnings } from '@/lib/suggestionEngine';
@@ -495,6 +495,7 @@ function mapActionToIntent(action) {
     show_my_schedule: 'my_schedule',
     show_my_vacations: 'my_vacation',
     show_my_free_days: 'my_free_days',
+    follow_up_decline: 'negative',
     list_employees: 'list_employees',
     show_vacation_requests: 'show_vacation_requests',
     missing_drafts: 'missing_drafts',
@@ -511,6 +512,7 @@ function buildFollowUpParsed(action, entities = {}, confidence = 0.9) {
     show_my_schedule: 'Rendben, megmutatom a sajat muszakjaidat. Ha dolgozoi nezetben vagy, pontos listat is kapsz.',
     show_my_vacations: 'Rendben, megnezem a szabadsag napjaidat.',
     show_my_free_days: 'Rendben, kilistazom a kovetkezo szabadnapjaidat.',
+    follow_up_decline: 'Rendben, akkor ezt most elengedem.',
     list_employees: 'Rendben, listazom az alkalmazottaidat.',
     show_vacation_requests: 'Rendben, megmutatom a szabadsagigenyeket.',
     missing_drafts: 'Rendben, ellenorizem kik nem kuldtek meg a tervezetuket.',
@@ -546,6 +548,7 @@ function resolveContextualFollowUp({
   const words = norm.split(/\s+/).filter(Boolean);
   const isShort = words.length <= 4;
   const isYesLike = isAffirmativeText(norm) || containsAny(norm, ['szeretnem', 'akarom', 'legyen']);
+  const isNoLike = isNegativeText(norm);
   const isPointer = containsAny(norm, ['azt', 'azokat', 'ezt', 'ezeket', 'az']);
   const isReplanNudge = containsAny(norm, ['inkabb holnap', 'holnap inkabb', 'inkabb a', 'csak holnap']);
   const requestedMonth = detectMonthReference(norm);
@@ -615,7 +618,11 @@ function resolveContextualFollowUp({
     return buildFollowUpParsed('replan_specific_day', lastAssistantEntities || {});
   }
 
-  if (!(isShort || isYesLike || isPointer || isReplanNudge)) return null;
+  if (!(isShort || isYesLike || isNoLike || isPointer || isReplanNudge)) return null;
+
+  if (isNoLike) {
+    return buildFollowUpParsed('follow_up_decline', rememberedMonth || {});
+  }
 
   if (isReplanNudge && (lastAssistantAction === 'replan_all' || lastAssistantAction === 'replan_specific_day')) {
     return buildFollowUpParsed('replan_specific_day', lastAssistantEntities || {});
@@ -1047,6 +1054,17 @@ export async function POST(request) {
         };
         quickActionsOverride = buildUnknownSuggestions(message, chatRole);
       }
+    }
+
+    if (parsed.intent === 'negative') {
+      reply = isScheduleOrFreeDaysPrompt(lastAssistantMessage)
+        ? 'Rendben, akkor ezt most nem nyitom meg. Mondj egy masik iranyt, es megyek azon tovabb.'
+        : 'Rendben, ezt most elengedem. Ha szeretned, mutatok inkabb mas lehetosegeket.';
+      payload = {
+        ...payload,
+        action: 'clarify_with_options',
+      };
+      quickActionsOverride = buildUnknownSuggestions(message, chatRole);
     }
 
     const shouldClarifyLowConfidence = (
