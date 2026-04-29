@@ -174,6 +174,31 @@ function isScheduleOrFreeDaysPrompt(text) {
   );
 }
 
+function detectMonthReference(text) {
+  const norm = normalizeText(text);
+  if (!norm) return null;
+
+  if (containsAny(norm, ['kovetkezo honap', 'jovo honap', 'jov honap', 'jovohonap'])) {
+    return { monthOffset: 1, label: 'kovetkezo honap' };
+  }
+  if (containsAny(norm, ['elozo honap', 'mult honap'])) {
+    return { monthOffset: -1, label: 'elozo honap' };
+  }
+  if (containsAny(norm, ['aktualis honap', 'erre a honapra', 'ebben a honapban', 'mostani honap', 'e havi'])) {
+    return { monthOffset: 0, label: 'aktualis honap' };
+  }
+
+  return null;
+}
+
+function buildScheduleMonthQuickActions() {
+  return [
+    { key: 'schedule_current_month', label: 'Aktualis honap', utterance: 'A beosztasom erre a honapra' },
+    { key: 'schedule_next_month', label: 'Kovetkezo honap', utterance: 'A beosztasom a kovetkezo honapra' },
+    { key: 'schedule_prev_month', label: 'Elozo honap', utterance: 'A beosztasom az elozo honapra' },
+  ];
+}
+
 function containsAny(text, list) {
   return list.some((w) => text.includes(w));
 }
@@ -227,6 +252,11 @@ function resolveContextualFollowUp({
   const isYesLike = containsAny(norm, ['igen', 'ja', 'persze', 'oke', 'ok', 'szeretnem', 'mehet', 'legyen']);
   const isPointer = containsAny(norm, ['azt', 'azokat', 'ezt', 'ezeket', 'az']);
   const isReplanNudge = containsAny(norm, ['inkabb holnap', 'holnap inkabb', 'inkabb a', 'csak holnap']);
+  const requestedMonth = detectMonthReference(norm);
+
+  if (requestedMonth && (lastAssistantAction === 'clarify_with_options' || containsAny(normalizeText(lastAssistantMessage), ['melyik honapra', 'melyik honap']))) {
+    return buildFollowUpParsed('show_my_schedule', { monthOffset: requestedMonth.monthOffset, monthLabel: requestedMonth.label });
+  }
 
   if (containsAny(norm, ['beoszt', 'muszak'])) {
     return buildFollowUpParsed('show_my_schedule');
@@ -417,6 +447,7 @@ export async function POST(request) {
       confidence: parsed.confidence,
     };
     let forceClarify = false;
+    let quickActionsOverride = null;
 
     if (parsed.intent === 'explain_assignment') {
       const explained = explainAssignmentDecision({
@@ -450,7 +481,29 @@ export async function POST(request) {
     }
 
     if (parsed.intent === 'my_schedule') {
-      reply = 'Rendben, megmutatom a sajat muszakjaidat. Ha dolgozoi nezetben vagy, pontos listat is kapsz.';
+      const requestedMonth = detectMonthReference(message);
+      if (!requestedMonth) {
+        reply = 'Rendben, melyik honapra mutassam a beosztasodat?';
+        payload = {
+          ...payload,
+          action: 'clarify_with_options',
+          suggestedAction: 'show_my_schedule',
+          entities: {
+            ...(payload.entities || {}),
+          },
+        };
+        quickActionsOverride = buildScheduleMonthQuickActions();
+      } else {
+        reply = `Rendben, megmutatom a beosztasodat a ${requestedMonth.label} idoszakra.`;
+        payload = {
+          ...payload,
+          entities: {
+            ...(payload.entities || {}),
+            monthOffset: requestedMonth.monthOffset,
+            monthLabel: requestedMonth.label,
+          },
+        };
+      }
     }
 
     if (parsed.intent === 'my_vacation') {
@@ -481,7 +534,6 @@ export async function POST(request) {
       reply = 'Szivesen! Ha szeretned, mar most megmutatom a kovetkezo muszakjaidat vagy szabadnapjaidat.';
     }
 
-    let quickActionsOverride = null;
     if (parsed.intent === 'affirmative') {
       const followupPrompted = previousMessageIntent === 'thanks'
         || previousMessageIntent === 'ack'
