@@ -89,6 +89,10 @@ export async function POST(request) {
       conflicts,
       suggestions,
       stats,
+      model: plannerResult.model || { name: 'RuleBasedPlanner' },
+      planQuality: plannerResult.planQuality || null,
+      alternatives: plannerResult.alternatives || [],
+      assignmentReasons: plannerResult.assignmentReasons || [],
     });
   } catch (error) {
     console.error('Schedule planner API error:', error);
