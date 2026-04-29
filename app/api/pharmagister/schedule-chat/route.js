@@ -53,7 +53,7 @@ export async function POST(request) {
           success: true,
           isTraining: true,
           intent: 'training_saved',
-          reply: `✓ Megtanultam! Legközelebb ha azt kérdezed: "${context.lastUserMessage || 'это'}" erre válaszolok: "${training.trainingResponse}"`,
+          reply: `✓ Megtanultam! Legközelebb ha azt kérdezed: "${context.lastUserMessage}" erre válaszolok: "${training.trainingResponse}"`,
           payload: {
             action: 'training_saved',
             pattern,

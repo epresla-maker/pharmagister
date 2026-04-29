@@ -3446,8 +3446,21 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     const text = String(messageText || '').trim();
     if (!text || !user) return;
 
-    // Track last user message for training
-    const lastUserMessage = text;
+    // Check if this is a training input (starts with "xx ")
+    const isTrainingInput = text.startsWith('xx ') || text.startsWith('XX ');
+    
+    // Get the PREVIOUS user message (for training context)
+    // If training input, we need the question that prompted this training
+    let lastUserQuestion = text;
+    if (isTrainingInput) {
+      // Find the last user message BEFORE this training input
+      for (let i = bettiChatMessages.length - 1; i >= 0; i--) {
+        if (bettiChatMessages[i].role === 'user') {
+          lastUserQuestion = bettiChatMessages[i].text;
+          break;
+        }
+      }
+    }
     
     // Get the intent of the last Betti message (for training context)
     const previousMessage = bettiChatMessages[bettiChatMessages.length - 1];
@@ -3480,7 +3493,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             stats: plannerResult?.stats || null,
             conflicts: plannerResult?.conflicts || [],
             assignmentReasons: plannerResult?.assignmentReasons || [],
-            lastUserMessage,
+            lastUserMessage: lastUserQuestion,
           },
         }),
       });
