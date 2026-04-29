@@ -26,35 +26,55 @@ export async function POST(request) {
     const uid = authUser.uid;
     const previousMessageIntent = body?.previousMessageIntent;
 
-    // Load learned patterns from Firestore
-    const learnedPatterns = await loadTrainingPatterns(uid);
-
     // Check if this is a training input (starts with "xx ")
     const training = detectTrainingInput(message);
     
     if (training.isTraining && previousMessageIntent) {
       // This is a training message - save the pattern
+      console.log('[Betti Training]', { message, previousMessageIntent, lastUserMessage: context.lastUserMessage });
+      
       const pattern = buildTrainingPattern(
         previousMessageIntent,
         context.lastUserMessage || 'unknown',
         training.trainingResponse
       );
       
+      console.log('[Betti Training] Pattern to save:', pattern);
       const saveResult = await saveTrainingPattern(uid, pattern);
+      console.log('[Betti Training] Save result:', saveResult);
       
       if (saveResult.success) {
+        // Force reload patterns after saving (small delay for Firestore consistency)
+        setTimeout(() => {
+          console.log('[Betti Training] Pattern saved, will reload next request');
+        }, 500);
+        
         return NextResponse.json({
           success: true,
           isTraining: true,
           intent: 'training_saved',
-          reply: `✓ Megtanultam! Legközelebb erre "${training.trainingResponse}" válaszolok.`,
+          reply: `✓ Megtanultam! Legközelebb ha azt kérdezed: "${context.lastUserMessage || 'это'}" erre válaszolok: "${training.trainingResponse}"`,
           payload: {
             action: 'training_saved',
             pattern,
           },
           quickActions: [],
         });
+      } else {
+        // Training save failed - return error
+        console.error('[Betti Training] Save failed:', saveResult.error);
+        return NextResponse.json({
+          success: false,
+          error: `Tanítás sikertelen: ${saveResult.error || 'Ismeretlen hiba'}`,
+          details: saveResult.error,
+        }, { status: 500 });
       }
+    }
+
+    // Load learned patterns ONLY for normal (non-training) messages
+    const learnedPatterns = await loadTrainingPatterns(uid);
+    if (learnedPatterns.length > 0) {
+      console.log(`[Betti] Loaded ${learnedPatterns.length} learned patterns for user ${uid}`);
     }
 
     // Normal message processing with learned patterns
