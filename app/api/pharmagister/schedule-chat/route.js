@@ -163,16 +163,41 @@ export async function POST(request) {
 
     // Check if this is a training input (starts with "xx ")
     const training = detectTrainingInput(message);
-    
-    if (training.isTraining && previousMessageIntent) {
+
+    if (training.isTraining) {
+      if (!training.trainingResponse) {
+        return NextResponse.json({
+          success: false,
+          error: 'Az xx utan add meg, mit valaszoljak. Pelda: "xx Mutasd a tulorasokat"',
+        }, { status: 400 });
+      }
+
+      const originalQuestion = context.lastUserMessage && context.lastUserMessage !== message
+        ? context.lastUserMessage
+        : (body?.previousUserMessage || 'unknown');
+
+      const intentForTraining = previousMessageIntent || 'unknown';
+
       // This is a training message - save the pattern
-      console.log('[Betti Training]', { message, previousMessageIntent, lastUserMessage: context.lastUserMessage });
+      console.log('[Betti Training]', {
+        message,
+        previousMessageIntent,
+        intentForTraining,
+        originalQuestion,
+      });
       
       const pattern = buildTrainingPattern(
-        previousMessageIntent,
-        context.lastUserMessage || 'unknown',
+        intentForTraining,
+        originalQuestion,
         training.trainingResponse
       );
+
+      if (!pattern.pattern) {
+        return NextResponse.json({
+          success: false,
+          error: 'Nem talaltam tanithato kerdesmintat. Elobb kerdezz valamit, aztan ird: "xx ..."',
+        }, { status: 400 });
+      }
       
       console.log('[Betti Training] Pattern to save:', pattern);
       const saveResult = await saveTrainingPattern(uid, pattern);
@@ -188,7 +213,7 @@ export async function POST(request) {
           success: true,
           isTraining: true,
           intent: 'training_saved',
-          reply: `✓ Megtanultam! Legközelebb ha azt kérdezed: "${context.lastUserMessage}" erre válaszolok: "${training.trainingResponse}"`,
+          reply: `✓ Megtanultam! Legkozelebb ha azt kerdezed: "${originalQuestion}" erre valaszolok: "${training.trainingResponse}"`,
           payload: {
             action: 'training_saved',
             pattern,
@@ -361,6 +386,15 @@ export async function POST(request) {
           { key: 'replan_specific_day', label: 'Csak egy nap ujratervezese', utterance: 'Tervezd ujra csak a hetfot' },
           { key: 'minimal_change_replan', label: 'Legkisebb valtoztatas', utterance: 'Minel kevesebbet valtoztass' },
         ];
+
+    if (parsed.intent === 'unknown' && quickActions.length > 0) {
+      const top = quickActions.slice(0, 3).map((item) => item.label).join(', ');
+      reply = `Ezt most nem ertettem teljesen. Lehetseges opciok: ${top}. Valassz lent egyet, vagy tanits "xx" kezdetu valasszal.`;
+      payload = {
+        ...payload,
+        action: 'clarify_with_options',
+      };
+    }
 
     return NextResponse.json({
       success: true,

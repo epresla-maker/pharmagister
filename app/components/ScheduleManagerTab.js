@@ -3503,7 +3503,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     if (!text || !user) return;
 
     // Check if this is a training input (starts with "xx ")
-    const isTrainingInput = text.startsWith('xx ') || text.startsWith('XX ');
+    const isTrainingInput = /^xx([\s:;,.\-]|$)/i.test(text);
     
     // Get the PREVIOUS user message (for training context)
     // If training input, we need the question that prompted this training
@@ -3917,7 +3917,10 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                 style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)' }}
               >
                 <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-                  {[...getBettiPresetQuestions().map((q) => ({ label: q, utterance: q })), ...bettiQuickActions.slice(0, 3)].slice(0, 6).map((item) => (
+                  {(bettiQuickActions.length > 0
+                    ? bettiQuickActions
+                    : getBettiPresetQuestions().map((q) => ({ label: q, utterance: q }))
+                  ).slice(0, 6).map((item) => (
                     <button
                       key={`${item.key || item.label}-${item.utterance || item.label}`}
                       type="button"
@@ -4819,7 +4822,10 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)' }}
                 >
                   <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-                    {[...getBettiPresetQuestions().map((q) => ({ label: q, utterance: q })), ...bettiQuickActions.slice(0, 3)].slice(0, 6).map((item) => (
+                    {(bettiQuickActions.length > 0
+                      ? bettiQuickActions
+                      : getBettiPresetQuestions().map((q) => ({ label: q, utterance: q }))
+                    ).slice(0, 6).map((item) => (
                       <button
                         key={`${item.key || item.label}-${item.utterance || item.label}`}
                         type="button"
