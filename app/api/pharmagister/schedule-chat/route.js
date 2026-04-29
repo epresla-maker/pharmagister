@@ -39,6 +39,18 @@ const EMPLOYEE_UNKNOWN_SUGGESTIONS = [
 
 const LOW_CONFIDENCE_THRESHOLD = 0.82;
 
+const SYNONYM_REPLACEMENTS = [
+  [/\b(szabi|szabin|szabira|szabadsagra)\b/g, 'szabadsag'],
+  [/\b(piheno|pihenonap|pihi|pihinap)\b/g, 'szabadnap'],
+  [/\b(pluszora|extraora|extra ora|overtime)\b/g, 'tulora'],
+  [/\b(muszakrend|muszakterv|roster|schedule)\b/g, 'beosztas'],
+  [/\b(mutasd|muti|mutass|megmutatod|megmutatnad|megnezed|nezzuk)\b/g, 'mutasd'],
+  [/\b(segicc|segics|help)\b/g, 'segits'],
+  [/\b(kiir|listaz|sorold)\b/g, 'mutasd'],
+  [/\b(atszervez|atszervezes|ujraszamol)\b/g, 'ujratervezes'],
+  [/\b(hianyzik|potolni|potlas)\b/g, 'helyettesites'],
+];
+
 const AMBIGUOUS_SHOW_RE = /^(mutasd|muti|mutass|mutas(d)?|mutasdmar|mutasd\s+mar|mutad|mutas|megmutatod|megmutatnad|megmutatna(d)?|megneznem|megneznen|nezzuk|nezd|nezd|nezz|nezuk|mutatnad|mutatna|kerlek\s+mutasd|pls\s+mutasd|show|show\s+me|nezzuk\s+meg|kene|kene\s+latni|kellene|jo\s+lenne|adnad|add\s+ide|dobd\s+fel|valamit\s+mutass|valamit\s+keresek)\b/;
 
 function isAmbiguousShowRequest(norm) {
@@ -56,11 +68,18 @@ function isAmbiguousShowRequest(norm) {
 }
 
 function normalizeText(text) {
-  return String(text || '')
+  const base = String(text || '')
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .trim();
+
+  let canonical = ` ${base} `;
+  for (const [re, replacement] of SYNONYM_REPLACEMENTS) {
+    canonical = canonical.replace(re, replacement);
+  }
+
+  return canonical.replace(/\s+/g, ' ').trim();
 }
 
 function normalizeChatRole(role) {
