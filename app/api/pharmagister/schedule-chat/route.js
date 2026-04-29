@@ -19,6 +19,22 @@ const UNKNOWN_SUGGESTIONS = [
   { key: 'replan_all', label: 'Ujratervezes', utterance: 'Ujratervezes' },
 ];
 
+const AMBIGUOUS_SHOW_RE = /^(mutasd|muti|mutass|mutas(d)?|mutasdmar|mutasd\s+mar|mutad|mutas|megmutatod|megmutatnad|megmutatna(d)?|megneznem|megneznen|nezzuk|nezd|nezd|nezz|nezuk|mutatnad|mutatna|kerlek\s+mutasd|pls\s+mutasd|show|show\s+me|nezzuk\s+meg|kene|kene\s+latni|kellene|jo\s+lenne|adnad|add\s+ide|dobd\s+fel|valamit\s+mutass|valamit\s+keresek)\b/;
+
+function isAmbiguousShowRequest(norm) {
+  if (!norm) return false;
+  if (AMBIGUOUS_SHOW_RE.test(norm)) return true;
+
+  // Very short, generic prompts should trigger clarification suggestions too.
+  const words = norm.split(/\s+/).filter(Boolean);
+  if (words.length <= 3) {
+    if (words.some((w) => ['mutasd', 'muti', 'mutass', 'nezd', 'nezzuk', 'kene', 'kellene', 'show'].includes(w))) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function normalizeText(text) {
   return String(text || '')
     .toLowerCase()
@@ -31,7 +47,7 @@ function buildUnknownSuggestions(message) {
   const norm = normalizeText(message);
   if (!norm) return UNKNOWN_SUGGESTIONS.slice(0, 3);
 
-  if (/^(mutasd|muti|mutass|megmutatod|megneznem|nezzuk)\b/.test(norm)) {
+  if (isAmbiguousShowRequest(norm)) {
     return [
       { key: 'my_schedule', label: 'A sajat beosztasom', utterance: 'Mi a beosztasom?', learnFromPreviousUnknown: true },
       { key: 'show_overtime', label: 'A tulorasokat', utterance: 'Mutasd a tulorasokat', learnFromPreviousUnknown: true },
@@ -43,7 +59,7 @@ function buildUnknownSuggestions(message) {
     let score = 0;
     const utter = normalizeText(item.utterance);
 
-    if (norm.includes('mutasd') && utter.includes('mutasd')) score += 3;
+    if (isAmbiguousShowRequest(norm) && utter.includes('mutasd')) score += 3;
     if (norm.includes('beoszt') && utter.includes('beoszt')) score += 3;
     if (norm.includes('szabi') && utter.includes('szabin')) score += 3;
     if ((norm.includes('tulora') || norm.includes('tuloras')) && utter.includes('tulora')) score += 4;
