@@ -3657,14 +3657,24 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                       >
                         Előző
                       </button>
-                      <button
-                        type="button"
-                        onClick={goWizardNext}
-                        disabled={plannerWizardStep >= wizardTotal - 1}
-                        className="rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
-                      >
-                        Következő
-                      </button>
+                      {safeWizardStepIndex < wizardTotal - 1 ? (
+                        <button
+                          type="button"
+                          onClick={goWizardNext}
+                          className="rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white"
+                        >
+                          Következő
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={savePlannerConfig}
+                          disabled={plannerConfigSaving}
+                          className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+                        >
+                          {plannerConfigSaving ? 'Mentés...' : 'Kész ✓'}
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
