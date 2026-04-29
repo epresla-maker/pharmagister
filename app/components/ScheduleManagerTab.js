@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Capacitor } from '@capacitor/core';
+import { Keyboard } from '@capacitor/keyboard';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import {
@@ -1551,6 +1553,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   const [bettiQuickActions, setBettiQuickActions] = useState([]);
   const [bettiChatOpen, setBettiChatOpen] = useState(false);
   const [bettiKeyboardInset, setBettiKeyboardInset] = useState(0);
+  const bettiNativeKeyboardHeightRef = useRef(0);
   const [replanForm, setReplanForm] = useState({
     employeeId: '',
     startDate: getTodayKey(),
@@ -1652,22 +1655,74 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   useEffect(() => {
     if (!bettiChatOpen) {
       setBettiKeyboardInset(0);
+      bettiNativeKeyboardHeightRef.current = 0;
       return;
     }
-    if (typeof window === 'undefined' || !window.visualViewport) return;
+    if (typeof window === 'undefined') return;
+
+    let keyboardShowSub = null;
+    let keyboardDidShowSub = null;
+    let keyboardHideSub = null;
+    let keyboardDidHideSub = null;
 
     const viewport = window.visualViewport;
-    const updateInset = () => {
-      const overlap = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
-      setBettiKeyboardInset(overlap);
+    const updateInsetFromViewport = () => {
+      if (!viewport) return;
+      const overlap = Math.max(
+        0,
+        window.innerHeight - viewport.height,
+        window.innerHeight - viewport.height - viewport.offsetTop
+      );
+      const nextInset = Math.max(overlap, bettiNativeKeyboardHeightRef.current);
+      setBettiKeyboardInset(nextInset > 20 ? nextInset : 0);
     };
 
-    updateInset();
-    viewport.addEventListener('resize', updateInset);
-    viewport.addEventListener('scroll', updateInset);
+    const isNativeIos = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios';
+    if (isNativeIos) {
+      Keyboard.setScroll({ isDisabled: true }).catch(() => {});
+      Keyboard.setResizeMode({ mode: 'none' }).catch(() => {});
+
+      Keyboard.addListener('keyboardWillShow', (info) => {
+        bettiNativeKeyboardHeightRef.current = Math.max(0, Number(info?.keyboardHeight || 0));
+        updateInsetFromViewport();
+      }).then((sub) => {
+        keyboardShowSub = sub;
+      });
+
+      Keyboard.addListener('keyboardDidShow', (info) => {
+        bettiNativeKeyboardHeightRef.current = Math.max(0, Number(info?.keyboardHeight || 0));
+        updateInsetFromViewport();
+      }).then((sub) => {
+        keyboardDidShowSub = sub;
+      });
+
+      Keyboard.addListener('keyboardWillHide', () => {
+        bettiNativeKeyboardHeightRef.current = 0;
+        setBettiKeyboardInset(0);
+      }).then((sub) => {
+        keyboardHideSub = sub;
+      });
+
+      Keyboard.addListener('keyboardDidHide', () => {
+        bettiNativeKeyboardHeightRef.current = 0;
+        setBettiKeyboardInset(0);
+      }).then((sub) => {
+        keyboardDidHideSub = sub;
+      });
+    }
+
+    updateInsetFromViewport();
+    viewport?.addEventListener('resize', updateInsetFromViewport);
+    viewport?.addEventListener('scroll', updateInsetFromViewport);
+
     return () => {
-      viewport.removeEventListener('resize', updateInset);
-      viewport.removeEventListener('scroll', updateInset);
+      viewport?.removeEventListener('resize', updateInsetFromViewport);
+      viewport?.removeEventListener('scroll', updateInsetFromViewport);
+      keyboardShowSub?.remove();
+      keyboardDidShowSub?.remove();
+      keyboardHideSub?.remove();
+      keyboardDidHideSub?.remove();
+      Keyboard.setScroll({ isDisabled: false }).catch(() => {});
     };
   }, [bettiChatOpen]);
 
