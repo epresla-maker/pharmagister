@@ -59,6 +59,11 @@ const AUTO_TUNE_MIN_SUGGESTIONS = 5;
 const AUTO_TUNE_LOOKBACK_MS = 7 * 24 * 60 * 60 * 1000;
 const AUTO_TUNE_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 const AUTO_TUNE_MAX_STEP = 0.03;
+const DRIFT_FREEZE_THRESHOLD = 0.25;
+const DRIFT_ROLLBACK_THRESHOLD = 0.4;
+const PERFORMANCE_GOLDEN_IMPROVEMENT = 0.05;
+const MIN_FEEDBACK_WEIGHT_FOR_TUNING = 0.6;
+const MIN_PATTERN_FREQUENCY = 0.05;
 
 function normalizeDecisionWeights(candidate) {
   const base = { ...DECISION_WEIGHTS };
@@ -156,6 +161,167 @@ function evaluateAutoWeightApply(memory, nowTs = Date.now()) {
     averagedSuggestedWeights: avgSuggested,
     nextWeights,
     recentSuggestionCount: recent.length,
+  };
+}
+
+function getLatestGoldenSnapshot(memory) {
+  const snapshots = Array.isArray(memory?.goldenSnapshots) ? memory.goldenSnapshots : [];
+  if (snapshots.length === 0) return null;
+  return [...snapshots].sort((a, b) => Number(b.version || 0) - Number(a.version || 0))[0] || null;
+}
+
+function getLatestStableGoldenSnapshot(memory) {
+  const snapshots = Array.isArray(memory?.goldenSnapshots) ? memory.goldenSnapshots : [];
+  if (snapshots.length === 0) return null;
+  return [...snapshots]
+    .filter((s) => s?.stable !== false)
+    .sort((a, b) => Number(b.version || 0) - Number(a.version || 0))[0] || null;
+}
+
+function calculateWeightDistance(currentWeights, goldenWeights) {
+  const current = normalizeDecisionWeights(currentWeights || DECISION_WEIGHTS);
+  const golden = normalizeDecisionWeights(goldenWeights || DECISION_WEIGHTS);
+  const dist = Object.keys(current).reduce((acc, key) => acc + Math.abs((current[key] || 0) - (golden[key] || 0)), 0);
+  return clamp01(dist / 2);
+}
+
+function calculateConfidenceVariance(values = []) {
+  if (!Array.isArray(values) || values.length <= 1) return 0;
+  const nums = values.map((v) => Number(v)).filter((v) => Number.isFinite(v));
+  if (nums.length <= 1) return 0;
+  const mean = nums.reduce((a, b) => a + b, 0) / nums.length;
+  const variance = nums.reduce((acc, x) => acc + ((x - mean) ** 2), 0) / nums.length;
+  return clamp01(Math.sqrt(variance));
+}
+
+function computePerformanceScore(stats = {}, previous = null) {
+  const satTotal = Number(stats.satisfactionTotalCount || 0);
+  const satPos = Number(stats.satisfactionPositiveCount || 0);
+  const userSatisfactionRate = satTotal > 0 ? clamp01(satPos / satTotal) : (Number(previous?.baselineScore || 0.62) || 0.62);
+
+  const total = Number(stats.totalMessages || 0);
+  const success = Number(stats.successfulTaskCount || 0);
+  const taskSuccessRate = total > 0 ? clamp01(success / total) : 0.6;
+
+  const followUps = Number(stats.followUpCount || 0);
+  const reducedFollowUps = Number(stats.reducedFollowUpCount || 0);
+  const followUpReduction = followUps > 0 ? clamp01(reducedFollowUps / followUps) : 0.5;
+
+  const corrections = Number(stats.correctionCount || 0);
+  const correctionRate = total > 0 ? clamp01(corrections / total) : 0.2;
+
+  const score = (
+    0.4 * userSatisfactionRate
+    + 0.3 * taskSuccessRate
+    + 0.2 * followUpReduction
+    + 0.1 * (1 - correctionRate)
+  );
+
+  return Number(clamp01(score).toFixed(4));
+}
+
+function computeDriftStatus({ currentWeights, goldenWeights, performanceScore, baselinePerformanceScore, confidenceVariance }) {
+  const weightDistance = calculateWeightDistance(currentWeights, goldenWeights);
+  const perfDropRaw = Math.max(0, Number(baselinePerformanceScore || 0) - Number(performanceScore || 0));
+  const performanceDrop = clamp01(perfDropRaw);
+  const confVar = clamp01(confidenceVariance || 0);
+  const driftScore = clamp01(weightDistance + performanceDrop + confVar);
+
+  return {
+    driftScore: Number(driftScore.toFixed(4)),
+    weightDistance: Number(weightDistance.toFixed(4)),
+    performanceDrop: Number(performanceDrop.toFixed(4)),
+    confidenceVariance: Number(confVar.toFixed(4)),
+    shouldFreeze: driftScore > DRIFT_FREEZE_THRESHOLD,
+    shouldRollback: driftScore > DRIFT_ROLLBACK_THRESHOLD,
+  };
+}
+
+function scoreFeedbackQuality({ learningFeedback, mood, parsed, previousMessageIntent }) {
+  const hasExplicitCorrection = learningFeedback?.type === 'intent_selection';
+  const quickActionReject = hasExplicitCorrection ? 1 : 0;
+  const followUpBehavior = parsed?.inferredFromContext || isContinuationPrompt(learningFeedback?.originalMessage || '') || previousMessageIntent === 'ack' ? 1 : 0;
+  const sentimentShift = ['frustrated', 'sad'].includes(mood?.label) ? 1 : 0;
+
+  const feedbackWeight = Number((
+    (hasExplicitCorrection ? 1.0 : 0)
+    + (quickActionReject ? 0.8 : 0)
+    + (followUpBehavior ? 0.5 : 0)
+    + (sentimentShift ? 0.3 : 0)
+  ).toFixed(3));
+
+  return {
+    feedbackWeight,
+    hasExplicitCorrection,
+    quickActionReject,
+    followUpBehavior,
+    sentimentShift,
+  };
+}
+
+function causalValidationGate({ parsed, decisionPipeline, feedbackQuality, stats }) {
+  const intentCorrect = Number(decisionPipeline?.scores?.intent || 0) >= 0.7 && parsed?.intent !== 'unknown';
+  const strategyLikelyWrong = ['clarify', 'safe_clarify', 'role_redirect'].includes(decisionPipeline?.bestStrategy);
+  const explicitOrRepeated = feedbackQuality?.hasExplicitCorrection || Number(stats?.correctedByQuickActionCount || 0) >= 3;
+
+  const allow = intentCorrect && strategyLikelyWrong && explicitOrRepeated;
+  return {
+    allow,
+    intentCorrect,
+    strategyLikelyWrong,
+    explicitOrRepeated,
+  };
+}
+
+function evaluateAutoTuningMode({ memory, driftStatus, feedbackQuality, performanceScore }) {
+  const currentMode = memory?.autoTuning?.mode || 'LEARNING_ONLY';
+
+  if (driftStatus?.shouldRollback || driftStatus?.shouldFreeze) {
+    return { nextMode: 'FULL_LOCK', reason: driftStatus.shouldRollback ? 'drift_rollback' : 'drift_freeze' };
+  }
+
+  if (currentMode === 'OFF' || currentMode === 'FULL_LOCK') {
+    return { nextMode: currentMode, reason: 'manual_or_locked' };
+  }
+
+  const stablePerf = performanceScore >= Number(memory?.autoTuning?.lastPerformanceScore || 0);
+  const goodFeedback = Number(feedbackQuality?.feedbackWeight || 0) >= 0.8;
+  if (stablePerf && goodFeedback) {
+    return { nextMode: 'CONTROLLED_APPLY', reason: 'stable_and_good_feedback' };
+  }
+
+  return { nextMode: 'LEARNING_ONLY', reason: 'collecting' };
+}
+
+function maybeCreateGoldenSnapshot(memory, currentWeights, performanceScore) {
+  const snapshots = Array.isArray(memory?.goldenSnapshots) ? memory.goldenSnapshots : [];
+  const latest = getLatestGoldenSnapshot(memory);
+
+  if (!latest) {
+    return {
+      shouldCreate: true,
+      snapshot: {
+        version: 1,
+        weights: normalizeDecisionWeights(currentWeights),
+        performanceScore: Number(performanceScore || 0),
+        stable: true,
+        createdAt: new Date().toISOString(),
+      },
+    };
+  }
+
+  const improved = Number(performanceScore || 0) >= Number(latest.performanceScore || 0) * (1 + PERFORMANCE_GOLDEN_IMPROVEMENT);
+  if (!improved) return { shouldCreate: false, snapshot: null };
+
+  return {
+    shouldCreate: true,
+    snapshot: {
+      version: Number(latest.version || snapshots.length || 0) + 1,
+      weights: normalizeDecisionWeights(currentWeights),
+      performanceScore: Number(performanceScore || 0),
+      stable: true,
+      createdAt: new Date().toISOString(),
+    },
   };
 }
 
@@ -1723,75 +1889,269 @@ export async function POST(request) {
 
     const stats = longTermMemory?.stats || {};
     const unknownIncrement = parsed.intent === 'unknown' ? 1 : 0;
-    await saveBettiLongTermMemory(uid, {
-      stats: {
-        ...stats,
-        totalMessages: Number(stats.totalMessages || 0) + 1,
-        unknownCount: Number(stats.unknownCount || 0) + unknownIncrement,
-        lastSeenIntent: parsed.intent,
-        lastSeenAt: new Date().toISOString(),
-      },
-      userPreferences: {
-        ...(longTermMemory?.userPreferences || {}),
-        frequentIntent: parsed.intent !== 'unknown' ? parsed.intent : (longTermMemory?.userPreferences?.frequentIntent || null),
-      },
+    const nextIntentConfidences = [
+      ...(Array.isArray(stats.recentIntentConfidences) ? stats.recentIntentConfidences : []),
+      Number(parsed.confidence || 0),
+    ].slice(-50);
+
+    const updatedStats = {
+      ...stats,
+      totalMessages: Number(stats.totalMessages || 0) + 1,
+      unknownCount: Number(stats.unknownCount || 0) + unknownIncrement,
+      lastSeenIntent: parsed.intent,
+      lastSeenAt: new Date().toISOString(),
+      recentIntentConfidences: nextIntentConfidences,
+      followUpCount: Number(stats.followUpCount || 0) + (parsed.inferredFromContext ? 1 : 0),
+      reducedFollowUpCount: Number(stats.reducedFollowUpCount || 0) + ((parsed.intent !== 'unknown' && !parsed.inferredFromContext) ? 1 : 0),
+      successfulTaskCount: Number(stats.successfulTaskCount || 0) + ((parsed.intent !== 'unknown' && selectedAction !== 'clarify_with_options') ? 1 : 0),
+      correctionCount: Number(stats.correctionCount || 0) + (learningFeedback?.type === 'intent_selection' ? 1 : 0),
+      satisfactionTotalCount: Number(stats.satisfactionTotalCount || 0) + (learningFeedback?.type === 'intent_selection' ? 1 : 0),
+      satisfactionPositiveCount: Number(stats.satisfactionPositiveCount || 0) + (learningFeedback?.type === 'intent_selection' ? 1 : 0),
+    };
+
+    const performanceScore = computePerformanceScore(updatedStats, longTermMemory?.performance || null);
+    const currentWeights = normalizeDecisionWeights(longTermMemory?.userPreferences?.decisionWeights || decisionPipeline.weights);
+    const latestStableGolden = getLatestStableGoldenSnapshot(longTermMemory) || getLatestGoldenSnapshot(longTermMemory);
+    const goldenWeights = latestStableGolden?.weights || DECISION_WEIGHTS;
+    const confidenceVariance = calculateConfidenceVariance(nextIntentConfidences);
+    const baselinePerformanceScore = Number(
+      longTermMemory?.performance?.baselineScore
+      || latestStableGolden?.performanceScore
+      || performanceScore
+    );
+    const driftStatus = computeDriftStatus({
+      currentWeights,
+      goldenWeights,
+      performanceScore,
+      baselinePerformanceScore,
+      confidenceVariance,
     });
+
+    const feedbackQuality = scoreFeedbackQuality({
+      learningFeedback,
+      mood,
+      parsed,
+      previousMessageIntent,
+    });
+    const causalGate = causalValidationGate({
+      parsed,
+      decisionPipeline,
+      feedbackQuality,
+      stats: updatedStats,
+    });
+
+    const patternFrequency = Number(updatedStats.correctedByQuickActionCount || 0) / Math.max(1, Number(updatedStats.totalMessages || 1));
+    const antiOverfit = {
+      patternFrequency: Number(patternFrequency.toFixed(4)),
+      threshold: MIN_PATTERN_FREQUENCY,
+      passesFrequency: patternFrequency >= MIN_PATTERN_FREQUENCY,
+      singleUserOnly: true,
+      singleUserImpactFactor: 0.3,
+    };
+
+    const modeDecision = evaluateAutoTuningMode({
+      memory: longTermMemory,
+      driftStatus,
+      feedbackQuality,
+      performanceScore,
+    });
+
+    let effectiveMode = modeDecision.nextMode;
+    let rollback = {
+      applied: false,
+      reason: null,
+      restoredSnapshotVersion: null,
+    };
+
+    if (driftStatus.shouldRollback && latestStableGolden?.weights) {
+      effectiveMode = 'FULL_LOCK';
+      rollback = {
+        applied: true,
+        reason: 'drift_score_exceeded_rollback_threshold',
+        restoredSnapshotVersion: latestStableGolden.version || null,
+      };
+      await saveBettiLongTermMemory(uid, {
+        userPreferences: {
+          ...(longTermMemory?.userPreferences || {}),
+          decisionWeights: normalizeDecisionWeights(latestStableGolden.weights),
+          frequentIntent: parsed.intent !== 'unknown' ? parsed.intent : (longTermMemory?.userPreferences?.frequentIntent || null),
+        },
+        stats: {
+          ...updatedStats,
+          lastRollbackAt: new Date().toISOString(),
+        },
+        autoTuning: {
+          ...(longTermMemory?.autoTuning || {}),
+          mode: 'FULL_LOCK',
+          freezeReason: rollback.reason,
+          lastModeChangeAt: new Date().toISOString(),
+          lastRollbackAt: new Date().toISOString(),
+          lastDriftScore: driftStatus.driftScore,
+          lastPerformanceScore: performanceScore,
+          lastConfidenceVariance: confidenceVariance,
+        },
+        performance: {
+          ...(longTermMemory?.performance || {}),
+          baselineScore: Math.max(Number(longTermMemory?.performance?.baselineScore || 0), performanceScore),
+          recentScores: [
+            ...((Array.isArray(longTermMemory?.performance?.recentScores) ? longTermMemory.performance.recentScores : []).slice(-59)),
+            performanceScore,
+          ],
+        },
+      });
+      longTermMemory = await loadBettiLongTermMemory(uid);
+    }
 
     let autoWeightTuning = {
       applied: false,
       reason: 'not_triggered',
+      mode: effectiveMode,
+      feedbackWeight: feedbackQuality.feedbackWeight,
+      causalValidation: causalGate,
+      antiOverfit,
+      drift: driftStatus,
+      performanceScore,
+      rollback,
     };
 
-    if (learningFeedback?.type === 'intent_selection' && decisionPipeline.scores.intent < LOW_CONFIDENCE_THRESHOLD) {
-      const currentWeights = decisionPipeline.weights;
-      const suggestedWeights = normalizeDecisionWeights({
-        ...currentWeights,
-        intent: Number(currentWeights.intent || 0) + 0.03,
-        context: Number(currentWeights.context || 0) + 0.02,
-        risk: Math.max(0.02, Number(currentWeights.risk || 0) - 0.03),
-      });
+    if (!rollback.applied) {
+      const shouldConsiderSuggestion = (
+        learningFeedback?.type === 'intent_selection'
+        && feedbackQuality.feedbackWeight > MIN_FEEDBACK_WEIGHT_FOR_TUNING
+        && antiOverfit.passesFrequency
+        && causalGate.allow
+        && effectiveMode !== 'OFF'
+        && effectiveMode !== 'FULL_LOCK'
+      );
 
-      await appendBettiWeightSuggestion(uid, {
-        trigger: 'quick_action_correction',
-        previousWeights: currentWeights,
-        suggestedWeights,
-        observedIntent: parsed.intent,
-        observedAction: selectedAction,
-        scores: decisionPipeline.scores,
-      });
+      if (shouldConsiderSuggestion) {
+        const impact = antiOverfit.singleUserImpactFactor;
+        const suggestedWeights = normalizeDecisionWeights({
+          ...currentWeights,
+          intent: Number(currentWeights.intent || 0) + (0.03 * impact),
+          context: Number(currentWeights.context || 0) + (0.02 * impact),
+          risk: Math.max(0.02, Number(currentWeights.risk || 0) - (0.03 * impact)),
+        });
+
+        await appendBettiWeightSuggestion(uid, {
+          trigger: 'quick_action_correction',
+          previousWeights: currentWeights,
+          suggestedWeights,
+          observedIntent: parsed.intent,
+          observedAction: selectedAction,
+          scores: decisionPipeline.scores,
+          feedbackImpact: Number((feedbackQuality.feedbackWeight * impact).toFixed(3)),
+          mode: effectiveMode,
+        });
+
+        autoWeightTuning = {
+          ...autoWeightTuning,
+          reason: 'suggestion_buffered',
+          feedbackImpact: Number((feedbackQuality.feedbackWeight * impact).toFixed(3)),
+        };
+      }
 
       const refreshedMemory = await loadBettiLongTermMemory(uid);
-      const autoTuneEval = evaluateAutoWeightApply(refreshedMemory, Date.now());
+      longTermMemory = refreshedMemory;
+      const stableStats = {
+        ...(refreshedMemory?.stats || updatedStats),
+        explicitCorrectionCount: Number((refreshedMemory?.stats?.explicitCorrectionCount || updatedStats.explicitCorrectionCount || 0)) + (feedbackQuality.hasExplicitCorrection ? 1 : 0),
+        quickActionRejectCount: Number((refreshedMemory?.stats?.quickActionRejectCount || updatedStats.quickActionRejectCount || 0)) + (feedbackQuality.quickActionReject ? 1 : 0),
+        followUpCorrectionCount: Number((refreshedMemory?.stats?.followUpCorrectionCount || updatedStats.followUpCorrectionCount || 0)) + (feedbackQuality.followUpBehavior ? 1 : 0),
+        sentimentShiftCorrectionCount: Number((refreshedMemory?.stats?.sentimentShiftCorrectionCount || updatedStats.sentimentShiftCorrectionCount || 0)) + (feedbackQuality.sentimentShift ? 1 : 0),
+        feedbackQualityAvg: Number((((Number(refreshedMemory?.stats?.feedbackQualityAvg || 0) * 0.85) + (feedbackQuality.feedbackWeight * 0.15))).toFixed(4)),
+      };
 
-      if (autoTuneEval.shouldApply) {
-        const refreshedStats = refreshedMemory?.stats || {};
+      const autoTuneEval = evaluateAutoWeightApply(refreshedMemory, Date.now());
+      const shouldControlledApply = effectiveMode === 'CONTROLLED_APPLY' && !driftStatus.shouldFreeze && !driftStatus.shouldRollback;
+
+      if (shouldControlledApply && autoTuneEval.shouldApply) {
         await saveBettiLongTermMemory(uid, {
           userPreferences: {
             ...(refreshedMemory?.userPreferences || {}),
             decisionWeights: autoTuneEval.nextWeights,
+            frequentIntent: parsed.intent !== 'unknown' ? parsed.intent : (refreshedMemory?.userPreferences?.frequentIntent || null),
           },
           stats: {
-            ...refreshedStats,
+            ...stableStats,
             lastAutoWeightApplyAt: new Date().toISOString(),
-            autoWeightApplyCount: Number(refreshedStats.autoWeightApplyCount || 0) + 1,
+            autoWeightApplyCount: Number(stableStats.autoWeightApplyCount || 0) + 1,
+          },
+          autoTuning: {
+            ...(refreshedMemory?.autoTuning || {}),
+            mode: effectiveMode,
+            freezeReason: driftStatus.shouldFreeze ? 'drift_freeze' : null,
+            lastModeChangeAt: new Date().toISOString(),
+            lastDriftScore: driftStatus.driftScore,
+            lastPerformanceScore: performanceScore,
+            lastConfidenceVariance: confidenceVariance,
+          },
+          performance: {
+            ...(refreshedMemory?.performance || {}),
+            baselineScore: Math.max(Number(refreshedMemory?.performance?.baselineScore || 0), performanceScore),
+            recentScores: [
+              ...((Array.isArray(refreshedMemory?.performance?.recentScores) ? refreshedMemory.performance.recentScores : []).slice(-59)),
+              performanceScore,
+            ],
           },
         });
 
         longTermMemory = await loadBettiLongTermMemory(uid);
         autoWeightTuning = {
+          ...autoWeightTuning,
           applied: true,
           reason: autoTuneEval.reason,
           previousWeights: autoTuneEval.previousWeights,
           averagedSuggestedWeights: autoTuneEval.averagedSuggestedWeights,
           appliedWeights: autoTuneEval.nextWeights,
           recentSuggestionCount: autoTuneEval.recentSuggestionCount,
+          mode: longTermMemory?.autoTuning?.mode || effectiveMode,
         };
       } else {
+        await saveBettiLongTermMemory(uid, {
+          userPreferences: {
+            ...(refreshedMemory?.userPreferences || {}),
+            frequentIntent: parsed.intent !== 'unknown' ? parsed.intent : (refreshedMemory?.userPreferences?.frequentIntent || null),
+          },
+          stats: stableStats,
+          autoTuning: {
+            ...(refreshedMemory?.autoTuning || {}),
+            mode: effectiveMode,
+            freezeReason: driftStatus.shouldFreeze ? 'drift_freeze' : null,
+            lastModeChangeAt: new Date().toISOString(),
+            lastDriftScore: driftStatus.driftScore,
+            lastPerformanceScore: performanceScore,
+            lastConfidenceVariance: confidenceVariance,
+          },
+          performance: {
+            ...(refreshedMemory?.performance || {}),
+            baselineScore: Math.max(Number(refreshedMemory?.performance?.baselineScore || 0), performanceScore),
+            recentScores: [
+              ...((Array.isArray(refreshedMemory?.performance?.recentScores) ? refreshedMemory.performance.recentScores : []).slice(-59)),
+              performanceScore,
+            ],
+          },
+        });
+        longTermMemory = await loadBettiLongTermMemory(uid);
         autoWeightTuning = {
+          ...autoWeightTuning,
           applied: false,
-          reason: autoTuneEval.reason,
-          recentSuggestionCount: Array.isArray(refreshedMemory?.weightSuggestions) ? refreshedMemory.weightSuggestions.length : 0,
+          reason: shouldControlledApply ? autoTuneEval.reason : `mode_${effectiveMode.toLowerCase()}`,
+          recentSuggestionCount: Array.isArray(longTermMemory?.weightSuggestions) ? longTermMemory.weightSuggestions.length : 0,
+          mode: longTermMemory?.autoTuning?.mode || effectiveMode,
         };
+      }
+
+      const finalWeights = normalizeDecisionWeights(longTermMemory?.userPreferences?.decisionWeights || currentWeights);
+      const snapshotDecision = maybeCreateGoldenSnapshot(longTermMemory, finalWeights, performanceScore);
+      if (snapshotDecision.shouldCreate && snapshotDecision.snapshot) {
+        await saveBettiLongTermMemory(uid, {
+          goldenSnapshots: [
+            ...(Array.isArray(longTermMemory?.goldenSnapshots) ? longTermMemory.goldenSnapshots : []),
+            snapshotDecision.snapshot,
+          ].slice(-20),
+        });
+        longTermMemory = await loadBettiLongTermMemory(uid);
       }
     }
 
@@ -1812,11 +2172,16 @@ export async function POST(request) {
         message,
         role: chatRole,
       },
+      weights: decisionPipeline.weights,
+      driftScore: autoWeightTuning?.drift?.driftScore || null,
+      performanceScore: autoWeightTuning?.performanceScore || null,
+      autoTuningMode: autoWeightTuning?.mode || (longTermMemory?.autoTuning?.mode || 'LEARNING_ONLY'),
       features: decisionPipeline.features,
       scores: decisionPipeline.scores,
       weightedScore: decisionPipeline.weightedScore,
       selectedStrategy: decisionPipeline.bestStrategy,
       action: selectedAction,
+      feedbackImpact: autoWeightTuning?.feedbackImpact || 0,
       actionPlan,
       latencyMs,
       response: reply,
