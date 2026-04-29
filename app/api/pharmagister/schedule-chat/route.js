@@ -174,6 +174,98 @@ function isScheduleOrFreeDaysPrompt(text) {
   );
 }
 
+function containsAny(text, list) {
+  return list.some((w) => text.includes(w));
+}
+
+function mapActionToIntent(action) {
+  const actionToIntent = {
+    show_my_schedule: 'my_schedule',
+    show_my_vacations: 'my_vacation',
+    show_my_free_days: 'my_free_days',
+    show_overtime: 'report_overtime',
+    replan_specific_day: 'replan_day',
+    find_replacement: 'fill_missing_shift',
+    replan_all: 'full_replan',
+  };
+  return actionToIntent[action] || 'unknown';
+}
+
+function buildFollowUpParsed(action, entities = {}, confidence = 0.9) {
+  const baseReply = {
+    show_my_schedule: 'Rendben, megmutatom a sajat muszakjaidat. Ha dolgozoi nezetben vagy, pontos listat is kapsz.',
+    show_my_vacations: 'Rendben, megnezem a szabadsag napjaidat.',
+    show_my_free_days: 'Rendben, kilistazom a kovetkezo szabadnapjaidat.',
+    show_overtime: 'Rendben, megmutatom kik vannak tulora kozeleben vagy tuloraban.',
+    replan_specific_day: 'Rendben, csak az erintett nap(oka)t tervezem ujra.',
+    find_replacement: 'Keresek megfelelo helyettesitot a muszakra.',
+    replan_all: 'Rendben, keszitek egy uj teljes havi tervet.',
+  };
+
+  return {
+    intent: mapActionToIntent(action),
+    action,
+    confidence,
+    entities,
+    reply: baseReply[action] || 'Rendben, megyek tovabb ezen a vonalon.',
+    inferredFromContext: true,
+  };
+}
+
+function resolveContextualFollowUp({
+  message,
+  previousMessageIntent,
+  lastAssistantAction,
+  lastAssistantMessage,
+  lastAssistantEntities,
+}) {
+  const norm = normalizeText(message);
+  if (!norm) return null;
+
+  const words = norm.split(/\s+/).filter(Boolean);
+  const isShort = words.length <= 4;
+  const isYesLike = containsAny(norm, ['igen', 'ja', 'persze', 'oke', 'ok', 'szeretnem', 'mehet', 'legyen']);
+  const isPointer = containsAny(norm, ['azt', 'azokat', 'ezt', 'ezeket', 'az']);
+  const isReplanNudge = containsAny(norm, ['inkabb holnap', 'holnap inkabb', 'inkabb a', 'csak holnap']);
+
+  if (containsAny(norm, ['beoszt', 'muszak'])) {
+    return buildFollowUpParsed('show_my_schedule');
+  }
+  if (containsAny(norm, ['szabadnap'])) {
+    return buildFollowUpParsed('show_my_free_days');
+  }
+  if (containsAny(norm, ['szabi', 'szabadsag'])) {
+    return buildFollowUpParsed('show_my_vacations');
+  }
+  if (containsAny(norm, ['tulora', 'tuloras'])) {
+    return buildFollowUpParsed('show_overtime');
+  }
+
+  if (containsAny(norm, ['hetfo', 'kedd', 'szerda', 'csutortok', 'pentek', 'szombat', 'vasarnap', 'holnap']) && (lastAssistantAction === 'replan_all' || lastAssistantAction === 'replan_specific_day')) {
+    return buildFollowUpParsed('replan_specific_day', lastAssistantEntities || {});
+  }
+
+  if (!(isShort || isYesLike || isPointer || isReplanNudge)) return null;
+
+  if (isReplanNudge && (lastAssistantAction === 'replan_all' || lastAssistantAction === 'replan_specific_day')) {
+    return buildFollowUpParsed('replan_specific_day', lastAssistantEntities || {});
+  }
+
+  const schedulePrompted = previousMessageIntent === 'thanks'
+    || previousMessageIntent === 'ack'
+    || isScheduleOrFreeDaysPrompt(lastAssistantMessage);
+
+  if (schedulePrompted) {
+    return buildFollowUpParsed('show_my_schedule');
+  }
+
+  if (lastAssistantAction && lastAssistantAction !== 'clarify_with_options') {
+    return buildFollowUpParsed(lastAssistantAction, lastAssistantEntities || {});
+  }
+
+  return null;
+}
+
 export const runtime = 'nodejs';
 
 export async function POST(request) {
@@ -191,6 +283,8 @@ export async function POST(request) {
     const uid = authUser.uid;
     const previousMessageIntent = body?.previousMessageIntent;
     const lastAssistantMessage = context?.lastAssistantMessage || '';
+    const lastAssistantAction = context?.lastAssistantAction || '';
+    const lastAssistantEntities = context?.lastAssistantEntities || null;
     const learningFeedback = body?.learningFeedback || null;
 
     // Check if this is a training input (starts with "xx ")
@@ -289,7 +383,28 @@ export async function POST(request) {
     }
 
     // Normal message processing with learned patterns
-    const parsed = parseBettiIntent(message, learnedPatterns);
+    let parsed = parseBettiIntent(message, learnedPatterns);
+
+    if (parsed.intent === 'unknown' || parsed.intent === 'affirmative') {
+      const contextual = resolveContextualFollowUp({
+        message,
+        previousMessageIntent,
+        lastAssistantAction,
+        lastAssistantMessage,
+        lastAssistantEntities,
+      });
+
+      if (contextual) {
+        parsed = {
+          ...parsed,
+          ...contextual,
+          entities: {
+            ...(parsed.entities || {}),
+            ...(contextual.entities || {}),
+          },
+        };
+      }
+    }
     const proactiveWarnings = buildProactiveWarnings({
       stats: context.stats || null,
       conflicts: Array.isArray(context.conflicts) ? context.conflicts : [],
