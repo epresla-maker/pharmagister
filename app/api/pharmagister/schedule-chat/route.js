@@ -178,6 +178,21 @@ function detectMonthReference(text) {
   const norm = normalizeText(text);
   if (!norm) return null;
 
+  const monthNameToNumber = {
+    januar: 1,
+    februar: 2,
+    marcius: 3,
+    aprilis: 4,
+    majus: 5,
+    junius: 6,
+    julius: 7,
+    augusztus: 8,
+    szeptember: 9,
+    oktober: 10,
+    november: 11,
+    december: 12,
+  };
+
   if (containsAny(norm, ['kovetkezo honap', 'jovo honap', 'jov honap', 'jovohonap'])) {
     return { monthOffset: 1, label: 'kovetkezo honap' };
   }
@@ -186,6 +201,21 @@ function detectMonthReference(text) {
   }
   if (containsAny(norm, ['aktualis honap', 'erre a honapra', 'ebben a honapban', 'mostani honap', 'e havi'])) {
     return { monthOffset: 0, label: 'aktualis honap' };
+  }
+
+  const monthMatch = norm.match(/\b(januar|februar|marcius|aprilis|majus|junius|julius|augusztus|szeptember|oktober|november|december)(ban|ben|ra|re|t|i)?\b/);
+  if (monthMatch?.[1]) {
+    const monthName = monthMatch[1];
+    const monthNumber = monthNameToNumber[monthName];
+    if (monthNumber) {
+      const now = new Date();
+      const currentMonth = now.getMonth() + 1;
+      return {
+        monthOffset: monthNumber - currentMonth,
+        monthNumber,
+        label: monthName,
+      };
+    }
   }
 
   return null;
