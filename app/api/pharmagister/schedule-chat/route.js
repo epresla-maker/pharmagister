@@ -55,6 +55,11 @@ const DECISION_WEIGHTS = {
   risk: 0.1,
 };
 
+const AUTO_TUNE_MIN_SUGGESTIONS = 5;
+const AUTO_TUNE_LOOKBACK_MS = 7 * 24 * 60 * 60 * 1000;
+const AUTO_TUNE_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+const AUTO_TUNE_MAX_STEP = 0.03;
+
 function normalizeDecisionWeights(candidate) {
   const base = { ...DECISION_WEIGHTS };
   if (!candidate || typeof candidate !== 'object') return base;
@@ -74,6 +79,84 @@ function normalizeDecisionWeights(candidate) {
     normalized[k] = Number((raw[k] / total).toFixed(4));
   });
   return normalized;
+}
+
+function getTimeMillis(value) {
+  if (!value) return 0;
+  const ts = new Date(value).getTime();
+  return Number.isNaN(ts) ? 0 : ts;
+}
+
+function averageSuggestedWeights(suggestions = []) {
+  if (!Array.isArray(suggestions) || suggestions.length === 0) return null;
+
+  const sum = { intent: 0, context: 0, role: 0, mood: 0, risk: 0 };
+  suggestions.forEach((item) => {
+    const sw = normalizeDecisionWeights(item?.suggestedWeights || {});
+    Object.keys(sum).forEach((k) => { sum[k] += Number(sw[k] || 0); });
+  });
+
+  const avg = {};
+  Object.keys(sum).forEach((k) => { avg[k] = sum[k] / suggestions.length; });
+  return normalizeDecisionWeights(avg);
+}
+
+function blendWeightsWithGuardrail(currentWeights, targetWeights, maxStep = AUTO_TUNE_MAX_STEP) {
+  const current = normalizeDecisionWeights(currentWeights || DECISION_WEIGHTS);
+  const target = normalizeDecisionWeights(targetWeights || current);
+
+  const blended = {};
+  Object.keys(current).forEach((k) => {
+    const diff = Number(target[k] || 0) - Number(current[k] || 0);
+    const clipped = Math.max(-maxStep, Math.min(maxStep, diff));
+    blended[k] = Number((current[k] + clipped).toFixed(4));
+  });
+
+  return normalizeDecisionWeights(blended);
+}
+
+function evaluateAutoWeightApply(memory, nowTs = Date.now()) {
+  const prefs = memory?.userPreferences || {};
+  const stats = memory?.stats || {};
+  const suggestions = Array.isArray(memory?.weightSuggestions) ? memory.weightSuggestions : [];
+
+  const recent = suggestions.filter((s) => {
+    const created = getTimeMillis(s?.createdAt);
+    return created > 0 && nowTs - created <= AUTO_TUNE_LOOKBACK_MS;
+  });
+
+  if (recent.length < AUTO_TUNE_MIN_SUGGESTIONS) {
+    return { shouldApply: false, reason: 'not_enough_recent_suggestions' };
+  }
+
+  const lastAppliedTs = getTimeMillis(stats.lastAutoWeightApplyAt);
+  if (lastAppliedTs > 0 && nowTs - lastAppliedTs < AUTO_TUNE_COOLDOWN_MS) {
+    return { shouldApply: false, reason: 'cooldown_active' };
+  }
+
+  const avgSuggested = averageSuggestedWeights(recent);
+  if (!avgSuggested) {
+    return { shouldApply: false, reason: 'no_average_weight' };
+  }
+
+  const current = normalizeDecisionWeights(prefs.decisionWeights || DECISION_WEIGHTS);
+  const nextWeights = blendWeightsWithGuardrail(current, avgSuggested, AUTO_TUNE_MAX_STEP);
+
+  const totalShift = Object.keys(current)
+    .reduce((acc, key) => acc + Math.abs((nextWeights[key] || 0) - (current[key] || 0)), 0);
+
+  if (totalShift < 0.01) {
+    return { shouldApply: false, reason: 'shift_too_small' };
+  }
+
+  return {
+    shouldApply: true,
+    reason: 'guardrail_pass',
+    previousWeights: current,
+    averagedSuggestedWeights: avgSuggested,
+    nextWeights,
+    recentSuggestionCount: recent.length,
+  };
 }
 
 const SYNONYM_REPLACEMENTS = [
@@ -1051,7 +1134,7 @@ export async function POST(request) {
     const lastAssistantEntities = context?.lastAssistantEntities || null;
     const learningFeedback = body?.learningFeedback || null;
     const mood = detectConversationalMood({ message, recentConversation });
-    const longTermMemory = await loadBettiLongTermMemory(uid);
+    let longTermMemory = await loadBettiLongTermMemory(uid);
 
     // Check if this is a training input (starts with "xx ")
     const training = detectTrainingInput(originalMessage);
@@ -1654,6 +1737,11 @@ export async function POST(request) {
       },
     });
 
+    let autoWeightTuning = {
+      applied: false,
+      reason: 'not_triggered',
+    };
+
     if (learningFeedback?.type === 'intent_selection' && decisionPipeline.scores.intent < LOW_CONFIDENCE_THRESHOLD) {
       const currentWeights = decisionPipeline.weights;
       const suggestedWeights = normalizeDecisionWeights({
@@ -1671,6 +1759,40 @@ export async function POST(request) {
         observedAction: selectedAction,
         scores: decisionPipeline.scores,
       });
+
+      const refreshedMemory = await loadBettiLongTermMemory(uid);
+      const autoTuneEval = evaluateAutoWeightApply(refreshedMemory, Date.now());
+
+      if (autoTuneEval.shouldApply) {
+        const refreshedStats = refreshedMemory?.stats || {};
+        await saveBettiLongTermMemory(uid, {
+          userPreferences: {
+            ...(refreshedMemory?.userPreferences || {}),
+            decisionWeights: autoTuneEval.nextWeights,
+          },
+          stats: {
+            ...refreshedStats,
+            lastAutoWeightApplyAt: new Date().toISOString(),
+            autoWeightApplyCount: Number(refreshedStats.autoWeightApplyCount || 0) + 1,
+          },
+        });
+
+        longTermMemory = await loadBettiLongTermMemory(uid);
+        autoWeightTuning = {
+          applied: true,
+          reason: autoTuneEval.reason,
+          previousWeights: autoTuneEval.previousWeights,
+          averagedSuggestedWeights: autoTuneEval.averagedSuggestedWeights,
+          appliedWeights: autoTuneEval.nextWeights,
+          recentSuggestionCount: autoTuneEval.recentSuggestionCount,
+        };
+      } else {
+        autoWeightTuning = {
+          applied: false,
+          reason: autoTuneEval.reason,
+          recentSuggestionCount: Array.isArray(refreshedMemory?.weightSuggestions) ? refreshedMemory.weightSuggestions.length : 0,
+        };
+      }
     }
 
     payload = {
@@ -1680,6 +1802,7 @@ export async function POST(request) {
       executionPlan: actionPlan,
       decisionReasoning: decisionPipeline.reasoning,
       userPreferences: longTermMemory?.userPreferences || {},
+      autoWeightTuning,
     };
 
     const latencyMs = Date.now() - requestStartTs;
@@ -1716,6 +1839,7 @@ export async function POST(request) {
           userPreferences: longTermMemory?.userPreferences || {},
           stats: longTermMemory?.stats || {},
         },
+        autoWeightTuning,
       },
       proactiveWarnings,
       quickActions,
