@@ -7,6 +7,7 @@ import { buildProactiveWarnings } from '@/lib/suggestionEngine';
 import {
   detectTrainingInput,
   loadTrainingPatterns,
+  recordTrainingPatternUsage,
   saveTrainingPattern,
   buildTrainingPattern,
 } from '@/lib/bettiTraining';
@@ -759,6 +760,10 @@ export async function POST(request) {
 
     // Normal message processing with learned patterns
     let parsed = parseBettiIntent(message, learnedPatterns);
+
+    if (parsed.isLearned && (parsed.learnedPatternId || parsed.learnedPatternFingerprint)) {
+      await recordTrainingPatternUsage(uid, parsed.learnedPatternId || parsed.learnedPatternFingerprint);
+    }
 
     if (parsed.intent === 'unknown' || parsed.intent === 'affirmative') {
       const contextual = resolveContextualFollowUp({
