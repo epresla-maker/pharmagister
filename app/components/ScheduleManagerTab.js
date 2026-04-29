@@ -3849,7 +3849,10 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
               <div
                 className={`sticky bottom-0 border-t p-3 space-y-2 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'}`}
-                style={{ paddingBottom: `calc(env(safe-area-inset-bottom, 0px) + ${Math.max(8, bettiKeyboardInset)}px)` }}
+                style={{
+                  paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)',
+                  marginBottom: `${Math.max(0, bettiKeyboardInset)}px`,
+                }}
               >
                 <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
                   {[...getBettiPresetQuestions(), ...bettiQuickActions.slice(0, 3).map((a) => a.label)].slice(0, 6).map((q) => (
@@ -4741,7 +4744,10 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
                 <div
                   className={`sticky bottom-0 border-t p-3 space-y-2 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'}`}
-                  style={{ paddingBottom: `calc(env(safe-area-inset-bottom, 0px) + ${Math.max(8, bettiKeyboardInset)}px)` }}
+                  style={{
+                    paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)',
+                    marginBottom: `${Math.max(0, bettiKeyboardInset)}px`,
+                  }}
                 >
                   <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
                     {[...getBettiPresetQuestions(), ...bettiQuickActions.slice(0, 3).map((a) => a.label)].slice(0, 6).map((q) => (
