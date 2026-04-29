@@ -379,32 +379,110 @@ function buildSuccessQuickActions({ action, chatRole, entities }) {
   ];
 }
 
-function polishBettiReply({ reply, action, chatRole, entities }) {
-  if (!reply) return reply;
+function pickReplyVariant(seed, variants = []) {
+  if (!Array.isArray(variants) || variants.length === 0) return '';
+  const source = String(seed || 'betti');
+  let hash = 0;
+  for (let i = 0; i < source.length; i += 1) {
+    hash = ((hash << 5) - hash) + source.charCodeAt(i);
+    hash |= 0;
+  }
+  const index = Math.abs(hash) % variants.length;
+  return variants[index];
+}
+
+function buildClarifyReply({ chatRole, message }) {
+  const variants = chatRole === 'pharmacy'
+    ? [
+        'Segits egy kicsit pontositani: a dolgozokra, a szabadsagokra, a hianyzo tervezetekre vagy a tulorakra gondolsz?',
+        'Pontositsunk egy lepest: a dolgozok, a szabadsagok, a hianyzo tervezetek vagy a tulorak erdekelnek?',
+        'Rendben, csak finomitsuk: a dolgozokat, a szabadsagokat, a tervezeteket vagy a tulorakat nezzem?',
+      ]
+    : [
+        'Pontositsunk egy kicsit: a beosztasodat, a szabadsag napjaidat vagy a szabadnapjaidat szeretned latni?',
+        'Segits pontositani: a sajat beosztasod, a szabadsagok vagy a szabadnapok erdekelnek?',
+        'Rendben, melyikre gondolsz pontosan: beosztas, szabadsag vagy szabadnap?',
+      ];
+  return pickReplyVariant(message, variants);
+}
+
+function buildLowConfidenceReply({ message, guess }) {
+  if (guess) {
+    return pickReplyVariant(message, [
+      `Nem akarok melleloni: arra gondoltal, hogy ${guess.label}? Valassz lent egy opciot.`,
+      `Valoszinuleg erre gondoltal: ${guess.label}. Ha igen, valaszd ki lent.`,
+      `Majdnem biztos vagyok benne, de inkabb visszakerdezek: ${guess.label}?`,
+    ]);
+  }
+
+  return pickReplyVariant(message, [
+    'Tobb irany is belefer ebbe a kerdesbe. Valassz lent egy opciot, es megyek tovabb azon a szalon.',
+    'Nem teljesen egyertelmu nekem a kerdes. Mutatok nehany jo kovetkezo lepest lent.',
+    'Ebbol tobb mindent is kerhettel. Valassz lent egy konkret opciot, es azonnal folytatom.',
+  ]);
+}
+
+function buildUnknownReply({ message, quickActions }) {
+  const top = quickActions.slice(0, 3).map((item) => item.label).join(', ');
+  return pickReplyVariant(message, [
+    `Ezt most nem raktam ossze teljesen. Ezek kozul valamelyikre gondoltal: ${top}?`,
+    `Nem vagyok benne biztos, hogy pontosan mire gondoltal. Probaljuk innen: ${top}.`,
+    `Most meg elbizonytalanodtam. Valassz egyet ezek kozul: ${top}, vagy tanits meg egy jobb valaszra az xx formatummal.`,
+  ]);
+}
+
+function buildReplyBridge({ action, chatRole, entities, seed }) {
+  const hasMonth = Number.isInteger(entities?.monthOffset) || Number.isInteger(entities?.monthNumber);
 
   if (chatRole === 'pharmacy') {
     if (action === 'list_employees') {
-      return `${reply} Ha szeretned, innen rogton megnezhetem azt is, kik mennek szabira vagy kik nem kuldtek meg be tervezetet.`;
+      return pickReplyVariant(seed, [
+        'Ha szeretned, innen rogton megnezhetem azt is, kik mennek szabira vagy kik nem kuldtek meg be tervezetet.',
+        'A kovetkezo lepeskent megmutathatom a szabadsagokat vagy a hianyzo tervezeteket is.',
+        'Innen konnyen tovabb tudunk menni a szabadsagigenyekre vagy a hianyzo tervezetekre.',
+      ]);
     }
 
-    if (action === 'show_vacation_requests' && (Number.isInteger(entities?.monthOffset) || Number.isInteger(entities?.monthNumber))) {
-      return `${reply} Ha utana szeretned, egybol megnezem azt is, kik nem kuldtek meg a tervezetuket erre az idoszakra.`;
+    if (action === 'show_vacation_requests' && hasMonth) {
+      return pickReplyVariant(seed, [
+        'Ha utana szeretned, egybol megnezem azt is, kik nem kuldtek meg a tervezetuket erre az idoszakra.',
+        'Ha kell, ugyanebben a honapban rogton ellenorizhetem a hianyzo tervezeteket is.',
+        'A kovetkezo lepesben megmutathatom ugyanennek a honapnak a hianyzo tervezeteit is.',
+      ]);
     }
 
-    if (action === 'missing_drafts' && (Number.isInteger(entities?.monthOffset) || Number.isInteger(entities?.monthNumber))) {
-      return `${reply} Ha kell, a kovetkezo lepesben megmutatom az ugyanebben a honapban erintett szabadsagigenyeket is.`;
+    if (action === 'missing_drafts' && hasMonth) {
+      return pickReplyVariant(seed, [
+        'Ha kell, a kovetkezo lepesben megmutatom az ugyanebben a honapban erintett szabadsagigenyeket is.',
+        'Ha szeretned, ugyanebben az idoszakban a szabadsagigenyeket is megnezem.',
+        'Innen tovabb tudok menni ugyanennek a honapnak a szabadsagigenyeire is.',
+      ]);
     }
   }
 
   if (action === 'show_my_schedule') {
-    return `${reply} Ha szeretned, egybol at tudunk ugrani a szabadsagokra vagy a szabadnapokra is.`;
+    return pickReplyVariant(seed, [
+      'Ha szeretned, egybol at tudunk ugrani a szabadsagokra vagy a szabadnapokra is.',
+      'Innen rogton megnezhetem a szabadsag napjaidat vagy a szabadnapjaidat is.',
+      'Ha mar itt tartunk, mutathatom ugyanebbol az idoszakbol a szabadsagokat vagy a szabadnapokat is.',
+    ]);
   }
 
   if (action === 'show_my_vacations' || action === 'show_my_free_days') {
-    return `${reply} Ha szeretned, a sajat beosztasodat is megmutatom ugyanebbol az idoszakbol.`;
+    return pickReplyVariant(seed, [
+      'Ha szeretned, a sajat beosztasodat is megmutatom ugyanebbol az idoszakbol.',
+      'Ha kell, ugyanennek a honapnak a beosztasat is azonnal megmutatom.',
+      'A kovetkezo lepesben at tudok ugrani a sajat beosztasodra is.',
+    ]);
   }
 
-  return reply;
+  return '';
+}
+
+function polishBettiReply({ reply, action, chatRole, entities, seed }) {
+  if (!reply) return reply;
+  const bridge = buildReplyBridge({ action, chatRole, entities, seed });
+  return bridge ? `${reply} ${bridge}` : reply;
 }
 
 function containsAny(text, list) {
@@ -974,11 +1052,7 @@ export async function POST(request) {
     if (shouldClarifyLowConfidence) {
       forceClarify = true;
       const guess = findSuggestionForParsed(parsed, chatRole);
-      if (guess) {
-        reply = `Nem vagyok teljesen biztos benne. Arra gondoltal, hogy: ${guess.label}? Valassz lent egy opciot.`;
-      } else {
-        reply = 'Nem vagyok teljesen biztos benne. Valassz egy opciot, hogy pontosan arra menjunk.';
-      }
+      reply = buildLowConfidenceReply({ message, guess });
       payload = {
         ...payload,
         action: 'clarify_with_options',
@@ -987,9 +1061,7 @@ export async function POST(request) {
     }
 
     if (parsed.action === 'clarify_with_options') {
-      reply = chatRole === 'pharmacy'
-        ? 'Rendben. Pontosan mire gondolsz: a dolgozokra, a szabadsagokra, a hianyzo tervezetekre vagy a tulorakra?'
-        : 'Rendben. Pontosan mit mutassak: a sajat beosztasodat, a tulorasokat, vagy a szabadsag napjaidat?';
+      reply = buildClarifyReply({ chatRole, message });
     }
 
     reply = polishBettiReply({
@@ -997,6 +1069,7 @@ export async function POST(request) {
       action: payload?.action || parsed.action,
       chatRole,
       entities: payload?.entities || parsed.entities,
+      seed: `${message}:${payload?.action || parsed.action}`,
     });
 
     const quickActions = quickActionsOverride || ((parsed.intent === 'unknown' || parsed.action === 'clarify_with_options' || forceClarify)
@@ -1023,8 +1096,7 @@ export async function POST(request) {
         }));
 
     if (parsed.intent === 'unknown' && quickActions.length > 0) {
-      const top = quickActions.slice(0, 3).map((item) => item.label).join(', ');
-      reply = `Ezt most nem ertettem teljesen. Lehetseges opciok: ${top}. Valassz lent egyet, vagy tanits "xx" kezdetu valasszal.`;
+      reply = buildUnknownReply({ message, quickActions });
       payload = {
         ...payload,
         action: 'clarify_with_options',
