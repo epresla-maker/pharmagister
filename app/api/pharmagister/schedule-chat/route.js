@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/apiAuth';
-import { parseBettiIntent } from '@/lib/intentParser';
+import { isAffirmativeText, parseBettiIntent } from '@/lib/intentParser';
 import { normalizeHungarianChatInput } from '@/lib/huDictionary';
 import { explainAssignmentDecision } from '@/lib/explanationEngine';
 import { buildProactiveWarnings } from '@/lib/suggestionEngine';
@@ -545,7 +545,7 @@ function resolveContextualFollowUp({
 
   const words = norm.split(/\s+/).filter(Boolean);
   const isShort = words.length <= 4;
-  const isYesLike = containsAny(norm, ['igen', 'ja', 'persze', 'oke', 'ok', 'szeretnem', 'mehet', 'legyen']);
+  const isYesLike = isAffirmativeText(norm) || containsAny(norm, ['szeretnem', 'akarom', 'legyen']);
   const isPointer = containsAny(norm, ['azt', 'azokat', 'ezt', 'ezeket', 'az']);
   const isReplanNudge = containsAny(norm, ['inkabb holnap', 'holnap inkabb', 'inkabb a', 'csak holnap']);
   const requestedMonth = detectMonthReference(norm);
