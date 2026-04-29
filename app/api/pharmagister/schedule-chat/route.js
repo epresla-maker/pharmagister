@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/apiAuth';
-import { isAffirmativeText, isHesitationText, isNegativeText, parseBettiIntent } from '@/lib/intentParser';
+import { isAffirmativeText, isHesitationText, isNegativeText, parseBettiIntent } from '@/lib/intentParserV6';
 import { normalizeHungarianChatInput } from '@/lib/huDictionary';
 import { explainAssignmentDecision } from '@/lib/explanationEngine';
 import { buildProactiveWarnings } from '@/lib/suggestionEngine';
@@ -2336,6 +2336,48 @@ export async function POST(request) {
 
     // Normal message processing with learned patterns
     let parsed = parseBettiIntent(message, learnedPatterns);
+
+    // ============================================================================
+    // CONFIDENCE GATE (HARD RULE)
+    // If confidence < 0.85, force clarification (no exceptions)
+    // ============================================================================
+    if (Number(parsed.confidence || 0) < 0.85) {
+      parsed = {
+        ...parsed,
+        intent: 'unknown',
+        action: 'clarify',
+        confidence: Number(parsed.confidence || 0.35),
+        reply: parsed.reply || 'Ezt nem ertettem teljesen. Probald igy: "Mi a beosztasom?", "Mutasd a tulorasokat", vagy "Tervezd ujra csak a hetfot".',
+      };
+      // Skip learned pattern handling if confidence is too low
+      let reply = parsed.reply;
+      let payload = {
+        action: parsed.action,
+        entities: parsed.entities,
+        confidence: parsed.confidence,
+        topCandidates: parsed.topCandidates || [],
+        reasoning: parsed.reasoning || null,
+      };
+      const quickActions = buildUnknownSuggestions(message, chatRole);
+      const response = {
+        success: true,
+        intent: parsed.intent,
+        action: parsed.action,
+        reply,
+        payload,
+        quickActions,
+      };
+      await saveBettiLongTermMemory(uid, {
+        stats: {
+          ...(longTermMemory?.stats || {}),
+          totalMessages: Number(longTermMemory?.stats?.totalMessages || 0) + 1,
+          clarificationCount: Number(longTermMemory?.stats?.clarificationCount || 0) + 1,
+          lastSeenIntent: 'clarify_low_confidence',
+          lastSeenAt: new Date().toISOString(),
+        },
+      });
+      return NextResponse.json(response);
+    }
 
     if (parsed.isLearned && (parsed.learnedPatternId || parsed.learnedPatternFingerprint)) {
       await recordTrainingPatternUsage(uid, parsed.learnedPatternId || parsed.learnedPatternFingerprint);
