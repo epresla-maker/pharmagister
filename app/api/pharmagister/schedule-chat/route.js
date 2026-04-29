@@ -212,7 +212,11 @@ export async function POST(request) {
       reply = 'Szivesen! Ha szeretned, mar most megmutatom a kovetkezo muszakjaidat vagy szabadnapjaidat.';
     }
 
-    const quickActions = parsed.intent === 'unknown'
+    if (parsed.action === 'clarify_with_options') {
+      reply = 'Pontositunk egy kicsit. Ezek kozul mire gondoltal?';
+    }
+
+    const quickActions = (parsed.intent === 'unknown' || parsed.action === 'clarify_with_options')
       ? buildUnknownSuggestions(message)
       : [
           { key: 'replan_all', label: 'Ujratervezes', utterance: 'Ujratervezes' },
