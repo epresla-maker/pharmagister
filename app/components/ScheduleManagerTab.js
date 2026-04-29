@@ -1550,6 +1550,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   const [bettiChatMessages, setBettiChatMessages] = useState([]);
   const [bettiQuickActions, setBettiQuickActions] = useState([]);
   const [bettiChatOpen, setBettiChatOpen] = useState(false);
+  const [bettiKeyboardInset, setBettiKeyboardInset] = useState(0);
   const [replanForm, setReplanForm] = useState({
     employeeId: '',
     startDate: getTodayKey(),
@@ -1647,6 +1648,28 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     const maxDays = getDaysInMonth(year, month);
     if (day > maxDays) setDay(maxDays);
   }, [year, month, day]);
+
+  useEffect(() => {
+    if (!bettiChatOpen) {
+      setBettiKeyboardInset(0);
+      return;
+    }
+    if (typeof window === 'undefined' || !window.visualViewport) return;
+
+    const viewport = window.visualViewport;
+    const updateInset = () => {
+      const overlap = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
+      setBettiKeyboardInset(overlap);
+    };
+
+    updateInset();
+    viewport.addEventListener('resize', updateInset);
+    viewport.addEventListener('scroll', updateInset);
+    return () => {
+      viewport.removeEventListener('resize', updateInset);
+      viewport.removeEventListener('scroll', updateInset);
+    };
+  }, [bettiChatOpen]);
 
   useEffect(() => {
     if (!user || !pharmaRole) {
@@ -3800,7 +3823,10 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                 {renderBettiMessageBanners(30)}
               </div>
 
-              <div className={`border-t p-3 pb-24 space-y-2 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'}`}>
+              <div
+                className={`sticky bottom-0 border-t p-3 space-y-2 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'}`}
+                style={{ paddingBottom: `calc(env(safe-area-inset-bottom, 0px) + ${Math.max(8, bettiKeyboardInset)}px)` }}
+              >
                 <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
                   {[...getBettiPresetQuestions(), ...bettiQuickActions.slice(0, 3).map((a) => a.label)].slice(0, 6).map((q) => (
                     <button
@@ -4689,7 +4715,10 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   {renderBettiMessageBanners(30)}
                 </div>
 
-                <div className={`border-t p-3 pb-24 space-y-2 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'}`}>
+                <div
+                  className={`sticky bottom-0 border-t p-3 space-y-2 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'}`}
+                  style={{ paddingBottom: `calc(env(safe-area-inset-bottom, 0px) + ${Math.max(8, bettiKeyboardInset)}px)` }}
+                >
                   <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
                     {[...getBettiPresetQuestions(), ...bettiQuickActions.slice(0, 3).map((a) => a.label)].slice(0, 6).map((q) => (
                       <button
