@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/apiAuth';
 import { parseBettiIntent } from '@/lib/intentParser';
+import { normalizeHungarianChatInput } from '@/lib/huDictionary';
 import { explainAssignmentDecision } from '@/lib/explanationEngine';
 import { buildProactiveWarnings } from '@/lib/suggestionEngine';
 import {
@@ -173,7 +174,8 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const message = body?.message || '';
+    const originalMessage = body?.message || '';
+    const message = await normalizeHungarianChatInput(originalMessage);
     const context = body?.context || {};
     const chatRole = normalizeChatRole(context?.chatRole);
     const uid = authUser.uid;
@@ -181,7 +183,7 @@ export async function POST(request) {
     const learningFeedback = body?.learningFeedback || null;
 
     // Check if this is a training input (starts with "xx ")
-    const training = detectTrainingInput(message);
+    const training = detectTrainingInput(originalMessage);
 
     if (training.isTraining) {
       if (!training.trainingResponse) {
@@ -191,7 +193,7 @@ export async function POST(request) {
         }, { status: 400 });
       }
 
-      const originalQuestion = context.lastUserMessage && context.lastUserMessage !== message
+      const originalQuestion = context.lastUserMessage && context.lastUserMessage !== originalMessage
         ? context.lastUserMessage
         : (body?.previousUserMessage || 'unknown');
 
