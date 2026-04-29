@@ -44,6 +44,14 @@ const EMPLOYEE_UNKNOWN_SUGGESTIONS = [
 
 const LOW_CONFIDENCE_THRESHOLD = 0.82;
 
+const DECISION_WEIGHTS = {
+  intent: 0.35,
+  context: 0.25,
+  role: 0.2,
+  mood: 0.1,
+  risk: 0.1,
+};
+
 const SYNONYM_REPLACEMENTS = [
   [/\b(szabi|szabin|szabira|szabadsagra)\b/g, 'szabadsag'],
   [/\b(piheno|pihenonap|pihi|pihinap)\b/g, 'szabadnap'],
@@ -561,24 +569,19 @@ function clamp01(value) {
   return Math.max(0, Math.min(1, Number(value)));
 }
 
-function computeContextScore({ message, parsed, recentConversation = [], lastAssistantAction, lastAssistantEntities, selectedAction }) {
-  let score = recentConversation.length > 0 ? 0.45 : 0.25;
-
-  if (parsed?.inferredFromContext) score += 0.2;
-  if (isContinuationPrompt(message)) score += 0.15;
-  if (lastAssistantAction && selectedAction && (lastAssistantAction === selectedAction || selectedAction === 'clarify_with_options')) score += 0.15;
-  if (hasMonthEntities(lastAssistantEntities) && hasMonthEntities(parsed?.entities)) score += 0.1;
-
-  return clamp01(score);
-}
-
-function computeRoleScore({ chatRole, selectedAction }) {
+function getActionScopes(selectedAction) {
   const employeeOnlyActions = new Set([
     'show_my_schedule', 'show_my_vacations', 'show_my_free_days', 'check_my_schedule_exists',
   ]);
   const pharmacyOnlyActions = new Set([
     'list_employees', 'show_vacation_requests', 'missing_drafts', 'add_employee', 'remove_employee',
   ]);
+
+  return { employeeOnlyActions, pharmacyOnlyActions };
+}
+
+function computeRoleScore({ chatRole, selectedAction }) {
+  const { employeeOnlyActions, pharmacyOnlyActions } = getActionScopes(selectedAction);
 
   if (!selectedAction) return 0.65;
   if (chatRole === 'pharmacy') {
@@ -595,26 +598,111 @@ function computeRoleScore({ chatRole, selectedAction }) {
   return 0.7;
 }
 
-function computeRiskScore({ parsed, mood, intentScore, roleScore, selectedAction }) {
-  let risk = 0;
-  if (intentScore < LOW_CONFIDENCE_THRESHOLD) risk += 0.35;
-  if (parsed?.intent === 'unknown') risk += 0.3;
-  if (roleScore < 0.45) risk += 0.4;
-  if (['add_employee', 'remove_employee', 'replan_all'].includes(selectedAction)) risk += 0.2;
-  if (['frustrated', 'sad'].includes(mood?.label) && parsed?.intent === 'unknown') risk += 0.1;
-  return clamp01(risk);
+function computeContextScore({ message, parsed, recentConversation = [], lastAssistantAction, lastAssistantEntities, selectedAction }) {
+  let score = recentConversation.length > 0 ? 0.45 : 0.25;
+
+  if (parsed?.inferredFromContext) score += 0.2;
+  if (isContinuationPrompt(message)) score += 0.15;
+  if (lastAssistantAction && selectedAction && (lastAssistantAction === selectedAction || selectedAction === 'clarify_with_options')) score += 0.15;
+  if (hasMonthEntities(lastAssistantEntities) && hasMonthEntities(parsed?.entities)) score += 0.1;
+
+  return clamp01(score);
 }
 
-function pickBestStrategy({ intentScore, contextScore, roleScore, riskScore, mood, selectedAction, parsed }) {
-  if (roleScore < 0.45) return 'role_redirect';
-  if (riskScore >= 0.78) return ['frustrated', 'sad', 'tired'].includes(mood?.label) ? 'empathetic_clarify' : 'safe_clarify';
-  if (intentScore < LOW_CONFIDENCE_THRESHOLD || contextScore < 0.45) {
-    return ['frustrated', 'sad', 'tired'].includes(mood?.label) ? 'empathetic_clarify' : 'clarify';
-  }
-  if (['frustrated', 'sad', 'tired'].includes(mood?.label) && (parsed?.intent === 'unknown' || selectedAction === 'clarify_with_options')) {
-    return 'empathetic_support';
-  }
-  return 'direct_answer';
+function computeRiskSignals({ parsed, mood, intentScore, roleScore, selectedAction }) {
+  const { employeeOnlyActions, pharmacyOnlyActions } = getActionScopes(selectedAction);
+  const uncertainIntent = clamp01(1 - intentScore);
+  const roleMismatch = clamp01(1 - roleScore);
+
+  const sensitiveAction = ['add_employee', 'remove_employee', 'replan_all'].includes(selectedAction)
+    || employeeOnlyActions.has(selectedAction)
+    || pharmacyOnlyActions.has(selectedAction);
+  const dataSensitivity = sensitiveAction ? 0.75 : 0.25;
+
+  const emotionalInstability = ['frustrated', 'sad'].includes(mood?.label)
+    ? 0.8
+    : (mood?.label === 'tired' ? 0.45 : 0.2);
+
+  return {
+    intentUncertainty: uncertainIntent,
+    roleMismatch,
+    dataSensitivity,
+    emotionalInstability,
+    isSensitiveAction: sensitiveAction,
+  };
+}
+
+function computeRiskScore(signals) {
+  const score = (
+    signals.intentUncertainty * 0.4
+    + signals.roleMismatch * 0.3
+    + signals.dataSensitivity * 0.2
+    + signals.emotionalInstability * 0.1
+  );
+  return clamp01(score);
+}
+
+function buildFeatureLayer({ message, parsed, mood, chatRole, recentConversation, lastAssistantAction, lastAssistantEntities, selectedAction, scores, riskSignals }) {
+  const isRoleMismatch = scores.role < 0.45;
+  const isNegativeMood = ['frustrated', 'sad', 'tired'].includes(mood?.label);
+  const isLowConfidence = scores.intent < LOW_CONFIDENCE_THRESHOLD;
+  const isFollowUp = Boolean(parsed?.inferredFromContext || isContinuationPrompt(message));
+  const hasContext = recentConversation.length > 0 || Boolean(lastAssistantAction);
+  const isRiskyIntent = riskSignals.isSensitiveAction || scores.risk >= 0.65;
+
+  return {
+    hasContext,
+    isFollowUp,
+    isNegativeMood,
+    isLowConfidence,
+    isRoleMismatch,
+    isRiskyIntent,
+    isUnknownIntent: parsed?.intent === 'unknown',
+    isClarifyAction: selectedAction === 'clarify_with_options',
+    hasMonthMemory: hasMonthEntities(lastAssistantEntities),
+    role: chatRole,
+  };
+}
+
+function computeWeightedDecisionScore({ scores, weights = DECISION_WEIGHTS }) {
+  return clamp01(
+    scores.intent * weights.intent
+    + scores.context * weights.context
+    + scores.role * weights.role
+    + scores.mood * weights.mood
+    + (1 - scores.risk) * weights.risk
+  );
+}
+
+function scoreStrategies({ weightedScore, scores, features }) {
+  const strategyScores = {
+    direct_answer: weightedScore + (features.isLowConfidence ? -0.25 : 0.1) + (features.isRoleMismatch ? -0.5 : 0.05),
+    clarify: (1 - scores.intent) * 0.5 + (features.isFollowUp ? 0.1 : 0) + (features.isLowConfidence ? 0.2 : 0),
+    safe_clarify: scores.risk * 0.7 + (features.isRiskyIntent ? 0.2 : 0),
+    empathetic_support: (features.isNegativeMood ? 0.45 : 0.05) + (features.isLowConfidence ? 0.2 : 0) + (features.isUnknownIntent ? 0.2 : 0),
+    empathetic_clarify: (features.isNegativeMood ? 0.35 : 0.05) + (1 - scores.intent) * 0.35 + scores.risk * 0.2,
+    role_redirect: (features.isRoleMismatch ? 0.9 : 0.02) + scores.risk * 0.1,
+  };
+
+  return Object.fromEntries(
+    Object.entries(strategyScores).map(([k, v]) => [k, Number(clamp01(v).toFixed(3))])
+  );
+}
+
+function pickMaxStrategy(strategyScores) {
+  return Object.entries(strategyScores)
+    .sort((a, b) => b[1] - a[1])[0]?.[0] || 'clarify';
+}
+
+function buildDecisionReasoning({ parsed, scores, features, strategyScores, bestStrategy }) {
+  const lines = [];
+  lines.push(`intent confidence ${scores.intent >= LOW_CONFIDENCE_THRESHOLD ? 'high' : 'low'} (${scores.intent.toFixed(2)})`);
+  lines.push(features.isFollowUp ? 'context continuation detected' : 'no strong continuation context');
+  lines.push(features.isRoleMismatch ? 'role mismatch detected' : `role match strong (${scores.role.toFixed(2)})`);
+  lines.push(`risk ${scores.risk >= 0.65 ? 'elevated' : 'low'} (${scores.risk.toFixed(2)})`);
+  lines.push(`selected ${bestStrategy} due to max score (${strategyScores[bestStrategy]?.toFixed(3) || 'n/a'})`);
+  if (parsed?.reasoning?.source) lines.push(`parser source: ${parsed.reasoning.source}`);
+  return lines;
 }
 
 function buildDecisionPipeline({ message, parsed, mood, chatRole, recentConversation, lastAssistantAction, lastAssistantEntities, selectedAction }) {
@@ -629,16 +717,34 @@ function buildDecisionPipeline({ message, parsed, mood, chatRole, recentConversa
     selectedAction,
   });
   const roleScore = computeRoleScore({ chatRole, selectedAction });
-  const riskScore = computeRiskScore({ parsed, mood, intentScore, roleScore, selectedAction });
-  const bestStrategy = pickBestStrategy({
-    intentScore,
-    contextScore,
-    roleScore,
-    riskScore,
-    mood,
-    selectedAction,
+  const riskSignals = computeRiskSignals({ parsed, mood, intentScore, roleScore, selectedAction });
+  const riskScore = computeRiskScore(riskSignals);
+
+  const scores = {
+    intent: Number(intentScore.toFixed(3)),
+    mood: Number(moodScore.toFixed(3)),
+    context: Number(contextScore.toFixed(3)),
+    role: Number(roleScore.toFixed(3)),
+    risk: Number(riskScore.toFixed(3)),
+  };
+
+  const features = buildFeatureLayer({
+    message,
     parsed,
+    mood,
+    chatRole,
+    recentConversation,
+    lastAssistantAction,
+    lastAssistantEntities,
+    selectedAction,
+    scores,
+    riskSignals,
   });
+
+  const weightedScore = Number(computeWeightedDecisionScore({ scores }).toFixed(3));
+  const strategyScores = scoreStrategies({ weightedScore, scores, features });
+  const bestStrategy = pickMaxStrategy(strategyScores);
+  const reasoning = buildDecisionReasoning({ parsed, scores, features, strategyScores, bestStrategy });
 
   return {
     input: {
@@ -647,14 +753,13 @@ function buildDecisionPipeline({ message, parsed, mood, chatRole, recentConversa
       mood: mood?.label || 'neutral',
       role: chatRole || 'default',
     },
-    scores: {
-      intent: Number(intentScore.toFixed(3)),
-      mood: Number(moodScore.toFixed(3)),
-      context: Number(contextScore.toFixed(3)),
-      role: Number(roleScore.toFixed(3)),
-      risk: Number(riskScore.toFixed(3)),
-    },
+    features,
+    scores,
+    weights: DECISION_WEIGHTS,
+    weightedScore,
+    strategyScores,
     bestStrategy,
+    reasoning,
   };
 }
 
@@ -672,6 +777,32 @@ function applyDecisionStrategy({ reply, bestStrategy }) {
   }
 
   return reply;
+}
+
+function buildActionPlan(action, entities = {}) {
+  const actionMap = {
+    show_my_schedule: 'fetch_schedule',
+    check_my_schedule_exists: 'check_schedule_presence',
+    show_my_vacations: 'fetch_vacations',
+    show_my_free_days: 'fetch_free_days',
+    list_employees: 'fetch_employees',
+    show_vacation_requests: 'fetch_vacation_requests',
+    missing_drafts: 'check_missing_drafts',
+    show_overtime: 'fetch_overtime',
+    replan_specific_day: 'replan_day',
+    find_replacement: 'find_replacement',
+    replan_all: 'replan_all',
+    clarify_with_options: 'clarify',
+    add_employee: 'prepare_add_employee',
+    remove_employee: 'prepare_remove_employee',
+  };
+
+  return {
+    type: actionMap[action] || 'conversation',
+    params: {
+      ...(entities || {}),
+    },
+  };
 }
 
 function mapActionToIntent(action) {
@@ -844,6 +975,7 @@ export const runtime = 'nodejs';
 
 export async function POST(request) {
   try {
+    const requestStartTs = Date.now();
     const authUser = await verifyAuth(request);
     if (!authUser) {
       return NextResponse.json({ error: 'Nincs jogosultsag' }, { status: 401 });
@@ -1405,6 +1537,7 @@ export async function POST(request) {
       lastAssistantEntities,
       selectedAction,
     });
+    const actionPlan = buildActionPlan(selectedAction, payload?.entities || parsed.entities || {});
 
     reply = applyDecisionStrategy({
       reply,
@@ -1422,7 +1555,26 @@ export async function POST(request) {
       ...payload,
       strategy: decisionPipeline.bestStrategy,
       scores: decisionPipeline.scores,
+      executionPlan: actionPlan,
+      decisionReasoning: decisionPipeline.reasoning,
     };
+
+    const latencyMs = Date.now() - requestStartTs;
+    console.log('[Betti Observability]', JSON.stringify({
+      timestamp: new Date().toISOString(),
+      input: {
+        message,
+        role: chatRole,
+      },
+      features: decisionPipeline.features,
+      scores: decisionPipeline.scores,
+      weightedScore: decisionPipeline.weightedScore,
+      selectedStrategy: decisionPipeline.bestStrategy,
+      action: selectedAction,
+      actionPlan,
+      latencyMs,
+      response: reply,
+    }));
 
     return NextResponse.json({
       success: true,
@@ -1435,6 +1587,8 @@ export async function POST(request) {
         topCandidates: parsed.topCandidates || [],
         reasoning: parsed.reasoning || null,
         decisionPipeline,
+        actionPlan,
+        latencyMs,
       },
       proactiveWarnings,
       quickActions,
