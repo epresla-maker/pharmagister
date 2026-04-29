@@ -3279,6 +3279,107 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     return out;
   }
 
+  function expandDateRange(startDate, endDate) {
+    const start = new Date(`${startDate || ''}T00:00:00`);
+    const end = new Date(`${endDate || startDate || ''}T00:00:00`);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return [];
+    const dates = [];
+    const cursor = new Date(start.getTime());
+    while (cursor <= end) {
+      dates.push(formatDateKey(cursor.getFullYear(), cursor.getMonth() + 1, cursor.getDate()));
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    return dates;
+  }
+
+  function buildOwnVacationDateSet() {
+    const ownEmpIds = new Set(ownEmployeeRecords.map((item) => item.id));
+    const ownEmail = normalizeEmail(user?.email);
+    const set = new Set();
+
+    for (const req of vacationRequests || []) {
+      const status = String(req.status || '').toLowerCase();
+      if (!['accepted', 'pending', 'approved'].includes(status)) continue;
+
+      const isOwn = req.userId === user?.uid
+        || ownEmpIds.has(req.employeeId)
+        || normalizeEmail(req.employeeEmail) === ownEmail;
+      if (!isOwn) continue;
+
+      const dates = expandDateRange(req.startDate, req.endDate || req.startDate);
+      dates.forEach((d) => set.add(d));
+    }
+    return set;
+  }
+
+  function formatHuDate(dateKey) {
+    const dt = new Date(`${dateKey}T00:00:00`);
+    if (Number.isNaN(dt.getTime())) return dateKey;
+    return dt.toLocaleDateString('hu-HU', { month: 'long', day: 'numeric', weekday: 'short' });
+  }
+
+  function getLocalBettiPersonalReply(text) {
+    if (isPharmacy) return { handled: false };
+
+    const norm = String(text || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim();
+
+    const ownMonthShifts = ownSchedules
+      .filter((s) => s.year === year && s.month === month && s.status !== 'deleted')
+      .sort((a, b) => `${a.date} ${a.startTime}`.localeCompare(`${b.date} ${b.startTime}`));
+
+    const ownVacationDates = buildOwnVacationDateSet();
+
+    if (/(beosztast szeretnek irni|beosztast irni|tervezetet irok)/.test(norm)) {
+      setMainTab('planner');
+      setPreferenceCalendarOpen(true);
+      return {
+        handled: true,
+        reply: 'Atviszlek a Beosztas-tervezo fulre. Ott napra bontva be tudod jelolni, mikor szeretnel dolgozni vagy szabadsagon lenni.',
+      };
+    }
+
+    if (/(mikor dolgozom|beosztasom|mikor vagyok beosztva|mikor dolgozok)/.test(norm)) {
+      const nextShifts = ownMonthShifts.filter((s) => s.date >= today).slice(0, 6);
+      if (nextShifts.length === 0) {
+        return { handled: true, reply: 'A kivalasztott idoszakban nincs publikalt vagy rogzitett muszakod.' };
+      }
+      const lines = nextShifts.map((s) => `${formatHuDate(s.date)}: ${s.startTime}-${s.endTime}`);
+      return { handled: true, reply: `A kovetkezo muszakjaid:\n- ${lines.join('\n- ')}` };
+    }
+
+    if (/(mikor vagyok szabin|szabin leszek|szabadsag|szabi)/.test(norm)) {
+      const nextVac = [...ownVacationDates].filter((d) => d >= today).sort().slice(0, 8);
+      if (nextVac.length === 0) {
+        return { handled: true, reply: 'Jelenleg nincs jovahagyott vagy fuggoben levo szabadsagod a rendszerben.' };
+      }
+      return { handled: true, reply: `Szabadsag napjaid: ${nextVac.map(formatHuDate).join(', ')}` };
+    }
+
+    if (/(mikor vagyok szabadnapos|szabadnapos|szabadnap|mikor vagyok szabad)/.test(norm)) {
+      const freeDays = [];
+      const monthDays = getDaysInMonth(year, month);
+      for (let d = 1; d <= monthDays; d += 1) {
+        const dateKey = formatDateKey(year, month, d);
+        if (dateKey < today) continue;
+        const hasShift = ownMonthShifts.some((s) => s.date === dateKey);
+        const onVacation = ownVacationDates.has(dateKey);
+        if (!hasShift && !onVacation) freeDays.push(dateKey);
+        if (freeDays.length >= 8) break;
+      }
+
+      if (freeDays.length === 0) {
+        return { handled: true, reply: 'A kovetkezo idoszakban nem latok tiszta szabadnapot ebben a honapban.' };
+      }
+      return { handled: true, reply: `Kovetkezo szabadnapjaid: ${freeDays.map(formatHuDate).join(', ')}` };
+    }
+
+    return { handled: false };
+  }
+
   async function handleBettiAction(action, entities = {}) {
     if (action === 'replan_all') {
       await runAutoPlanner({ action: 'plan' });
@@ -3323,6 +3424,12 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     setBettiChatLoading(true);
 
     try {
+      const localReply = getLocalBettiPersonalReply(text);
+      if (localReply.handled) {
+        setBettiChatMessages((prev) => [...prev, { role: 'assistant', text: localReply.reply }]);
+        return;
+      }
+
       const token = await user.getIdToken();
       const response = await fetch('/api/pharmagister/schedule-chat', {
         method: 'POST',
@@ -4473,6 +4580,88 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
       {!loading && ((isPharmacy && mainTab === 'schedule') || !isPharmacy) ? (
         <div className="space-y-6">
+
+          {((isPharmacy && mainTab === 'schedule') || (!isPharmacy && mainTab === 'mine')) && (
+            <div className={`rounded-2xl border p-4 space-y-3 ${darkMode ? 'border-sky-700 bg-sky-900/20' : 'border-sky-200 bg-sky-50'}`}>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className={`text-sm font-bold ${darkMode ? 'text-sky-200' : 'text-sky-900'}`}>Betti chat</p>
+                  <p className={`text-xs ${darkMode ? 'text-sky-300/80' : 'text-sky-700/80'}`}>
+                    {isPharmacy
+                      ? 'Kerdezhetsz ujratervezesrol, tulorarol, helyettesitesrol.'
+                      : 'Kerdezhetsz a sajat muszakjaidrol, szabadsagrol es szabadnapokrol.'}
+                  </p>
+                </div>
+                {bettiChatLoading && <span className={`text-xs ${darkMode ? 'text-sky-300' : 'text-sky-700'}`}>Betti dolgozik...</span>}
+              </div>
+
+              <div className={`max-h-56 overflow-y-auto rounded-lg border p-2 space-y-2 ${darkMode ? 'border-sky-800 bg-gray-900' : 'border-sky-200 bg-white'}`}>
+                {bettiChatMessages.length === 0 ? (
+                  <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    Betti: Szia! Kerdezz nyugodtan, segitek a beosztassal kapcsolatban.
+                  </p>
+                ) : bettiChatMessages.slice(-10).map((msg, index) => (
+                  <div
+                    key={`${msg.role}-${index}`}
+                    className={`text-xs rounded-lg px-3 py-2 ${msg.role === 'user'
+                      ? (darkMode ? 'bg-sky-800/60 text-sky-100 ml-6' : 'bg-sky-100 text-sky-800 ml-6')
+                      : (darkMode ? 'bg-gray-800 text-gray-200 mr-6' : 'bg-gray-100 text-gray-700 mr-6')}`}
+                  >
+                    {msg.text}
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {(isPharmacy
+                  ? [
+                      'Mutasd a tulorasokat',
+                      'Tervezd ujra csak a hetfot',
+                      'Ki tudna atvenni a holnapi estet?',
+                    ]
+                  : [
+                      'Mikor dolgozom?',
+                      'Mikor vagyok szabin?',
+                      'Mikor vagyok szabadnapos?',
+                      'Beosztast szeretnek irni',
+                    ]
+                ).map((q) => (
+                  <button
+                    key={q}
+                    type="button"
+                    onClick={() => sendBettiChatMessage(q)}
+                    className={`rounded-full px-3 py-1 text-[11px] font-semibold ${darkMode ? 'bg-sky-800 text-sky-100 hover:bg-sky-700' : 'bg-sky-100 text-sky-700 hover:bg-sky-200'}`}
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (bettiChatLoading) return;
+                  await sendBettiChatMessage(bettiChatInput);
+                }}
+                className="flex gap-2"
+              >
+                <input
+                  type="text"
+                  value={bettiChatInput}
+                  onChange={(e) => setBettiChatInput(e.target.value)}
+                  placeholder={isPharmacy ? 'Pl.: Csinálj igazságosabb verziót' : 'Pl.: Mikor dolgozom a heten?'}
+                  className={`flex-1 rounded-xl border px-3 py-2 text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-800'}`}
+                />
+                <button
+                  type="submit"
+                  disabled={bettiChatLoading || !bettiChatInput.trim()}
+                  className="rounded-xl bg-sky-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                >
+                  Kuldes
+                </button>
+              </form>
+            </div>
+          )}
 
           {/* ── Full-screen pharmacy schedule calendar ─────────────────── */}
           {isPharmacy && mainTab === 'schedule' ? (
