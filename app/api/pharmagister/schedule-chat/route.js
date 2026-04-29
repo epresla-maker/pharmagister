@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { verifyAuth } from '@/lib/apiAuth';
 import { parseBettiIntent } from '@/lib/intentParser';
 import { explainAssignmentDecision } from '@/lib/explanationEngine';
 import { buildProactiveWarnings } from '@/lib/suggestionEngine';
@@ -7,6 +8,11 @@ export const runtime = 'nodejs';
 
 export async function POST(request) {
   try {
+    const authUser = await verifyAuth(request);
+    if (!authUser) {
+      return NextResponse.json({ error: 'Nincs jogosultsag' }, { status: 401 });
+    }
+
     const body = await request.json();
     const message = body?.message || '';
     const context = body?.context || {};

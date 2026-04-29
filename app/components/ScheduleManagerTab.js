@@ -582,6 +582,7 @@ function PharmacyScheduleCalendar({
         notes: existing?.notes || '',
         existingId: existing?.id || null,
         isPublished: existing ? Boolean(existing.publishedAt) : false,
+        locked: existing ? Boolean(existing.locked) : false,
       };
     });
 
@@ -591,7 +592,7 @@ function PharmacyScheduleCalendar({
   }
 
   function applyOpeningHours() {
-    setEmployeeRows(prev => prev.map(r => r.isPublished ? r : { ...r, from: openFrom, to: openTo }));
+    setEmployeeRows(prev => prev.map(r => (r.isPublished || r.locked) ? r : { ...r, from: openFrom, to: openTo }));
   }
 
   function updateRow(idx, patch) {
@@ -599,7 +600,7 @@ function PharmacyScheduleCalendar({
   }
 
   function toggleAll(checked) {
-    setEmployeeRows(prev => prev.map(r => r.isPublished ? r : { ...r, checked }));
+    setEmployeeRows(prev => prev.map(r => (r.isPublished || r.locked) ? r : { ...r, checked }));
   }
 
   async function handleSave() {
@@ -972,6 +973,7 @@ function PharmacyScheduleCalendar({
               )}
 
               {employeeRows.map((row, idx) => {
+                const rowReadOnly = row.isPublished || row.locked;
                 const st = getShiftType(row.shiftType);
                 const hrs = calcHours(row.from, row.to);
                 // Find this employee's draft preference for the selected day
@@ -991,6 +993,8 @@ function PharmacyScheduleCalendar({
                       'flex flex-wrap items-center gap-3 rounded-xl border px-4 py-3 transition-colors',
                       row.isPublished
                         ? darkMode ? 'border-amber-700 bg-amber-900/20 opacity-70' : 'border-amber-200 bg-amber-50 opacity-75'
+                        : row.locked
+                          ? darkMode ? 'border-sky-700 bg-sky-900/20 opacity-80' : 'border-sky-200 bg-sky-50 opacity-80'
                         : row.checked
                           ? darkMode ? 'border-violet-600 bg-violet-900/20' : 'border-violet-300 bg-violet-50'
                           : darkMode ? 'border-gray-700 bg-gray-800/50' : 'border-gray-200 bg-gray-50',
@@ -1000,7 +1004,7 @@ function PharmacyScheduleCalendar({
                     <input
                       type="checkbox"
                       checked={row.checked}
-                      disabled={row.isPublished}
+                      disabled={rowReadOnly}
                       onChange={e => updateRow(idx, { checked: e.target.checked })}
                       className="h-5 w-5 rounded accent-violet-600 flex-shrink-0"
                     />
@@ -1009,7 +1013,21 @@ function PharmacyScheduleCalendar({
                     <span className={`flex-1 font-semibold text-sm min-w-[120px] ${row.isPublished ? 'opacity-60' : ''} ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>
                       {row.name}
                       {row.isPublished && <span className="ml-2 text-[10px] font-normal text-amber-600">zárolt</span>}
+                      {!row.isPublished && row.locked && <span className="ml-2 text-[10px] font-normal text-sky-600">locked</span>}
                     </span>
+
+                    {!row.isPublished && (
+                      <button
+                        type="button"
+                        onClick={() => updateRow(idx, { locked: !row.locked })}
+                        className={`rounded-lg px-2 py-1 text-[10px] font-semibold border ${row.locked
+                          ? (darkMode ? 'border-sky-500 bg-sky-700/50 text-sky-100' : 'border-sky-300 bg-sky-100 text-sky-700')
+                          : (darkMode ? 'border-gray-600 bg-gray-800 text-gray-300' : 'border-gray-300 bg-white text-gray-600')}`}
+                        title="Kézi lock: a tervező nem módosítja"
+                      >
+                        {row.locked ? 'Lock: BE' : 'Lock: KI'}
+                      </button>
+                    )}
 
                     {/* Shift type selector */}
                     <div className="flex gap-1">
@@ -1017,7 +1035,7 @@ function PharmacyScheduleCalendar({
                         <button
                           key={t.key}
                           type="button"
-                          disabled={row.isPublished}
+                          disabled={rowReadOnly}
                           onClick={() => updateRow(idx, { shiftType: t.key })}
                           title={t.title}
                           className={[
@@ -1037,7 +1055,7 @@ function PharmacyScheduleCalendar({
                       <input
                         type="time"
                         value={row.from}
-                        disabled={row.isPublished || !row.checked}
+                        disabled={rowReadOnly || !row.checked}
                         onChange={e => updateRow(idx, { from: e.target.value })}
                         className={`w-24 rounded-lg border px-2 py-1.5 text-sm tabular-nums ${darkMode ? 'bg-gray-800 border-gray-600 text-gray-200' : 'bg-white border-gray-300 text-gray-800'} disabled:opacity-40`}
                       />
@@ -1045,7 +1063,7 @@ function PharmacyScheduleCalendar({
                       <input
                         type="time"
                         value={row.to}
-                        disabled={row.isPublished || !row.checked}
+                        disabled={rowReadOnly || !row.checked}
                         onChange={e => updateRow(idx, { to: e.target.value })}
                         className={`w-24 rounded-lg border px-2 py-1.5 text-sm tabular-nums ${darkMode ? 'bg-gray-800 border-gray-600 text-gray-200' : 'bg-white border-gray-300 text-gray-800'} disabled:opacity-40`}
                       />
@@ -1527,6 +1545,10 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   const [plannerDraftSaving, setPlannerDraftSaving] = useState(false);
   const [plannerDraftSavedAt, setPlannerDraftSavedAt] = useState(null);
   const [plannerLastSavedJson, setPlannerLastSavedJson] = useState('');
+  const [bettiChatInput, setBettiChatInput] = useState('');
+  const [bettiChatLoading, setBettiChatLoading] = useState(false);
+  const [bettiChatMessages, setBettiChatMessages] = useState([]);
+  const [bettiQuickActions, setBettiQuickActions] = useState([]);
   const [replanForm, setReplanForm] = useState({
     employeeId: '',
     startDate: getTodayKey(),
@@ -2028,6 +2050,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         startTime: scheduleForm.startTime,
         endTime: scheduleForm.endTime,
         notes: scheduleForm.notes.trim(),
+        locked: false,
         status: 'active',
         createdBy: user.uid,
         createdAt: serverTimestamp(),
@@ -2053,7 +2076,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     const [syear, smonth, sday] = dateKey.split('-').map(Number);
     try {
       for (const row of rows) {
-        if (row.isPublished) continue; // never touch published
+        if (row.isPublished || row.locked) continue; // never touch published or manual locks
 
         const emp = employees.find(e => e.id === row.employeeId);
 
@@ -2075,6 +2098,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             endTime: row.to,
             shiftType: row.shiftType || 'N',
             notes: row.notes || '',
+            locked: Boolean(row.locked),
             status: 'active',
             updatedAt: serverTimestamp(),
           };
@@ -2113,6 +2137,10 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     }
     if (isPublishedSchedule(scheduleItem)) {
       setStatusError('A publikált műszak zárolt, előbb új tervet készíts és publikáld újra.');
+      return;
+    }
+    if (scheduleItem.locked === true) {
+      setStatusError('Ez a műszak kézzel zárolt (locked), előbb oldd fel a zárolást.');
       return;
     }
 
@@ -2767,7 +2795,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
       // ── 1. Time-off violations: delete the shift (employee is on leave) ──────
       for (const item of activeMonthSchedules) {
-        if (item.publishedAt) continue;
+        if (item.publishedAt || item.locked) continue;
         const k = `${item.employeeId}|${item.date}`;
         if (timeOffSet.has(k)) {
           await updateDoc(doc(db, 'pharmacySchedules', item.id), { status: 'deleted', updatedAt: serverTimestamp() });
@@ -2779,7 +2807,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       for (const k of doubleShiftSet) {
         const [empId, dateKey] = k.split('|');
         const shifts = activeMonthSchedules.filter(s =>
-          s.employeeId === empId && s.date === dateKey && !s.publishedAt && s.status !== 'deleted'
+          s.employeeId === empId && s.date === dateKey && !s.publishedAt && !s.locked && s.status !== 'deleted'
         );
         if (shifts.length <= 1) continue;
         const pref = prefByEmpDate.get(k);
@@ -2804,7 +2832,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
       // ── 3. Daily hour overflows: adjust times to fit within legal max ─────────
       // Re-fetch after deletions above
-      const freshSnapshots = activeMonthSchedules.filter(s => s.status !== 'deleted' && !s.publishedAt);
+      const freshSnapshots = activeMonthSchedules.filter(s => s.status !== 'deleted' && !s.publishedAt && !s.locked);
       for (const item of freshSnapshots) {
         const k = `${item.employeeId}|${item.date}`;
         if (!dailyOverflow.has(k)) continue;
@@ -2858,7 +2886,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           const maxW = Math.min(emp?.weeklyHoursLimit ?? LEGAL_MAX_WEEKLY, LEGAL_MAX_WEEKLY);
 
           const weekShifts = activeMonthSchedules.filter(s =>
-            s.employeeId === empId && !s.publishedAt && s.status !== 'deleted' &&
+            s.employeeId === empId && !s.publishedAt && !s.locked && s.status !== 'deleted' &&
             isoWeekStart(s.date) === weekKey
           ).sort((a, b) => {
             // Non-preferred days first → those get removed first
@@ -3241,6 +3269,95 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     }
   }
 
+  function getMonthDatesByWeekday(targetWeekdayIndex) {
+    const days = getDaysInMonth(year, month);
+    const out = [];
+    for (let d = 1; d <= days; d += 1) {
+      const dt = new Date(year, month - 1, d);
+      if (dt.getDay() === targetWeekdayIndex) out.push(formatDateKey(year, month, d));
+    }
+    return out;
+  }
+
+  async function handleBettiAction(action, entities = {}) {
+    if (action === 'replan_all') {
+      await runAutoPlanner({ action: 'plan' });
+      return;
+    }
+
+    if (action === 'replan_specific_day') {
+      const weekdayIndex = entities?.weekday?.weekdayIndex;
+      const dates = Number.isInteger(weekdayIndex)
+        ? getMonthDatesByWeekday(weekdayIndex)
+        : [selectedDate];
+      await runAutoPlanner({ action: 'replan', affectedDates: dates });
+      return;
+    }
+
+    if (action === 'find_replacement') {
+      await runAutoPlanner({ action: 'replan', affectedDates: [selectedDate] });
+      return;
+    }
+
+    if (action === 'show_overtime') {
+      const overtimeRows = (plannerResult?.stats?.employees || [])
+        .filter((item) => Number(item.overtimeHours || 0) > 0)
+        .sort((a, b) => Number(b.overtimeHours || 0) - Number(a.overtimeHours || 0))
+        .slice(0, 5);
+      const text = overtimeRows.length > 0
+        ? `Tulorasok: ${overtimeRows.map((item) => `${item.name} (${item.overtimeHours}h)`).join(', ')}`
+        : 'Jelenleg nincs olyan dolgozo, aki tuloraban lenne.';
+      setBettiChatMessages((prev) => [...prev, { role: 'assistant', text }]);
+      return;
+    }
+
+    await runAutoPlanner({ action: 'plan' });
+  }
+
+  async function sendBettiChatMessage(messageText) {
+    const text = String(messageText || '').trim();
+    if (!text || !user) return;
+
+    setBettiChatMessages((prev) => [...prev, { role: 'user', text }]);
+    setBettiChatInput('');
+    setBettiChatLoading(true);
+
+    try {
+      const token = await user.getIdToken();
+      const response = await fetch('/api/pharmagister/schedule-chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          message: text,
+          context: {
+            stats: plannerResult?.stats || null,
+            conflicts: plannerResult?.conflicts || [],
+            assignmentReasons: plannerResult?.assignmentReasons || [],
+          },
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.error || 'Betti most nem elerheto.');
+      }
+
+      setBettiChatMessages((prev) => [...prev, { role: 'assistant', text: result.reply || 'Rendben, rajta vagyok.' }]);
+      setBettiQuickActions(Array.isArray(result.quickActions) ? result.quickActions : []);
+
+      if (result?.payload?.action) {
+        await handleBettiAction(result.payload.action, result.payload.entities || {});
+      }
+    } catch (error) {
+      setBettiChatMessages((prev) => [...prev, { role: 'assistant', text: error.message || 'Betti: Nem sikerult ertelmezni a kerdest.' }]);
+    } finally {
+      setBettiChatLoading(false);
+    }
+  }
+
   // Intelligens generálás + azonnali mentés egylépésben (a dashboard "Generálás" gomb)
   async function generateAndApplySchedule() {
     if (!user) return;
@@ -3308,6 +3425,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           endTime: item.endTime,
           onCall: Boolean(item.onCall),
           notes: 'Automatikus tervezés (AI)',
+          locked: false,
           status: 'active',
           createdBy: user.uid,
           planningSource: 'auto-planner',
@@ -3378,6 +3496,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           endTime: item.endTime,
           onCall: Boolean(item.onCall),
           notes: 'Automatikus tervezés (AI)',
+          locked: false,
           status: 'active',
           createdBy: user.uid,
           planningSource: 'auto-planner',
@@ -3724,6 +3843,67 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   </div>
                 ))}
               </div>
+            </div>
+
+            <div className={`rounded-xl border px-3 py-3 space-y-3 ${darkMode ? 'border-sky-700 bg-sky-900/20' : 'border-sky-200 bg-sky-50'}`}>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className={`text-sm font-bold ${darkMode ? 'text-sky-200' : 'text-sky-900'}`}>Beszelj Bettivel</p>
+                  <p className={`text-xs ${darkMode ? 'text-sky-300/80' : 'text-sky-700/80'}`}>Pl.: "Mutasd a tulorasokat" vagy "Tervezd ujra csak a hetfot".</p>
+                </div>
+                {bettiChatLoading && <span className={`text-xs ${darkMode ? 'text-sky-300' : 'text-sky-700'}`}>Betti dolgozik...</span>}
+              </div>
+
+              <div className={`max-h-48 overflow-y-auto rounded-lg border p-2 space-y-2 ${darkMode ? 'border-sky-800 bg-gray-900' : 'border-sky-200 bg-white'}`}>
+                {bettiChatMessages.length === 0 ? (
+                  <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Betti: Szia! Itt termeszetes nyelven kerdezhetsz beosztasrol, tulorarol es ujratervezesrol.</p>
+                ) : bettiChatMessages.slice(-8).map((msg, index) => (
+                  <div key={`${msg.role}-${index}`} className={`text-xs rounded-lg px-3 py-2 ${msg.role === 'user'
+                    ? (darkMode ? 'bg-sky-800/60 text-sky-100 ml-6' : 'bg-sky-100 text-sky-800 ml-6')
+                    : (darkMode ? 'bg-gray-800 text-gray-200 mr-6' : 'bg-gray-100 text-gray-700 mr-6')}`}>
+                    {msg.text}
+                  </div>
+                ))}
+              </div>
+
+              {bettiQuickActions.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {bettiQuickActions.slice(0, 5).map((action) => (
+                    <button
+                      key={action.key}
+                      type="button"
+                      onClick={() => handleBettiAction(action.key, {})}
+                      className={`rounded-full px-3 py-1 text-[11px] font-semibold ${darkMode ? 'bg-sky-800 text-sky-100 hover:bg-sky-700' : 'bg-sky-100 text-sky-700 hover:bg-sky-200'}`}
+                    >
+                      {action.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (bettiChatLoading) return;
+                  await sendBettiChatMessage(bettiChatInput);
+                }}
+                className="flex gap-2"
+              >
+                <input
+                  type="text"
+                  value={bettiChatInput}
+                  onChange={(e) => setBettiChatInput(e.target.value)}
+                  placeholder="Pl.: Miert Anna kapta a vasarnapot?"
+                  className={`flex-1 rounded-xl border px-3 py-2 text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-800'}`}
+                />
+                <button
+                  type="submit"
+                  disabled={bettiChatLoading || !bettiChatInput.trim()}
+                  className="rounded-xl bg-sky-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                >
+                  Kuldes
+                </button>
+              </form>
             </div>
           </div>
 
