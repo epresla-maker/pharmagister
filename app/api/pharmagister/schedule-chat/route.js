@@ -1057,9 +1057,9 @@ function buildReplyBridge({ action, chatRole, entities, seed }) {
   return '';
 }
 
-function polishBettiReply({ reply, action, chatRole, entities, seed }) {
+function polishBettiReply({ reply, action, chatRole, entities, seed, allowFlowProposal = true }) {
   if (!reply) return reply;
-  const bridge = buildReplyBridge({ action, chatRole, entities, seed });
+  const bridge = allowFlowProposal ? buildReplyBridge({ action, chatRole, entities, seed }) : '';
   return bridge ? `${reply} ${bridge}` : reply;
 }
 
@@ -1386,10 +1386,34 @@ function inferUserModel(memory, stats, parsed, feedbackQuality) {
 }
 
 function updateConversationState({ currentState, parsed, payload, flowResult, reply }) {
-  const nextPhase = flowResult.shouldClarify ? 'active' : (flowResult.shouldReanchor ? 'resolving' : 'closing');
+  const existingLoops = Array.isArray(currentState?.openLoops) ? currentState.openLoops : [];
+  const normalizedQuestion = String(flowResult.loopQuestion || '').trim();
+  const hasSameOpenLoop = normalizedQuestion
+    ? existingLoops.some((loop) => loop?.status === 'open' && String(loop?.question || '').trim() === normalizedQuestion)
+    : false;
+  const nextPhase = flowResult.shouldClarify
+    ? 'waiting_user_input'
+    : (flowResult.shouldReanchor ? 'resolving' : 'closing');
+  const resolvedLoops = flowResult.shouldClarify
+    ? existingLoops.map((loop) => ({ ...loop, age: Number(loop?.age || 0) + 1 }))
+    : existingLoops.map((loop) => ({ ...loop, awaiting: false, status: 'resolved', age: Number(loop?.age || 0) + 1 }));
   const nextLoops = flowResult.shouldClarify
-    ? [{ question: flowResult.loopQuestion, awaitingAnswer: true, age: 0 }, ...(Array.isArray(currentState?.openLoops) ? currentState.openLoops : [])].slice(0, 6)
-    : [];
+    ? (hasSameOpenLoop
+        ? resolvedLoops
+        : [{ question: flowResult.loopQuestion, awaiting: true, status: 'open', age: 0 }, ...resolvedLoops].slice(0, 6))
+    : resolvedLoops;
+  const currentStack = Array.isArray(currentState?.intentStack) ? currentState.intentStack : [];
+  const nextIntentNode = {
+    intent: parsed?.intent || currentState?.activeTopic?.intent || 'unknown',
+    intentParent: parsed?.intentParent || null,
+    confidence: Number(parsed?.confidence || 0),
+    timestamp: new Date().toISOString(),
+    relatesTo: parsed?.relatesTo || null,
+  };
+  const nextIntentStack = [
+    ...currentStack.filter((item) => item?.intent !== nextIntentNode.intent || item?.relatesTo !== nextIntentNode.relatesTo),
+    nextIntentNode,
+  ].slice(-8);
   return {
     ...(currentState || {}),
     phase: nextPhase,
@@ -1401,10 +1425,87 @@ function updateConversationState({ currentState, parsed, payload, flowResult, re
       filledSlots: flowResult.filledSlots,
     },
     openLoops: nextLoops,
+    intentStack: nextIntentStack,
     lastGoal: parsed?.intent || currentState?.lastGoal || '',
     continuityScore: flowResult.continuityScore,
     lastReplyPreview: String(reply || '').slice(0, 160),
   };
+}
+
+function getIntentParent(intent, action) {
+  const byAction = {
+    show_my_schedule: 'schedule_help',
+    show_my_vacations: 'schedule_help',
+    show_my_free_days: 'schedule_help',
+    replan_specific_day: 'schedule_help',
+    replan_all: 'schedule_help',
+    write_schedule_plan: 'schedule_help',
+    challenge_previous: 'challenge_schedule_help',
+  };
+  const byIntent = {
+    my_schedule: 'schedule_help',
+    my_schedule_presence: 'schedule_help',
+    my_vacation: 'schedule_help',
+    my_free_days: 'schedule_help',
+    replan_day: 'modify_schedule',
+    full_replan: 'modify_schedule',
+    challenge_previous: 'challenge_schedule_help',
+  };
+  return byAction[action] || byIntent[intent] || 'general_help';
+}
+
+function linkParsedIntentToState({ parsed, conversationState, lastAssistantAction, previousMessageIntent }) {
+  const activeIntent = conversationState?.activeTopic?.intent || previousMessageIntent || null;
+  const activeAction = conversationState?.activeTopic?.name || lastAssistantAction || null;
+  const isFollowUp = Boolean(parsed?.inferredFromContext || ['affirmative', 'negative', 'hesitation', 'challenge_previous'].includes(parsed?.intent));
+  return {
+    ...parsed,
+    intentParent: getIntentParent(parsed?.intent, parsed?.action),
+    relatesTo: isFollowUp ? (activeIntent || mapActionToIntent(activeAction)) : null,
+    keepFlow: isFollowUp,
+    activeAction,
+  };
+}
+
+function preserveFollowUpStrategy(decisionPipeline, conversationState, parsed) {
+  if (!parsed?.keepFlow) return decisionPipeline;
+  const currentStrategy = conversationState?.activeStrategy || null;
+  if (!currentStrategy) return decisionPipeline;
+  return {
+    ...decisionPipeline,
+    bestStrategy: currentStrategy,
+    conflictResolution: {
+      ...(decisionPipeline?.conflictResolution || {}),
+      preservedFromState: true,
+      resolved: currentStrategy,
+    },
+  };
+}
+
+function tokenizeSimilarity(text) {
+  return new Set(normalizeText(text).split(/\s+/).filter(Boolean));
+}
+
+function computeResponseSimilarity(a, b) {
+  const setA = tokenizeSimilarity(a);
+  const setB = tokenizeSimilarity(b);
+  if (setA.size === 0 || setB.size === 0) return 0;
+  const overlap = [...setA].filter((item) => setB.has(item)).length;
+  return overlap / Math.max(setA.size, setB.size);
+}
+
+function dedupeResponse(reply, conversationState) {
+  const lastReply = conversationState?.lastReplyPreview || '';
+  const similarity = computeResponseSimilarity(reply, lastReply);
+  if (similarity <= 0.8) return { reply, similarity, changed: false };
+  const shortened = String(reply || '').split(/[.!?]\s+/)[0]?.trim() || reply;
+  return { reply: shortened, similarity, changed: shortened !== reply };
+}
+
+function shouldAllowFlowProposal({ parsed, mood }) {
+  const positiveOrNeutral = ['positive', 'neutral'].includes(mood?.label);
+  const noRejection = !['negative', 'hesitation', 'challenge_previous'].includes(parsed?.intent);
+  return Number(parsed?.confidence || 0) > 0.85 && positiveOrNeutral && noRejection;
 }
 
 function clamp01(value) {
@@ -1880,7 +1981,7 @@ function buildFollowUpParsed(action, entities = {}, confidence = 0.9) {
     show_my_schedule: 'Rendben, megmutatom a sajat muszakjaidat. Ha dolgozoi nezetben vagy, pontos listat is kapsz.',
     show_my_vacations: 'Rendben, megnezem a szabadsag napjaidat.',
     show_my_free_days: 'Rendben, kilistazom a kovetkezo szabadnapjaidat.',
-    follow_up_decline: 'Rendben, akkor ezt most elengedem.',
+    follow_up_decline: 'Rendben, akkor nem ezen megyunk tovabb. Pontosits kerlek, mire forduljak inkabb.',
     follow_up_hesitate: 'Rendben, nem siettetlek. Mondhatod kesobb is, vagy valthatunk masik temara.',
     list_employees: 'Rendben, listazom az alkalmazottaidat.',
     show_vacation_requests: 'Rendben, megmutatom a szabadsagigenyeket.',
@@ -2178,7 +2279,7 @@ export async function POST(request) {
       await recordTrainingPatternUsage(uid, parsed.learnedPatternId || parsed.learnedPatternFingerprint);
     }
 
-    if (parsed.intent === 'unknown' || parsed.intent === 'affirmative') {
+    if (parsed.intent === 'unknown' || parsed.intent === 'affirmative' || parsed.intent === 'challenge_previous') {
       const contextual = resolveContextualFollowUp({
         message,
         chatRole,
@@ -2201,6 +2302,12 @@ export async function POST(request) {
         };
       }
     }
+    parsed = linkParsedIntentToState({
+      parsed,
+      conversationState,
+      lastAssistantAction,
+      previousMessageIntent,
+    });
     const proactiveWarnings = buildProactiveWarnings({
       stats: context.stats || null,
       conflicts: Array.isArray(context.conflicts) ? context.conflicts : [],
@@ -2523,8 +2630,8 @@ export async function POST(request) {
 
     if (parsed.intent === 'negative') {
       reply = isScheduleOrFreeDaysPrompt(lastAssistantMessage)
-        ? 'Rendben, akkor ezt most nem nyitom meg. Mondj egy masik iranyt, es megyek azon tovabb.'
-        : 'Rendben, ezt most elengedem. Ha szeretned, mutatok inkabb mas lehetosegeket.';
+        ? 'Rendben, akkor ezt most nem nyitom meg. Mondj egy masik iranyt, es ugyanebben a beszelgetesben megyek tovabb.'
+        : 'Rendben, akkor nem erre megyunk tovabb. Pontositsd kerlek, mire valtsunk inkabb.';
       payload = {
         ...payload,
         action: 'clarify_with_options',
@@ -2541,6 +2648,23 @@ export async function POST(request) {
         action: 'clarify_with_options',
       };
       quickActionsOverride = buildUnknownSuggestions(message, chatRole);
+    }
+
+    if (parsed.intent === 'challenge_previous') {
+      const relatedIntent = parsed.relatesTo || conversationState?.activeTopic?.intent || 'unknown';
+      const relatedAction = parsed.activeAction || conversationState?.activeTopic?.name || 'clarify_with_options';
+      const loopQuestion = Array.isArray(conversationState?.openLoops)
+        ? conversationState.openLoops.find((loop) => loop?.status === 'open' && loop?.awaiting)?.question
+        : null;
+      reply = loopQuestion
+        ? `Az elozo ponthoz kapcsolodva nem kezdem ujra a flow-t: ${loopQuestion}`
+        : `Az elozo kerdesedhez kapcsolodva pontositok. Eddig a ${relatedIntent} szalon voltunk, ezt folytassuk.`;
+      payload = {
+        ...payload,
+        action: relatedAction,
+        relatesTo: relatedIntent,
+      };
+      quickActionsOverride = quickActionsOverride || buildUnknownSuggestions(message, chatRole);
     }
 
     const shouldClarifyLowConfidence = (
@@ -2567,12 +2691,15 @@ export async function POST(request) {
       reply = buildClarifyReply({ chatRole, message });
     }
 
+    const allowFlowProposal = shouldAllowFlowProposal({ parsed, mood });
+
     reply = polishBettiReply({
       reply,
       action: payload?.action || parsed.action,
       chatRole,
       entities: payload?.entities || parsed.entities,
       seed: `${message}:${payload?.action || parsed.action}`,
+      allowFlowProposal,
     });
 
     const quickActions = quickActionsOverride || ((parsed.intent === 'unknown' || parsed.action === 'clarify_with_options' || forceClarify)
@@ -2644,7 +2771,7 @@ export async function POST(request) {
 
     const finalAction = payload?.action || selectedAction;
 
-    const decisionPipeline = buildDecisionPipeline({
+    let decisionPipeline = buildDecisionPipeline({
       message,
       parsed,
       mood,
@@ -2656,6 +2783,7 @@ export async function POST(request) {
       weights: longTermMemory?.userPreferences?.decisionWeights,
       memory: longTermMemory,
     });
+    decisionPipeline = preserveFollowUpStrategy(decisionPipeline, conversationState, parsed);
     const actionPlan = buildActionPlan(finalAction, payload?.entities || parsed.entities || {});
 
     reply = applyDecisionStrategy({
@@ -2699,6 +2827,7 @@ export async function POST(request) {
           chatRole,
           entities: payload?.entities || parsed.entities,
           seed: `${message}:${finalAction}:ranked`,
+          allowFlowProposal,
         }),
         action: finalAction,
         mood,
@@ -3463,6 +3592,9 @@ export async function POST(request) {
       }
     }
 
+    const dedupedReply = dedupeResponse(reply, conversationState);
+    reply = dedupedReply.reply;
+
     const responseEvaluation = evaluateResponseQuality({
       reply,
       flowResult,
@@ -3493,6 +3625,7 @@ export async function POST(request) {
       flowResult,
       reply,
     });
+    nextConversationState.activeStrategy = decisionPipeline.bestStrategy;
     const nextTopicMemory = {
       ...(longTermMemory?.topicMemory || {}),
       topic: nextConversationState.activeTopic,
