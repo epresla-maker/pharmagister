@@ -61,6 +61,22 @@ export async function POST(request) {
       };
     }
 
+    if (parsed.intent === 'my_schedule') {
+      reply = 'Rendben, megmutatom a sajat muszakjaidat. Ha dolgozoi nezetben vagy, pontos listat is kapsz.';
+    }
+
+    if (parsed.intent === 'my_vacation') {
+      reply = 'Rendben, megnezem a szabadsag napjaidat.';
+    }
+
+    if (parsed.intent === 'my_free_days') {
+      reply = 'Rendben, kilistazom a kovetkezo szabadnapjaidat.';
+    }
+
+    if (parsed.intent === 'write_schedule_plan') {
+      reply = 'Rendben, segitek beosztas-tervezetet irni. Nyisd meg a Beosztas-tervezo reszt, vagy mondd: "Beosztast szeretnek irni".';
+    }
+
     return NextResponse.json({
       success: true,
       intent: parsed.intent,

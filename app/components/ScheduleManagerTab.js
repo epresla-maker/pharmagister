@@ -3412,7 +3412,10 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       return;
     }
 
-    await runAutoPlanner({ action: 'plan' });
+    if (action === 'optimize_fairness' || action === 'optimize_overtime' || action === 'minimal_change_replan') {
+      await runAutoPlanner({ action: 'plan' });
+      return;
+    }
   }
 
   async function sendBettiChatMessage(messageText) {
@@ -3463,6 +3466,43 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     } finally {
       setBettiChatLoading(false);
     }
+  }
+
+  function renderBettiMessageBanners(limit = 10) {
+    const visibleMessages = bettiChatMessages.slice(-limit);
+
+    if (visibleMessages.length === 0) {
+      return (
+        <div className={`text-xs rounded-xl border px-3 py-2 ${darkMode ? 'border-gray-700 bg-gray-800 text-gray-300' : 'border-gray-200 bg-white text-gray-600'}`}>
+          Betti: Szia! Kerdezz nyugodtan, segitek a beosztassal kapcsolatban.
+        </div>
+      );
+    }
+
+    return visibleMessages.map((msg, index) => {
+      const isUser = msg.role === 'user';
+      return (
+        <div key={`${msg.role}-${index}`} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+          <div className={`max-w-[88%] relative ${isUser ? 'mr-1' : 'ml-1'}`}>
+            <div
+              className={`absolute top-4 h-0 w-0 border-y-[6px] border-y-transparent ${isUser
+                ? `right-[-7px] border-l-[7px] ${darkMode ? 'border-l-sky-700' : 'border-l-sky-100'}`
+                : `left-[-7px] border-r-[7px] ${darkMode ? 'border-r-gray-700' : 'border-r-white'}`}`}
+            />
+            <div
+              className={`whitespace-pre-line text-xs rounded-2xl border px-3 py-2 shadow-md ${isUser
+                ? (darkMode ? 'border-sky-600 bg-sky-700/80 text-sky-100' : 'border-sky-200 bg-sky-100 text-sky-800')
+                : (darkMode ? 'border-gray-600 bg-gray-700 text-gray-100' : 'border-gray-200 bg-white text-gray-700')}`}
+            >
+              {msg.text}
+            </div>
+            <p className={`mt-1 text-[10px] font-semibold ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              {isUser ? 'Te' : 'Betti'}
+            </p>
+          </div>
+        </div>
+      );
+    });
   }
 
   // Intelligens generálás + azonnali mentés egylépésben (a dashboard "Generálás" gomb)
@@ -3962,15 +4002,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
               </div>
 
               <div className={`max-h-48 overflow-y-auto rounded-lg border p-2 space-y-2 ${darkMode ? 'border-sky-800 bg-gray-900' : 'border-sky-200 bg-white'}`}>
-                {bettiChatMessages.length === 0 ? (
-                  <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Betti: Szia! Itt termeszetes nyelven kerdezhetsz beosztasrol, tulorarol es ujratervezesrol.</p>
-                ) : bettiChatMessages.slice(-8).map((msg, index) => (
-                  <div key={`${msg.role}-${index}`} className={`text-xs rounded-lg px-3 py-2 ${msg.role === 'user'
-                    ? (darkMode ? 'bg-sky-800/60 text-sky-100 ml-6' : 'bg-sky-100 text-sky-800 ml-6')
-                    : (darkMode ? 'bg-gray-800 text-gray-200 mr-6' : 'bg-gray-100 text-gray-700 mr-6')}`}>
-                    {msg.text}
-                  </div>
-                ))}
+                {renderBettiMessageBanners(8)}
               </div>
 
               {bettiQuickActions.length > 0 && (
@@ -4596,20 +4628,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
               </div>
 
               <div className={`max-h-56 overflow-y-auto rounded-lg border p-2 space-y-2 ${darkMode ? 'border-sky-800 bg-gray-900' : 'border-sky-200 bg-white'}`}>
-                {bettiChatMessages.length === 0 ? (
-                  <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    Betti: Szia! Kerdezz nyugodtan, segitek a beosztassal kapcsolatban.
-                  </p>
-                ) : bettiChatMessages.slice(-10).map((msg, index) => (
-                  <div
-                    key={`${msg.role}-${index}`}
-                    className={`text-xs rounded-lg px-3 py-2 ${msg.role === 'user'
-                      ? (darkMode ? 'bg-sky-800/60 text-sky-100 ml-6' : 'bg-sky-100 text-sky-800 ml-6')
-                      : (darkMode ? 'bg-gray-800 text-gray-200 mr-6' : 'bg-gray-100 text-gray-700 mr-6')}`}
-                  >
-                    {msg.text}
-                  </div>
-                ))}
+                {renderBettiMessageBanners(10)}
               </div>
 
               <div className="flex flex-wrap gap-2">
