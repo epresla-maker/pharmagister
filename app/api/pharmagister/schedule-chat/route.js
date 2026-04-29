@@ -256,6 +256,92 @@ function buildMonthQuickActions(topic = 'beosztas') {
   ];
 }
 
+function buildSuccessQuickActions({ action, chatRole, entities }) {
+  const hasMonth = Number.isInteger(entities?.monthOffset) || Number.isInteger(entities?.monthNumber);
+
+  if (chatRole === 'pharmacy') {
+    if (action === 'list_employees') {
+      return [
+        { key: 'show_vacation_requests', label: 'Kik mennek szabira?', utterance: 'Kik mennek szabira?' },
+        { key: 'missing_drafts', label: 'Ki nem irta meg a tervezetet?', utterance: 'Ki nem irta meg a tervezetet?' },
+        { key: 'show_overtime', label: 'Mutasd a tulorasokat', utterance: 'Mutasd a tulorasokat' },
+      ];
+    }
+
+    if (action === 'show_vacation_requests') {
+      return [
+        { key: 'missing_drafts', label: 'Ki nem irta meg a tervezetet?', utterance: hasMonth ? `Ki nem irta meg a ${entities?.monthLabel || 'kivalasztott'} tervezetet?` : 'Ki nem irta meg a tervezetet?' },
+        { key: 'list_employees', label: 'Listazd a dolgozoimat', utterance: 'Listazd a dolgozoimat' },
+        { key: 'replan_all', label: 'Ujratervezes', utterance: 'Ujratervezes' },
+      ];
+    }
+
+    if (action === 'missing_drafts') {
+      return [
+        { key: 'show_vacation_requests', label: 'Kik mennek szabira?', utterance: hasMonth ? `Kik mennek szabira ${entities?.monthLabel || 'ebben a honapban'}?` : 'Kik mennek szabira?' },
+        { key: 'list_employees', label: 'Listazd a dolgozoimat', utterance: 'Listazd a dolgozoimat' },
+        { key: 'show_overtime', label: 'Mutasd a tulorasokat', utterance: 'Mutasd a tulorasokat' },
+      ];
+    }
+
+    return [
+      { key: 'list_employees', label: 'Listazd a dolgozoimat', utterance: 'Listazd a dolgozoimat' },
+      { key: 'show_vacation_requests', label: 'Kik mennek szabira?', utterance: 'Kik mennek szabira?' },
+      { key: 'missing_drafts', label: 'Ki nem irta meg a tervezetet?', utterance: 'Ki nem irta meg a tervezetet?' },
+    ];
+  }
+
+  if (action === 'show_my_schedule') {
+    return [
+      { key: 'my_vacation', label: 'A szabadsag napjaim', utterance: 'Mikor vagyok szabin?' },
+      { key: 'my_free_days', label: 'A szabadnapjaim', utterance: 'Mikor vagyok szabadnapos?' },
+      { key: 'write_schedule_plan', label: 'Beosztast szeretnek irni', utterance: 'Beosztast szeretnek irni' },
+    ];
+  }
+
+  if (action === 'show_my_vacations' || action === 'show_my_free_days') {
+    return [
+      { key: 'my_schedule', label: 'A sajat beosztasom', utterance: 'Mi a beosztasom?' },
+      { key: 'my_vacation', label: 'A szabadsag napjaim', utterance: 'Mikor vagyok szabin?' },
+      { key: 'my_free_days', label: 'A szabadnapjaim', utterance: 'Mikor vagyok szabadnapos?' },
+    ];
+  }
+
+  return [
+    { key: 'my_schedule', label: 'A sajat beosztasom', utterance: 'Mi a beosztasom?' },
+    { key: 'my_vacation', label: 'A szabadsag napjaim', utterance: 'Mikor vagyok szabin?' },
+    { key: 'my_free_days', label: 'A szabadnapjaim', utterance: 'Mikor vagyok szabadnapos?' },
+  ];
+}
+
+function polishBettiReply({ reply, action, chatRole, entities }) {
+  if (!reply) return reply;
+
+  if (chatRole === 'pharmacy') {
+    if (action === 'list_employees') {
+      return `${reply} Ha szeretned, innen rogton megnezhetem azt is, kik mennek szabira vagy kik nem kuldtek meg be tervezetet.`;
+    }
+
+    if (action === 'show_vacation_requests' && (Number.isInteger(entities?.monthOffset) || Number.isInteger(entities?.monthNumber))) {
+      return `${reply} Ha utana szeretned, egybol megnezem azt is, kik nem kuldtek meg a tervezetuket erre az idoszakra.`;
+    }
+
+    if (action === 'missing_drafts' && (Number.isInteger(entities?.monthOffset) || Number.isInteger(entities?.monthNumber))) {
+      return `${reply} Ha kell, a kovetkezo lepesben megmutatom az ugyanebben a honapban erintett szabadsagigenyeket is.`;
+    }
+  }
+
+  if (action === 'show_my_schedule') {
+    return `${reply} Ha szeretned, egybol at tudunk ugrani a szabadsagokra vagy a szabadnapokra is.`;
+  }
+
+  if (action === 'show_my_vacations' || action === 'show_my_free_days') {
+    return `${reply} Ha szeretned, a sajat beosztasodat is megmutatom ugyanebbol az idoszakbol.`;
+  }
+
+  return reply;
+}
+
 function containsAny(text, list) {
   return list.some((w) => text.includes(w));
 }
@@ -769,9 +855,16 @@ export async function POST(request) {
 
     if (parsed.action === 'clarify_with_options') {
       reply = chatRole === 'pharmacy'
-        ? 'Rendben. Pontosan mit mutassak: a tulorasokat, az ujratervezest, vagy a helyettesitesi opciokat?'
+        ? 'Rendben. Pontosan mire gondolsz: a dolgozokra, a szabadsagokra, a hianyzo tervezetekre vagy a tulorakra?'
         : 'Rendben. Pontosan mit mutassak: a sajat beosztasodat, a tulorasokat, vagy a szabadsag napjaidat?';
     }
+
+    reply = polishBettiReply({
+      reply,
+      action: payload?.action || parsed.action,
+      chatRole,
+      entities: payload?.entities || parsed.entities,
+    });
 
     const quickActions = quickActionsOverride || ((parsed.intent === 'unknown' || parsed.action === 'clarify_with_options' || forceClarify)
       ? (() => {
@@ -790,13 +883,11 @@ export async function POST(request) {
           const rest = suggestions.filter((item) => item.key !== guess.key).slice(0, 2);
           return [promoted, ...rest];
         })()
-      : [
-          { key: 'replan_all', label: 'Ujratervezes', utterance: 'Ujratervezes' },
-          { key: 'optimize_fairness', label: 'Igazsagosabb verzio', utterance: 'Legyen igazsagosabb a beosztas' },
-          { key: 'optimize_overtime', label: 'Kevesebb tulora', utterance: 'Csokkentsd a tulorat' },
-          { key: 'replan_specific_day', label: 'Csak egy nap ujratervezese', utterance: 'Tervezd ujra csak a hetfot' },
-          { key: 'minimal_change_replan', label: 'Legkisebb valtoztatas', utterance: 'Minel kevesebbet valtoztass' },
-        ]);
+      : buildSuccessQuickActions({
+          action: payload?.action || parsed.action,
+          chatRole,
+          entities: payload?.entities || parsed.entities,
+        }));
 
     if (parsed.intent === 'unknown' && quickActions.length > 0) {
       const top = quickActions.slice(0, 3).map((item) => item.label).join(', ');
