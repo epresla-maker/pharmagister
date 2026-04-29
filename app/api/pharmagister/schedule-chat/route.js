@@ -256,6 +256,40 @@ function buildMonthQuickActions(topic = 'beosztas') {
   ];
 }
 
+function hasMonthEntities(entities) {
+  return Number.isInteger(entities?.monthOffset) || Number.isInteger(entities?.monthNumber);
+}
+
+function getRememberedMonthEntities(entities) {
+  if (!hasMonthEntities(entities)) return null;
+  return {
+    ...(Number.isInteger(entities?.monthOffset) ? { monthOffset: entities.monthOffset } : {}),
+    ...(Number.isInteger(entities?.monthNumber) ? { monthNumber: entities.monthNumber } : {}),
+    ...(entities?.monthLabel ? { monthLabel: entities.monthLabel } : {}),
+  };
+}
+
+function isContinuationPrompt(text) {
+  const norm = normalizeText(text);
+  if (!norm) return false;
+
+  const words = norm.split(/\s+/).filter(Boolean);
+  return (
+    words.length <= 5
+    || containsAny(norm, ['es ', 'es a ', 'ugyanerre', 'ugyanarra', 'ugyanebben', 'erre is', 'arra is', 'az is', 'ezt is'])
+  );
+}
+
+function resolveRequestedOrRememberedMonth({ message, lastAssistantEntities, allowRememberedMonth = false }) {
+  const explicitMonth = detectMonthReference(message);
+  if (explicitMonth) return explicitMonth;
+  if (!allowRememberedMonth) return null;
+
+  const rememberedMonth = getRememberedMonthEntities(lastAssistantEntities);
+  if (!rememberedMonth) return null;
+  return rememberedMonth;
+}
+
 function buildSuccessQuickActions({ action, chatRole, entities }) {
   const hasMonth = Number.isInteger(entities?.monthOffset) || Number.isInteger(entities?.monthNumber);
 
@@ -351,6 +385,9 @@ function mapActionToIntent(action) {
     show_my_schedule: 'my_schedule',
     show_my_vacations: 'my_vacation',
     show_my_free_days: 'my_free_days',
+    list_employees: 'list_employees',
+    show_vacation_requests: 'show_vacation_requests',
+    missing_drafts: 'missing_drafts',
     show_overtime: 'report_overtime',
     replan_specific_day: 'replan_day',
     find_replacement: 'fill_missing_shift',
@@ -364,6 +401,9 @@ function buildFollowUpParsed(action, entities = {}, confidence = 0.9) {
     show_my_schedule: 'Rendben, megmutatom a sajat muszakjaidat. Ha dolgozoi nezetben vagy, pontos listat is kapsz.',
     show_my_vacations: 'Rendben, megnezem a szabadsag napjaidat.',
     show_my_free_days: 'Rendben, kilistazom a kovetkezo szabadnapjaidat.',
+    list_employees: 'Rendben, listazom az alkalmazottaidat.',
+    show_vacation_requests: 'Rendben, megmutatom a szabadsagigenyeket.',
+    missing_drafts: 'Rendben, ellenorizem kik nem kuldtek meg a tervezetuket.',
     show_overtime: 'Rendben, megmutatom kik vannak tulora kozeleben vagy tuloraban.',
     replan_specific_day: 'Rendben, csak az erintett nap(oka)t tervezem ujra.',
     find_replacement: 'Keresek megfelelo helyettesitot a muszakra.',
@@ -382,6 +422,7 @@ function buildFollowUpParsed(action, entities = {}, confidence = 0.9) {
 
 function resolveContextualFollowUp({
   message,
+  chatRole,
   previousMessageIntent,
   lastAssistantAction,
   lastAssistantSuggestedAction,
@@ -397,6 +438,8 @@ function resolveContextualFollowUp({
   const isPointer = containsAny(norm, ['azt', 'azokat', 'ezt', 'ezeket', 'az']);
   const isReplanNudge = containsAny(norm, ['inkabb holnap', 'holnap inkabb', 'inkabb a', 'csak holnap']);
   const requestedMonth = detectMonthReference(norm);
+  const rememberedMonth = getRememberedMonthEntities(lastAssistantEntities);
+  const continuation = isContinuationPrompt(norm);
 
   if (requestedMonth && (lastAssistantAction === 'clarify_with_options' || containsAny(normalizeText(lastAssistantMessage), ['melyik honapra', 'melyik honap']))) {
     const askedNorm = normalizeText(lastAssistantMessage);
@@ -413,14 +456,44 @@ function resolveContextualFollowUp({
     return buildFollowUpParsed(targetAction, { monthOffset: requestedMonth.monthOffset, monthLabel: requestedMonth.label });
   }
 
+  if (continuation) {
+    if (chatRole === 'pharmacy') {
+      if (containsAny(norm, ['szabadsag', 'szabi', 'ki megy'])) {
+        return buildFollowUpParsed('show_vacation_requests', rememberedMonth || {});
+      }
+      if (containsAny(norm, ['nem irta', 'nem irt', 'tervezet', 'draft', 'hianyzik'])) {
+        return buildFollowUpParsed('missing_drafts', rememberedMonth || {});
+      }
+      if (containsAny(norm, ['dolgozo', 'alkalmazott', 'csapat'])) {
+        return buildFollowUpParsed('list_employees', rememberedMonth || {});
+      }
+    } else {
+      if (containsAny(norm, ['beoszt', 'muszak'])) {
+        return buildFollowUpParsed('show_my_schedule', rememberedMonth || {});
+      }
+      if (containsAny(norm, ['szabadnap'])) {
+        return buildFollowUpParsed('show_my_free_days', rememberedMonth || {});
+      }
+      if (containsAny(norm, ['szabi', 'szabadsag'])) {
+        return buildFollowUpParsed('show_my_vacations', rememberedMonth || {});
+      }
+    }
+  }
+
   if (containsAny(norm, ['beoszt', 'muszak'])) {
-    return buildFollowUpParsed('show_my_schedule');
+    return buildFollowUpParsed('show_my_schedule', rememberedMonth || {});
   }
   if (containsAny(norm, ['szabadnap'])) {
-    return buildFollowUpParsed('show_my_free_days');
+    return buildFollowUpParsed('show_my_free_days', rememberedMonth || {});
   }
   if (containsAny(norm, ['szabi', 'szabadsag'])) {
-    return buildFollowUpParsed('show_my_vacations');
+    return buildFollowUpParsed(chatRole === 'pharmacy' ? 'show_vacation_requests' : 'show_my_vacations', rememberedMonth || {});
+  }
+  if (chatRole === 'pharmacy' && containsAny(norm, ['tervezet', 'draft', 'nem irta', 'nem irt'])) {
+    return buildFollowUpParsed('missing_drafts', rememberedMonth || {});
+  }
+  if (chatRole === 'pharmacy' && containsAny(norm, ['dolgozo', 'alkalmazott', 'csapat'])) {
+    return buildFollowUpParsed('list_employees', rememberedMonth || {});
   }
   if (containsAny(norm, ['tulora', 'tuloras'])) {
     return buildFollowUpParsed('show_overtime');
@@ -574,6 +647,7 @@ export async function POST(request) {
     if (parsed.intent === 'unknown' || parsed.intent === 'affirmative') {
       const contextual = resolveContextualFollowUp({
         message,
+        chatRole,
         previousMessageIntent,
         lastAssistantAction,
         lastAssistantSuggestedAction,
@@ -638,7 +712,11 @@ export async function POST(request) {
     }
 
     if (parsed.intent === 'my_schedule') {
-      const requestedMonth = detectMonthReference(message);
+      const requestedMonth = resolveRequestedOrRememberedMonth({
+        message,
+        lastAssistantEntities,
+        allowRememberedMonth: isContinuationPrompt(message),
+      });
       if (!requestedMonth) {
         reply = 'Rendben, melyik honapra mutassam a beosztasodat?';
         payload = {
@@ -665,7 +743,11 @@ export async function POST(request) {
     }
 
     if (parsed.intent === 'my_vacation') {
-      const requestedMonth = detectMonthReference(message);
+      const requestedMonth = resolveRequestedOrRememberedMonth({
+        message,
+        lastAssistantEntities,
+        allowRememberedMonth: isContinuationPrompt(message),
+      });
       if (!requestedMonth) {
         reply = 'Rendben, melyik honapra nezzem a szabadsag napjaidat?';
         payload = {
@@ -689,7 +771,11 @@ export async function POST(request) {
     }
 
     if (parsed.intent === 'my_free_days') {
-      const requestedMonth = detectMonthReference(message);
+      const requestedMonth = resolveRequestedOrRememberedMonth({
+        message,
+        lastAssistantEntities,
+        allowRememberedMonth: isContinuationPrompt(message),
+      });
       if (!requestedMonth) {
         reply = 'Rendben, melyik honapra nezzem a szabadnapjaidat?';
         payload = {
@@ -721,7 +807,11 @@ export async function POST(request) {
     }
 
     if (parsed.intent === 'show_vacation_requests') {
-      const requestedMonth = detectMonthReference(message);
+      const requestedMonth = resolveRequestedOrRememberedMonth({
+        message,
+        lastAssistantEntities,
+        allowRememberedMonth: isContinuationPrompt(message),
+      });
       if (!requestedMonth) {
         reply = 'Rendben, melyik honapra szeretned latni az igenyelt szabadsagokat?';
         payload = {
@@ -745,7 +835,11 @@ export async function POST(request) {
     }
 
     if (parsed.intent === 'missing_drafts') {
-      const requestedMonth = detectMonthReference(message);
+      const requestedMonth = resolveRequestedOrRememberedMonth({
+        message,
+        lastAssistantEntities,
+        allowRememberedMonth: isContinuationPrompt(message),
+      });
       if (!requestedMonth) {
         reply = 'Rendben, melyik honapra ellenorizzem az elkeszult tervezeteket?';
         payload = {
