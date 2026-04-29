@@ -9,7 +9,53 @@ import {
   saveTrainingPattern,
   buildTrainingPattern,
 } from '@/lib/bettiTraining';
-import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
+
+const UNKNOWN_SUGGESTIONS = [
+  { key: 'show_overtime', label: 'Mutasd a tulorasokat', utterance: 'Mutasd a tulorasokat' },
+  { key: 'my_schedule', label: 'Mi a beosztasom?', utterance: 'Mi a beosztasom?' },
+  { key: 'my_vacation', label: 'Mikor vagyok szabin?', utterance: 'Mikor vagyok szabin?' },
+  { key: 'replan_day', label: 'Tervezd ujra csak a hetfot', utterance: 'Tervezd ujra csak a hetfot' },
+  { key: 'find_replacement', label: 'Ki tudna atvenni a holnapi estet?', utterance: 'Ki tudna atvenni a holnapi estet?' },
+  { key: 'replan_all', label: 'Ujratervezes', utterance: 'Ujratervezes' },
+];
+
+function normalizeText(text) {
+  return String(text || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+}
+
+function buildUnknownSuggestions(message) {
+  const norm = normalizeText(message);
+  if (!norm) return UNKNOWN_SUGGESTIONS.slice(0, 3);
+
+  const ranked = UNKNOWN_SUGGESTIONS.map((item) => {
+    let score = 0;
+    const utter = normalizeText(item.utterance);
+
+    if (norm.includes('mutasd') && utter.includes('mutasd')) score += 3;
+    if (norm.includes('beoszt') && utter.includes('beoszt')) score += 3;
+    if (norm.includes('szabi') && utter.includes('szabin')) score += 3;
+    if ((norm.includes('tulora') || norm.includes('tuloras')) && utter.includes('tulora')) score += 4;
+    if (norm.includes('tervezd') && utter.includes('tervezd')) score += 3;
+    if (norm.includes('atvenni') && utter.includes('atvenni')) score += 4;
+
+    const overlap = utter.split(' ').filter((w) => w.length > 3 && norm.includes(w)).length;
+    score += overlap;
+
+    return { ...item, score };
+  })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3)
+    .map(({ score, ...rest }) => ({
+      ...rest,
+      learnFromPreviousUnknown: true,
+    }));
+
+  return ranked;
+}
 
 export const runtime = 'nodejs';
 
@@ -25,6 +71,7 @@ export async function POST(request) {
     const context = body?.context || {};
     const uid = authUser.uid;
     const previousMessageIntent = body?.previousMessageIntent;
+    const learningFeedback = body?.learningFeedback || null;
 
     // Check if this is a training input (starts with "xx ")
     const training = detectTrainingInput(message);
@@ -75,6 +122,25 @@ export async function POST(request) {
     const learnedPatterns = await loadTrainingPatterns(uid);
     if (learnedPatterns.length > 0) {
       console.log(`[Betti] Loaded ${learnedPatterns.length} learned patterns for user ${uid}`);
+    }
+
+    // Active learning: user selected one of Betti's suggested intents
+    if (
+      learningFeedback?.type === 'intent_selection'
+      && learningFeedback?.originalMessage
+      && learningFeedback?.selectedPrompt
+    ) {
+      const selectedParsed = parseBettiIntent(learningFeedback.selectedPrompt, learnedPatterns);
+      if (selectedParsed.intent !== 'unknown') {
+        const autoPattern = buildTrainingPattern(
+          selectedParsed.intent,
+          learningFeedback.originalMessage,
+          selectedParsed.reply
+        );
+        autoPattern.action = selectedParsed.action;
+        autoPattern.source = 'quick_action_selection';
+        await saveTrainingPattern(uid, autoPattern);
+      }
     }
 
     // Normal message processing with learned patterns
@@ -146,19 +212,23 @@ export async function POST(request) {
       reply = 'Szivesen! Ha szeretned, mar most megmutatom a kovetkezo muszakjaidat vagy szabadnapjaidat.';
     }
 
+    const quickActions = parsed.intent === 'unknown'
+      ? buildUnknownSuggestions(message)
+      : [
+          { key: 'replan_all', label: 'Ujratervezes', utterance: 'Ujratervezes' },
+          { key: 'optimize_fairness', label: 'Igazsagosabb verzio', utterance: 'Legyen igazsagosabb a beosztas' },
+          { key: 'optimize_overtime', label: 'Kevesebb tulora', utterance: 'Csokkentsd a tulorat' },
+          { key: 'replan_specific_day', label: 'Csak egy nap ujratervezese', utterance: 'Tervezd ujra csak a hetfot' },
+          { key: 'minimal_change_replan', label: 'Legkisebb valtoztatas', utterance: 'Minel kevesebbet valtoztass' },
+        ];
+
     return NextResponse.json({
       success: true,
       intent: parsed.intent,
       reply,
       payload,
       proactiveWarnings,
-      quickActions: [
-        { key: 'replan_all', label: 'Ujratervezes' },
-        { key: 'optimize_fairness', label: 'Igazsagosabb verzio' },
-        { key: 'optimize_overtime', label: 'Kevesebb tulora' },
-        { key: 'replan_specific_day', label: 'Csak egy nap ujratervezese' },
-        { key: 'minimal_change_replan', label: 'Legkisebb valtoztatas' },
-      ],
+      quickActions,
     });
   } catch (error) {
     return NextResponse.json(

@@ -1551,6 +1551,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   const [bettiChatLoading, setBettiChatLoading] = useState(false);
   const [bettiChatMessages, setBettiChatMessages] = useState([]);
   const [bettiQuickActions, setBettiQuickActions] = useState([]);
+  const [bettiLastUnknownMessage, setBettiLastUnknownMessage] = useState('');
   const [bettiChatOpen, setBettiChatOpen] = useState(false);
   const [bettiKeyboardInset, setBettiKeyboardInset] = useState(0);
   const bettiNativeKeyboardHeightRef = useRef(0);
@@ -3497,7 +3498,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     }
   }
 
-  async function sendBettiChatMessage(messageText) {
+  async function sendBettiChatMessage(messageText, options = {}) {
     const text = String(messageText || '').trim();
     if (!text || !user) return;
 
@@ -3544,6 +3545,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         body: JSON.stringify({
           message: text,
           previousMessageIntent,
+          learningFeedback: options.learningFeedback || null,
           context: {
             stats: plannerResult?.stats || null,
             conflicts: plannerResult?.conflicts || [],
@@ -3560,6 +3562,12 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
       setBettiChatMessages((prev) => [...prev, { role: 'assistant', text: result.reply || 'Rendben, rajta vagyok.', intent: result.intent }]);
       setBettiQuickActions(Array.isArray(result.quickActions) ? result.quickActions : []);
+
+      if (result.intent === 'unknown') {
+        setBettiLastUnknownMessage(text);
+      } else if (result.intent !== 'training_saved') {
+        setBettiLastUnknownMessage('');
+      }
 
       if (result?.payload?.action) {
         await handleBettiAction(result.payload.action, result.payload.entities || {});
@@ -3908,14 +3916,23 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                 style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)' }}
               >
                 <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-                  {[...getBettiPresetQuestions(), ...bettiQuickActions.slice(0, 3).map((a) => a.label)].slice(0, 6).map((q) => (
+                  {[...getBettiPresetQuestions().map((q) => ({ label: q, utterance: q })), ...bettiQuickActions.slice(0, 3)].slice(0, 6).map((item) => (
                     <button
-                      key={q}
+                      key={`${item.key || item.label}-${item.utterance || item.label}`}
                       type="button"
-                      onClick={() => sendBettiChatMessage(q)}
+                      onClick={() => {
+                        const learningFeedback = item.learnFromPreviousUnknown && bettiLastUnknownMessage
+                          ? {
+                              type: 'intent_selection',
+                              originalMessage: bettiLastUnknownMessage,
+                              selectedPrompt: item.utterance || item.label,
+                            }
+                          : null;
+                        sendBettiChatMessage(item.utterance || item.label, { learningFeedback });
+                      }}
                       className={`flex-shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold ${darkMode ? 'bg-sky-800 text-sky-100' : 'bg-sky-100 text-sky-700'}`}
                     >
-                      {q}
+                      {item.label}
                     </button>
                   ))}
                 </div>
@@ -4801,14 +4818,23 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)' }}
                 >
                   <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-                    {[...getBettiPresetQuestions(), ...bettiQuickActions.slice(0, 3).map((a) => a.label)].slice(0, 6).map((q) => (
+                    {[...getBettiPresetQuestions().map((q) => ({ label: q, utterance: q })), ...bettiQuickActions.slice(0, 3)].slice(0, 6).map((item) => (
                       <button
-                        key={q}
+                        key={`${item.key || item.label}-${item.utterance || item.label}`}
                         type="button"
-                        onClick={() => sendBettiChatMessage(q)}
+                        onClick={() => {
+                          const learningFeedback = item.learnFromPreviousUnknown && bettiLastUnknownMessage
+                            ? {
+                                type: 'intent_selection',
+                                originalMessage: bettiLastUnknownMessage,
+                                selectedPrompt: item.utterance || item.label,
+                              }
+                            : null;
+                          sendBettiChatMessage(item.utterance || item.label, { learningFeedback });
+                        }}
                         className={`flex-shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold ${darkMode ? 'bg-sky-800 text-sky-100' : 'bg-sky-100 text-sky-700'}`}
                       >
-                        {q}
+                        {item.label}
                       </button>
                     ))}
                   </div>
