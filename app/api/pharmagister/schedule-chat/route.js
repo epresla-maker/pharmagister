@@ -37,6 +37,8 @@ const EMPLOYEE_UNKNOWN_SUGGESTIONS = [
   { key: 'find_replacement', label: 'Ki tudna atvenni a holnapi estet?', utterance: 'Ki tudna atvenni a holnapi estet?' },
 ];
 
+const LOW_CONFIDENCE_THRESHOLD = 0.82;
+
 const AMBIGUOUS_SHOW_RE = /^(mutasd|muti|mutass|mutas(d)?|mutasdmar|mutasd\s+mar|mutad|mutas|megmutatod|megmutatnad|megmutatna(d)?|megneznem|megneznen|nezzuk|nezd|nezd|nezz|nezuk|mutatnad|mutatna|kerlek\s+mutasd|pls\s+mutasd|show|show\s+me|nezzuk\s+meg|kene|kene\s+latni|kellene|jo\s+lenne|adnad|add\s+ide|dobd\s+fel|valamit\s+mutass|valamit\s+keresek)\b/;
 
 function isAmbiguousShowRequest(norm) {
@@ -72,6 +74,27 @@ function getSuggestionPool(chatRole) {
   if (chatRole === 'pharmacy') return PHARMACY_UNKNOWN_SUGGESTIONS;
   if (chatRole === 'employee') return EMPLOYEE_UNKNOWN_SUGGESTIONS;
   return UNKNOWN_SUGGESTIONS;
+}
+
+function findSuggestionForParsed(parsed, chatRole) {
+  const pool = getSuggestionPool(chatRole);
+  if (!parsed?.action) return null;
+
+  const actionToKey = {
+    show_my_schedule: 'my_schedule',
+    show_my_vacations: 'my_vacation',
+    show_my_free_days: 'my_free_days',
+    write_schedule_plan: 'write_schedule_plan',
+    show_overtime: 'show_overtime',
+    replan_specific_day: 'replan_day',
+    find_replacement: 'find_replacement',
+    replan_all: 'replan_all',
+    optimize_overtime: 'optimize_overtime',
+    optimize_fairness: 'optimize_fairness',
+  };
+
+  const targetKey = actionToKey[parsed.action] || parsed.intent;
+  return pool.find((item) => item.key === targetKey) || null;
 }
 
 function buildUnknownSuggestions(message, chatRole = 'default') {
@@ -221,6 +244,7 @@ export async function POST(request) {
       entities: parsed.entities,
       confidence: parsed.confidence,
     };
+    let forceClarify = false;
 
     if (parsed.intent === 'explain_assignment') {
       const explained = explainAssignmentDecision({
@@ -277,14 +301,51 @@ export async function POST(request) {
       reply = 'Szivesen! Ha szeretned, mar most megmutatom a kovetkezo muszakjaidat vagy szabadnapjaidat.';
     }
 
+    const shouldClarifyLowConfidence = (
+      parsed.intent !== 'unknown'
+      && parsed.action !== 'clarify_with_options'
+      && Number(parsed.confidence || 0) < LOW_CONFIDENCE_THRESHOLD
+      && !parsed.isLearned
+    );
+
+    if (shouldClarifyLowConfidence) {
+      forceClarify = true;
+      const guess = findSuggestionForParsed(parsed, chatRole);
+      if (guess) {
+        reply = `Nem vagyok teljesen biztos benne. Arra gondoltal, hogy: ${guess.label}? Valassz lent egy opciot.`;
+      } else {
+        reply = 'Nem vagyok teljesen biztos benne. Valassz egy opciot, hogy pontosan arra menjunk.';
+      }
+      payload = {
+        ...payload,
+        action: 'clarify_with_options',
+        suggestedAction: parsed.action,
+      };
+    }
+
     if (parsed.action === 'clarify_with_options') {
       reply = chatRole === 'pharmacy'
         ? 'Rendben. Pontosan mit mutassak: a tulorasokat, az ujratervezest, vagy a helyettesitesi opciokat?'
         : 'Rendben. Pontosan mit mutassak: a sajat beosztasodat, a tulorasokat, vagy a szabadsag napjaidat?';
     }
 
-    const quickActions = (parsed.intent === 'unknown' || parsed.action === 'clarify_with_options')
-      ? buildUnknownSuggestions(message, chatRole)
+    const quickActions = (parsed.intent === 'unknown' || parsed.action === 'clarify_with_options' || forceClarify)
+      ? (() => {
+          const suggestions = buildUnknownSuggestions(message, chatRole);
+          if (!forceClarify) return suggestions;
+
+          const guess = findSuggestionForParsed(parsed, chatRole);
+          if (!guess) return suggestions;
+
+          const promoted = {
+            ...guess,
+            label: `Igen, erre gondoltam: ${guess.label}`,
+            learnFromPreviousUnknown: true,
+          };
+
+          const rest = suggestions.filter((item) => item.key !== guess.key).slice(0, 2);
+          return [promoted, ...rest];
+        })()
       : [
           { key: 'replan_all', label: 'Ujratervezes', utterance: 'Ujratervezes' },
           { key: 'optimize_fairness', label: 'Igazsagosabb verzio', utterance: 'Legyen igazsagosabb a beosztas' },
