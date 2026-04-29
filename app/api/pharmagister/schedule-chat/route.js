@@ -1204,10 +1204,12 @@ function buildDefaultConversationState({ uid, conversationId, parsed, historySta
     conversationId: createConversationId({ uid, conversationId }),
     userId: uid,
     phase: 'idle',
+    activeStrategy: null,
     activeTopic: {
       name: historyState?.dominantTopic || parsed?.action || parsed?.intent || 'general',
       intent: parsed?.intent || 'unknown',
       status: 'open',
+      locked: true,
       requiredSlots: [],
       filledSlots: [],
     },
@@ -1264,6 +1266,51 @@ function buildLoopQuestion(action) {
   return 'Pontosits kerlek.';
 }
 
+function simplifyResponse(reply, action) {
+  const text = String(reply || '').trim();
+  if (!text) return text;
+  const firstSentence = text.split(/[.!?]\s+/).filter(Boolean)[0] || text;
+  if (action === 'clarify_with_options') return `${firstSentence}. Valassz egy opciot.`;
+  return `${firstSentence}.`;
+}
+
+function isExplicitTopicShift(parsed, conversationState) {
+  if (!parsed) return false;
+  const currentIntent = conversationState?.activeTopic?.intent || null;
+  if (!currentIntent) return true;
+  if (['clarify_last_answer', 'challenge_previous_response', 'affirmative', 'negative', 'hesitation'].includes(parsed.intent)) return false;
+  return Number(parsed.confidence || 0) > 0.85 && parsed.intent !== currentIntent;
+}
+
+function applyTopicLockToParsed(parsed, conversationState) {
+  const activeTopic = conversationState?.activeTopic || {};
+  const topicLocked = activeTopic.locked !== false;
+  if (!topicLocked) return parsed;
+  if (isExplicitTopicShift(parsed, conversationState)) return parsed;
+  if (!activeTopic.intent || !activeTopic.name) return parsed;
+  if (['clarify_last_answer', 'challenge_previous_response', 'affirmative', 'negative', 'hesitation'].includes(parsed.intent) || parsed.keepFlow) {
+    return {
+      ...parsed,
+      relatesTo: parsed.relatesTo || activeTopic.intent,
+      activeAction: activeTopic.name,
+      lockedToTopic: true,
+    };
+  }
+  if (Number(parsed.confidence || 0) <= 0.85 && parsed.intent !== activeTopic.intent) {
+    return {
+      ...parsed,
+      intent: activeTopic.intent,
+      action: activeTopic.name,
+      reply: parsed.reply,
+      relatesTo: activeTopic.intent,
+      activeAction: activeTopic.name,
+      lockedToTopic: true,
+      keepFlow: true,
+    };
+  }
+  return parsed;
+}
+
 function runFlowEngine({ conversationState, parsed, payload, message, recentConversation }) {
   const action = payload?.action || parsed?.action || 'clarify_with_options';
   const requiredSlots = getRequiredSlotsForAction(action);
@@ -1275,7 +1322,9 @@ function runFlowEngine({ conversationState, parsed, payload, message, recentConv
     recentConversation,
     selectedAction: action,
   });
-  const shouldClarify = missingSlots.length > 0;
+  const confusionIntent = ['clarify_last_answer', 'challenge_previous_response'].includes(parsed?.intent);
+  const shouldClarify = missingSlots.length > 0 || confusionIntent;
+  const phase = confusionIntent ? 'clarifying' : (shouldClarify ? 'waiting_user' : (continuityScore < 0.45 ? 'resolving' : 'active'));
 
   return {
     stepOrder: ['loadState', 'resolveIntent', 'mergeContext', 'evaluateSlots', shouldClarify ? 'clarify' : 'answer', 'updateState'],
@@ -1284,9 +1333,10 @@ function runFlowEngine({ conversationState, parsed, payload, message, recentConv
     filledSlots,
     missingSlots,
     shouldClarify,
+    phase,
     continuityScore,
     shouldReanchor: continuityScore < 0.45,
-    loopQuestion: shouldClarify ? buildLoopQuestion(action) : null,
+    loopQuestion: shouldClarify ? (confusionIntent ? 'Elmondjam egyszerubben ugyanazt?' : buildLoopQuestion(action)) : null,
   };
 }
 
@@ -1391,16 +1441,14 @@ function updateConversationState({ currentState, parsed, payload, flowResult, re
   const hasSameOpenLoop = normalizedQuestion
     ? existingLoops.some((loop) => loop?.status === 'open' && String(loop?.question || '').trim() === normalizedQuestion)
     : false;
-  const nextPhase = flowResult.shouldClarify
-    ? 'waiting_user_input'
-    : (flowResult.shouldReanchor ? 'resolving' : 'closing');
+  const nextPhase = flowResult.phase || (flowResult.shouldClarify ? 'waiting_user' : (flowResult.shouldReanchor ? 'resolving' : 'active'));
   const resolvedLoops = flowResult.shouldClarify
     ? existingLoops.map((loop) => ({ ...loop, age: Number(loop?.age || 0) + 1 }))
     : existingLoops.map((loop) => ({ ...loop, awaiting: false, status: 'resolved', age: Number(loop?.age || 0) + 1 }));
   const nextLoops = flowResult.shouldClarify
     ? (hasSameOpenLoop
         ? resolvedLoops
-        : [{ question: flowResult.loopQuestion, awaiting: true, status: 'open', age: 0 }, ...resolvedLoops].slice(0, 6))
+        : [{ question: flowResult.loopQuestion, expectedAnswer: flowResult.missingSlots[0] || parsed?.intent || 'clarification', awaiting: true, status: 'open', age: 0 }, ...resolvedLoops].slice(0, 6))
     : resolvedLoops;
   const currentStack = Array.isArray(currentState?.intentStack) ? currentState.intentStack : [];
   const nextIntentNode = {
@@ -1419,8 +1467,11 @@ function updateConversationState({ currentState, parsed, payload, flowResult, re
     phase: nextPhase,
     activeTopic: {
       name: payload?.action || parsed?.action || currentState?.activeTopic?.name || 'general',
-      intent: parsed?.intent || currentState?.activeTopic?.intent || 'unknown',
+      intent: (parsed?.keepFlow || ['clarify_last_answer', 'challenge_previous_response'].includes(parsed?.intent))
+        ? (currentState?.activeTopic?.intent || parsed?.intent || 'unknown')
+        : (parsed?.intent || currentState?.activeTopic?.intent || 'unknown'),
       status: flowResult.shouldClarify ? 'partial' : 'resolved',
+      locked: !isExplicitTopicShift(parsed, currentState),
       requiredSlots: flowResult.requiredSlots,
       filledSlots: flowResult.filledSlots,
     },
@@ -1440,7 +1491,8 @@ function getIntentParent(intent, action) {
     replan_specific_day: 'schedule_help',
     replan_all: 'schedule_help',
     write_schedule_plan: 'schedule_help',
-    challenge_previous: 'challenge_schedule_help',
+    challenge_previous_response: 'challenge_schedule_help',
+    clarify_last_answer: 'clarity_help',
   };
   const byIntent = {
     my_schedule: 'schedule_help',
@@ -1449,7 +1501,8 @@ function getIntentParent(intent, action) {
     my_free_days: 'schedule_help',
     replan_day: 'modify_schedule',
     full_replan: 'modify_schedule',
-    challenge_previous: 'challenge_schedule_help',
+    challenge_previous_response: 'challenge_schedule_help',
+    clarify_last_answer: 'clarity_help',
   };
   return byAction[action] || byIntent[intent] || 'general_help';
 }
@@ -1457,7 +1510,7 @@ function getIntentParent(intent, action) {
 function linkParsedIntentToState({ parsed, conversationState, lastAssistantAction, previousMessageIntent }) {
   const activeIntent = conversationState?.activeTopic?.intent || previousMessageIntent || null;
   const activeAction = conversationState?.activeTopic?.name || lastAssistantAction || null;
-  const isFollowUp = Boolean(parsed?.inferredFromContext || ['affirmative', 'negative', 'hesitation', 'challenge_previous'].includes(parsed?.intent));
+  const isFollowUp = Boolean(parsed?.inferredFromContext || ['affirmative', 'negative', 'hesitation', 'challenge_previous_response', 'clarify_last_answer'].includes(parsed?.intent));
   return {
     ...parsed,
     intentParent: getIntentParent(parsed?.intent, parsed?.action),
@@ -1504,7 +1557,7 @@ function dedupeResponse(reply, conversationState) {
 
 function shouldAllowFlowProposal({ parsed, mood }) {
   const positiveOrNeutral = ['positive', 'neutral'].includes(mood?.label);
-  const noRejection = !['negative', 'hesitation', 'challenge_previous'].includes(parsed?.intent);
+  const noRejection = !['negative', 'hesitation', 'challenge_previous_response', 'clarify_last_answer'].includes(parsed?.intent);
   return Number(parsed?.confidence || 0) > 0.85 && positiveOrNeutral && noRejection;
 }
 
@@ -1981,7 +2034,7 @@ function buildFollowUpParsed(action, entities = {}, confidence = 0.9) {
     show_my_schedule: 'Rendben, megmutatom a sajat muszakjaidat. Ha dolgozoi nezetben vagy, pontos listat is kapsz.',
     show_my_vacations: 'Rendben, megnezem a szabadsag napjaidat.',
     show_my_free_days: 'Rendben, kilistazom a kovetkezo szabadnapjaidat.',
-    follow_up_decline: 'Rendben, akkor nem ezen megyunk tovabb. Pontosits kerlek, mire forduljak inkabb.',
+    follow_up_decline: 'Rendben. Pontosits kerlek, mire koncentráljak inkabb ugyanebben a temaban.',
     follow_up_hesitate: 'Rendben, nem siettetlek. Mondhatod kesobb is, vagy valthatunk masik temara.',
     list_employees: 'Rendben, listazom az alkalmazottaidat.',
     show_vacation_requests: 'Rendben, megmutatom a szabadsagigenyeket.',
@@ -2279,7 +2332,7 @@ export async function POST(request) {
       await recordTrainingPatternUsage(uid, parsed.learnedPatternId || parsed.learnedPatternFingerprint);
     }
 
-    if (parsed.intent === 'unknown' || parsed.intent === 'affirmative' || parsed.intent === 'challenge_previous') {
+    if (parsed.intent === 'unknown' || parsed.intent === 'affirmative' || parsed.intent === 'challenge_previous_response' || parsed.intent === 'clarify_last_answer') {
       const contextual = resolveContextualFollowUp({
         message,
         chatRole,
@@ -2308,6 +2361,7 @@ export async function POST(request) {
       lastAssistantAction,
       previousMessageIntent,
     });
+    parsed = applyTopicLockToParsed(parsed, conversationState);
     const proactiveWarnings = buildProactiveWarnings({
       stats: context.stats || null,
       conflicts: Array.isArray(context.conflicts) ? context.conflicts : [],
@@ -2630,8 +2684,8 @@ export async function POST(request) {
 
     if (parsed.intent === 'negative') {
       reply = isScheduleOrFreeDaysPrompt(lastAssistantMessage)
-        ? 'Rendben, akkor ezt most nem nyitom meg. Mondj egy masik iranyt, es ugyanebben a beszelgetesben megyek tovabb.'
-        : 'Rendben, akkor nem erre megyunk tovabb. Pontositsd kerlek, mire valtsunk inkabb.';
+        ? 'Rendben. Ugyanebben a temaban maradunk, mondd meg melyik reszet pontositsam inkabb.'
+        : 'Rendben. Pontositsd kerlek, melyik reszt magyarazzam el mashogy.';
       payload = {
         ...payload,
         action: 'clarify_with_options',
@@ -2650,7 +2704,7 @@ export async function POST(request) {
       quickActionsOverride = buildUnknownSuggestions(message, chatRole);
     }
 
-    if (parsed.intent === 'challenge_previous') {
+    if (parsed.intent === 'challenge_previous_response') {
       const relatedIntent = parsed.relatesTo || conversationState?.activeTopic?.intent || 'unknown';
       const relatedAction = parsed.activeAction || conversationState?.activeTopic?.name || 'clarify_with_options';
       const loopQuestion = Array.isArray(conversationState?.openLoops)
@@ -2665,6 +2719,18 @@ export async function POST(request) {
         relatesTo: relatedIntent,
       };
       quickActionsOverride = quickActionsOverride || buildUnknownSuggestions(message, chatRole);
+    }
+
+    if (parsed.intent === 'clarify_last_answer') {
+      const relatedAction = parsed.activeAction || conversationState?.activeTopic?.name || payload?.action || 'clarify_with_options';
+      reply = simplifyResponse(lastAssistantMessage || reply, relatedAction);
+      payload = {
+        ...payload,
+        action: relatedAction,
+        suggestedAction: relatedAction,
+        relatesTo: parsed.relatesTo || conversationState?.activeTopic?.intent || null,
+      };
+      quickActionsOverride = null;
     }
 
     const shouldClarifyLowConfidence = (
