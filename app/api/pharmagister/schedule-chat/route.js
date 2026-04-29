@@ -191,11 +191,30 @@ function detectMonthReference(text) {
   return null;
 }
 
-function buildScheduleMonthQuickActions() {
+function buildMonthQuickActions(topic = 'beosztas') {
+  const utteranceByTopic = {
+    beosztas: {
+      current: 'A beosztasom erre a honapra',
+      next: 'A beosztasom a kovetkezo honapra',
+      prev: 'A beosztasom az elozo honapra',
+    },
+    szabadsag: {
+      current: 'A szabadsagaim erre a honapra',
+      next: 'A szabadsagaim a kovetkezo honapra',
+      prev: 'A szabadsagaim az elozo honapra',
+    },
+    szabadnap: {
+      current: 'A szabadnapjaim erre a honapra',
+      next: 'A szabadnapjaim a kovetkezo honapra',
+      prev: 'A szabadnapjaim az elozo honapra',
+    },
+  };
+
+  const byTopic = utteranceByTopic[topic] || utteranceByTopic.beosztas;
   return [
-    { key: 'schedule_current_month', label: 'Aktualis honap', utterance: 'A beosztasom erre a honapra' },
-    { key: 'schedule_next_month', label: 'Kovetkezo honap', utterance: 'A beosztasom a kovetkezo honapra' },
-    { key: 'schedule_prev_month', label: 'Elozo honap', utterance: 'A beosztasom az elozo honapra' },
+    { key: `${topic}_current_month`, label: 'Aktualis honap', utterance: byTopic.current },
+    { key: `${topic}_next_month`, label: 'Kovetkezo honap', utterance: byTopic.next },
+    { key: `${topic}_prev_month`, label: 'Elozo honap', utterance: byTopic.prev },
   ];
 }
 
@@ -241,6 +260,7 @@ function resolveContextualFollowUp({
   message,
   previousMessageIntent,
   lastAssistantAction,
+  lastAssistantSuggestedAction,
   lastAssistantMessage,
   lastAssistantEntities,
 }) {
@@ -255,7 +275,18 @@ function resolveContextualFollowUp({
   const requestedMonth = detectMonthReference(norm);
 
   if (requestedMonth && (lastAssistantAction === 'clarify_with_options' || containsAny(normalizeText(lastAssistantMessage), ['melyik honapra', 'melyik honap']))) {
-    return buildFollowUpParsed('show_my_schedule', { monthOffset: requestedMonth.monthOffset, monthLabel: requestedMonth.label });
+    const askedNorm = normalizeText(lastAssistantMessage);
+    let targetAction = 'show_my_schedule';
+
+    if (lastAssistantSuggestedAction) {
+      targetAction = lastAssistantSuggestedAction;
+    } else if (containsAny(askedNorm, ['szabadsag'])) {
+      targetAction = 'show_my_vacations';
+    } else if (containsAny(askedNorm, ['szabadnap'])) {
+      targetAction = 'show_my_free_days';
+    }
+
+    return buildFollowUpParsed(targetAction, { monthOffset: requestedMonth.monthOffset, monthLabel: requestedMonth.label });
   }
 
   if (containsAny(norm, ['beoszt', 'muszak'])) {
@@ -314,6 +345,7 @@ export async function POST(request) {
     const previousMessageIntent = body?.previousMessageIntent;
     const lastAssistantMessage = context?.lastAssistantMessage || '';
     const lastAssistantAction = context?.lastAssistantAction || '';
+    const lastAssistantSuggestedAction = context?.lastAssistantSuggestedAction || '';
     const lastAssistantEntities = context?.lastAssistantEntities || null;
     const learningFeedback = body?.learningFeedback || null;
 
@@ -420,6 +452,7 @@ export async function POST(request) {
         message,
         previousMessageIntent,
         lastAssistantAction,
+        lastAssistantSuggestedAction,
         lastAssistantMessage,
         lastAssistantEntities,
       });
@@ -492,7 +525,7 @@ export async function POST(request) {
             ...(payload.entities || {}),
           },
         };
-        quickActionsOverride = buildScheduleMonthQuickActions();
+        quickActionsOverride = buildMonthQuickActions('beosztas');
       } else {
         reply = `Rendben, megmutatom a beosztasodat a ${requestedMonth.label} idoszakra.`;
         payload = {
@@ -507,11 +540,49 @@ export async function POST(request) {
     }
 
     if (parsed.intent === 'my_vacation') {
-      reply = 'Rendben, megnezem a szabadsag napjaidat.';
+      const requestedMonth = detectMonthReference(message);
+      if (!requestedMonth) {
+        reply = 'Rendben, melyik honapra nezzem a szabadsag napjaidat?';
+        payload = {
+          ...payload,
+          action: 'clarify_with_options',
+          suggestedAction: 'show_my_vacations',
+        };
+        quickActionsOverride = buildMonthQuickActions('szabadsag');
+      } else {
+        reply = `Rendben, megnezem a szabadsag napjaidat a ${requestedMonth.label} idoszakra.`;
+        payload = {
+          ...payload,
+          entities: {
+            ...(payload.entities || {}),
+            monthOffset: requestedMonth.monthOffset,
+            monthLabel: requestedMonth.label,
+          },
+        };
+      }
     }
 
     if (parsed.intent === 'my_free_days') {
-      reply = 'Rendben, kilistazom a kovetkezo szabadnapjaidat.';
+      const requestedMonth = detectMonthReference(message);
+      if (!requestedMonth) {
+        reply = 'Rendben, melyik honapra nezzem a szabadnapjaidat?';
+        payload = {
+          ...payload,
+          action: 'clarify_with_options',
+          suggestedAction: 'show_my_free_days',
+        };
+        quickActionsOverride = buildMonthQuickActions('szabadnap');
+      } else {
+        reply = `Rendben, kilistazom a szabadnapjaidat a ${requestedMonth.label} idoszakra.`;
+        payload = {
+          ...payload,
+          entities: {
+            ...(payload.entities || {}),
+            monthOffset: requestedMonth.monthOffset,
+            monthLabel: requestedMonth.label,
+          },
+        };
+      }
     }
 
     if (parsed.intent === 'capabilities' || parsed.intent === 'help') {

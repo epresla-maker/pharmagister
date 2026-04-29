@@ -3526,6 +3526,9 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     const previousMessageAction = previousMessage?.role === 'assistant'
       ? previousMessage?.action
       : undefined;
+    const previousSuggestedAction = previousMessage?.role === 'assistant'
+      ? previousMessage?.suggestedAction
+      : undefined;
 
     setBettiChatMessages((prev) => [...prev, { role: 'user', text }]);
     setBettiChatInput('');
@@ -3556,6 +3559,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             lastUserMessage: lastUserQuestion,
             lastAssistantMessage: previousMessage?.role === 'assistant' ? previousMessage?.text : '',
             lastAssistantAction: previousMessageAction,
+            lastAssistantSuggestedAction: previousSuggestedAction,
             lastAssistantEntities: previousMessage?.role === 'assistant' ? previousMessage?.entities || null : null,
             chatRole: isPharmacy ? 'pharmacy' : 'employee',
           },
@@ -3572,6 +3576,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         text: result.reply || 'Rendben, rajta vagyok.',
         intent: result.intent,
         action: result?.payload?.action || null,
+        suggestedAction: result?.payload?.suggestedAction || null,
         entities: result?.payload?.entities || null,
       }]);
       setBettiQuickActions(Array.isArray(result.quickActions) ? result.quickActions : []);
