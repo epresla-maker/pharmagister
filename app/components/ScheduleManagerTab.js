@@ -3827,6 +3827,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           <div className="fixed inset-0 z-[80] bg-black/50" onClick={() => setBettiChatOpen(false)}>
             <div
               className={`absolute inset-x-0 top-0 bottom-0 flex flex-col ${darkMode ? 'bg-gray-900' : 'bg-white'}`}
+              style={{ bottom: `${Math.max(0, bettiKeyboardInset)}px` }}
               onClick={(e) => e.stopPropagation()}
             >
               <div className={`flex items-center justify-between px-4 py-3 border-b ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'}`}>
@@ -3849,10 +3850,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
               <div
                 className={`sticky bottom-0 border-t p-3 space-y-2 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'}`}
-                style={{
-                  paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)',
-                  marginBottom: `${Math.max(0, bettiKeyboardInset)}px`,
-                }}
+                style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)' }}
               >
                 <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
                   {[...getBettiPresetQuestions(), ...bettiQuickActions.slice(0, 3).map((a) => a.label)].slice(0, 6).map((q) => (
@@ -4722,6 +4720,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             <div className="fixed inset-0 z-[80] bg-black/50" onClick={() => setBettiChatOpen(false)}>
               <div
                 className={`absolute inset-x-0 top-0 bottom-0 flex flex-col ${darkMode ? 'bg-gray-900' : 'bg-white'}`}
+                style={{ bottom: `${Math.max(0, bettiKeyboardInset)}px` }}
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className={`flex items-center justify-between px-4 py-3 border-b ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'}`}>
@@ -4744,10 +4743,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
                 <div
                   className={`sticky bottom-0 border-t p-3 space-y-2 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'}`}
-                  style={{
-                    paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)',
-                    marginBottom: `${Math.max(0, bettiKeyboardInset)}px`,
-                  }}
+                  style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)' }}
                 >
                   <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
                     {[...getBettiPresetQuestions(), ...bettiQuickActions.slice(0, 3).map((a) => a.label)].slice(0, 6).map((q) => (
