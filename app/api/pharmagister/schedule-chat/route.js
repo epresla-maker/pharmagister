@@ -21,6 +21,9 @@ const UNKNOWN_SUGGESTIONS = [
 ];
 
 const PHARMACY_UNKNOWN_SUGGESTIONS = [
+  { key: 'list_employees', label: 'Listazd a dolgozoimat', utterance: 'Listazd a dolgozoimat' },
+  { key: 'show_vacation_requests', label: 'Kik mennek szabira?', utterance: 'Kik mennek szabira?' },
+  { key: 'missing_drafts', label: 'Ki nem irta meg a tervezetet?', utterance: 'Ki nem irta meg a tervezetet?' },
   { key: 'show_overtime', label: 'Mutasd a tulorasokat', utterance: 'Mutasd a tulorasokat' },
   { key: 'replan_day', label: 'Tervezd ujra csak a hetfot', utterance: 'Tervezd ujra csak a hetfot' },
   { key: 'find_replacement', label: 'Ki tudna atvenni a holnapi estet?', utterance: 'Ki tudna atvenni a holnapi estet?' },
@@ -104,6 +107,11 @@ function findSuggestionForParsed(parsed, chatRole) {
     show_my_schedule: 'my_schedule',
     show_my_vacations: 'my_vacation',
     show_my_free_days: 'my_free_days',
+    list_employees: 'list_employees',
+    show_vacation_requests: 'show_vacation_requests',
+    missing_drafts: 'missing_drafts',
+    add_employee: 'add_employee',
+    remove_employee: 'remove_employee',
     write_schedule_plan: 'write_schedule_plan',
     show_overtime: 'show_overtime',
     replan_specific_day: 'replan_day',
