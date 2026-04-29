@@ -556,6 +556,124 @@ function applyMoodTone({ reply, mood, intent, action }) {
   return reply;
 }
 
+function clamp01(value) {
+  if (Number.isNaN(Number(value))) return 0;
+  return Math.max(0, Math.min(1, Number(value)));
+}
+
+function computeContextScore({ message, parsed, recentConversation = [], lastAssistantAction, lastAssistantEntities, selectedAction }) {
+  let score = recentConversation.length > 0 ? 0.45 : 0.25;
+
+  if (parsed?.inferredFromContext) score += 0.2;
+  if (isContinuationPrompt(message)) score += 0.15;
+  if (lastAssistantAction && selectedAction && (lastAssistantAction === selectedAction || selectedAction === 'clarify_with_options')) score += 0.15;
+  if (hasMonthEntities(lastAssistantEntities) && hasMonthEntities(parsed?.entities)) score += 0.1;
+
+  return clamp01(score);
+}
+
+function computeRoleScore({ chatRole, selectedAction }) {
+  const employeeOnlyActions = new Set([
+    'show_my_schedule', 'show_my_vacations', 'show_my_free_days', 'check_my_schedule_exists',
+  ]);
+  const pharmacyOnlyActions = new Set([
+    'list_employees', 'show_vacation_requests', 'missing_drafts', 'add_employee', 'remove_employee',
+  ]);
+
+  if (!selectedAction) return 0.65;
+  if (chatRole === 'pharmacy') {
+    if (employeeOnlyActions.has(selectedAction)) return 0.2;
+    if (pharmacyOnlyActions.has(selectedAction)) return 0.95;
+    return 0.75;
+  }
+  if (chatRole === 'employee') {
+    if (pharmacyOnlyActions.has(selectedAction)) return 0.2;
+    if (employeeOnlyActions.has(selectedAction)) return 0.95;
+    return 0.75;
+  }
+
+  return 0.7;
+}
+
+function computeRiskScore({ parsed, mood, intentScore, roleScore, selectedAction }) {
+  let risk = 0;
+  if (intentScore < LOW_CONFIDENCE_THRESHOLD) risk += 0.35;
+  if (parsed?.intent === 'unknown') risk += 0.3;
+  if (roleScore < 0.45) risk += 0.4;
+  if (['add_employee', 'remove_employee', 'replan_all'].includes(selectedAction)) risk += 0.2;
+  if (['frustrated', 'sad'].includes(mood?.label) && parsed?.intent === 'unknown') risk += 0.1;
+  return clamp01(risk);
+}
+
+function pickBestStrategy({ intentScore, contextScore, roleScore, riskScore, mood, selectedAction, parsed }) {
+  if (roleScore < 0.45) return 'role_redirect';
+  if (riskScore >= 0.78) return ['frustrated', 'sad', 'tired'].includes(mood?.label) ? 'empathetic_clarify' : 'safe_clarify';
+  if (intentScore < LOW_CONFIDENCE_THRESHOLD || contextScore < 0.45) {
+    return ['frustrated', 'sad', 'tired'].includes(mood?.label) ? 'empathetic_clarify' : 'clarify';
+  }
+  if (['frustrated', 'sad', 'tired'].includes(mood?.label) && (parsed?.intent === 'unknown' || selectedAction === 'clarify_with_options')) {
+    return 'empathetic_support';
+  }
+  return 'direct_answer';
+}
+
+function buildDecisionPipeline({ message, parsed, mood, chatRole, recentConversation, lastAssistantAction, lastAssistantEntities, selectedAction }) {
+  const intentScore = clamp01(parsed?.confidence || 0);
+  const moodScore = clamp01(mood?.confidence || 0);
+  const contextScore = computeContextScore({
+    message,
+    parsed,
+    recentConversation,
+    lastAssistantAction,
+    lastAssistantEntities,
+    selectedAction,
+  });
+  const roleScore = computeRoleScore({ chatRole, selectedAction });
+  const riskScore = computeRiskScore({ parsed, mood, intentScore, roleScore, selectedAction });
+  const bestStrategy = pickBestStrategy({
+    intentScore,
+    contextScore,
+    roleScore,
+    riskScore,
+    mood,
+    selectedAction,
+    parsed,
+  });
+
+  return {
+    input: {
+      intent: parsed?.intent || 'unknown',
+      action: selectedAction || parsed?.action || 'unknown',
+      mood: mood?.label || 'neutral',
+      role: chatRole || 'default',
+    },
+    scores: {
+      intent: Number(intentScore.toFixed(3)),
+      mood: Number(moodScore.toFixed(3)),
+      context: Number(contextScore.toFixed(3)),
+      role: Number(roleScore.toFixed(3)),
+      risk: Number(riskScore.toFixed(3)),
+    },
+    bestStrategy,
+  };
+}
+
+function applyDecisionStrategy({ reply, bestStrategy }) {
+  if (!reply || !bestStrategy) return reply;
+
+  if (bestStrategy === 'safe_clarify') {
+    return `Hogy pontos maradjak: ${reply}`;
+  }
+  if (bestStrategy === 'empathetic_clarify') {
+    return `Ertem, es segitek vegig menni rajta. ${reply}`;
+  }
+  if (bestStrategy === 'role_redirect') {
+    return `Ebben a szerepkorben egy biztonsagosabb iranyt valasztok. ${reply}`;
+  }
+
+  return reply;
+}
+
 function mapActionToIntent(action) {
   const actionToIntent = {
     check_my_schedule_exists: 'my_schedule_presence',
@@ -1276,12 +1394,35 @@ export async function POST(request) {
       };
     }
 
+    const selectedAction = payload?.action || parsed.action;
+    const decisionPipeline = buildDecisionPipeline({
+      message,
+      parsed,
+      mood,
+      chatRole,
+      recentConversation,
+      lastAssistantAction,
+      lastAssistantEntities,
+      selectedAction,
+    });
+
+    reply = applyDecisionStrategy({
+      reply,
+      bestStrategy: decisionPipeline.bestStrategy,
+    });
+
     reply = applyMoodTone({
       reply,
       mood,
       intent: parsed.intent,
-      action: payload?.action || parsed.action,
+      action: selectedAction,
     });
+
+    payload = {
+      ...payload,
+      strategy: decisionPipeline.bestStrategy,
+      scores: decisionPipeline.scores,
+    };
 
     return NextResponse.json({
       success: true,
@@ -1293,6 +1434,7 @@ export async function POST(request) {
         confidence: Number(parsed.confidence || 0),
         topCandidates: parsed.topCandidates || [],
         reasoning: parsed.reasoning || null,
+        decisionPipeline,
       },
       proactiveWarnings,
       quickActions,
