@@ -215,9 +215,31 @@ function getDefaultPlanningConfig() {
     minStaffPerShift: 2,
     minPharmacistsPerShift: 1,
     shiftTemplates: [
-      { key: 'day', startTime: '08:00', endTime: '16:00', requiredStaff: 2, requiredPharmacists: 1 },
-      { key: 'evening', startTime: '16:00', endTime: '20:00', requiredStaff: 1, requiredPharmacists: 1 },
+      { key: 'day', startTime: '08:00', endTime: '16:00', requiredStaff: 2, requiredPharmacists: 1, onCall: false },
+      { key: 'evening', startTime: '16:00', endTime: '20:00', requiredStaff: 1, requiredPharmacists: 1, onCall: false },
     ],
+    operations: {
+      enforceOpeningHours: true,
+      allowOnCallOutsideOpening: true,
+      openingHoursByWeekday: {
+        0: { isOpen: false, openTime: '08:00', closeTime: '12:00' },
+        1: { isOpen: true, openTime: '08:00', closeTime: '20:00' },
+        2: { isOpen: true, openTime: '08:00', closeTime: '20:00' },
+        3: { isOpen: true, openTime: '08:00', closeTime: '20:00' },
+        4: { isOpen: true, openTime: '08:00', closeTime: '20:00' },
+        5: { isOpen: true, openTime: '08:00', closeTime: '20:00' },
+        6: { isOpen: true, openTime: '08:00', closeTime: '14:00' },
+      },
+      onCall: {
+        enabled: false,
+        days: [0, 6],
+        startTime: '20:00',
+        endTime: '08:00',
+        requiredStaff: 1,
+        requiredPharmacists: 1,
+        useAutoTemplate: true,
+      },
+    },
     laborLaw: {
       enforceHungarianLaborLaw: true,
       maxDailyHoursLegal: 12,
@@ -234,6 +256,10 @@ function normalizePlanningConfig(config) {
   const templates = Array.isArray(config?.shiftTemplates) && config.shiftTemplates.length > 0
     ? config.shiftTemplates
     : defaults.shiftTemplates;
+  const openingHoursByWeekday = {
+    ...defaults.operations.openingHoursByWeekday,
+    ...(config?.operations?.openingHoursByWeekday || {}),
+  };
 
   return {
     minStaffPerShift: Math.max(1, Number(config?.minStaffPerShift || defaults.minStaffPerShift)),
@@ -244,7 +270,30 @@ function normalizePlanningConfig(config) {
       endTime: item.endTime || '16:00',
       requiredStaff: Math.max(1, Number(item.requiredStaff || 1)),
       requiredPharmacists: Math.max(0, Number(item.requiredPharmacists || 0)),
+      onCall: Boolean(item.onCall),
     })),
+    operations: {
+      enforceOpeningHours: config?.operations?.enforceOpeningHours !== false,
+      allowOnCallOutsideOpening: config?.operations?.allowOnCallOutsideOpening !== false,
+      openingHoursByWeekday: Object.fromEntries(
+        Object.entries(openingHoursByWeekday).map(([k, v]) => [k, {
+          isOpen: v?.isOpen !== false,
+          openTime: v?.openTime || '08:00',
+          closeTime: v?.closeTime || '20:00',
+        }])
+      ),
+      onCall: {
+        enabled: config?.operations?.onCall?.enabled === true,
+        days: Array.isArray(config?.operations?.onCall?.days)
+          ? config.operations.onCall.days.map(Number).filter((d) => d >= 0 && d <= 6)
+          : defaults.operations.onCall.days,
+        startTime: config?.operations?.onCall?.startTime || defaults.operations.onCall.startTime,
+        endTime: config?.operations?.onCall?.endTime || defaults.operations.onCall.endTime,
+        requiredStaff: Math.max(0, Number(config?.operations?.onCall?.requiredStaff ?? defaults.operations.onCall.requiredStaff)),
+        requiredPharmacists: Math.max(0, Number(config?.operations?.onCall?.requiredPharmacists ?? defaults.operations.onCall.requiredPharmacists)),
+        useAutoTemplate: config?.operations?.onCall?.useAutoTemplate !== false,
+      },
+    },
     laborLaw: {
       enforceHungarianLaborLaw: config?.laborLaw?.enforceHungarianLaborLaw !== false,
       maxDailyHoursLegal: Math.max(1, Number(config?.laborLaw?.maxDailyHoursLegal || defaults.laborLaw.maxDailyHoursLegal)),
@@ -2975,6 +3024,39 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     }));
   }
 
+  function updateOpeningHoursDay(day, patch) {
+    setPlannerConfigForm((prev) => ({
+      ...prev,
+      operations: {
+        ...(prev.operations || {}),
+        openingHoursByWeekday: {
+          ...((prev.operations || {}).openingHoursByWeekday || {}),
+          [day]: {
+            ...(((prev.operations || {}).openingHoursByWeekday || {})[day] || {}),
+            ...patch,
+          },
+        },
+      },
+    }));
+  }
+
+  function toggleOnCallDay(day) {
+    setPlannerConfigForm((prev) => {
+      const current = Array.isArray(prev.operations?.onCall?.days) ? prev.operations.onCall.days : [];
+      const nextDays = current.includes(day) ? current.filter((d) => d !== day) : [...current, day];
+      return {
+        ...prev,
+        operations: {
+          ...(prev.operations || {}),
+          onCall: {
+            ...((prev.operations || {}).onCall || {}),
+            days: nextDays.sort((a, b) => a - b),
+          },
+        },
+      };
+    });
+  }
+
   function toggleWeekdayPreference(dayNum) {
     setPreferencesForm((prev) => {
       const isAvoid = prev.avoidWeekdays.includes(dayNum);
@@ -3038,7 +3120,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       ...prev,
       shiftTemplates: [
         ...prev.shiftTemplates,
-        { key: `shift-${prev.shiftTemplates.length + 1}`, startTime: '20:00', endTime: '08:00', requiredStaff: 1, requiredPharmacists: 1 },
+        { key: `shift-${prev.shiftTemplates.length + 1}`, startTime: '20:00', endTime: '08:00', requiredStaff: 1, requiredPharmacists: 1, onCall: false },
       ],
     }));
   }
@@ -3181,6 +3263,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           role: item.role || employee?.role || 'other',
           startTime: item.startTime,
           endTime: item.endTime,
+          onCall: Boolean(item.onCall),
           notes: 'Automatikus tervezés (AI)',
           status: 'active',
           createdBy: user.uid,
@@ -3250,6 +3333,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           role: item.role || employee?.role || 'other',
           startTime: item.startTime,
           endTime: item.endTime,
+          onCall: Boolean(item.onCall),
           notes: 'Automatikus tervezés (AI)',
           status: 'active',
           createdBy: user.uid,
@@ -3392,6 +3476,216 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             </div>
           </div>
 
+          {/* ── Nyitvatartás + ügyelet ───────────────────────────── */}
+          <div className={`rounded-2xl border p-4 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
+            <div className="flex items-center justify-between">
+              <h3 className={`font-bold text-sm uppercase tracking-widest ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Nyitvatartás és ügyelet</h3>
+              <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={plannerConfigForm.operations?.enforceOpeningHours !== false}
+                  onChange={e => setPlannerConfigForm(prev => ({
+                    ...prev,
+                    operations: {
+                      ...(prev.operations || {}),
+                      enforceOpeningHours: e.target.checked,
+                    },
+                  }))}
+                  className="h-4 w-4 rounded"
+                />
+                <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>Nyitvatartás ellenőrzése</span>
+              </label>
+            </div>
+
+            <div className="space-y-2">
+              {WEEKDAY_DISPLAY.map(({ day, fullLabel, label }) => {
+                const dayCfg = plannerConfigForm.operations?.openingHoursByWeekday?.[day] || { isOpen: true, openTime: '08:00', closeTime: '20:00' };
+                return (
+                  <div key={day} className={`rounded-xl border px-3 py-2 ${darkMode ? 'border-gray-600 bg-gray-900' : 'border-gray-200 bg-gray-50'}`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`h-7 w-7 rounded-full text-xs font-bold flex items-center justify-center ${darkMode ? 'bg-gray-700 text-gray-200' : 'bg-gray-200 text-gray-700'}`}>{label}</div>
+                      <p className={`text-sm font-semibold min-w-[92px] ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>{fullLabel}</p>
+                      <label className="ml-auto flex items-center gap-2 text-xs font-medium cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={dayCfg.isOpen !== false}
+                          onChange={e => updateOpeningHoursDay(day, { isOpen: e.target.checked })}
+                          className="h-4 w-4 rounded"
+                        />
+                        <span className={darkMode ? 'text-gray-300' : 'text-gray-600'}>Nyitva</span>
+                      </label>
+                    </div>
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      <input
+                        type="time"
+                        value={dayCfg.openTime || '08:00'}
+                        disabled={dayCfg.isOpen === false}
+                        onChange={e => updateOpeningHoursDay(day, { openTime: e.target.value })}
+                        className={`w-full rounded-xl border px-3 py-2 text-sm ${darkMode ? 'bg-gray-700 border-gray-600 text-white disabled:opacity-50' : 'bg-white border-gray-300 disabled:opacity-60'}`}
+                      />
+                      <input
+                        type="time"
+                        value={dayCfg.closeTime || '20:00'}
+                        disabled={dayCfg.isOpen === false}
+                        onChange={e => updateOpeningHoursDay(day, { closeTime: e.target.value })}
+                        className={`w-full rounded-xl border px-3 py-2 text-sm ${darkMode ? 'bg-gray-700 border-gray-600 text-white disabled:opacity-50' : 'bg-white border-gray-300 disabled:opacity-60'}`}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className={`rounded-xl border p-3 space-y-3 ${darkMode ? 'border-violet-700 bg-violet-900/20' : 'border-violet-200 bg-violet-50'}`}>
+              <div className="flex items-center justify-between">
+                <p className={`text-sm font-bold ${darkMode ? 'text-violet-200' : 'text-violet-900'}`}>Ügyeleti sajátosságok</p>
+                <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={plannerConfigForm.operations?.onCall?.enabled === true}
+                    onChange={e => setPlannerConfigForm(prev => ({
+                      ...prev,
+                      operations: {
+                        ...(prev.operations || {}),
+                        onCall: {
+                          ...((prev.operations || {}).onCall || {}),
+                          enabled: e.target.checked,
+                        },
+                      },
+                    }))}
+                    className="h-4 w-4 rounded"
+                  />
+                  <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>Ügyelet van</span>
+                </label>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <Field label="Ügyelet kezdés">
+                  <input
+                    type="time"
+                    value={plannerConfigForm.operations?.onCall?.startTime || '20:00'}
+                    onChange={e => setPlannerConfigForm(prev => ({
+                      ...prev,
+                      operations: {
+                        ...(prev.operations || {}),
+                        onCall: {
+                          ...((prev.operations || {}).onCall || {}),
+                          startTime: e.target.value,
+                        },
+                      },
+                    }))}
+                    className={`w-full rounded-xl border px-3 py-2 text-sm ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                  />
+                </Field>
+                <Field label="Ügyelet vége">
+                  <input
+                    type="time"
+                    value={plannerConfigForm.operations?.onCall?.endTime || '08:00'}
+                    onChange={e => setPlannerConfigForm(prev => ({
+                      ...prev,
+                      operations: {
+                        ...(prev.operations || {}),
+                        onCall: {
+                          ...((prev.operations || {}).onCall || {}),
+                          endTime: e.target.value,
+                        },
+                      },
+                    }))}
+                    className={`w-full rounded-xl border px-3 py-2 text-sm ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                  />
+                </Field>
+                <Field label="Ügyelet létszám">
+                  <input
+                    type="number"
+                    min="0"
+                    value={plannerConfigForm.operations?.onCall?.requiredStaff ?? 1}
+                    onChange={e => setPlannerConfigForm(prev => ({
+                      ...prev,
+                      operations: {
+                        ...(prev.operations || {}),
+                        onCall: {
+                          ...((prev.operations || {}).onCall || {}),
+                          requiredStaff: Number(e.target.value || 0),
+                        },
+                      },
+                    }))}
+                    className={`w-full rounded-xl border px-3 py-2 text-sm ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                  />
+                </Field>
+                <Field label="Ügyelet gyógyszerész">
+                  <input
+                    type="number"
+                    min="0"
+                    value={plannerConfigForm.operations?.onCall?.requiredPharmacists ?? 1}
+                    onChange={e => setPlannerConfigForm(prev => ({
+                      ...prev,
+                      operations: {
+                        ...(prev.operations || {}),
+                        onCall: {
+                          ...((prev.operations || {}).onCall || {}),
+                          requiredPharmacists: Number(e.target.value || 0),
+                        },
+                      },
+                    }))}
+                    className={`w-full rounded-xl border px-3 py-2 text-sm ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                  />
+                </Field>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {WEEKDAY_DISPLAY.map(({ day, label }) => {
+                  const active = (plannerConfigForm.operations?.onCall?.days || []).includes(day);
+                  return (
+                    <button
+                      key={day}
+                      type="button"
+                      onClick={() => toggleOnCallDay(day)}
+                      className={`rounded-lg px-3 py-1.5 text-xs font-semibold border ${active ? 'bg-violet-600 border-violet-600 text-white' : darkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-100'}`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-2 text-xs font-medium cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={plannerConfigForm.operations?.allowOnCallOutsideOpening !== false}
+                    onChange={e => setPlannerConfigForm(prev => ({
+                      ...prev,
+                      operations: {
+                        ...(prev.operations || {}),
+                        allowOnCallOutsideOpening: e.target.checked,
+                      },
+                    }))}
+                    className="h-4 w-4 rounded"
+                  />
+                  <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>Ügyelet nyitvatartáson kívül engedélyezett</span>
+                </label>
+                <label className="flex items-center gap-2 text-xs font-medium cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={plannerConfigForm.operations?.onCall?.useAutoTemplate !== false}
+                    onChange={e => setPlannerConfigForm(prev => ({
+                      ...prev,
+                      operations: {
+                        ...(prev.operations || {}),
+                        onCall: {
+                          ...((prev.operations || {}).onCall || {}),
+                          useAutoTemplate: e.target.checked,
+                        },
+                      },
+                    }))}
+                    className="h-4 w-4 rounded"
+                  />
+                  <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>Automatikus ügyeleti sablon használat</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
           {/* ── Műszaksablonok ────────────────────────────────────── */}
           <div className={`rounded-2xl border p-4 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
             <div className="flex items-center justify-between">
@@ -3440,6 +3734,15 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                       className={`w-full rounded-xl border px-3 py-2 text-sm ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`} />
                   </Field>
                 </div>
+                <label className="flex items-center gap-2 text-xs font-medium cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(template.onCall)}
+                    onChange={e => updateShiftTemplate(index, { onCall: e.target.checked })}
+                    className="h-4 w-4 rounded"
+                  />
+                  <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>Ügyeleti műszak (zárvatartási napon is érvényes)</span>
+                </label>
               </div>
             ))}
           </div>
@@ -3450,8 +3753,10 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             {[
               { icon: '🔴', label: 'Napi óratúllépés', desc: `Max ${plannerConfigForm.laborLaw?.maxDailyHoursLegal || 12} óra/nap dolgozónként` },
               { icon: '🔴', label: 'Heti óratúllépés', desc: `Max ${plannerConfigForm.laborLaw?.maxWeeklyHoursLegal || 48} óra/hét dolgozónként` },
+              { icon: '🔴', label: 'Nyitvatartási idő sérülés', desc: 'Normál műszak nyitvatartáson kívül nem lehet' },
               { icon: '🔴', label: 'Átfedő műszakok', desc: 'Ugyanaz a dolgozó nem lehet kétszer ugyanazon a napon' },
               { icon: '🔴', label: 'Szabadság sérülés', desc: 'Jóváhagyott szabadság alatt nem lehet beosztva' },
+              { icon: '🟡', label: 'Zárvatartási napi műszak', desc: 'Nem ügyeleti műszak zárt napon figyelmeztetést ad' },
               { icon: '🟡', label: 'Heti pihenőnap hiány', desc: 'Hetenként legalább 1 pihenőnap szükséges' },
               { icon: '🟡', label: 'Havi órakeret túllépés', desc: 'Dolgozói havi órakeret figyelése' },
               { icon: '🔵', label: 'Preferencia figyelmen kívül', desc: 'Dolgozó kért napja nem szerepel a beosztásban' },
