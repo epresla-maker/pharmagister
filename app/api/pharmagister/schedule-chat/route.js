@@ -793,6 +793,8 @@ export async function POST(request) {
       action: parsed.action,
       entities: parsed.entities,
       confidence: parsed.confidence,
+      topCandidates: parsed.topCandidates || [],
+      reasoning: parsed.reasoning || null,
     };
     let forceClarify = false;
     let quickActionsOverride = null;
@@ -1051,7 +1053,9 @@ export async function POST(request) {
 
     if (shouldClarifyLowConfidence) {
       forceClarify = true;
-      const guess = findSuggestionForParsed(parsed, chatRole);
+      const bestAlternate = (parsed.topCandidates || []).find((candidate) => candidate.intent !== parsed.intent || candidate.action !== parsed.action);
+      const guess = findSuggestionForParsed(bestAlternate ? { ...parsed, action: bestAlternate.action, intent: bestAlternate.intent } : parsed, chatRole)
+        || findSuggestionForParsed(parsed, chatRole);
       reply = buildLowConfidenceReply({ message, guess });
       payload = {
         ...payload,
