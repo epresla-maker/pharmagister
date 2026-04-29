@@ -198,6 +198,14 @@ const WEEKDAY_DISPLAY = [
   { label: 'V', fullLabel: 'Vasárnap', day: 0 },
 ];
 
+const CRITERIA_WIZARD_STEPS = [
+  { key: 'open_sunday', title: 'Nyitva vagytok vasárnap?', hint: 'A rendszer ezt használja a vasárnapi normál műszakokhoz.' },
+  { key: 'on_call_enabled', title: 'Van rendszeres ügyelet?', hint: 'Ha igen, külön ügyeleti sávot és létszámot kezelünk.' },
+  { key: 'on_call_days', title: 'Mely napokon legyen ügyelet?', hint: 'Jelöld a napokat, amikor kötelező az ügyeleti lefedés.' },
+  { key: 'day_min_pharmacists', title: 'Nappali nyitvatartásban hány gyógyszerész kell minimum?', hint: 'Ez minden normál napi műszak ellenőrzésére kihat.' },
+  { key: 'on_call_min_pharmacists', title: 'Ügyeletben hány gyógyszerész kell minimum?', hint: 'Ez külön az ügyeleti sávra vonatkozik.' },
+];
+
 const DEFAULT_PREFERENCES = {
   avoidWeekdays: [],
   preferWeekdays: [],
@@ -1515,6 +1523,10 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   const [plannerResult, setPlannerResult] = useState(null);
   const [plannerConfigForm, setPlannerConfigForm] = useState(getDefaultPlanningConfig());
   const [showCriteriaPage, setShowCriteriaPage] = useState(false);
+  const [plannerWizardStep, setPlannerWizardStep] = useState(0);
+  const [plannerDraftSaving, setPlannerDraftSaving] = useState(false);
+  const [plannerDraftSavedAt, setPlannerDraftSavedAt] = useState(null);
+  const [plannerLastSavedJson, setPlannerLastSavedJson] = useState('');
   const [replanForm, setReplanForm] = useState({
     employeeId: '',
     startDate: getTodayKey(),
@@ -2998,8 +3010,36 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     .sort((a, b) => (a.startDate || '').localeCompare(b.startDate || ''));
 
   useEffect(() => {
-    setPlannerConfigForm(normalizePlanningConfig(userData?.schedulePlanningConfig));
-  }, [userData?.schedulePlanningConfig]);
+    const source = userData?.schedulePlanningConfigDraft || userData?.schedulePlanningConfig;
+    const normalized = normalizePlanningConfig(source);
+    setPlannerConfigForm(normalized);
+    setPlannerLastSavedJson(JSON.stringify(normalized));
+  }, [userData?.schedulePlanningConfig, userData?.schedulePlanningConfigDraft]);
+
+  useEffect(() => {
+    if (!user?.uid || !showCriteriaPage) return;
+    const normalized = normalizePlanningConfig(plannerConfigForm);
+    const currentJson = JSON.stringify(normalized);
+    if (!currentJson || currentJson === plannerLastSavedJson) return;
+
+    const timer = setTimeout(async () => {
+      try {
+        setPlannerDraftSaving(true);
+        await updateDoc(doc(db, 'users', user.uid), {
+          schedulePlanningConfigDraft: normalized,
+          schedulePlanningConfigDraftUpdatedAt: serverTimestamp(),
+        });
+        setPlannerLastSavedJson(currentJson);
+        setPlannerDraftSavedAt(new Date());
+      } catch (error) {
+        console.error('Planner draft autosave error:', error);
+      } finally {
+        setPlannerDraftSaving(false);
+      }
+    }, 700);
+
+    return () => clearTimeout(timer);
+  }, [plannerConfigForm, plannerLastSavedJson, showCriteriaPage, user?.uid]);
 
   useEffect(() => {
     const rec = ownEmployeeRecords[0];
@@ -3143,8 +3183,11 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       await updateDoc(doc(db, 'users', user.uid), {
         schedulePlanningConfig: normalized,
         schedulePlanningConfigUpdatedAt: serverTimestamp(),
+        schedulePlanningConfigDraft: null,
+        schedulePlanningConfigDraftUpdatedAt: serverTimestamp(),
       });
       setPlannerConfigForm(normalized);
+      setPlannerLastSavedJson(JSON.stringify(normalized));
       setStatusMessage('Tervezési szabályok mentve.');
     } catch (error) {
       console.error('Save planner config error:', error);
@@ -3370,6 +3413,22 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     return <CheckCircle className="h-4 w-4" />;
   }
 
+  const wizardTotal = CRITERIA_WIZARD_STEPS.length;
+  const wizardStep = CRITERIA_WIZARD_STEPS[plannerWizardStep] || CRITERIA_WIZARD_STEPS[0];
+  const onCallDaysSelected = Array.isArray(plannerConfigForm.operations?.onCall?.days)
+    ? plannerConfigForm.operations.onCall.days
+    : [];
+  const wizardCompleted = [
+    plannerConfigForm.operations?.openingHoursByWeekday?.[0]?.isOpen !== undefined,
+    plannerConfigForm.operations?.onCall?.enabled !== undefined,
+    (plannerConfigForm.operations?.onCall?.enabled !== true) || onCallDaysSelected.length > 0,
+    Number(plannerConfigForm.minPharmacistsPerShift) >= 0,
+    Number(plannerConfigForm.operations?.onCall?.requiredPharmacists ?? 0) >= 0,
+  ].filter(Boolean).length;
+
+  const goWizardPrev = () => setPlannerWizardStep((prev) => Math.max(0, prev - 1));
+  const goWizardNext = () => setPlannerWizardStep((prev) => Math.min(wizardTotal - 1, prev + 1));
+
   // ── Beosztási alapkritériumok teljes oldal ──────────────────────────────────
   if (showCriteriaPage) {
     return (
@@ -3398,6 +3457,135 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         </div>
 
         <div className="p-4 space-y-5">
+
+          {/* ── AI kérdés-flow + autosave ───────────────────────────── */}
+          <div className={`rounded-2xl border p-4 space-y-3 ${darkMode ? 'border-violet-700 bg-violet-900/20' : 'border-violet-200 bg-violet-50'}`}>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className={`text-sm font-bold ${darkMode ? 'text-violet-200' : 'text-violet-900'}`}>AI beállító kérdések</p>
+                <p className={`text-xs ${darkMode ? 'text-violet-300/80' : 'text-violet-700/80'}`}>Lépésről lépésre kérdezünk, minden válasz automatikusan mentődik.</p>
+              </div>
+              <span className={`text-xs font-semibold rounded-full px-2 py-1 ${darkMode ? 'bg-violet-800 text-violet-100' : 'bg-violet-100 text-violet-800'}`}>
+                {wizardCompleted}/{wizardTotal} kész
+              </span>
+            </div>
+
+            <div className={`rounded-xl border px-3 py-3 ${darkMode ? 'border-violet-700 bg-gray-900' : 'border-violet-200 bg-white'}`}>
+              <p className={`text-[11px] font-semibold uppercase tracking-wide mb-1 ${darkMode ? 'text-violet-300' : 'text-violet-600'}`}>Kérdés {plannerWizardStep + 1}/{wizardTotal}</p>
+              <p className={`text-sm font-semibold ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}>{wizardStep.title}</p>
+              <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{wizardStep.hint}</p>
+
+              <div className="mt-3">
+                {wizardStep.key === 'open_sunday' && (
+                  <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={plannerConfigForm.operations?.openingHoursByWeekday?.[0]?.isOpen !== false}
+                      onChange={e => updateOpeningHoursDay(0, { isOpen: e.target.checked })}
+                      className="h-4 w-4 rounded"
+                    />
+                    <span className={darkMode ? 'text-gray-200' : 'text-gray-700'}>Vasárnap nyitva</span>
+                  </label>
+                )}
+
+                {wizardStep.key === 'on_call_enabled' && (
+                  <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={plannerConfigForm.operations?.onCall?.enabled === true}
+                      onChange={e => setPlannerConfigForm(prev => ({
+                        ...prev,
+                        operations: {
+                          ...(prev.operations || {}),
+                          onCall: {
+                            ...((prev.operations || {}).onCall || {}),
+                            enabled: e.target.checked,
+                          },
+                        },
+                      }))}
+                      className="h-4 w-4 rounded"
+                    />
+                    <span className={darkMode ? 'text-gray-200' : 'text-gray-700'}>Van ügyeleti szolgálat</span>
+                  </label>
+                )}
+
+                {wizardStep.key === 'on_call_days' && (
+                  <div className="flex flex-wrap gap-2">
+                    {WEEKDAY_DISPLAY.map(({ day, label }) => {
+                      const active = onCallDaysSelected.includes(day);
+                      return (
+                        <button
+                          key={day}
+                          type="button"
+                          onClick={() => toggleOnCallDay(day)}
+                          className={`rounded-lg px-3 py-1.5 text-xs font-semibold border ${active ? 'bg-violet-600 border-violet-600 text-white' : darkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-100'}`}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {wizardStep.key === 'day_min_pharmacists' && (
+                  <input
+                    type="number"
+                    min="0"
+                    value={plannerConfigForm.minPharmacistsPerShift}
+                    onChange={e => setPlannerConfigForm(prev => ({ ...prev, minPharmacistsPerShift: Number(e.target.value || 0) }))}
+                    className={`w-28 rounded-xl border px-3 py-2 text-sm ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                  />
+                )}
+
+                {wizardStep.key === 'on_call_min_pharmacists' && (
+                  <input
+                    type="number"
+                    min="0"
+                    value={plannerConfigForm.operations?.onCall?.requiredPharmacists ?? 1}
+                    onChange={e => setPlannerConfigForm(prev => ({
+                      ...prev,
+                      operations: {
+                        ...(prev.operations || {}),
+                        onCall: {
+                          ...((prev.operations || {}).onCall || {}),
+                          requiredPharmacists: Number(e.target.value || 0),
+                        },
+                      },
+                    }))}
+                    className={`w-28 rounded-xl border px-3 py-2 text-sm ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                  />
+                )}
+              </div>
+
+              <div className="mt-4 flex items-center justify-between">
+                <p className={`text-[11px] ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                  {plannerDraftSaving
+                    ? 'Draft mentése folyamatban...'
+                    : plannerDraftSavedAt
+                      ? `Draft mentve: ${plannerDraftSavedAt.toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' })}`
+                      : 'Módosításkor automatikusan mentődik'}
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={goWizardPrev}
+                    disabled={plannerWizardStep === 0}
+                    className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${darkMode ? 'bg-gray-700 text-gray-200 disabled:opacity-40' : 'bg-gray-200 text-gray-700 disabled:opacity-40'}`}
+                  >
+                    Előző
+                  </button>
+                  <button
+                    type="button"
+                    onClick={goWizardNext}
+                    disabled={plannerWizardStep >= wizardTotal - 1}
+                    className="rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
+                  >
+                    Következő
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
 
           {/* ── Napi létszám ────────────────────────────────────────── */}
           <div className={`rounded-2xl border p-4 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
