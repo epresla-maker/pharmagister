@@ -560,6 +560,7 @@ export async function POST(request) {
         reply = `Rendben, megmutatom a beosztasodat a ${requestedMonth.label} idoszakra.`;
         payload = {
           ...payload,
+          action: 'show_my_schedule',
           entities: {
             ...(payload.entities || {}),
             monthOffset: requestedMonth.monthOffset,
@@ -583,6 +584,7 @@ export async function POST(request) {
         reply = `Rendben, megnezem a szabadsag napjaidat a ${requestedMonth.label} idoszakra.`;
         payload = {
           ...payload,
+          action: 'show_my_vacations',
           entities: {
             ...(payload.entities || {}),
             monthOffset: requestedMonth.monthOffset,
@@ -605,6 +607,7 @@ export async function POST(request) {
       } else {
         reply = `Rendben, kilistazom a szabadnapjaidat a ${requestedMonth.label} idoszakra.`;
         payload = {
+          action: 'show_my_free_days',
           ...payload,
           entities: {
             ...(payload.entities || {}),
