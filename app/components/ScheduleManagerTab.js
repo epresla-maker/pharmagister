@@ -3461,6 +3461,29 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   }
 
   async function handleBettiAction(action, entities = {}) {
+    const resolveTargetMonth = () => {
+      const now = new Date();
+      let targetYear = now.getFullYear();
+      let targetMonth = now.getMonth() + 1;
+
+      if (Number.isInteger(entities?.monthOffset)) {
+        const dt = new Date(targetYear, targetMonth - 1 + Number(entities.monthOffset), 1);
+        targetYear = dt.getFullYear();
+        targetMonth = dt.getMonth() + 1;
+      }
+
+      if (Number.isInteger(entities?.monthNumber) && entities.monthNumber >= 1 && entities.monthNumber <= 12) {
+        targetMonth = entities.monthNumber;
+      }
+
+      const monthLabel = MONTHS_HU[targetMonth - 1] || entities?.monthLabel || 'kivalasztott honap';
+      return { targetYear, targetMonth, monthLabel };
+    };
+
+    const appendBettiMessage = (text) => {
+      setBettiChatMessages((prev) => [...prev, { role: 'assistant', text }]);
+    };
+
     if (action === 'replan_all') {
       await runAutoPlanner({ action: 'plan' });
       return;
@@ -3488,7 +3511,86 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       const text = overtimeRows.length > 0
         ? `Tulorasok: ${overtimeRows.map((item) => `${item.name} (${item.overtimeHours}h)`).join(', ')}`
         : 'Jelenleg nincs olyan dolgozo, aki tuloraban lenne.';
-      setBettiChatMessages((prev) => [...prev, { role: 'assistant', text }]);
+      appendBettiMessage(text);
+      return;
+    }
+
+    if (action === 'show_my_schedule') {
+      if (isPharmacy) {
+        appendBettiMessage('Ebben a nezetben nem latom a sajat dolgozoi beosztasodat. Valtas dolgozoi nezetre a sajat muszakokhoz.');
+        return;
+      }
+
+      const { targetYear, targetMonth, monthLabel } = resolveTargetMonth();
+      const ownMonthShifts = ownSchedules
+        .filter((s) => s.year === targetYear && s.month === targetMonth && s.status !== 'deleted')
+        .sort((a, b) => `${a.date} ${a.startTime}`.localeCompare(`${b.date} ${b.startTime}`));
+
+      if (ownMonthShifts.length === 0) {
+        appendBettiMessage(`A ${monthLabel} honapban nincs publikalt vagy rogzitett muszakod.`);
+        return;
+      }
+
+      const lines = ownMonthShifts
+        .slice(0, 20)
+        .map((s) => `${formatHuDate(s.date)}: ${s.startTime}-${s.endTime}`);
+      const suffix = ownMonthShifts.length > 20 ? `\n... es meg ${ownMonthShifts.length - 20} muszak` : '';
+      appendBettiMessage(`A beosztasod (${monthLabel}):\n- ${lines.join('\n- ')}${suffix}`);
+      return;
+    }
+
+    if (action === 'show_my_vacations') {
+      if (isPharmacy) {
+        appendBettiMessage('Ebben a nezetben nem latom a sajat szabadsagadataidat. Valtas dolgozoi nezetre a sajat adatokhoz.');
+        return;
+      }
+
+      const { targetYear, targetMonth, monthLabel } = resolveTargetMonth();
+      const ownVacationDates = [...buildOwnVacationDateSet()]
+        .filter((dateKey) => {
+          const [yy, mm] = String(dateKey).split('-').map(Number);
+          return yy === targetYear && mm === targetMonth;
+        })
+        .sort();
+
+      if (ownVacationDates.length === 0) {
+        appendBettiMessage(`A ${monthLabel} honapban nincs rogzitett szabadsag napod.`);
+        return;
+      }
+
+      appendBettiMessage(`Szabadsag napjaid (${monthLabel}): ${ownVacationDates.map(formatHuDate).join(', ')}`);
+      return;
+    }
+
+    if (action === 'show_my_free_days') {
+      if (isPharmacy) {
+        appendBettiMessage('Ebben a nezetben nem latom a sajat szabadnapjaidat. Valtas dolgozoi nezetre a sajat adatokhoz.');
+        return;
+      }
+
+      const { targetYear, targetMonth, monthLabel } = resolveTargetMonth();
+      const ownMonthShifts = ownSchedules
+        .filter((s) => s.year === targetYear && s.month === targetMonth && s.status !== 'deleted');
+      const ownVacationDates = buildOwnVacationDateSet();
+      const freeDays = [];
+      const monthDays = getDaysInMonth(targetYear, targetMonth);
+      const isCurrentMonth = targetYear === Number(today.slice(0, 4)) && targetMonth === Number(today.slice(5, 7));
+
+      for (let d = 1; d <= monthDays; d += 1) {
+        const dateKey = formatDateKey(targetYear, targetMonth, d);
+        if (isCurrentMonth && dateKey < today) continue;
+        const hasShift = ownMonthShifts.some((s) => s.date === dateKey);
+        const onVacation = ownVacationDates.has(dateKey);
+        if (!hasShift && !onVacation) freeDays.push(dateKey);
+        if (freeDays.length >= 25) break;
+      }
+
+      if (freeDays.length === 0) {
+        appendBettiMessage(`A ${monthLabel} honapban nem latok tiszta szabadnapot.`);
+        return;
+      }
+
+      appendBettiMessage(`Szabadnapjaid (${monthLabel}): ${freeDays.map(formatHuDate).join(', ')}`);
       return;
     }
 
