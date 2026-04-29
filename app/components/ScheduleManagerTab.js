@@ -3551,6 +3551,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             conflicts: plannerResult?.conflicts || [],
             assignmentReasons: plannerResult?.assignmentReasons || [],
             lastUserMessage: lastUserQuestion,
+            lastAssistantMessage: previousMessage?.role === 'assistant' ? previousMessage?.text : '',
             chatRole: isPharmacy ? 'pharmacy' : 'employee',
           },
         }),

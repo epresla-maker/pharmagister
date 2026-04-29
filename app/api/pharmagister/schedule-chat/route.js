@@ -164,6 +164,16 @@ function buildUnknownSuggestions(message, chatRole = 'default') {
   return ranked;
 }
 
+function isScheduleOrFreeDaysPrompt(text) {
+  const norm = normalizeText(text);
+  if (!norm) return false;
+  return (
+    (norm.includes('megmutatom') || norm.includes('mutatom'))
+    && (norm.includes('muszak') || norm.includes('beosztas'))
+    && (norm.includes('szabadnap') || norm.includes('szabadsag'))
+  );
+}
+
 export const runtime = 'nodejs';
 
 export async function POST(request) {
@@ -180,6 +190,7 @@ export async function POST(request) {
     const chatRole = normalizeChatRole(context?.chatRole);
     const uid = authUser.uid;
     const previousMessageIntent = body?.previousMessageIntent;
+    const lastAssistantMessage = context?.lastAssistantMessage || '';
     const learningFeedback = body?.learningFeedback || null;
 
     // Check if this is a training input (starts with "xx ")
@@ -355,6 +366,34 @@ export async function POST(request) {
       reply = 'Szivesen! Ha szeretned, mar most megmutatom a kovetkezo muszakjaidat vagy szabadnapjaidat.';
     }
 
+    let quickActionsOverride = null;
+    if (parsed.intent === 'affirmative') {
+      const followupPrompted = previousMessageIntent === 'thanks'
+        || previousMessageIntent === 'ack'
+        || isScheduleOrFreeDaysPrompt(lastAssistantMessage);
+
+      if (followupPrompted) {
+        reply = 'Szuper. Mit mutassak most: a sajat beosztasodat vagy a szabadnapjaidat?';
+        payload = {
+          ...payload,
+          action: 'clarify_with_options',
+          suggestedAction: 'show_my_schedule',
+        };
+        quickActionsOverride = [
+          { key: 'my_schedule', label: 'A sajat beosztasom', utterance: 'Mi a beosztasom?' },
+          { key: 'my_free_days', label: 'A szabadnapjaim', utterance: 'Mikor vagyok szabadnapos?' },
+          { key: 'my_vacation', label: 'A szabadsag napjaim', utterance: 'Mikor vagyok szabin?' },
+        ];
+      } else {
+        reply = 'Szuper, pontositsunk egy lepest: mit szeretnel latni?';
+        payload = {
+          ...payload,
+          action: 'clarify_with_options',
+        };
+        quickActionsOverride = buildUnknownSuggestions(message, chatRole);
+      }
+    }
+
     const shouldClarifyLowConfidence = (
       parsed.intent !== 'unknown'
       && parsed.action !== 'clarify_with_options'
@@ -383,7 +422,7 @@ export async function POST(request) {
         : 'Rendben. Pontosan mit mutassak: a sajat beosztasodat, a tulorasokat, vagy a szabadsag napjaidat?';
     }
 
-    const quickActions = (parsed.intent === 'unknown' || parsed.action === 'clarify_with_options' || forceClarify)
+    const quickActions = quickActionsOverride || ((parsed.intent === 'unknown' || parsed.action === 'clarify_with_options' || forceClarify)
       ? (() => {
           const suggestions = buildUnknownSuggestions(message, chatRole);
           if (!forceClarify) return suggestions;
@@ -406,7 +445,7 @@ export async function POST(request) {
           { key: 'optimize_overtime', label: 'Kevesebb tulora', utterance: 'Csokkentsd a tulorat' },
           { key: 'replan_specific_day', label: 'Csak egy nap ujratervezese', utterance: 'Tervezd ujra csak a hetfot' },
           { key: 'minimal_change_replan', label: 'Legkisebb valtoztatas', utterance: 'Minel kevesebbet valtoztass' },
-        ];
+        ]);
 
     if (parsed.intent === 'unknown' && quickActions.length > 0) {
       const top = quickActions.slice(0, 3).map((item) => item.label).join(', ');
