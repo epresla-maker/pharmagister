@@ -7,6 +7,8 @@ import {
   generateAutoSchedulePlan,
   quickReplanForAbsence,
 } from '@/lib/scheduleEngine';
+import { buildHumanPlanSummary, humanizeConflicts } from '@/lib/explanationEngine';
+import { buildProactiveWarnings } from '@/lib/suggestionEngine';
 
 export const runtime = 'nodejs';
 
@@ -82,6 +84,9 @@ export async function POST(request) {
       vacationRequests,
       conflicts,
     });
+    const humanSummary = buildHumanPlanSummary({ stats, conflicts });
+    const humanConflictMessages = humanizeConflicts(conflicts);
+    const proactiveWarnings = buildProactiveWarnings({ stats, conflicts });
 
     return NextResponse.json({
       success: true,
@@ -93,6 +98,9 @@ export async function POST(request) {
       planQuality: plannerResult.planQuality || null,
       alternatives: plannerResult.alternatives || [],
       assignmentReasons: plannerResult.assignmentReasons || [],
+      humanSummary,
+      humanConflictMessages,
+      proactiveWarnings,
     });
   } catch (error) {
     console.error('Schedule planner API error:', error);
