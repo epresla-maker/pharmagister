@@ -1549,6 +1549,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   const [bettiChatLoading, setBettiChatLoading] = useState(false);
   const [bettiChatMessages, setBettiChatMessages] = useState([]);
   const [bettiQuickActions, setBettiQuickActions] = useState([]);
+  const [bettiChatOpen, setBettiChatOpen] = useState(false);
   const [replanForm, setReplanForm] = useState({
     employeeId: '',
     startDate: getTodayKey(),
@@ -3473,7 +3474,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
     if (visibleMessages.length === 0) {
       return (
-        <div className={`text-xs rounded-xl border px-3 py-2 ${darkMode ? 'border-gray-700 bg-gray-800 text-gray-300' : 'border-gray-200 bg-white text-gray-600'}`}>
+        <div className={`text-sm leading-relaxed rounded-2xl border px-4 py-3 ${darkMode ? 'border-gray-700 bg-gray-800 text-gray-300' : 'border-gray-200 bg-white text-gray-600'}`}>
           Betti: Szia! Kerdezz nyugodtan, segitek a beosztassal kapcsolatban.
         </div>
       );
@@ -3483,26 +3484,42 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       const isUser = msg.role === 'user';
       return (
         <div key={`${msg.role}-${index}`} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-          <div className={`max-w-[88%] relative ${isUser ? 'mr-1' : 'ml-1'}`}>
+          <div className={`max-w-[96%] sm:max-w-[90%] relative ${isUser ? 'mr-1' : 'ml-1'}`}>
             <div
-              className={`absolute top-4 h-0 w-0 border-y-[6px] border-y-transparent ${isUser
+              className={`absolute top-5 h-0 w-0 border-y-[7px] border-y-transparent ${isUser
                 ? `right-[-7px] border-l-[7px] ${darkMode ? 'border-l-sky-700' : 'border-l-sky-100'}`
                 : `left-[-7px] border-r-[7px] ${darkMode ? 'border-r-gray-700' : 'border-r-white'}`}`}
             />
             <div
-              className={`whitespace-pre-line text-xs rounded-2xl border px-3 py-2 shadow-md ${isUser
+              className={`whitespace-pre-line text-sm leading-relaxed rounded-3xl border px-4 py-3 shadow-md ${isUser
                 ? (darkMode ? 'border-sky-600 bg-sky-700/80 text-sky-100' : 'border-sky-200 bg-sky-100 text-sky-800')
                 : (darkMode ? 'border-gray-600 bg-gray-700 text-gray-100' : 'border-gray-200 bg-white text-gray-700')}`}
             >
               {msg.text}
             </div>
-            <p className={`mt-1 text-[10px] font-semibold ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+            <p className={`mt-1.5 text-[11px] font-semibold ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
               {isUser ? 'Te' : 'Betti'}
             </p>
           </div>
         </div>
       );
     });
+  }
+
+  function getBettiPresetQuestions() {
+    if (isPharmacy || showCriteriaPage) {
+      return [
+        'Mutasd a tulorasokat',
+        'Tervezd ujra csak a hetfot',
+        'Ki tudna atvenni a holnapi estet?',
+      ];
+    }
+    return [
+      'Mikor dolgozom?',
+      'Mikor vagyok szabin?',
+      'Mikor vagyok szabadnapos?',
+      'Beosztast szeretnek irni',
+    ];
   }
 
   // Intelligens generálás + azonnali mentés egylépésben (a dashboard "Generálás" gomb)
@@ -3759,6 +3776,72 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           </button>
         </div>
 
+        {bettiChatOpen && (
+          <div className="fixed inset-0 z-[80] bg-black/50" onClick={() => setBettiChatOpen(false)}>
+            <div
+              className={`absolute inset-x-0 top-0 bottom-0 flex flex-col ${darkMode ? 'bg-gray-900' : 'bg-white'}`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className={`flex items-center justify-between px-4 py-3 border-b ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'}`}>
+                <div>
+                  <p className={`font-bold text-base ${darkMode ? 'text-white' : 'text-gray-900'}`}>Betti chat</p>
+                  <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Teljes kepernyos beszelgetes</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setBettiChatOpen(false)}
+                  className={`h-9 w-9 rounded-xl text-lg font-bold ${darkMode ? 'bg-gray-800 text-gray-200' : 'bg-gray-100 text-gray-700'}`}
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {renderBettiMessageBanners(30)}
+              </div>
+
+              <div className={`border-t p-3 pb-24 space-y-2 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'}`}>
+                <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                  {[...getBettiPresetQuestions(), ...bettiQuickActions.slice(0, 3).map((a) => a.label)].slice(0, 6).map((q) => (
+                    <button
+                      key={q}
+                      type="button"
+                      onClick={() => sendBettiChatMessage(q)}
+                      className={`flex-shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold ${darkMode ? 'bg-sky-800 text-sky-100' : 'bg-sky-100 text-sky-700'}`}
+                    >
+                      {q}
+                    </button>
+                  ))}
+                </div>
+
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    if (bettiChatLoading) return;
+                    await sendBettiChatMessage(bettiChatInput);
+                  }}
+                  className="flex gap-2"
+                >
+                  <input
+                    type="text"
+                    value={bettiChatInput}
+                    onChange={(e) => setBettiChatInput(e.target.value)}
+                    placeholder="Irj Bettinek..."
+                    className={`flex-1 rounded-xl border px-3 py-2 text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-800'}`}
+                  />
+                  <button
+                    type="submit"
+                    disabled={bettiChatLoading || !bettiChatInput.trim()}
+                    className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                  >
+                    Kuldes
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="p-4 space-y-5">
 
           {/* ── Betti kérdés-flow + autosave ───────────────────────────── */}
@@ -3998,51 +4081,20 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   <p className={`text-sm font-bold ${darkMode ? 'text-sky-200' : 'text-sky-900'}`}>Beszelj Bettivel</p>
                   <p className={`text-xs ${darkMode ? 'text-sky-300/80' : 'text-sky-700/80'}`}>Pl.: "Mutasd a tulorasokat" vagy "Tervezd ujra csak a hetfot".</p>
                 </div>
-                {bettiChatLoading && <span className={`text-xs ${darkMode ? 'text-sky-300' : 'text-sky-700'}`}>Betti dolgozik...</span>}
-              </div>
-
-              <div className={`max-h-48 overflow-y-auto rounded-lg border p-2 space-y-2 ${darkMode ? 'border-sky-800 bg-gray-900' : 'border-sky-200 bg-white'}`}>
-                {renderBettiMessageBanners(8)}
-              </div>
-
-              {bettiQuickActions.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {bettiQuickActions.slice(0, 5).map((action) => (
-                    <button
-                      key={action.key}
-                      type="button"
-                      onClick={() => handleBettiAction(action.key, {})}
-                      className={`rounded-full px-3 py-1 text-[11px] font-semibold ${darkMode ? 'bg-sky-800 text-sky-100 hover:bg-sky-700' : 'bg-sky-100 text-sky-700 hover:bg-sky-200'}`}
-                    >
-                      {action.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              <form
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  if (bettiChatLoading) return;
-                  await sendBettiChatMessage(bettiChatInput);
-                }}
-                className="flex gap-2"
-              >
-                <input
-                  type="text"
-                  value={bettiChatInput}
-                  onChange={(e) => setBettiChatInput(e.target.value)}
-                  placeholder="Pl.: Miert Anna kapta a vasarnapot?"
-                  className={`flex-1 rounded-xl border px-3 py-2 text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-800'}`}
-                />
                 <button
-                  type="submit"
-                  disabled={bettiChatLoading || !bettiChatInput.trim()}
-                  className="rounded-xl bg-sky-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                  type="button"
+                  onClick={() => setBettiChatOpen(true)}
+                  className="rounded-lg bg-sky-600 px-3 py-1.5 text-xs font-semibold text-white"
                 >
-                  Kuldes
+                  Chat megnyitasa
                 </button>
-              </form>
+              </div>
+
+              <div className={`rounded-xl border p-3 ${darkMode ? 'border-sky-800 bg-gray-900' : 'border-sky-200 bg-white'}`}>
+                <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Teljes kepernyos chat elerheto. Nyisd meg, es kerdezz Bettitol szabad szovegben.
+                </p>
+              </div>
             </div>
           </div>
 
@@ -4613,6 +4665,72 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       {!loading && ((isPharmacy && mainTab === 'schedule') || !isPharmacy) ? (
         <div className="space-y-6">
 
+          {bettiChatOpen && (
+            <div className="fixed inset-0 z-[80] bg-black/50" onClick={() => setBettiChatOpen(false)}>
+              <div
+                className={`absolute inset-x-0 top-0 bottom-0 flex flex-col ${darkMode ? 'bg-gray-900' : 'bg-white'}`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className={`flex items-center justify-between px-4 py-3 border-b ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'}`}>
+                  <div>
+                    <p className={`font-bold text-base ${darkMode ? 'text-white' : 'text-gray-900'}`}>Betti chat</p>
+                    <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Teljes kepernyos beszelgetes</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setBettiChatOpen(false)}
+                    className={`h-9 w-9 rounded-xl text-lg font-bold ${darkMode ? 'bg-gray-800 text-gray-200' : 'bg-gray-100 text-gray-700'}`}
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                  {renderBettiMessageBanners(30)}
+                </div>
+
+                <div className={`border-t p-3 pb-24 space-y-2 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'}`}>
+                  <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                    {[...getBettiPresetQuestions(), ...bettiQuickActions.slice(0, 3).map((a) => a.label)].slice(0, 6).map((q) => (
+                      <button
+                        key={q}
+                        type="button"
+                        onClick={() => sendBettiChatMessage(q)}
+                        className={`flex-shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold ${darkMode ? 'bg-sky-800 text-sky-100' : 'bg-sky-100 text-sky-700'}`}
+                      >
+                        {q}
+                      </button>
+                    ))}
+                  </div>
+
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      if (bettiChatLoading) return;
+                      await sendBettiChatMessage(bettiChatInput);
+                    }}
+                    className="flex gap-2"
+                  >
+                    <input
+                      type="text"
+                      value={bettiChatInput}
+                      onChange={(e) => setBettiChatInput(e.target.value)}
+                      placeholder="Irj Bettinek..."
+                      className={`flex-1 rounded-xl border px-3 py-2 text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-800'}`}
+                    />
+                    <button
+                      type="submit"
+                      disabled={bettiChatLoading || !bettiChatInput.trim()}
+                      className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                    >
+                      Kuldes
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          )}
+
           {((isPharmacy && mainTab === 'schedule') || (!isPharmacy && mainTab === 'mine')) && (
             <div className={`rounded-2xl border p-4 space-y-3 ${darkMode ? 'border-sky-700 bg-sky-900/20' : 'border-sky-200 bg-sky-50'}`}>
               <div className="flex items-center justify-between gap-3">
@@ -4624,61 +4742,20 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                       : 'Kerdezhetsz a sajat muszakjaidrol, szabadsagrol es szabadnapokrol.'}
                   </p>
                 </div>
-                {bettiChatLoading && <span className={`text-xs ${darkMode ? 'text-sky-300' : 'text-sky-700'}`}>Betti dolgozik...</span>}
-              </div>
-
-              <div className={`max-h-56 overflow-y-auto rounded-lg border p-2 space-y-2 ${darkMode ? 'border-sky-800 bg-gray-900' : 'border-sky-200 bg-white'}`}>
-                {renderBettiMessageBanners(10)}
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                {(isPharmacy
-                  ? [
-                      'Mutasd a tulorasokat',
-                      'Tervezd ujra csak a hetfot',
-                      'Ki tudna atvenni a holnapi estet?',
-                    ]
-                  : [
-                      'Mikor dolgozom?',
-                      'Mikor vagyok szabin?',
-                      'Mikor vagyok szabadnapos?',
-                      'Beosztast szeretnek irni',
-                    ]
-                ).map((q) => (
-                  <button
-                    key={q}
-                    type="button"
-                    onClick={() => sendBettiChatMessage(q)}
-                    className={`rounded-full px-3 py-1 text-[11px] font-semibold ${darkMode ? 'bg-sky-800 text-sky-100 hover:bg-sky-700' : 'bg-sky-100 text-sky-700 hover:bg-sky-200'}`}
-                  >
-                    {q}
-                  </button>
-                ))}
-              </div>
-
-              <form
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  if (bettiChatLoading) return;
-                  await sendBettiChatMessage(bettiChatInput);
-                }}
-                className="flex gap-2"
-              >
-                <input
-                  type="text"
-                  value={bettiChatInput}
-                  onChange={(e) => setBettiChatInput(e.target.value)}
-                  placeholder={isPharmacy ? 'Pl.: Csinálj igazságosabb verziót' : 'Pl.: Mikor dolgozom a heten?'}
-                  className={`flex-1 rounded-xl border px-3 py-2 text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-800'}`}
-                />
                 <button
-                  type="submit"
-                  disabled={bettiChatLoading || !bettiChatInput.trim()}
-                  className="rounded-xl bg-sky-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                  type="button"
+                  onClick={() => setBettiChatOpen(true)}
+                  className="rounded-lg bg-sky-600 px-3 py-1.5 text-xs font-semibold text-white"
                 >
-                  Kuldes
+                  Chat megnyitasa
                 </button>
-              </form>
+              </div>
+
+              <div className={`rounded-xl border p-3 ${darkMode ? 'border-sky-800 bg-gray-900' : 'border-sky-200 bg-white'}`}>
+                <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Nyisd meg a teljes kepernyos chatet, ahol kenyelmesen tudsz irni Bettinek, es alul azonnali gyors gombokat is kapsz.
+                </p>
+              </div>
             </div>
           )}
 
