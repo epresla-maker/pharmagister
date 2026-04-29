@@ -3586,7 +3586,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     if (visibleMessages.length === 0) {
       return (
         <div className={`text-sm leading-relaxed rounded-2xl border px-4 py-3 ${darkMode ? 'border-gray-700 bg-gray-800 text-gray-300' : 'border-gray-200 bg-white text-gray-600'}`}>
-          Betti: Szia! A Pharmagister AI asszisztense vagyok, Epres Laszlo fejlesztese. Kerdezz nyugodtan, segitek a beosztassal kapcsolatban.
+          Betti: Szia! A Pharmagister AI asszisztense vagyok. Kerdezz nyugodtan, segitek a beosztassal kapcsolatban.
         </div>
       );
     }

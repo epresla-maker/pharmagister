@@ -294,7 +294,11 @@ export async function POST(request) {
     }
 
     if (parsed.intent === 'greeting') {
-      reply = 'Szia! Betti vagyok, a Pharmagister AI asszisztense, Epres Laszlo fejlesztese 👋 Kerdezhetsz ilyet is: "Mi a beosztasom?", "Mikor vagyok szabin?", vagy "Mutasd a tulorasokat".';
+      reply = 'Szia! Betti vagyok, a Pharmagister AI asszisztense 👋 Kerdezhetsz ilyet is: "Mi a beosztasom?", "Mikor vagyok szabin?", vagy "Mutasd a tulorasokat".';
+    }
+
+    if (parsed.intent === 'identity') {
+      reply = 'Betti vagyok, a Pharmagister AI asszisztense. Epres Laszlo fejlesztett.';
     }
 
     if (parsed.intent === 'thanks' || parsed.intent === 'ack') {
