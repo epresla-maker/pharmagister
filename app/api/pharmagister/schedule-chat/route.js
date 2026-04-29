@@ -627,7 +627,7 @@ export async function POST(request) {
     }
 
     if (parsed.intent === 'list_employees') {
-      reply = `Rendben, listazom az alkalmazottaidat. Osszesen ${context?.employees?.length || 0} aktiv dolgozod van.`;
+      reply = 'Rendben, listazom az alkalmazottaidat.';
       payload = {
         ...payload,
         action: 'list_employees',
