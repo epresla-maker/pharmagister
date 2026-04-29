@@ -19,6 +19,24 @@ const UNKNOWN_SUGGESTIONS = [
   { key: 'replan_all', label: 'Ujratervezes', utterance: 'Ujratervezes' },
 ];
 
+const PHARMACY_UNKNOWN_SUGGESTIONS = [
+  { key: 'show_overtime', label: 'Mutasd a tulorasokat', utterance: 'Mutasd a tulorasokat' },
+  { key: 'replan_day', label: 'Tervezd ujra csak a hetfot', utterance: 'Tervezd ujra csak a hetfot' },
+  { key: 'find_replacement', label: 'Ki tudna atvenni a holnapi estet?', utterance: 'Ki tudna atvenni a holnapi estet?' },
+  { key: 'replan_all', label: 'Ujratervezes', utterance: 'Ujratervezes' },
+  { key: 'optimize_overtime', label: 'Kevesebb tulora', utterance: 'Csokkentsd a tulorat' },
+  { key: 'optimize_fairness', label: 'Igazsagosabb verzio', utterance: 'Legyen igazsagosabb a beosztas' },
+];
+
+const EMPLOYEE_UNKNOWN_SUGGESTIONS = [
+  { key: 'my_schedule', label: 'A sajat beosztasom', utterance: 'Mi a beosztasom?' },
+  { key: 'my_vacation', label: 'A szabadsag napjaim', utterance: 'Mikor vagyok szabin?' },
+  { key: 'my_free_days', label: 'A szabadnapjaim', utterance: 'Mikor vagyok szabadnapos?' },
+  { key: 'write_schedule_plan', label: 'Beosztast szeretnek irni', utterance: 'Beosztast szeretnek irni' },
+  { key: 'show_overtime', label: 'Mutasd a tulorasokat', utterance: 'Mutasd a tulorasokat' },
+  { key: 'find_replacement', label: 'Ki tudna atvenni a holnapi estet?', utterance: 'Ki tudna atvenni a holnapi estet?' },
+];
+
 const AMBIGUOUS_SHOW_RE = /^(mutasd|muti|mutass|mutas(d)?|mutasdmar|mutasd\s+mar|mutad|mutas|megmutatod|megmutatnad|megmutatna(d)?|megneznem|megneznen|nezzuk|nezd|nezd|nezz|nezuk|mutatnad|mutatna|kerlek\s+mutasd|pls\s+mutasd|show|show\s+me|nezzuk\s+meg|kene|kene\s+latni|kellene|jo\s+lenne|adnad|add\s+ide|dobd\s+fel|valamit\s+mutass|valamit\s+keresek)\b/;
 
 function isAmbiguousShowRequest(norm) {
@@ -43,11 +61,33 @@ function normalizeText(text) {
     .trim();
 }
 
-function buildUnknownSuggestions(message) {
+function normalizeChatRole(role) {
+  const norm = normalizeText(role);
+  if (norm.includes('pharmacy') || norm.includes('patika') || norm.includes('manager')) return 'pharmacy';
+  if (norm.includes('employee') || norm.includes('dolgozo')) return 'employee';
+  return 'default';
+}
+
+function getSuggestionPool(chatRole) {
+  if (chatRole === 'pharmacy') return PHARMACY_UNKNOWN_SUGGESTIONS;
+  if (chatRole === 'employee') return EMPLOYEE_UNKNOWN_SUGGESTIONS;
+  return UNKNOWN_SUGGESTIONS;
+}
+
+function buildUnknownSuggestions(message, chatRole = 'default') {
   const norm = normalizeText(message);
-  if (!norm) return UNKNOWN_SUGGESTIONS.slice(0, 3);
+  const suggestionPool = getSuggestionPool(chatRole);
+  if (!norm) return suggestionPool.slice(0, 3).map((item) => ({ ...item, learnFromPreviousUnknown: true }));
 
   if (isAmbiguousShowRequest(norm)) {
+    if (chatRole === 'pharmacy') {
+      return [
+        { key: 'show_overtime', label: 'A tulorasokat', utterance: 'Mutasd a tulorasokat', learnFromPreviousUnknown: true },
+        { key: 'replan_day', label: 'A heti ujratervezest', utterance: 'Tervezd ujra csak a hetfot', learnFromPreviousUnknown: true },
+        { key: 'find_replacement', label: 'A helyettesitesi opciokat', utterance: 'Ki tudna atvenni a holnapi estet?', learnFromPreviousUnknown: true },
+      ];
+    }
+
     return [
       { key: 'my_schedule', label: 'A sajat beosztasom', utterance: 'Mi a beosztasom?', learnFromPreviousUnknown: true },
       { key: 'show_overtime', label: 'A tulorasokat', utterance: 'Mutasd a tulorasokat', learnFromPreviousUnknown: true },
@@ -55,7 +95,7 @@ function buildUnknownSuggestions(message) {
     ];
   }
 
-  const ranked = UNKNOWN_SUGGESTIONS.map((item) => {
+  const ranked = suggestionPool.map((item) => {
     let score = 0;
     const utter = normalizeText(item.utterance);
 
@@ -93,6 +133,7 @@ export async function POST(request) {
     const body = await request.json();
     const message = body?.message || '';
     const context = body?.context || {};
+    const chatRole = normalizeChatRole(context?.chatRole);
     const uid = authUser.uid;
     const previousMessageIntent = body?.previousMessageIntent;
     const learningFeedback = body?.learningFeedback || null;
@@ -237,11 +278,13 @@ export async function POST(request) {
     }
 
     if (parsed.action === 'clarify_with_options') {
-      reply = 'Rendben. Pontosan mit mutassak: a sajat beosztasodat, a tulorasokat, vagy a szabadsag napjaidat?';
+      reply = chatRole === 'pharmacy'
+        ? 'Rendben. Pontosan mit mutassak: a tulorasokat, az ujratervezest, vagy a helyettesitesi opciokat?'
+        : 'Rendben. Pontosan mit mutassak: a sajat beosztasodat, a tulorasokat, vagy a szabadsag napjaidat?';
     }
 
     const quickActions = (parsed.intent === 'unknown' || parsed.action === 'clarify_with_options')
-      ? buildUnknownSuggestions(message)
+      ? buildUnknownSuggestions(message, chatRole)
       : [
           { key: 'replan_all', label: 'Ujratervezes', utterance: 'Ujratervezes' },
           { key: 'optimize_fairness', label: 'Igazsagosabb verzio', utterance: 'Legyen igazsagosabb a beosztas' },
