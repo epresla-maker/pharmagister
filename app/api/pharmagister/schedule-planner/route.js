@@ -7,6 +7,7 @@ import {
   generateAutoSchedulePlan,
   quickReplanForAbsence,
 } from '@/lib/scheduleEngine';
+import { generateGeminiSchedulePlan } from '@/lib/geminiScheduler';
 
 export const runtime = 'nodejs';
 
@@ -52,7 +53,8 @@ export async function POST(request) {
         affectedDates,
       });
     } else {
-      plannerResult = generateAutoSchedulePlan({
+      // Gemini-alapú generálás (ha van API kulcs), különben szabályalapú
+      plannerResult = await generateGeminiSchedulePlan({
         employees,
         schedules,
         vacationRequests,
