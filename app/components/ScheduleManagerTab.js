@@ -3515,6 +3515,27 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       return;
     }
 
+    if (action === 'check_my_schedule_exists') {
+      if (isPharmacy) {
+        appendBettiMessage('Ebben a nezetben nem latom a sajat dolgozoi beosztasodat. Valtas dolgozoi nezetre a sajat muszakokhoz.');
+        return;
+      }
+
+      const { targetYear, targetMonth, monthLabel } = resolveTargetMonth();
+      const ownMonthShifts = ownSchedules
+        .filter((s) => s.year === targetYear && s.month === targetMonth && s.status !== 'deleted')
+        .sort((a, b) => `${a.date} ${a.startTime}`.localeCompare(`${b.date} ${b.startTime}`));
+
+      if (ownMonthShifts.length === 0) {
+        appendBettiMessage(`Nincs, a ${monthLabel} honapban jelenleg nincs publikalt vagy rogzitett muszakod.`);
+        return;
+      }
+
+      const nextShift = ownMonthShifts[0];
+      appendBettiMessage(`Igen, van. A ${monthLabel} honapban ${ownMonthShifts.length} muszakod van. A kovetkezo: ${formatHuDate(nextShift.date)} ${nextShift.startTime}-${nextShift.endTime}.`);
+      return;
+    }
+
     if (action === 'show_my_schedule') {
       if (isPharmacy) {
         appendBettiMessage('Ebben a nezetben nem latom a sajat dolgozoi beosztasodat. Valtas dolgozoi nezetre a sajat muszakokhoz.');

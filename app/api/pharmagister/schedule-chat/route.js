@@ -492,6 +492,7 @@ function containsAny(text, list) {
 
 function mapActionToIntent(action) {
   const actionToIntent = {
+    check_my_schedule_exists: 'my_schedule_presence',
     show_my_schedule: 'my_schedule',
     show_my_vacations: 'my_vacation',
     show_my_free_days: 'my_free_days',
@@ -510,6 +511,7 @@ function mapActionToIntent(action) {
 
 function buildFollowUpParsed(action, entities = {}, confidence = 0.9) {
   const baseReply = {
+    check_my_schedule_exists: 'Rendben, megnezem, van-e beosztasod.',
     show_my_schedule: 'Rendben, megmutatom a sajat muszakjaidat. Ha dolgozoi nezetben vagy, pontos listat is kapsz.',
     show_my_vacations: 'Rendben, megnezem a szabadsag napjaidat.',
     show_my_free_days: 'Rendben, kilistazom a kovetkezo szabadnapjaidat.',
@@ -878,6 +880,29 @@ export async function POST(request) {
           },
         };
       }
+    }
+
+    if (parsed.intent === 'my_schedule_presence') {
+      const requestedMonth = resolveRequestedOrRememberedMonth({
+        message,
+        lastAssistantEntities: lastAssistantEntities || inferHistoryState(recentConversation, chatRole).rememberedMonth,
+        allowRememberedMonth: isContinuationPrompt(message),
+      }) || { monthOffset: 0, label: 'aktualis honap' };
+
+      reply = requestedMonth?.monthOffset === 0
+        ? 'Megnezem, van-e beosztasod az aktualis honapban.'
+        : `Megnezem, van-e beosztasod a ${requestedMonth.label} idoszakban.`;
+
+      payload = {
+        ...payload,
+        action: 'check_my_schedule_exists',
+        entities: {
+          ...(payload.entities || {}),
+          monthOffset: requestedMonth.monthOffset,
+          monthLabel: requestedMonth.label,
+          monthNumber: requestedMonth.monthNumber,
+        },
+      };
     }
 
     if (parsed.intent === 'my_vacation') {
