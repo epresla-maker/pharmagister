@@ -290,6 +290,37 @@ function resolveRequestedOrRememberedMonth({ message, lastAssistantEntities, all
   return rememberedMonth;
 }
 
+function collectHistoryTopics(recentConversation = []) {
+  const topics = [];
+  const monthEntities = [];
+
+  recentConversation.forEach((item) => {
+    if (!item) return;
+    const action = item.action || null;
+    const entities = item.entities || null;
+    if (action) topics.push(action);
+    if (hasMonthEntities(entities)) monthEntities.push(getRememberedMonthEntities(entities));
+
+    const norm = normalizeText(item.text || '');
+    if (!norm) return;
+    if (containsAny(norm, ['szabi', 'szabadsag'])) topics.push('show_vacation_requests');
+    if (containsAny(norm, ['szabadnap'])) topics.push('show_my_free_days');
+    if (containsAny(norm, ['beoszt', 'muszak'])) topics.push('show_my_schedule');
+    if (containsAny(norm, ['tervezet', 'draft', 'nem irta', 'nem irt'])) topics.push('missing_drafts');
+    if (containsAny(norm, ['dolgozo', 'alkalmazott', 'csapat'])) topics.push('list_employees');
+  });
+
+  return { topics, monthEntities };
+}
+
+function inferHistoryState(recentConversation = [], chatRole = 'default') {
+  const { topics, monthEntities } = collectHistoryTopics(recentConversation);
+  const lastTopic = [...topics].reverse().find(Boolean) || null;
+  const dominantTopic = lastTopic || (chatRole === 'pharmacy' ? 'list_employees' : 'show_my_schedule');
+  const rememberedMonth = monthEntities.length > 0 ? monthEntities[monthEntities.length - 1] : null;
+  return { dominantTopic, rememberedMonth };
+}
+
 function buildSuccessQuickActions({ action, chatRole, entities }) {
   const hasMonth = Number.isInteger(entities?.monthOffset) || Number.isInteger(entities?.monthNumber);
 
@@ -423,6 +454,7 @@ function buildFollowUpParsed(action, entities = {}, confidence = 0.9) {
 function resolveContextualFollowUp({
   message,
   chatRole,
+  recentConversation,
   previousMessageIntent,
   lastAssistantAction,
   lastAssistantSuggestedAction,
@@ -438,7 +470,8 @@ function resolveContextualFollowUp({
   const isPointer = containsAny(norm, ['azt', 'azokat', 'ezt', 'ezeket', 'az']);
   const isReplanNudge = containsAny(norm, ['inkabb holnap', 'holnap inkabb', 'inkabb a', 'csak holnap']);
   const requestedMonth = detectMonthReference(norm);
-  const rememberedMonth = getRememberedMonthEntities(lastAssistantEntities);
+  const historyState = inferHistoryState(recentConversation, chatRole);
+  const rememberedMonth = getRememberedMonthEntities(lastAssistantEntities) || historyState.rememberedMonth;
   const continuation = isContinuationPrompt(norm);
 
   if (requestedMonth && (lastAssistantAction === 'clarify_with_options' || containsAny(normalizeText(lastAssistantMessage), ['melyik honapra', 'melyik honap']))) {
@@ -514,11 +547,15 @@ function resolveContextualFollowUp({
     || isScheduleOrFreeDaysPrompt(lastAssistantMessage);
 
   if (schedulePrompted) {
-    return buildFollowUpParsed('show_my_schedule');
+    return buildFollowUpParsed(chatRole === 'pharmacy' ? (historyState.dominantTopic || 'list_employees') : 'show_my_schedule', rememberedMonth || {});
   }
 
   if (lastAssistantAction && lastAssistantAction !== 'clarify_with_options') {
     return buildFollowUpParsed(lastAssistantAction, lastAssistantEntities || {});
+  }
+
+  if (historyState.dominantTopic) {
+    return buildFollowUpParsed(historyState.dominantTopic, rememberedMonth || {});
   }
 
   return null;
@@ -538,6 +575,7 @@ export async function POST(request) {
     const message = await normalizeHungarianChatInput(originalMessage);
     const context = body?.context || {};
     const chatRole = normalizeChatRole(context?.chatRole);
+    const recentConversation = Array.isArray(context?.recentConversation) ? context.recentConversation.slice(-6) : [];
     const uid = authUser.uid;
     const previousMessageIntent = body?.previousMessageIntent;
     const lastAssistantMessage = context?.lastAssistantMessage || '';
@@ -648,6 +686,7 @@ export async function POST(request) {
       const contextual = resolveContextualFollowUp({
         message,
         chatRole,
+        recentConversation,
         previousMessageIntent,
         lastAssistantAction,
         lastAssistantSuggestedAction,
@@ -714,7 +753,7 @@ export async function POST(request) {
     if (parsed.intent === 'my_schedule') {
       const requestedMonth = resolveRequestedOrRememberedMonth({
         message,
-        lastAssistantEntities,
+        lastAssistantEntities: lastAssistantEntities || inferHistoryState(recentConversation, chatRole).rememberedMonth,
         allowRememberedMonth: isContinuationPrompt(message),
       });
       if (!requestedMonth) {
@@ -745,7 +784,7 @@ export async function POST(request) {
     if (parsed.intent === 'my_vacation') {
       const requestedMonth = resolveRequestedOrRememberedMonth({
         message,
-        lastAssistantEntities,
+        lastAssistantEntities: lastAssistantEntities || inferHistoryState(recentConversation, chatRole).rememberedMonth,
         allowRememberedMonth: isContinuationPrompt(message),
       });
       if (!requestedMonth) {
@@ -773,7 +812,7 @@ export async function POST(request) {
     if (parsed.intent === 'my_free_days') {
       const requestedMonth = resolveRequestedOrRememberedMonth({
         message,
-        lastAssistantEntities,
+        lastAssistantEntities: lastAssistantEntities || inferHistoryState(recentConversation, chatRole).rememberedMonth,
         allowRememberedMonth: isContinuationPrompt(message),
       });
       if (!requestedMonth) {
@@ -809,7 +848,7 @@ export async function POST(request) {
     if (parsed.intent === 'show_vacation_requests') {
       const requestedMonth = resolveRequestedOrRememberedMonth({
         message,
-        lastAssistantEntities,
+        lastAssistantEntities: lastAssistantEntities || inferHistoryState(recentConversation, chatRole).rememberedMonth,
         allowRememberedMonth: isContinuationPrompt(message),
       });
       if (!requestedMonth) {
@@ -837,7 +876,7 @@ export async function POST(request) {
     if (parsed.intent === 'missing_drafts') {
       const requestedMonth = resolveRequestedOrRememberedMonth({
         message,
-        lastAssistantEntities,
+        lastAssistantEntities: lastAssistantEntities || inferHistoryState(recentConversation, chatRole).rememberedMonth,
         allowRememberedMonth: isContinuationPrompt(message),
       });
       if (!requestedMonth) {

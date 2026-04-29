@@ -3690,6 +3690,17 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     const text = String(messageText || '').trim();
     if (!text || !user) return;
 
+    const recentConversation = bettiChatMessages
+      .slice(-6)
+      .map((msg) => ({
+        role: msg.role,
+        text: msg.text,
+        intent: msg.intent || null,
+        action: msg.action || null,
+        suggestedAction: msg.suggestedAction || null,
+        entities: msg.entities || null,
+      }));
+
     // Check if this is a training input (starts with "xx ")
     const isTrainingInput = /^xx([\s:;,.\-]|$)/i.test(text);
     
@@ -3744,6 +3755,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             stats: plannerResult?.stats || null,
             conflicts: plannerResult?.conflicts || [],
             assignmentReasons: plannerResult?.assignmentReasons || [],
+            recentConversation,
             lastUserMessage: lastUserQuestion,
             lastAssistantMessage: previousMessage?.role === 'assistant' ? previousMessage?.text : '',
             lastAssistantAction: previousMessageAction,
