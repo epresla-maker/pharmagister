@@ -3413,11 +3413,18 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     return <CheckCircle className="h-4 w-4" />;
   }
 
-  const wizardTotal = CRITERIA_WIZARD_STEPS.length;
-  const wizardStep = CRITERIA_WIZARD_STEPS[plannerWizardStep] || CRITERIA_WIZARD_STEPS[0];
   const onCallDaysSelected = Array.isArray(plannerConfigForm.operations?.onCall?.days)
     ? plannerConfigForm.operations.onCall.days
     : [];
+  const visibleWizardSteps = CRITERIA_WIZARD_STEPS.filter((step) => {
+    if ((step.key === 'on_call_days' || step.key === 'on_call_min_pharmacists') && plannerConfigForm.operations?.onCall?.enabled !== true) {
+      return false;
+    }
+    return true;
+  });
+  const wizardTotal = visibleWizardSteps.length;
+  const safeWizardStepIndex = Math.min(plannerWizardStep, Math.max(0, wizardTotal - 1));
+  const wizardStep = visibleWizardSteps[safeWizardStepIndex] || visibleWizardSteps[0];
   const wizardCompleted = [
     plannerConfigForm.operations?.openingHoursByWeekday?.[0]?.isOpen !== undefined,
     plannerConfigForm.operations?.onCall?.enabled !== undefined,
@@ -3425,9 +3432,39 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     Number(plannerConfigForm.minPharmacistsPerShift) >= 0,
     Number(plannerConfigForm.operations?.onCall?.requiredPharmacists ?? 0) >= 0,
   ].filter(Boolean).length;
+  const wizardCompletedDisplay = Math.min(wizardCompleted, wizardTotal);
 
-  const goWizardPrev = () => setPlannerWizardStep((prev) => Math.max(0, prev - 1));
-  const goWizardNext = () => setPlannerWizardStep((prev) => Math.min(wizardTotal - 1, prev + 1));
+  const activePharmacists = activeEmployees.filter((e) => e.role === 'pharmacist').length;
+  const weekdayOpenDays = WEEKDAY_DISPLAY.filter(({ day }) => plannerConfigForm.operations?.openingHoursByWeekday?.[day]?.isOpen !== false).length;
+  const estimatedDayPharmacistDemand = weekdayOpenDays * Number(plannerConfigForm.minPharmacistsPerShift || 0);
+  const estimatedOnCallDemand = plannerConfigForm.operations?.onCall?.enabled
+    ? onCallDaysSelected.length * Number(plannerConfigForm.operations?.onCall?.requiredPharmacists ?? 0)
+    : 0;
+  const contradictionWarnings = [];
+  if (plannerConfigForm.operations?.onCall?.enabled && onCallDaysSelected.length === 0) {
+    contradictionWarnings.push('Az ügyelet be van kapcsolva, de nincs kiválasztott ügyeleti nap.');
+  }
+  if (activePharmacists === 0 && (Number(plannerConfigForm.minPharmacistsPerShift || 0) > 0 || estimatedOnCallDemand > 0)) {
+    contradictionWarnings.push('A rendszer gyógyszerészt vár el, de jelenleg nincs egyetlen aktív gyógyszerész sem a dolgozók között.');
+  }
+  if (activePharmacists > 0 && (estimatedDayPharmacistDemand + estimatedOnCallDemand) > activePharmacists * 6) {
+    contradictionWarnings.push('A megadott gyógyszerész-igény nagyon magas a jelenlegi létszámhoz képest, várhatóan sok lefedetlen műszak lesz.');
+  }
+  if (plannerConfigForm.operations?.enforceOpeningHours !== false && plannerConfigForm.operations?.onCall?.enabled && plannerConfigForm.operations?.allowOnCallOutsideOpening === false) {
+    contradictionWarnings.push('Az ügyelet aktív, de nyitvatartáson kívüli ügyelet nincs engedélyezve, így az ügyeleti sáv ütközhet a nyitvatartással.');
+  }
+
+  const aiSummaryLines = [
+    `Normál nyitvatartási napok: ${weekdayOpenDays} nap / hét`,
+    `Minimum nappali gyógyszerész igény: ${plannerConfigForm.minPharmacistsPerShift || 0} fő / nyitott nap`,
+    plannerConfigForm.operations?.onCall?.enabled
+      ? `Ügyelet: ${onCallDaysSelected.length} kijelölt nap, ${plannerConfigForm.operations?.onCall?.startTime || '20:00'}-${plannerConfigForm.operations?.onCall?.endTime || '08:00'}, minimum ${plannerConfigForm.operations?.onCall?.requiredPharmacists ?? 0} gyógyszerész`
+      : 'Ügyelet: nincs bekapcsolva',
+    `Aktív dolgozók: ${activeEmployees.length} fő, ebből gyógyszerész: ${activePharmacists} fő`,
+  ];
+
+  const goWizardPrev = () => setPlannerWizardStep((prev) => Math.max(0, Math.min(safeWizardStepIndex - 1, prev - 1)));
+  const goWizardNext = () => setPlannerWizardStep((prev) => Math.min(wizardTotal - 1, Math.max(safeWizardStepIndex + 1, prev + 1)));
 
   // ── Beosztási alapkritériumok teljes oldal ──────────────────────────────────
   if (showCriteriaPage) {
@@ -3463,15 +3500,26 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className={`text-sm font-bold ${darkMode ? 'text-violet-200' : 'text-violet-900'}`}>AI beállító kérdések</p>
+
+            {contradictionWarnings.length > 0 && (
+              <div className={`rounded-xl border px-3 py-3 space-y-2 ${darkMode ? 'border-amber-700 bg-amber-900/20' : 'border-amber-200 bg-amber-50'}`}>
+                <p className={`text-xs font-bold uppercase tracking-wide ${darkMode ? 'text-amber-300' : 'text-amber-700'}`}>AI észrevételek</p>
+                {contradictionWarnings.map((warning, index) => (
+                  <div key={index} className={`text-xs ${darkMode ? 'text-amber-200' : 'text-amber-800'}`}>
+                    {index + 1}. {warning}
+                  </div>
+                ))}
+              </div>
+            )}
                 <p className={`text-xs ${darkMode ? 'text-violet-300/80' : 'text-violet-700/80'}`}>Lépésről lépésre kérdezünk, minden válasz automatikusan mentődik.</p>
               </div>
               <span className={`text-xs font-semibold rounded-full px-2 py-1 ${darkMode ? 'bg-violet-800 text-violet-100' : 'bg-violet-100 text-violet-800'}`}>
-                {wizardCompleted}/{wizardTotal} kész
+                {wizardCompletedDisplay}/{wizardTotal} kész
               </span>
             </div>
 
             <div className={`rounded-xl border px-3 py-3 ${darkMode ? 'border-violet-700 bg-gray-900' : 'border-violet-200 bg-white'}`}>
-              <p className={`text-[11px] font-semibold uppercase tracking-wide mb-1 ${darkMode ? 'text-violet-300' : 'text-violet-600'}`}>Kérdés {plannerWizardStep + 1}/{wizardTotal}</p>
+              <p className={`text-[11px] font-semibold uppercase tracking-wide mb-1 ${darkMode ? 'text-violet-300' : 'text-violet-600'}`}>Kérdés {safeWizardStepIndex + 1}/{wizardTotal}</p>
               <p className={`text-sm font-semibold ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}>{wizardStep.title}</p>
               <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{wizardStep.hint}</p>
 
@@ -3583,6 +3631,30 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                     Következő
                   </button>
                 </div>
+              </div>
+            </div>
+
+            <div className={`rounded-xl border px-3 py-3 ${darkMode ? 'border-emerald-700 bg-emerald-900/20' : 'border-emerald-200 bg-emerald-50'}`}>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className={`text-sm font-bold ${darkMode ? 'text-emerald-200' : 'text-emerald-900'}`}>AI összefoglaló</p>
+                  <p className={`text-xs ${darkMode ? 'text-emerald-300/80' : 'text-emerald-700/80'}`}>Ezt fogja használni a Pharmagister AI Optimizer a generálásnál.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={savePlannerConfig}
+                  disabled={plannerConfigSaving}
+                  className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+                >
+                  {plannerConfigSaving ? 'Jóváhagyás...' : 'Jóváhagyom'}
+                </button>
+              </div>
+              <div className="mt-3 space-y-2">
+                {aiSummaryLines.map((line, index) => (
+                  <div key={index} className={`text-xs rounded-lg px-3 py-2 ${darkMode ? 'bg-gray-900 text-gray-200' : 'bg-white text-gray-700'}`}>
+                    {line}
+                  </div>
+                ))}
               </div>
             </div>
           </div>
