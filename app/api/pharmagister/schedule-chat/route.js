@@ -490,6 +490,72 @@ function containsAny(text, list) {
   return list.some((w) => text.includes(w));
 }
 
+function detectConversationalMood({ message, recentConversation = [] }) {
+  const norm = normalizeText(message || '');
+  if (!norm) return { label: 'neutral', confidence: 0.5, cues: [] };
+
+  const tiredCues = ['faradt', 'kimerult', 'hulla', 'almos', 'nincs energiam', 'nincs ero', 'kifaradt'];
+  const frustratedCues = ['elegem van', 'ideges', 'bosszant', 'kiborultam', 'frusztralt', 'felhuzott'];
+  const sadCues = ['rossz nap', 'nem sikerult', 'csalodott', 'elkeseredett', 'szomoru'];
+  const positiveCues = ['szuper', 'koszi', 'koszonom', 'orulok', 'jo volt', 'sikerult', 'nagyon jo'];
+
+  const cues = [];
+  if (containsAny(norm, tiredCues)) cues.push('tired');
+  if (containsAny(norm, frustratedCues)) cues.push('frustrated');
+  if (containsAny(norm, sadCues)) cues.push('sad');
+  if (containsAny(norm, positiveCues)) cues.push('positive');
+
+  const historyNorm = recentConversation
+    .slice(-4)
+    .map((item) => normalizeText(item?.text || ''))
+    .join(' ');
+
+  if (!cues.includes('tired') && containsAny(historyNorm, ['egesz nap dolgoztam', 'sokat dolgoztam', 'nem aludtam'])) {
+    if (containsAny(norm, ['faradt', 'kimerult', 'nincs energiam'])) cues.push('tired_history_boost');
+  }
+
+  if (cues.some((c) => c.startsWith('tired'))) {
+    return { label: 'tired', confidence: 0.86, cues };
+  }
+  if (cues.includes('frustrated')) {
+    return { label: 'frustrated', confidence: 0.84, cues };
+  }
+  if (cues.includes('sad')) {
+    return { label: 'sad', confidence: 0.8, cues };
+  }
+  if (cues.includes('positive')) {
+    return { label: 'positive', confidence: 0.78, cues };
+  }
+
+  return { label: 'neutral', confidence: 0.62, cues };
+}
+
+function applyMoodTone({ reply, mood, intent, action }) {
+  if (!reply || !mood?.label) return reply;
+
+  // Keep transactional/action-heavy replies short and deterministic.
+  const strictActions = ['show_my_schedule', 'show_my_vacations', 'show_my_free_days', 'list_employees', 'show_vacation_requests', 'missing_drafts'];
+  if (strictActions.includes(action)) return reply;
+
+  if (mood.label === 'tired') {
+    if (intent === 'greeting' || action === 'clarify_with_options' || intent === 'unknown' || intent === 'help') {
+      return `Ertem, hogy faradt vagy. ${reply}`;
+    }
+  }
+
+  if (mood.label === 'frustrated' || mood.label === 'sad') {
+    if (intent === 'unknown' || action === 'clarify_with_options' || intent === 'help' || intent === 'capabilities') {
+      return `Sajnalom, hogy ez most nehez. ${reply}`;
+    }
+  }
+
+  if (mood.label === 'positive' && (intent === 'greeting' || intent === 'thanks')) {
+    return `Jo ezt hallani. ${reply}`;
+  }
+
+  return reply;
+}
+
 function mapActionToIntent(action) {
   const actionToIntent = {
     check_my_schedule_exists: 'my_schedule_presence',
@@ -678,6 +744,7 @@ export async function POST(request) {
     const lastAssistantSuggestedAction = context?.lastAssistantSuggestedAction || '';
     const lastAssistantEntities = context?.lastAssistantEntities || null;
     const learningFeedback = body?.learningFeedback || null;
+    const mood = detectConversationalMood({ message, recentConversation });
 
     // Check if this is a training input (starts with "xx ")
     const training = detectTrainingInput(originalMessage);
@@ -1209,11 +1276,24 @@ export async function POST(request) {
       };
     }
 
+    reply = applyMoodTone({
+      reply,
+      mood,
+      intent: parsed.intent,
+      action: payload?.action || parsed.action,
+    });
+
     return NextResponse.json({
       success: true,
       intent: parsed.intent,
       reply,
       payload,
+      analysis: {
+        mood,
+        confidence: Number(parsed.confidence || 0),
+        topCandidates: parsed.topCandidates || [],
+        reasoning: parsed.reasoning || null,
+      },
       proactiveWarnings,
       quickActions,
     });
