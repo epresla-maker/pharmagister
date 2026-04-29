@@ -1133,7 +1133,7 @@ function applyMoodTone({ reply, mood, intent, action }) {
   return reply;
 }
 
-function applyUserPreferences({ reply, preferences, action }) {
+function applyUserPreferences({ reply, preferences, action, userModel }) {
   if (!reply || !preferences) return reply;
 
   let next = reply;
@@ -1161,7 +1161,250 @@ function applyUserPreferences({ reply, preferences, action }) {
     }
   }
 
+  const directness = Number(userModel?.communicationStyle?.directnessPreference || 0);
+  if (directness > 0.8) {
+    next = next.split(/[.!?]\s+/)[0]?.trim() || next;
+  }
+
+  if ((userModel?.communicationStyle?.emotionalTonePreference || 'medium') === 'high' && !/^Ertem|^Sajnalom|^Jo ezt hallani/i.test(next)) {
+    next = `Ertem. ${next}`;
+  }
+
   return next;
+}
+
+function createConversationId({ uid, conversationId }) {
+  return conversationId || `conv_${uid}`;
+}
+
+function getRequiredSlotsForAction(action) {
+  const map = {
+    show_my_schedule: ['month'],
+    show_my_vacations: ['month'],
+    show_my_free_days: ['month'],
+    show_vacation_requests: ['month'],
+    missing_drafts: ['month'],
+    add_employee: ['email'],
+    remove_employee: ['person'],
+  };
+  return map[action] || [];
+}
+
+function getFilledSlots({ entities, message }) {
+  const norm = normalizeText(message);
+  const filled = [];
+  if (Number.isInteger(entities?.monthOffset) || Number.isInteger(entities?.monthNumber) || entities?.monthLabel) filled.push('month');
+  if (entities?.person) filled.push('person');
+  if (entities?.email || /\b[^\s@]+@[^\s@]+\.[^\s@]+\b/.test(norm)) filled.push('email');
+  return filled;
+}
+
+function buildDefaultConversationState({ uid, conversationId, parsed, historyState }) {
+  return {
+    conversationId: createConversationId({ uid, conversationId }),
+    userId: uid,
+    phase: 'idle',
+    activeTopic: {
+      name: historyState?.dominantTopic || parsed?.action || parsed?.intent || 'general',
+      intent: parsed?.intent || 'unknown',
+      status: 'open',
+      requiredSlots: [],
+      filledSlots: [],
+    },
+    openLoops: [],
+    lastGoal: parsed?.intent || '',
+    continuityScore: 0.4,
+  };
+}
+
+function loadConversationBrainState({ uid, conversationId, memory, parsed, historyState }) {
+  const stored = memory?.conversationState;
+  return stored && typeof stored === 'object'
+    ? {
+        ...buildDefaultConversationState({ uid, conversationId, parsed, historyState }),
+        ...stored,
+        conversationId: createConversationId({ uid, conversationId }),
+        userId: uid,
+        activeTopic: {
+          ...buildDefaultConversationState({ uid, conversationId, parsed, historyState }).activeTopic,
+          ...(stored.activeTopic || {}),
+        },
+        openLoops: Array.isArray(stored.openLoops) ? stored.openLoops.slice(-6) : [],
+      }
+    : buildDefaultConversationState({ uid, conversationId, parsed, historyState });
+}
+
+function buildMemoryHierarchy({ memory, recentConversation, conversationState }) {
+  return {
+    L1: Array.isArray(recentConversation) ? recentConversation.slice(-6) : [],
+    L2: memory?.topicMemory || conversationState?.activeTopic || null,
+    L3: memory?.userModel || null,
+    L4: Array.isArray(memory?.longTermFacts) ? memory.longTermFacts : (Array.isArray(memory?.stableFacts) ? memory.stableFacts : []),
+  };
+}
+
+function computeContinuityScore({ conversationState, parsed, recentConversation, selectedAction }) {
+  const activeIntent = conversationState?.activeTopic?.intent;
+  const topicPersistence = activeIntent && activeIntent === parsed?.intent ? 0.4 : 0.15;
+  const unansweredLoops = Array.isArray(conversationState?.openLoops)
+    ? conversationState.openLoops.filter((loop) => loop?.awaitingAnswer).length
+    : 0;
+  const loopScore = unansweredLoops > 0 ? 0.25 : 0.1;
+  const relevantFollowUp = selectedAction && selectedAction === conversationState?.activeTopic?.name ? 0.25 : 0.1;
+  const recencyScore = Math.min(0.1, (Array.isArray(recentConversation) ? recentConversation.length : 0) * 0.02);
+  return Number(clamp01(topicPersistence + loopScore + relevantFollowUp + recencyScore).toFixed(4));
+}
+
+function buildLoopQuestion(action) {
+  if (['show_my_schedule', 'show_my_vacations', 'show_my_free_days', 'show_vacation_requests', 'missing_drafts'].includes(action)) {
+    return 'Melyik honapra?';
+  }
+  if (action === 'add_employee') return 'Mi az uj dolgozo email cime?';
+  if (action === 'remove_employee') return 'Melyik dolgozot szeretned eltavolitani?';
+  return 'Pontosits kerlek.';
+}
+
+function runFlowEngine({ conversationState, parsed, payload, message, recentConversation }) {
+  const action = payload?.action || parsed?.action || 'clarify_with_options';
+  const requiredSlots = getRequiredSlotsForAction(action);
+  const filledSlots = getFilledSlots({ entities: payload?.entities || parsed?.entities || {}, message });
+  const missingSlots = requiredSlots.filter((slot) => !filledSlots.includes(slot));
+  const continuityScore = computeContinuityScore({
+    conversationState,
+    parsed,
+    recentConversation,
+    selectedAction: action,
+  });
+  const shouldClarify = missingSlots.length > 0;
+
+  return {
+    stepOrder: ['loadState', 'resolveIntent', 'mergeContext', 'evaluateSlots', shouldClarify ? 'clarify' : 'answer', 'updateState'],
+    action,
+    requiredSlots,
+    filledSlots,
+    missingSlots,
+    shouldClarify,
+    continuityScore,
+    shouldReanchor: continuityScore < 0.45,
+    loopQuestion: shouldClarify ? buildLoopQuestion(action) : null,
+  };
+}
+
+function reanchorTopicReply({ conversationState, chatRole }) {
+  const topic = conversationState?.activeTopic?.name || (chatRole === 'pharmacy' ? 'list_employees' : 'show_my_schedule');
+  if (topic === 'show_my_schedule') return 'Visszakotnek az elozo temahoz: a beosztasodra gondoltal, vagy masra?';
+  if (topic === 'show_vacation_requests') return 'Visszakotnek az elozo kerdeshez: a szabadsagigenyeket nezzuk tovabb?';
+  if (topic === 'missing_drafts') return 'Visszakotnek: a hianyzo tervezetekrol volt szo, ezt folytassuk?';
+  return 'Visszakotnek az elozo temahoz, hogy ne essen szet a beszelgetes.';
+}
+
+function rankResponseCandidate({ reply, action, mood, userModel, flowResult, decisionPipeline }) {
+  const text = String(reply || '').trim();
+  const sentenceCount = text.split(/[.!?]/).filter(Boolean).length || 1;
+  const naturalness = clamp01(0.55 + (text.length >= 20 ? 0.1 : 0) + (sentenceCount <= 3 ? 0.1 : 0));
+  const clarity = clamp01(0.85 - (flowResult?.missingSlots?.length ? 0.25 : 0) - (text.length > 260 ? 0.1 : 0));
+  const tonePref = userModel?.communicationStyle?.emotionalTonePreference || 'medium';
+  const toneMatch = clamp01(
+    tonePref === 'high'
+      ? (['tired', 'frustrated', 'sad', 'positive'].includes(mood?.label) ? 0.9 : 0.7)
+      : (tonePref === 'low' ? 0.75 : 0.82)
+  );
+  const taskCorrectness = clamp01(0.9 - (flowResult?.missingSlots?.length ? 0.35 : 0) - (decisionPipeline?.scores?.role < 0.45 ? 0.3 : 0));
+  const score = Number((naturalness * 0.2 + clarity * 0.3 + toneMatch * 0.2 + taskCorrectness * 0.3).toFixed(4));
+  return {
+    reply: text,
+    score,
+    metrics: {
+      naturalness: Number(naturalness.toFixed(4)),
+      clarity: Number(clarity.toFixed(4)),
+      toneMatch: Number(toneMatch.toFixed(4)),
+      taskCorrectness: Number(taskCorrectness.toFixed(4)),
+    },
+  };
+}
+
+function selectBestResponse(candidates = []) {
+  return [...candidates].sort((a, b) => b.score - a.score)[0] || null;
+}
+
+function evaluateResponseQuality({ reply, flowResult, decisionPipeline, mood }) {
+  const clarityScore = Number(clamp01(0.88 - (flowResult?.missingSlots?.length ? 0.3 : 0) - (String(reply || '').length > 260 ? 0.1 : 0)).toFixed(4));
+  const correctnessScore = Number(clamp01(0.9 - (decisionPipeline?.scores?.role < 0.45 ? 0.35 : 0) - (flowResult?.missingSlots?.length ? 0.3 : 0)).toFixed(4));
+  const userSatisfactionPrediction = Number(clamp01((clarityScore * 0.45) + (correctnessScore * 0.45) + (mood?.label === 'positive' ? 0.1 : 0)).toFixed(4));
+  const followUpNeedProbability = Number(clamp01((flowResult?.missingSlots?.length ? 0.6 : 0.2) + (flowResult?.shouldReanchor ? 0.15 : 0)).toFixed(4));
+  const learningMarks = [];
+  if (clarityScore < 0.7) learningMarks.push('clarity_issue');
+  return {
+    clarityScore,
+    correctnessScore,
+    userSatisfactionPrediction,
+    followUpNeedProbability,
+    learningMarks,
+  };
+}
+
+function applySafetyConsistencyGate({ reply, decisionPipeline, flowResult, effectiveMode, integrityMismatch, userModel }) {
+  if (decisionPipeline?.scores?.role < 0.45) {
+    return { blocked: true, reason: 'role_violation', safeReply: 'Ebben a helyzetben inkabb pontositok, hogy szerepkor szerint biztosan helyes valaszt adjak.' };
+  }
+  if (flowResult?.missingSlots?.length > 0) {
+    return { blocked: true, reason: 'missing_critical_slot', safeReply: buildLoopQuestion(flowResult.action) };
+  }
+  if (integrityMismatch || ['SAFE_MODE', 'FULL_SYSTEM_LOCK'].includes(effectiveMode)) {
+    return { blocked: true, reason: 'unstable_policy_state', safeReply: 'Most inkabb biztonsagos modban maradok. Pontositsd kerlek egy rovid kovetkezo lepessel.' };
+  }
+  if ((userModel?.communicationStyle?.directnessPreference || 0) > 0.8 && String(reply || '').length > 280) {
+    return { blocked: false, reason: null, safeReply: String(reply || '').split(/[.!?]\s+/)[0] };
+  }
+  return { blocked: false, reason: null, safeReply: reply };
+}
+
+function inferUserModel(memory, stats, parsed, feedbackQuality) {
+  const existing = memory?.userModel || {};
+  const total = Math.max(1, Number(stats?.totalMessages || 1));
+  const correctionRate = Number((Number(stats?.correctionCount || 0) / total).toFixed(4));
+  const frequentIntent = memory?.userPreferences?.frequentIntent || parsed?.intent || null;
+  const verbosity = Number(clamp01(existing?.communicationStyle?.verbosity ?? (Number(memory?.userPreferences?.detailLevel === 'high') ? 0.8 : 0.45)).toFixed(4));
+  const directnessPreference = Number(clamp01(existing?.communicationStyle?.directnessPreference ?? (memory?.userPreferences?.tone === 'short' ? 0.9 : 0.55)).toFixed(4));
+  const toleranceForClarification = Number(clamp01(1 - correctionRate - (feedbackQuality?.quickActionReject ? 0.1 : 0)).toFixed(4));
+  return {
+    communicationStyle: {
+      verbosity,
+      directnessPreference,
+      emotionalTonePreference: existing?.communicationStyle?.emotionalTonePreference || (feedbackQuality?.sentimentShift ? 'high' : 'medium'),
+    },
+    behaviorPatterns: {
+      frequentIntents: [frequentIntent].filter(Boolean),
+      rareIntents: parsed?.intent === 'unknown' ? ['unknown'] : [],
+      correctionRate,
+    },
+    stabilityProfile: {
+      prefersConsistency: toleranceForClarification < 0.6,
+      toleranceForClarification,
+    },
+  };
+}
+
+function updateConversationState({ currentState, parsed, payload, flowResult, reply }) {
+  const nextPhase = flowResult.shouldClarify ? 'active' : (flowResult.shouldReanchor ? 'resolving' : 'closing');
+  const nextLoops = flowResult.shouldClarify
+    ? [{ question: flowResult.loopQuestion, awaitingAnswer: true, age: 0 }, ...(Array.isArray(currentState?.openLoops) ? currentState.openLoops : [])].slice(0, 6)
+    : [];
+  return {
+    ...(currentState || {}),
+    phase: nextPhase,
+    activeTopic: {
+      name: payload?.action || parsed?.action || currentState?.activeTopic?.name || 'general',
+      intent: parsed?.intent || currentState?.activeTopic?.intent || 'unknown',
+      status: flowResult.shouldClarify ? 'partial' : 'resolved',
+      requiredSlots: flowResult.requiredSlots,
+      filledSlots: flowResult.filledSlots,
+    },
+    openLoops: nextLoops,
+    lastGoal: parsed?.intent || currentState?.lastGoal || '',
+    continuityScore: flowResult.continuityScore,
+    lastReplyPreview: String(reply || '').slice(0, 160),
+  };
 }
 
 function clamp01(value) {
@@ -1792,6 +2035,7 @@ export async function POST(request) {
     const originalMessage = body?.message || '';
     const message = await normalizeHungarianChatInput(originalMessage);
     const context = body?.context || {};
+    const conversationId = body?.conversationId || context?.conversationId || null;
     const chatRole = normalizeChatRole(context?.chatRole);
     const recentConversation = Array.isArray(context?.recentConversation) ? context.recentConversation.slice(-6) : [];
     const uid = authUser.uid;
@@ -1805,6 +2049,9 @@ export async function POST(request) {
     const overrideLayer = body?.overrideLayer || body?.adminOverride || context?.overrideLayer || null;
     const mood = detectConversationalMood({ message, recentConversation });
     let longTermMemory = await loadBettiLongTermMemory(uid);
+    const historyState = inferHistoryState(recentConversation, chatRole);
+    const conversationState = loadConversationBrainState({ uid, conversationId, memory: longTermMemory, parsed: null, historyState });
+    const memoryHierarchy = buildMemoryHierarchy({ memory: longTermMemory, recentConversation, conversationState });
 
     // Check if this is a training input (starts with "xx ")
     const training = detectTrainingInput(originalMessage);
@@ -2360,6 +2607,43 @@ export async function POST(request) {
     }
 
     const selectedAction = payload?.action || parsed.action;
+    const currentUserModel = longTermMemory?.userModel || null;
+    const flowResult = runFlowEngine({
+      conversationState: {
+        ...conversationState,
+        activeTopic: {
+          ...(conversationState?.activeTopic || {}),
+          name: selectedAction,
+          intent: parsed.intent,
+        },
+      },
+      parsed,
+      payload,
+      message,
+      recentConversation: memoryHierarchy.L1,
+    });
+
+    if (flowResult.shouldClarify && payload?.action !== 'clarify_with_options') {
+      reply = flowResult.loopQuestion || buildClarifyReply({ chatRole, message });
+      payload = {
+        ...payload,
+        action: 'clarify_with_options',
+        suggestedAction: selectedAction,
+      };
+      if (flowResult.missingSlots.includes('month')) {
+        quickActionsOverride = buildMonthQuickActions('beosztas');
+      }
+    } else if (flowResult.shouldReanchor && parsed.intent === 'unknown') {
+      reply = reanchorTopicReply({ conversationState, chatRole });
+      payload = {
+        ...payload,
+        action: 'clarify_with_options',
+      };
+      quickActionsOverride = quickActionsOverride || buildUnknownSuggestions(message, chatRole);
+    }
+
+    const finalAction = payload?.action || selectedAction;
+
     const decisionPipeline = buildDecisionPipeline({
       message,
       parsed,
@@ -2368,11 +2652,11 @@ export async function POST(request) {
       recentConversation,
       lastAssistantAction,
       lastAssistantEntities,
-      selectedAction,
+      selectedAction: finalAction,
       weights: longTermMemory?.userPreferences?.decisionWeights,
       memory: longTermMemory,
     });
-    const actionPlan = buildActionPlan(selectedAction, payload?.entities || parsed.entities || {});
+    const actionPlan = buildActionPlan(finalAction, payload?.entities || parsed.entities || {});
 
     reply = applyDecisionStrategy({
       reply,
@@ -2383,14 +2667,50 @@ export async function POST(request) {
       reply,
       mood,
       intent: parsed.intent,
-      action: selectedAction,
+      action: finalAction,
     });
 
     reply = applyUserPreferences({
       reply,
       preferences: longTermMemory?.userPreferences,
-      action: selectedAction,
+      action: finalAction,
+      userModel: currentUserModel,
     });
+
+    const responseCandidates = [
+      rankResponseCandidate({ reply, action: finalAction, mood, userModel: currentUserModel, flowResult, decisionPipeline }),
+      rankResponseCandidate({
+        reply: applyUserPreferences({
+          reply: applyMoodTone({ reply, mood, intent: parsed.intent, action: finalAction }),
+          preferences: { ...(longTermMemory?.userPreferences || {}), tone: 'short' },
+          action: finalAction,
+          userModel: currentUserModel,
+        }),
+        action: finalAction,
+        mood,
+        userModel: currentUserModel,
+        flowResult,
+        decisionPipeline,
+      }),
+      rankResponseCandidate({
+        reply: polishBettiReply({
+          reply,
+          action: finalAction,
+          chatRole,
+          entities: payload?.entities || parsed.entities,
+          seed: `${message}:${finalAction}:ranked`,
+        }),
+        action: finalAction,
+        mood,
+        userModel: currentUserModel,
+        flowResult,
+        decisionPipeline,
+      }),
+    ];
+    const bestCandidate = selectBestResponse(responseCandidates.filter((item) => item?.reply));
+    if (bestCandidate?.reply) {
+      reply = bestCandidate.reply;
+    }
 
     const stats = longTermMemory?.stats || {};
     const unknownIncrement = parsed.intent === 'unknown' ? 1 : 0;
@@ -2408,7 +2728,7 @@ export async function POST(request) {
       recentIntentConfidences: nextIntentConfidences,
       followUpCount: Number(stats.followUpCount || 0) + (parsed.inferredFromContext ? 1 : 0),
       reducedFollowUpCount: Number(stats.reducedFollowUpCount || 0) + ((parsed.intent !== 'unknown' && !parsed.inferredFromContext) ? 1 : 0),
-      successfulTaskCount: Number(stats.successfulTaskCount || 0) + ((parsed.intent !== 'unknown' && selectedAction !== 'clarify_with_options') ? 1 : 0),
+      successfulTaskCount: Number(stats.successfulTaskCount || 0) + ((parsed.intent !== 'unknown' && finalAction !== 'clarify_with_options') ? 1 : 0),
       correctionCount: Number(stats.correctionCount || 0) + (learningFeedback?.type === 'intent_selection' ? 1 : 0),
       satisfactionTotalCount: Number(stats.satisfactionTotalCount || 0) + (learningFeedback?.type === 'intent_selection' ? 1 : 0),
       satisfactionPositiveCount: Number(stats.satisfactionPositiveCount || 0) + (learningFeedback?.type === 'intent_selection' ? 1 : 0),
@@ -2456,7 +2776,7 @@ export async function POST(request) {
 
     const feedbackCluster = classifyFeedbackCluster({
       parsed,
-      selectedAction,
+      selectedAction: finalAction,
       chatRole,
       mood,
     });
@@ -2792,7 +3112,7 @@ export async function POST(request) {
           previousWeights: currentWeights,
           suggestedWeights,
           observedIntent: parsed.intent,
-          observedAction: selectedAction,
+          observedAction: finalAction,
           scores: decisionPipeline.scores,
           feedbackImpact: Number((feedbackQuality.feedbackWeight * impact).toFixed(3)),
           populationNormalization: populationImpact,
@@ -2810,7 +3130,7 @@ export async function POST(request) {
       const refreshedMemory = await loadBettiLongTermMemory(uid);
       longTermMemory = refreshedMemory;
       const responseLatencyMs = Math.max(1, Date.now() - requestStartTs);
-      const strategySuccess = parsed.intent !== 'unknown' && selectedAction !== 'clarify_with_options';
+      const strategySuccess = parsed.intent !== 'unknown' && finalAction !== 'clarify_with_options';
       const existingStrategyMetrics = refreshedMemory?.strategyMetrics?.[decisionPipeline.bestStrategy] || {};
       const strategyCount = Number(existingStrategyMetrics.count || 0) + 1;
       const strategySuccessCount = Number(existingStrategyMetrics.successCount || 0) + (strategySuccess ? 1 : 0);
@@ -3143,14 +3463,78 @@ export async function POST(request) {
       }
     }
 
+    const responseEvaluation = evaluateResponseQuality({
+      reply,
+      flowResult,
+      decisionPipeline,
+      mood,
+    });
+    if (learningFeedback?.type === 'intent_selection') {
+      responseEvaluation.learningMarks.push('causal_failure');
+    }
+
+    const safetyGate = applySafetyConsistencyGate({
+      reply,
+      decisionPipeline,
+      flowResult,
+      effectiveMode,
+      integrityMismatch,
+      userModel: longTermMemory?.userModel,
+    });
+    if (safetyGate.safeReply) {
+      reply = safetyGate.safeReply;
+    }
+
+    const nextUserModel = inferUserModel(longTermMemory, updatedStats, parsed, feedbackQuality);
+    const nextConversationState = updateConversationState({
+      currentState: conversationState,
+      parsed,
+      payload,
+      flowResult,
+      reply,
+    });
+    const nextTopicMemory = {
+      ...(longTermMemory?.topicMemory || {}),
+      topic: nextConversationState.activeTopic,
+      updatedAt: new Date().toISOString(),
+      continuityScore: nextConversationState.continuityScore,
+    };
+    const nextSessionMemory = [
+      ...memoryHierarchy.L1,
+      {
+        text: message,
+        intent: parsed.intent,
+        action: finalAction,
+        entities: payload?.entities || parsed.entities || {},
+        at: new Date().toISOString(),
+      },
+    ].slice(-12);
+
+    await saveBettiLongTermMemory(uid, {
+      conversationState: nextConversationState,
+      sessionMemory: nextSessionMemory,
+      topicMemory: nextTopicMemory,
+      userModel: nextUserModel,
+      longTermFacts: Array.isArray(longTermMemory?.longTermFacts)
+        ? longTermMemory.longTermFacts
+        : (Array.isArray(longTermMemory?.stableFacts) ? longTermMemory.stableFacts : []),
+    });
+    longTermMemory = await loadBettiLongTermMemory(uid);
+
     payload = {
       ...payload,
+      action: finalAction,
       strategy: decisionPipeline.bestStrategy,
       strategyConflict: decisionPipeline.conflictResolution,
       scores: decisionPipeline.scores,
       executionPlan: actionPlan,
       decisionReasoning: decisionPipeline.reasoning,
       userPreferences: longTermMemory?.userPreferences || {},
+      conversationState: longTermMemory?.conversationState || nextConversationState,
+      userModel: longTermMemory?.userModel || nextUserModel,
+      flowResult,
+      responseEvaluation,
+      safetyGate,
       autoWeightTuning,
     };
 
@@ -3171,9 +3555,12 @@ export async function POST(request) {
       scores: decisionPipeline.scores,
       weightedScore: decisionPipeline.weightedScore,
       selectedStrategy: decisionPipeline.bestStrategy,
-      action: selectedAction,
+      action: finalAction,
       feedbackImpact: autoWeightTuning?.feedbackImpact || 0,
       actionPlan,
+      flowResult,
+      responseEvaluation,
+      safetyGate,
       latencyMs,
       response: reply,
     }));
@@ -3190,10 +3577,15 @@ export async function POST(request) {
         reasoning: parsed.reasoning || null,
         decisionPipeline,
         actionPlan,
+        flowResult,
+        responseEvaluation,
+        safetyGate,
         latencyMs,
         longTermMemory: {
           userPreferences: longTermMemory?.userPreferences || {},
           stats: longTermMemory?.stats || {},
+          userModel: longTermMemory?.userModel || {},
+          conversationState: longTermMemory?.conversationState || {},
         },
         autoWeightTuning,
         policyVersion: longTermMemory?.activePolicyVersion || null,
