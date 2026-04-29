@@ -1561,6 +1561,15 @@ function shouldAllowFlowProposal({ parsed, mood }) {
   return Number(parsed?.confidence || 0) > 0.85 && positiveOrNeutral && noRejection;
 }
 
+function isActionConfirmationSatisfied(parsed) {
+  if (!parsed) return false;
+  if (parsed.intent === 'identity_check') return false;
+  if (['list_employees', 'show_my_schedule', 'show_my_vacations', 'show_my_free_days', 'show_vacation_requests', 'missing_drafts'].includes(parsed.intent)) {
+    return Number(parsed.confidence || 0) > 0.85 && parsed.confirmed === true;
+  }
+  return true;
+}
+
 function clamp01(value) {
   if (Number.isNaN(Number(value))) return 0;
   return Math.max(0, Math.min(1, Number(value)));
@@ -2555,12 +2564,41 @@ export async function POST(request) {
       }
     }
 
-    if (parsed.intent === 'list_employees') {
-      reply = 'Rendben, listazom az alkalmazottaidat.';
+    if (parsed.intent === 'identity_check') {
+      reply = 'Arra gondolsz, hogy alkalmazottkent vagy-e rogzitve a rendszerben, vagy az alkalmazotti listat szeretned latni?';
       payload = {
         ...payload,
-        action: 'list_employees',
+        action: 'clarify_with_options',
+        suggestedAction: 'identity_check',
+        confirmed: false,
       };
+      quickActionsOverride = [
+        { key: 'identity_registered', label: 'Arra gondolok, hogy rogzitve vagyok-e alkalmazottkent', utterance: 'Arra gondolok, hogy alkalmazottkent vagyok-e rogzitve a rendszerben' },
+        { key: 'list_employees', label: 'Az alkalmazotti listat szeretnem latni', utterance: 'Mutasd az alkalmazottakat' },
+      ];
+    }
+
+    if (parsed.intent === 'list_employees') {
+      if (!isActionConfirmationSatisfied(parsed)) {
+        reply = 'Arra gondolsz, hogy az alkalmazotti listat szeretned latni?';
+        payload = {
+          ...payload,
+          action: 'clarify_with_options',
+          suggestedAction: 'list_employees',
+          confirmed: false,
+        };
+        quickActionsOverride = [
+          { key: 'confirm_list_employees', label: 'Igen, az alkalmazotti listat szeretnem', utterance: 'Mutasd az alkalmazottakat' },
+          { key: 'identity_check', label: 'Nem, azt szeretnem tudni, hogy alkalmazott vagyok-e', utterance: 'Alkalmazott vagyok?' },
+        ];
+      } else {
+        reply = 'Rendben, listazom az alkalmazottaidat.';
+        payload = {
+          ...payload,
+          action: 'list_employees',
+          confirmed: true,
+        };
+      }
     }
 
     if (parsed.intent === 'show_vacation_requests') {
@@ -2835,7 +2873,21 @@ export async function POST(request) {
       quickActionsOverride = quickActionsOverride || buildUnknownSuggestions(message, chatRole);
     }
 
-    const finalAction = payload?.action || selectedAction;
+    let finalAction = payload?.action || selectedAction;
+    const requiresConfirmation = ['list_employees', 'show_my_schedule', 'show_my_vacations', 'show_my_free_days', 'show_vacation_requests', 'missing_drafts'].includes(finalAction);
+    if (requiresConfirmation && !isActionConfirmationSatisfied({ ...parsed, intent: parsed.intent, confirmed: payload?.confirmed ?? parsed?.confirmed })) {
+      reply = finalAction === 'list_employees'
+        ? 'Mielott adatot mutatok: biztosan az alkalmazotti listat szeretned latni?'
+        : 'Mielott tovabblepek, pontositsd kerlek, hogy biztosan jol ertettem-e a kerest.';
+      payload = {
+        ...payload,
+        action: 'clarify_with_options',
+        suggestedAction: finalAction,
+        confirmed: false,
+      };
+      quickActionsOverride = quickActionsOverride || buildUnknownSuggestions(message, chatRole);
+      finalAction = payload.action;
+    }
 
     let decisionPipeline = buildDecisionPipeline({
       message,
