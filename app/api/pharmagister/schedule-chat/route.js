@@ -31,6 +31,14 @@ function buildUnknownSuggestions(message) {
   const norm = normalizeText(message);
   if (!norm) return UNKNOWN_SUGGESTIONS.slice(0, 3);
 
+  if (/^(mutasd|muti|mutass|megmutatod|megneznem|nezzuk)\b/.test(norm)) {
+    return [
+      { key: 'my_schedule', label: 'A sajat beosztasom', utterance: 'Mi a beosztasom?', learnFromPreviousUnknown: true },
+      { key: 'show_overtime', label: 'A tulorasokat', utterance: 'Mutasd a tulorasokat', learnFromPreviousUnknown: true },
+      { key: 'my_vacation', label: 'A szabadsag napjaim', utterance: 'Mikor vagyok szabin?', learnFromPreviousUnknown: true },
+    ];
+  }
+
   const ranked = UNKNOWN_SUGGESTIONS.map((item) => {
     let score = 0;
     const utter = normalizeText(item.utterance);
@@ -213,7 +221,7 @@ export async function POST(request) {
     }
 
     if (parsed.action === 'clarify_with_options') {
-      reply = 'Pontositunk egy kicsit. Ezek kozul mire gondoltal?';
+      reply = 'Rendben. Pontosan mit mutassak: a sajat beosztasodat, a tulorasokat, vagy a szabadsag napjaidat?';
     }
 
     const quickActions = (parsed.intent === 'unknown' || parsed.action === 'clarify_with_options')
