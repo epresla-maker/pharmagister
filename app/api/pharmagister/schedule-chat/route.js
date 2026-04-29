@@ -852,6 +852,14 @@ export async function POST(request) {
     }
 
     if (parsed.intent === 'my_schedule') {
+      if (chatRole === 'pharmacy') {
+        reply = 'Gyogyszertari nezetben nem latom a sajat dolgozoi beosztasodat. Inkabb listazzam az alkalmazottakat vagy mutassam a szabadsagigenyeket?';
+        payload = {
+          ...payload,
+          action: 'clarify_with_options',
+        };
+        quickActionsOverride = buildUnknownSuggestions(message, chatRole);
+      } else {
       const requestedMonth = resolveRequestedOrRememberedMonth({
         message,
         lastAssistantEntities: lastAssistantEntities || inferHistoryState(recentConversation, chatRole).rememberedMonth,
@@ -880,32 +888,50 @@ export async function POST(request) {
           },
         };
       }
+      }
     }
 
     if (parsed.intent === 'my_schedule_presence') {
-      const requestedMonth = resolveRequestedOrRememberedMonth({
-        message,
-        lastAssistantEntities: lastAssistantEntities || inferHistoryState(recentConversation, chatRole).rememberedMonth,
-        allowRememberedMonth: isContinuationPrompt(message),
-      }) || { monthOffset: 0, label: 'aktualis honap' };
+      if (chatRole === 'pharmacy') {
+        reply = 'Gyogyszertari nezetben nincs sajat dolgozoi profil, ezert erre nem tudok igen/nem valaszt adni. Inkabb mutassam az alkalmazottakat vagy a hianyzo tervezeteket?';
+        payload = {
+          ...payload,
+          action: 'clarify_with_options',
+        };
+        quickActionsOverride = buildUnknownSuggestions(message, chatRole);
+      } else {
+        const requestedMonth = resolveRequestedOrRememberedMonth({
+          message,
+          lastAssistantEntities: lastAssistantEntities || inferHistoryState(recentConversation, chatRole).rememberedMonth,
+          allowRememberedMonth: isContinuationPrompt(message),
+        }) || { monthOffset: 0, label: 'aktualis honap' };
 
-      reply = requestedMonth?.monthOffset === 0
-        ? 'Megnezem, van-e beosztasod az aktualis honapban.'
-        : `Megnezem, van-e beosztasod a ${requestedMonth.label} idoszakban.`;
+        reply = requestedMonth?.monthOffset === 0
+          ? 'Megnezem, van-e beosztasod az aktualis honapban.'
+          : `Megnezem, van-e beosztasod a ${requestedMonth.label} idoszakban.`;
 
-      payload = {
-        ...payload,
-        action: 'check_my_schedule_exists',
-        entities: {
-          ...(payload.entities || {}),
-          monthOffset: requestedMonth.monthOffset,
-          monthLabel: requestedMonth.label,
-          monthNumber: requestedMonth.monthNumber,
-        },
-      };
+        payload = {
+          ...payload,
+          action: 'check_my_schedule_exists',
+          entities: {
+            ...(payload.entities || {}),
+            monthOffset: requestedMonth.monthOffset,
+            monthLabel: requestedMonth.label,
+            monthNumber: requestedMonth.monthNumber,
+          },
+        };
+      }
     }
 
     if (parsed.intent === 'my_vacation') {
+      if (chatRole === 'pharmacy') {
+        reply = 'Gyogyszertari nezetben nem latom a sajat dolgozoi szabadsagadataidat. Inkabb mutassam, kik mennek szabira?';
+        payload = {
+          ...payload,
+          action: 'clarify_with_options',
+        };
+        quickActionsOverride = buildUnknownSuggestions(message, chatRole);
+      } else {
       const requestedMonth = resolveRequestedOrRememberedMonth({
         message,
         lastAssistantEntities: lastAssistantEntities || inferHistoryState(recentConversation, chatRole).rememberedMonth,
@@ -931,9 +957,18 @@ export async function POST(request) {
           },
         };
       }
+      }
     }
 
     if (parsed.intent === 'my_free_days') {
+      if (chatRole === 'pharmacy') {
+        reply = 'Gyogyszertari nezetben nem latom a sajat dolgozoi szabadnapjaidat. Inkabb mutassam a gyogyszertari adatok kozul, ami erdekel?';
+        payload = {
+          ...payload,
+          action: 'clarify_with_options',
+        };
+        quickActionsOverride = buildUnknownSuggestions(message, chatRole);
+      } else {
       const requestedMonth = resolveRequestedOrRememberedMonth({
         message,
         lastAssistantEntities: lastAssistantEntities || inferHistoryState(recentConversation, chatRole).rememberedMonth,
@@ -958,6 +993,7 @@ export async function POST(request) {
             monthLabel: requestedMonth.label,
           },
         };
+      }
       }
     }
 
