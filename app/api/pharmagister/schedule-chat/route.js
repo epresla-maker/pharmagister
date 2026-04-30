@@ -1073,40 +1073,40 @@ function isLikelyTruncatedReply(reply) {
 
 function isOffTopicMessage(message) {
   const text = String(message || '').toLowerCase().trim();
+  if (!text) return true;
 
-  // Szakmai kulcsszavak – ha tartalmaz ilyet, NEM off-topic
+  // Allowlist: ha tartalmaz szakmai kulcsszót, ENGEDÉLYEZETT → nem off-topic
   const workKeywords = [
-    'műszak', 'muszak', 'beosztás', 'beosztás', 'beosztas', 'szabadság', 'szabadsag',
-    'szabadnap', 'túlóra', 'tulora', 'helyettesít', 'helyettesit', 'dolgoz',
-    'gyógyszerész', 'gyogyszeresz', 'asszisztens', 'naptár', 'naptar',
-    'hét', 'het', 'hónap', 'honap', 'munka', 'shift', 'szolgálat', 'szolgalat',
-    'ünnep', 'unnep', 'beteg', 'pótlék', 'potlek', 'vezető', 'vezeto',
-    'alkalmazott', 'dolgozó', 'nap', 'hétfő', 'kedd', 'szerda', 'csütörtök',
-    'péntek', 'szombat', 'vasárnap', 'január', 'február', 'március', 'április',
-    'május', 'június', 'július', 'augusztus', 'szeptember', 'október', 'november', 'december',
+    'műszak', 'muszak', 'beosztás', 'beosztas', 'beosztásod', 'beosztásom',
+    'szabadság', 'szabadsag', 'szabadnap', 'szabadnapon',
+    'túlóra', 'tulora', 'helyettesít', 'helyettesit', 'helyettesítés',
+    'dolgoz', 'dolgozó', 'dolgozom', 'alkalmazott',
+    'gyógyszerész', 'gyogyszeresz', 'asszisztens',
+    'naptár', 'naptar', 'munka', 'munkaidő', 'munkabeosztás',
+    'shift', 'szolgálat', 'szolgalat', 'ügyelet', 'ugyelet',
+    'ünnep', 'unnep', 'betegszabadság', 'betegszabadsag',
+    'pótlék', 'potlek', 'vezető', 'vezeto', 'főnök', 'fonok',
+    'kolléga', 'kollega', 'csapat',
+    'hétfő', 'hetfo', 'kedd', 'szerda', 'csütörtök', 'csutortok',
+    'péntek', 'pentek', 'szombat', 'vasárnap', 'vasarnap',
+    'január', 'februar', 'március', 'április', 'május', 'június',
+    'július', 'augusztus', 'szeptember', 'október', 'november', 'december',
+    'hónap', 'honapban', 'héten', 'heten', 'jövő hét', 'jövő hónap',
+    'mikor', 'mettől', 'meddig', 'hány', 'hanykor', 'hanyan',
+    'kik', 'ki megy', 'ki van', 'ki nem', 'ki hiányzik',
+    'listá', 'lista', 'mutat', 'megmutat', 'lát', 'látom', 'nézem',
   ];
+
   if (workKeywords.some((kw) => text.includes(kw))) return false;
 
-  // Off-topic minták
-  const offTopicPatterns = [
-    /írj (verset|mesét|sztorit|történetet|kódot|programot|levelet|emailt)/,
-    /mesélj (viccet|történetet|mesét)/,
-    /mi (az időjárás|a főváros|a négyzetgyök|lett a meccs|nyerte)/,
-    /fordítsd? (le|ezt)/,
-    /mi(lyen)? (nyelven|ország|város|kontinens)/,
-    /keresd? (meg|ki)/,
-    /számold? (ki|meg)/,
-    /magyarázd? (el|meg)/,
-    /adj (receptet|tanácsot általában|tippet általában)/,
-    /politika|focimeccs|időjárás|tőzsde|kriptó|kripto|bitcoin|film|sorozat|zene|étterem|recept/,
-    /játssz(unk)?|játék|kvíz/,
-    /programoz|kódolj|fejlessz/,
-    /szeretsz|kedvenc|hobbi|szórakoz/,
-    /vicc|poén|humor/,
-  ];
-  if (offTopicPatterns.some((re) => re.test(text))) return true;
+  // Rövid, kontextusfüggő üzenetek (pl. "igen", "nem", "ok", "köszi", "értem")
+  // ezek valószínűleg egy folyamatban lévő beosztásos beszélgetés részei → engedjük
+  if (text.length < 30 && /^(igen|nem|ok|okay|köszön|köszi|értem|rendben|szia|hello|hali|helló|segíts|segits|miben|hogyan|miért|miert|mikor|melyik|melyiket|hol|mennyi|mi van|mi lesz|mi volt|mit|miket|kérlek|kérem|kérsz|ja|aha|persze|naná|talán|lehet|tudsz|tudok|tud betti|betti|neked|nekem|ezt|azt|ilyet|olyat|ugyanez|ugyanaz|hasonló|más|másik|tovabb|tovább|folytass|folytasd)/.test(text)) {
+    return false;
+  }
 
-  return false;
+  // Minden más → off-topic, nem hívjuk Geminit
+  return true;
 }
 
 function stabilizeReplyText(reply, chatRole) {
@@ -2319,12 +2319,17 @@ export async function POST(request) {
     );
 
     if (shouldUseLlmFallback && process.env.GEMINI_API_KEY) {
-      // Pre-filter: off-topic üzenetek ne érjék el a Geminit (token-takarékosság)
-      const offTopicBlocked = isOffTopicMessage(message);
-      if (offTopicBlocked) {
+      // Rate limit: max 20 LLM hívás / nap / felhasználó
+      const LLM_DAILY_LIMIT = 20;
+      const today = new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
+      const llmStats = longTermMemory?.stats?.llm || {};
+      const llmCallsToday = llmStats.date === today ? (llmStats.callsToday || 0) : 0;
+      const rateLimitExceeded = llmCallsToday >= LLM_DAILY_LIMIT;
+
+      if (rateLimitExceeded) {
         finalReply = chatRole === 'pharmacy'
-          ? 'Csak gyógyszertári beosztással, műszakokkal és szabadságokkal kapcsolatban tudok segíteni. Miben segíthetek ezek közül?'
-          : 'Csak a beosztásoddal, műszakjaiddal és szabadságaiddal kapcsolatban tudok segíteni. Van valami ilyennel kapcsolatos kérdésed?';
+          ? 'Ma már elértem a napi segítési limitemet. Holnaptól újra tudok segíteni beosztással kapcsolatban!'
+          : 'Ma már elértem a napi segítési limitemet. Holnaptól újra tudok segíteni a beosztásoddal kapcsolatban!';
       } else {
         const llmResult = await callBettiLLM({
           message,
@@ -2351,12 +2356,19 @@ export async function POST(request) {
 
     // ── SAVE STATE ───────────────────────────────────────────────────────────
     const stats = longTermMemory?.stats || {};
+    const today = new Date().toISOString().slice(0, 10);
+    const prevLlm = stats.llm || {};
     const updatedStats = {
       ...stats,
       totalMessages: Number(stats.totalMessages || 0) + 1,
       unknownCount: Number(stats.unknownCount || 0) + (parsed.intent === 'unknown' ? 1 : 0),
       lastSeenIntent: parsed.intent,
       lastSeenAt: new Date().toISOString(),
+      llm: {
+        date: today,
+        callsToday: (prevLlm.date === today ? (prevLlm.callsToday || 0) : 0) + (usedLLM ? 1 : 0),
+        totalCalls: Number(prevLlm.totalCalls || 0) + (usedLLM ? 1 : 0),
+      },
     };
 
     const nextSessionMemory = [
