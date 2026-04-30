@@ -3832,6 +3832,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             lastAssistantSuggestedAction: previousSuggestedAction,
             lastAssistantEntities: previousMessage?.role === 'assistant' ? previousMessage?.entities || null : null,
             chatRole: isPharmacy ? 'pharmacy' : 'employee',
+            userName: userData?.name || userData?.pharmacyName || user?.displayName || user?.email || null,
           },
         }),
       });

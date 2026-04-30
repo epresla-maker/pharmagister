@@ -2209,6 +2209,7 @@ export async function POST(request) {
     const context = body?.context || {};
     const conversationId = body?.conversationId || context?.conversationId || null;
     const chatRole = normalizeChatRole(context?.chatRole);
+    const userName = typeof context?.userName === 'string' ? context.userName.trim().split(/\s+/)[0] : null; // csak keresztnév
     const recentConversation = Array.isArray(context?.recentConversation) ? context.recentConversation.slice(-6) : [];
     const uid = authUser.uid;
     const previousMessageIntent = body?.previousMessageIntent;
@@ -2358,6 +2359,7 @@ export async function POST(request) {
         const llmResult = await callBettiLLM({
           message,
           chatRole,
+          userName,
           recentConversation,
           stats: context.stats || null,
         });
