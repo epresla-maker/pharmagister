@@ -1071,6 +1071,44 @@ function isLikelyTruncatedReply(reply) {
   return false;
 }
 
+function isOffTopicMessage(message) {
+  const text = String(message || '').toLowerCase().trim();
+
+  // Szakmai kulcsszavak – ha tartalmaz ilyet, NEM off-topic
+  const workKeywords = [
+    'műszak', 'muszak', 'beosztás', 'beosztás', 'beosztas', 'szabadság', 'szabadsag',
+    'szabadnap', 'túlóra', 'tulora', 'helyettesít', 'helyettesit', 'dolgoz',
+    'gyógyszerész', 'gyogyszeresz', 'asszisztens', 'naptár', 'naptar',
+    'hét', 'het', 'hónap', 'honap', 'munka', 'shift', 'szolgálat', 'szolgalat',
+    'ünnep', 'unnep', 'beteg', 'pótlék', 'potlek', 'vezető', 'vezeto',
+    'alkalmazott', 'dolgozó', 'nap', 'hétfő', 'kedd', 'szerda', 'csütörtök',
+    'péntek', 'szombat', 'vasárnap', 'január', 'február', 'március', 'április',
+    'május', 'június', 'július', 'augusztus', 'szeptember', 'október', 'november', 'december',
+  ];
+  if (workKeywords.some((kw) => text.includes(kw))) return false;
+
+  // Off-topic minták
+  const offTopicPatterns = [
+    /írj (verset|mesét|sztorit|történetet|kódot|programot|levelet|emailt)/,
+    /mesélj (viccet|történetet|mesét)/,
+    /mi (az időjárás|a főváros|a négyzetgyök|lett a meccs|nyerte)/,
+    /fordítsd? (le|ezt)/,
+    /mi(lyen)? (nyelven|ország|város|kontinens)/,
+    /keresd? (meg|ki)/,
+    /számold? (ki|meg)/,
+    /magyarázd? (el|meg)/,
+    /adj (receptet|tanácsot általában|tippet általában)/,
+    /politika|focimeccs|időjárás|tőzsde|kriptó|kripto|bitcoin|film|sorozat|zene|étterem|recept/,
+    /játssz(unk)?|játék|kvíz/,
+    /programoz|kódolj|fejlessz/,
+    /szeretsz|kedvenc|hobbi|szórakoz/,
+    /vicc|poén|humor/,
+  ];
+  if (offTopicPatterns.some((re) => re.test(text))) return true;
+
+  return false;
+}
+
 function stabilizeReplyText(reply, chatRole) {
   const text = String(reply || '').replace(/\s+/g, ' ').trim();
   if (!text) {
@@ -2281,17 +2319,25 @@ export async function POST(request) {
     );
 
     if (shouldUseLlmFallback && process.env.GEMINI_API_KEY) {
-      const llmResult = await callBettiLLM({
-        message,
-        chatRole,
-        recentConversation,
-        stats: context.stats || null,
-      });
-      if (llmResult.usedLLM && llmResult.reply) {
-        finalReply = llmResult.reply;
-        usedLLM = true;
-      } else if (llmResult.error) {
-        console.warn('[Betti LLM fallback] Gemini call failed:', llmResult.error);
+      // Pre-filter: off-topic üzenetek ne érjék el a Geminit (token-takarékosság)
+      const offTopicBlocked = isOffTopicMessage(message);
+      if (offTopicBlocked) {
+        finalReply = chatRole === 'pharmacy'
+          ? 'Csak gyógyszertári beosztással, műszakokkal és szabadságokkal kapcsolatban tudok segíteni. Miben segíthetek ezek közül?'
+          : 'Csak a beosztásoddal, műszakjaiddal és szabadságaiddal kapcsolatban tudok segíteni. Van valami ilyennel kapcsolatos kérdésed?';
+      } else {
+        const llmResult = await callBettiLLM({
+          message,
+          chatRole,
+          recentConversation,
+          stats: context.stats || null,
+        });
+        if (llmResult.usedLLM && llmResult.reply) {
+          finalReply = llmResult.reply;
+          usedLLM = true;
+        } else if (llmResult.error) {
+          console.warn('[Betti LLM fallback] Gemini call failed:', llmResult.error);
+        }
       }
     }
 
