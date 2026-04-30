@@ -2237,10 +2237,17 @@ export async function POST(request) {
 
     const { action, reply: rawReply, payload: pipelinePayload, quickActions, nextConversationState } = pipelineResult;
 
-    // ── LLM FALLBACK (intent = unknown) ──────────────────────────────────────
+    // ── LLM FALLBACK (unknown / clarify) ─────────────────────────────────────
     let finalReply = rawReply;
     let usedLLM = false;
-    if (parsed.intent === 'unknown' && process.env.GEMINI_API_KEY) {
+    const shouldUseLlmFallback = (
+      parsed.intent === 'unknown'
+      || action === 'clarify_with_options'
+      || parsed.intent === 'help'
+      || parsed.intent === 'capabilities'
+    );
+
+    if (shouldUseLlmFallback && process.env.GEMINI_API_KEY) {
       const llmResult = await callBettiLLM({
         message,
         chatRole,
@@ -2250,6 +2257,8 @@ export async function POST(request) {
       if (llmResult.usedLLM && llmResult.reply) {
         finalReply = llmResult.reply;
         usedLLM = true;
+      } else if (llmResult.error) {
+        console.warn('[Betti LLM fallback] Gemini call failed:', llmResult.error);
       }
     }
 
