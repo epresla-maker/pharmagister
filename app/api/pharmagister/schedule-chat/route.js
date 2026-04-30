@@ -4,6 +4,7 @@ import { parseBettiIntent } from '@/lib/intentParserV6';
 import { normalizeHungarianChatInput } from '@/lib/huDictionary';
 import { explainAssignmentDecision } from '@/lib/explanationEngine';
 import { buildProactiveWarnings } from '@/lib/suggestionEngine';
+import { callBettiLLM } from '@/lib/bettiLLM';
 import {
   detectTrainingInput,
   loadBettiLongTermMemory,
@@ -2236,6 +2237,22 @@ export async function POST(request) {
 
     const { action, reply: rawReply, payload: pipelinePayload, quickActions, nextConversationState } = pipelineResult;
 
+    // ── LLM FALLBACK (intent = unknown) ──────────────────────────────────────
+    let finalReply = rawReply;
+    let usedLLM = false;
+    if (parsed.intent === 'unknown' && process.env.GEMINI_API_KEY) {
+      const llmResult = await callBettiLLM({
+        message,
+        chatRole,
+        recentConversation,
+        stats: context.stats || null,
+      });
+      if (llmResult.usedLLM && llmResult.reply) {
+        finalReply = llmResult.reply;
+        usedLLM = true;
+      }
+    }
+
     // ── PROACTIVE WARNINGS ───────────────────────────────────────────────────
     const proactiveWarnings = buildProactiveWarnings({
       stats: context.stats || null,
@@ -2268,7 +2285,8 @@ export async function POST(request) {
       success: true,
       intent: parsed.intent,
       action,
-      reply: rawReply,
+      reply: finalReply,
+      usedLLM,
       payload: {
         ...pipelinePayload,
         conversationState: nextConversationState,

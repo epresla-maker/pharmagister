@@ -27,6 +27,8 @@ import {
   Copy,
   Download,
   Info,
+  Mic,
+  MicOff,
   Plane,
   Plus,
   RefreshCcw,
@@ -37,6 +39,8 @@ import {
   UserMinus,
   UserPlus,
   UserX,
+  Volume2,
+  VolumeX,
   Wand2,
   XCircle,
 } from 'lucide-react';
@@ -1554,7 +1558,11 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   const [bettiLastUnknownMessage, setBettiLastUnknownMessage] = useState('');
   const [bettiChatOpen, setBettiChatOpen] = useState(false);
   const [bettiKeyboardInset, setBettiKeyboardInset] = useState(0);
+  const [bettiVoiceListening, setBettiVoiceListening] = useState(false);
+  const [bettiSpeakEnabled, setBettiSpeakEnabled] = useState(false);
   const bettiNativeKeyboardHeightRef = useRef(0);
+  const bettiRecognitionRef = useRef(null);
+  const bettiChatScrollRef = useRef(null);
   const [replanForm, setReplanForm] = useState({
     employeeId: '',
     startDate: getTodayKey(),
@@ -1726,6 +1734,12 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       Keyboard.setScroll({ isDisabled: false }).catch(() => {});
     };
   }, [bettiChatOpen]);
+
+  useEffect(() => {
+    if (bettiChatScrollRef.current) {
+      bettiChatScrollRef.current.scrollTop = bettiChatScrollRef.current.scrollHeight;
+    }
+  }, [bettiChatMessages, bettiChatLoading]);
 
   useEffect(() => {
     if (!user || !pharmaRole) {
@@ -3707,6 +3721,41 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     }
   }
 
+  function startVoiceInput() {
+    if (typeof window === 'undefined') return;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+    if (bettiVoiceListening) {
+      bettiRecognitionRef.current?.stop();
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'hu-HU';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.onstart = () => setBettiVoiceListening(true);
+    recognition.onresult = (event) => {
+      const transcript = event.results[0]?.[0]?.transcript || '';
+      if (transcript.trim()) {
+        sendBettiChatMessage(transcript.trim());
+      }
+      setBettiVoiceListening(false);
+    };
+    recognition.onerror = () => setBettiVoiceListening(false);
+    recognition.onend = () => setBettiVoiceListening(false);
+    bettiRecognitionRef.current = recognition;
+    recognition.start();
+  }
+
+  function speakBettiText(text) {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'hu-HU';
+    utterance.rate = 1.05;
+    window.speechSynthesis.speak(utterance);
+  }
+
   async function sendBettiChatMessage(messageText, options = {}) {
     const text = String(messageText || '').trim();
     if (!text || !user) return;
@@ -3750,7 +3799,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       ? previousMessage?.suggestedAction
       : undefined;
 
-    setBettiChatMessages((prev) => [...prev, { role: 'user', text }]);
+    setBettiChatMessages((prev) => [...prev, { role: 'user', text, ts: Date.now() }]);
     setBettiChatInput('');
     setBettiChatLoading(true);
 
@@ -3799,8 +3848,13 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         action: result?.payload?.action || null,
         suggestedAction: result?.payload?.suggestedAction || null,
         entities: result?.payload?.entities || null,
+        ts: Date.now(),
       }]);
       setBettiQuickActions(Array.isArray(result.quickActions) ? result.quickActions : []);
+
+      if (bettiSpeakEnabled && result.reply) {
+        speakBettiText(result.reply);
+      }
 
       if (result.intent === 'unknown') {
         setBettiLastUnknownMessage(text);
@@ -3821,38 +3875,226 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   function renderBettiMessageBanners(limit = 10) {
     const visibleMessages = bettiChatMessages.slice(-limit);
 
-    if (visibleMessages.length === 0) {
-      return (
-        <div className={`text-sm leading-relaxed rounded-2xl border px-4 py-3 ${darkMode ? 'border-gray-700 bg-gray-800 text-gray-300' : 'border-gray-200 bg-white text-gray-600'}`}>
-          Betti: Szia! A Pharmagister AI asszisztense vagyok. Kerdezz nyugodtan, segitek a beosztassal kapcsolatban.
-        </div>
-      );
-    }
+    const formatTime = (ts) => {
+      if (!ts) return '';
+      const d = new Date(ts);
+      return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    };
 
-    return visibleMessages.map((msg, index) => {
-      const isUser = msg.role === 'user';
-      return (
-        <div key={`${msg.role}-${index}`} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-          <div className={`max-w-[96%] sm:max-w-[90%] relative ${isUser ? 'mr-1' : 'ml-1'}`}>
-            <div
-              className={`absolute top-5 h-0 w-0 border-y-[7px] border-y-transparent ${isUser
-                ? `right-[-7px] border-l-[7px] ${darkMode ? 'border-l-sky-700' : 'border-l-sky-100'}`
-                : `left-[-7px] border-r-[7px] ${darkMode ? 'border-r-gray-700' : 'border-r-white'}`}`}
-            />
-            <div
-              className={`whitespace-pre-line text-sm leading-relaxed rounded-3xl border px-4 py-3 shadow-md ${isUser
-                ? (darkMode ? 'border-sky-600 bg-sky-700/80 text-sky-100' : 'border-sky-200 bg-sky-100 text-sky-800')
-                : (darkMode ? 'border-gray-600 bg-gray-700 text-gray-100' : 'border-gray-200 bg-white text-gray-700')}`}
-            >
-              {msg.text}
+    const emptyState = visibleMessages.length === 0 && !bettiChatLoading;
+
+    return (
+      <>
+        {emptyState && (
+          <div className="flex flex-col items-center justify-center gap-4 py-8 px-4 text-center">
+            <div className={`h-16 w-16 rounded-full flex items-center justify-center text-3xl shadow-lg ${darkMode ? 'bg-sky-800' : 'bg-sky-100'}`}>
+              👩‍⚕️
             </div>
-            <p className={`mt-1.5 text-[11px] font-semibold ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-              {isUser ? 'Te' : 'Betti'}
-            </p>
+            <div>
+              <p className={`font-bold text-base ${darkMode ? 'text-white' : 'text-gray-900'}`}>Szia, Betti vagyok!</p>
+              <p className={`text-sm mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                {isPharmacy
+                  ? 'Kérdezz bátran a beosztásról, túlórákról, helyettesítésről.'
+                  : 'Kérdezz a műszakjaidról, szabadságodról vagy szabadnapjaidról.'}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {visibleMessages.map((msg, index) => {
+          const isUser = msg.role === 'user';
+          return (
+            <div key={`${msg.role}-${index}`} className={`flex items-end gap-2 ${isUser ? 'justify-end' : 'justify-start'}`}>
+              {!isUser && (
+                <div className={`flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center text-base shadow-sm mb-5 ${darkMode ? 'bg-sky-800' : 'bg-sky-100'}`}>
+                  👩‍⚕️
+                </div>
+              )}
+              <div className={`max-w-[82%] sm:max-w-[75%] ${isUser ? 'items-end' : 'items-start'} flex flex-col gap-1`}>
+                <div
+                  className={`whitespace-pre-line text-sm leading-relaxed px-4 py-3 shadow-sm ${
+                    isUser
+                      ? `rounded-2xl rounded-br-sm ${darkMode ? 'bg-sky-600 text-white' : 'bg-sky-500 text-white'}`
+                      : `rounded-2xl rounded-bl-sm ${darkMode ? 'bg-gray-700 text-gray-100 border border-gray-600' : 'bg-white text-gray-800 border border-gray-200'}`
+                  }`}
+                >
+                  {msg.text}
+                </div>
+                <p className={`text-[10px] px-1 ${darkMode ? 'text-gray-500' : 'text-gray-400'} ${isUser ? 'text-right' : 'text-left'}`}>
+                  {isUser ? 'Te' : 'Betti'}{msg.ts ? ` · ${formatTime(msg.ts)}` : ''}
+                </p>
+              </div>
+            </div>
+          );
+        })}
+
+        {bettiChatLoading && (
+          <div className="flex items-end gap-2 justify-start">
+            <div className={`flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center text-base shadow-sm ${darkMode ? 'bg-sky-800' : 'bg-sky-100'}`}>
+              👩‍⚕️
+            </div>
+            <div className={`rounded-2xl rounded-bl-sm px-4 py-3 border ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-200'}`}>
+              <div className="flex gap-1.5 items-center h-4">
+                <span className={`h-2 w-2 rounded-full animate-bounce ${darkMode ? 'bg-sky-400' : 'bg-sky-500'}`} style={{ animationDelay: '0ms' }} />
+                <span className={`h-2 w-2 rounded-full animate-bounce ${darkMode ? 'bg-sky-400' : 'bg-sky-500'}`} style={{ animationDelay: '150ms' }} />
+                <span className={`h-2 w-2 rounded-full animate-bounce ${darkMode ? 'bg-sky-400' : 'bg-sky-500'}`} style={{ animationDelay: '300ms' }} />
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  }
+
+  function renderBettiChatPanel() {
+    if (!bettiChatOpen) return null;
+    const hasSpeechRecognition = typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition);
+    const hasSpeechSynthesis = typeof window !== 'undefined' && window.speechSynthesis;
+
+    return (
+      <div className="fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm" onClick={() => setBettiChatOpen(false)}>
+        <div
+          className={`absolute inset-x-0 top-0 bottom-0 flex flex-col ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}
+          style={{ bottom: `${Math.max(0, bettiKeyboardInset)}px` }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className={`flex items-center gap-3 px-4 py-3 border-b ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-white bg-white'} shadow-sm`}>
+            <div className={`h-10 w-10 rounded-full flex items-center justify-center text-xl flex-shrink-0 ${darkMode ? 'bg-sky-800' : 'bg-sky-100'}`}>
+              👩‍⚕️
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className={`font-bold text-base leading-tight ${darkMode ? 'text-white' : 'text-gray-900'}`}>Betti</p>
+              <p className={`text-xs ${bettiChatLoading ? 'text-sky-500' : (darkMode ? 'text-gray-400' : 'text-gray-500')}`}>
+                {bettiChatLoading ? 'Gépel...' : 'Pharmagister AI asszisztens'}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {hasSpeechSynthesis && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (bettiSpeakEnabled) window.speechSynthesis?.cancel();
+                    setBettiSpeakEnabled((v) => !v);
+                  }}
+                  title={bettiSpeakEnabled ? 'Hang kikapcsolása' : 'Hang bekapcsolása'}
+                  className={`h-9 w-9 rounded-xl flex items-center justify-center transition-colors ${
+                    bettiSpeakEnabled
+                      ? (darkMode ? 'bg-sky-700 text-sky-200' : 'bg-sky-100 text-sky-600')
+                      : (darkMode ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-500')
+                  }`}
+                >
+                  {bettiSpeakEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setBettiChatOpen(false)}
+                className={`h-9 w-9 rounded-xl flex items-center justify-center text-xl font-bold ${darkMode ? 'bg-gray-800 text-gray-200 hover:bg-gray-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+              >
+                ×
+              </button>
+            </div>
+          </div>
+
+          {/* Messages */}
+          <div
+            ref={bettiChatScrollRef}
+            className={`flex-1 overflow-y-auto px-4 py-4 space-y-4 ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}
+          >
+            {renderBettiMessageBanners(40)}
+          </div>
+
+          {/* Bottom bar */}
+          <div
+            className={`border-t px-3 pt-2 pb-3 space-y-2 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'}`}
+            style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)' }}
+          >
+            {/* Quick actions */}
+            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+              {(bettiQuickActions.length > 0
+                ? bettiQuickActions
+                : getBettiPresetQuestions().map((q) => ({ label: q, utterance: q }))
+              ).slice(0, 6).map((item) => (
+                <button
+                  key={`${item.key || item.label}-${item.utterance || item.label}`}
+                  type="button"
+                  onClick={() => {
+                    const learningFeedback = item.learnFromPreviousUnknown && bettiLastUnknownMessage
+                      ? { type: 'intent_selection', originalMessage: bettiLastUnknownMessage, selectedPrompt: item.utterance || item.label }
+                      : null;
+                    sendBettiChatMessage(item.utterance || item.label, { learningFeedback });
+                  }}
+                  className={`flex-shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold border transition-colors ${
+                    darkMode
+                      ? 'bg-sky-900/50 border-sky-700 text-sky-200 active:bg-sky-800'
+                      : 'bg-sky-50 border-sky-200 text-sky-700 active:bg-sky-100'
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Voice listening indicator */}
+            {bettiVoiceListening && (
+              <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium ${darkMode ? 'bg-red-900/40 text-red-300' : 'bg-red-50 text-red-600'}`}>
+                <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+                Figyelek... (érintsd meg a mikrofont a leállításhoz)
+              </div>
+            )}
+
+            {/* Input row */}
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (bettiChatLoading || !bettiChatInput.trim()) return;
+                await sendBettiChatMessage(bettiChatInput);
+              }}
+              className="flex items-center gap-2"
+            >
+              {hasSpeechRecognition && (
+                <button
+                  type="button"
+                  onClick={startVoiceInput}
+                  title={bettiVoiceListening ? 'Megállítás' : 'Hangos üzenet'}
+                  className={`flex-shrink-0 h-10 w-10 rounded-xl flex items-center justify-center transition-all ${
+                    bettiVoiceListening
+                      ? 'bg-red-500 text-white shadow-lg scale-110'
+                      : (darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200')
+                  }`}
+                >
+                  {bettiVoiceListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                </button>
+              )}
+              <input
+                type="text"
+                value={bettiChatInput}
+                onChange={(e) => setBettiChatInput(e.target.value)}
+                placeholder={bettiVoiceListening ? 'Figyelek...' : 'Írj Bettinek...'}
+                disabled={bettiVoiceListening}
+                className={`flex-1 rounded-xl border px-4 py-2.5 text-sm outline-none transition-colors ${
+                  darkMode
+                    ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-500 focus:border-sky-500'
+                    : 'bg-gray-50 border-gray-300 text-gray-800 placeholder-gray-400 focus:border-sky-400 focus:bg-white'
+                }`}
+              />
+              <button
+                type="submit"
+                disabled={bettiChatLoading || !bettiChatInput.trim()}
+                className={`flex-shrink-0 h-10 w-10 rounded-xl flex items-center justify-center transition-all ${
+                  bettiChatLoading || !bettiChatInput.trim()
+                    ? (darkMode ? 'bg-gray-700 text-gray-500' : 'bg-gray-200 text-gray-400')
+                    : 'bg-sky-500 text-white hover:bg-sky-600 shadow-md'
+                }`}
+              >
+                <Send className="h-4 w-4" />
+              </button>
+            </form>
           </div>
         </div>
-      );
-    });
+      </div>
+    );
   }
 
   function getBettiPresetQuestions() {
@@ -4125,87 +4367,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           </button>
         </div>
 
-        {bettiChatOpen && (
-          <div className="fixed inset-0 z-[80] bg-black/50" onClick={() => setBettiChatOpen(false)}>
-            <div
-              className={`absolute inset-x-0 top-0 bottom-0 flex flex-col ${darkMode ? 'bg-gray-900' : 'bg-white'}`}
-              style={{ bottom: `${Math.max(0, bettiKeyboardInset)}px` }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className={`flex items-center justify-between px-4 py-3 border-b ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'}`}>
-                <div>
-                  <p className={`font-bold text-base ${darkMode ? 'text-white' : 'text-gray-900'}`}>Betti chat</p>
-                  <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Teljes kepernyos beszelgetes</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setBettiChatOpen(false)}
-                  className={`h-9 w-9 rounded-xl text-lg font-bold ${darkMode ? 'bg-gray-800 text-gray-200' : 'bg-gray-100 text-gray-700'}`}
-                >
-                  ×
-                </button>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {renderBettiMessageBanners(30)}
-              </div>
-
-              <div
-                className={`sticky bottom-0 border-t p-3 space-y-2 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'}`}
-                style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)' }}
-              >
-                <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-                  {(bettiQuickActions.length > 0
-                    ? bettiQuickActions
-                    : getBettiPresetQuestions().map((q) => ({ label: q, utterance: q }))
-                  ).slice(0, 6).map((item) => (
-                    <button
-                      key={`${item.key || item.label}-${item.utterance || item.label}`}
-                      type="button"
-                      onClick={() => {
-                        const learningFeedback = item.learnFromPreviousUnknown && bettiLastUnknownMessage
-                          ? {
-                              type: 'intent_selection',
-                              originalMessage: bettiLastUnknownMessage,
-                              selectedPrompt: item.utterance || item.label,
-                            }
-                          : null;
-                        sendBettiChatMessage(item.utterance || item.label, { learningFeedback });
-                      }}
-                      className={`flex-shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold ${darkMode ? 'bg-sky-800 text-sky-100' : 'bg-sky-100 text-sky-700'}`}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-
-                <form
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    if (bettiChatLoading) return;
-                    await sendBettiChatMessage(bettiChatInput);
-                  }}
-                  className="flex gap-2"
-                >
-                  <input
-                    type="text"
-                    value={bettiChatInput}
-                    onChange={(e) => setBettiChatInput(e.target.value)}
-                    placeholder="Irj Bettinek..."
-                    className={`flex-1 rounded-xl border px-3 py-2 text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-800'}`}
-                  />
-                  <button
-                    type="submit"
-                    disabled={bettiChatLoading || !bettiChatInput.trim()}
-                    className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
-                  >
-                    Kuldes
-                  </button>
-                </form>
-              </div>
-            </div>
-          </div>
-        )}
+        {renderBettiChatPanel()}
 
         <div className="p-4 space-y-5">
 
@@ -5030,87 +5192,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       {!loading && ((isPharmacy && mainTab === 'schedule') || !isPharmacy) ? (
         <div className="space-y-6">
 
-          {bettiChatOpen && (
-            <div className="fixed inset-0 z-[80] bg-black/50" onClick={() => setBettiChatOpen(false)}>
-              <div
-                className={`absolute inset-x-0 top-0 bottom-0 flex flex-col ${darkMode ? 'bg-gray-900' : 'bg-white'}`}
-                style={{ bottom: `${Math.max(0, bettiKeyboardInset)}px` }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className={`flex items-center justify-between px-4 py-3 border-b ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'}`}>
-                  <div>
-                    <p className={`font-bold text-base ${darkMode ? 'text-white' : 'text-gray-900'}`}>Betti chat</p>
-                    <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Teljes kepernyos beszelgetes</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setBettiChatOpen(false)}
-                    className={`h-9 w-9 rounded-xl text-lg font-bold ${darkMode ? 'bg-gray-800 text-gray-200' : 'bg-gray-100 text-gray-700'}`}
-                  >
-                    ×
-                  </button>
-                </div>
-
-                <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                  {renderBettiMessageBanners(30)}
-                </div>
-
-                <div
-                  className={`sticky bottom-0 border-t p-3 space-y-2 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-white'}`}
-                  style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)' }}
-                >
-                  <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-                    {(bettiQuickActions.length > 0
-                      ? bettiQuickActions
-                      : getBettiPresetQuestions().map((q) => ({ label: q, utterance: q }))
-                    ).slice(0, 6).map((item) => (
-                      <button
-                        key={`${item.key || item.label}-${item.utterance || item.label}`}
-                        type="button"
-                        onClick={() => {
-                          const learningFeedback = item.learnFromPreviousUnknown && bettiLastUnknownMessage
-                            ? {
-                                type: 'intent_selection',
-                                originalMessage: bettiLastUnknownMessage,
-                                selectedPrompt: item.utterance || item.label,
-                              }
-                            : null;
-                          sendBettiChatMessage(item.utterance || item.label, { learningFeedback });
-                        }}
-                        className={`flex-shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold ${darkMode ? 'bg-sky-800 text-sky-100' : 'bg-sky-100 text-sky-700'}`}
-                      >
-                        {item.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  <form
-                    onSubmit={async (e) => {
-                      e.preventDefault();
-                      if (bettiChatLoading) return;
-                      await sendBettiChatMessage(bettiChatInput);
-                    }}
-                    className="flex gap-2"
-                  >
-                    <input
-                      type="text"
-                      value={bettiChatInput}
-                      onChange={(e) => setBettiChatInput(e.target.value)}
-                      placeholder="Irj Bettinek..."
-                      className={`flex-1 rounded-xl border px-3 py-2 text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-800'}`}
-                    />
-                    <button
-                      type="submit"
-                      disabled={bettiChatLoading || !bettiChatInput.trim()}
-                      className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
-                    >
-                      Kuldes
-                    </button>
-                  </form>
-                </div>
-              </div>
-            </div>
-          )}
+          {renderBettiChatPanel()}
 
           {((isPharmacy && mainTab === 'schedule') || (!isPharmacy && mainTab === 'mine')) && (
             <div className={`rounded-2xl border p-4 space-y-3 ${darkMode ? 'border-sky-700 bg-sky-900/20' : 'border-sky-200 bg-sky-50'}`}>
