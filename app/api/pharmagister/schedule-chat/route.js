@@ -2320,7 +2320,7 @@ export async function POST(request) {
 
     if (shouldUseLlmFallback && process.env.GEMINI_API_KEY) {
       // Rate limit: max 20 LLM hívás / nap / felhasználó
-      const LLM_DAILY_LIMIT = 20;
+      const LLM_DAILY_LIMIT = 10;
       const today = new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
       const llmStats = longTermMemory?.stats?.llm || {};
       const llmCallsToday = llmStats.date === today ? (llmStats.callsToday || 0) : 0;
