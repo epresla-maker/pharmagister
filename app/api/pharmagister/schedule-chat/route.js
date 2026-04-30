@@ -1062,6 +1062,32 @@ function polishBettiReply({ reply, action, chatRole, entities, seed, allowFlowPr
   return bridge ? `${reply} ${bridge}` : reply;
 }
 
+function isLikelyTruncatedReply(reply) {
+  const text = String(reply || '').trim();
+  if (!text) return true;
+  if (/[,:;\-]$/.test(text)) return true;
+  if (/\b(es|vagy|hogy|mert|ha|de|valamint|illetve|majd)\.?$/i.test(text)) return true;
+  if (!/[.!?]$/.test(text) && text.length < 22) return true;
+  return false;
+}
+
+function stabilizeReplyText(reply, chatRole) {
+  const text = String(reply || '').replace(/\s+/g, ' ').trim();
+  if (!text) {
+    return chatRole === 'pharmacy'
+      ? 'Rendben, segitek. Mondd el, a dolgozokrol, szabadsagokrol, tervezetekrol vagy tulorarol kerdezel.'
+      : 'Rendben, segitek. Mondd el, a beosztasodrol, szabadsagrol vagy szabadnapokrol kerdezel.';
+  }
+
+  if (isLikelyTruncatedReply(text)) {
+    return chatRole === 'pharmacy'
+      ? 'Rendben, segitek. Mondd el, melyikben kered a segitseget: dolgozok, szabadsagok, tervezetek vagy tulora.'
+      : 'Rendben, segitek. Mondd el, a beosztasodrol, szabadsagrol vagy szabadnapokrol kerdezel.';
+  }
+
+  return /[.!?]$/.test(text) ? text : `${text}.`;
+}
+
 function containsAny(text, list) {
   return list.some((w) => text.includes(w));
 }
@@ -2261,6 +2287,8 @@ export async function POST(request) {
         console.warn('[Betti LLM fallback] Gemini call failed:', llmResult.error);
       }
     }
+
+    finalReply = stabilizeReplyText(finalReply, chatRole);
 
     // ── PROACTIVE WARNINGS ───────────────────────────────────────────────────
     const proactiveWarnings = buildProactiveWarnings({
