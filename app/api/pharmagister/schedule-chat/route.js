@@ -2314,6 +2314,24 @@ export async function POST(request) {
     const isGreetingOrFarewell = /^(szia|szía|sziá|szio|szió|hello|helló|helo|heló|hali|helo|hay|hey|hi|jo reggelt|jó reggelt|jo napot|jó napot|jo estet|jó estét|jo ejt|jó éjt|jo ejszakat|jó éjszakát|viszlat|viszlát|viszlat|viszlatot|csao|cső|csőáó|csá|csa|bye|seeya|pá|pa|pacsi|üdv|udv|üdvözlöm|udvozlom|köszönöm|köszönöm|köszi|koszi|kösz|kosz|thx|tnx|thanks|köszike|kösziiii+|sziastok|hellosok|szianuszok?)[\s!.]*$/i;
     const isSingleWord = String(message || '').trim().split(/\s+/).length <= 1;
 
+    // Ismert quick action utterance-ek — ezekre soha ne hívjuk az LLM-et
+    const KNOWN_UTTERANCES = new Set([
+      'mi a beosztasom?', 'mi a beosztasom', 'mikor vagyok szabin?', 'mikor vagyok szabin',
+      'mikor vagyok szabadnapos?', 'mikor vagyok szabadnapos',
+      'mutasd a tulorasokat', 'kik mennek szabira?', 'kik mennek szabira',
+      'ki nem irta meg a tervezetet?', 'ki nem irta meg a tervezetet',
+      'listazd a dolgozoimat', 'listazd a dolgozoikat',
+      'tervezd ujra csak a hetfot', 'ki tudna atvenni a holnapi estet?',
+      'ki tudna atvenni a holnapi estet', 'csokkentsd a tulorat',
+      'legyen igazsagosabb a beosztas', 'beosztast szeretnek irni',
+      'ujratervezes', 'mutasd az alkalmazottakat', 'alkalmazott vagyok?',
+      'arra gondolok, hogy alkalmazottkent vagyok-e rogzitve',
+      'aktualis honap', 'kovetkezo honap', 'elozo honap',
+    ]);
+    const msgNorm = String(message || '').trim().toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const isKnownUtterance = KNOWN_UTTERANCES.has(msgNorm);
+
     const shouldUseLlmFallback = (
       parsed.intent === 'unknown'
       || action === 'clarify_with_options'
@@ -2321,7 +2339,8 @@ export async function POST(request) {
       || parsed.intent === 'capabilities'
     ) && parsed.intent !== 'greeting' && parsed.intent !== 'thanks' && parsed.intent !== 'farewell'
       && !isGreetingOrFarewell.test(String(message || '').trim())
-      && !isSingleWord;
+      && !isSingleWord
+      && !isKnownUtterance;
 
     if (shouldUseLlmFallback && process.env.GEMINI_API_KEY) {
       // Rate limit: max 20 LLM hívás / nap / felhasználó
