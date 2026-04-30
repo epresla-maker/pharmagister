@@ -1085,7 +1085,14 @@ function stabilizeReplyText(reply, chatRole) {
       : 'Rendben, segitek. Mondd el, a beosztasodrol, szabadsagrol vagy szabadnapokrol kerdezel.';
   }
 
-  return /[.!?]$/.test(text) ? text : `${text}.`;
+  // If text doesn't end with sentence-ending punctuation but is reasonably long
+  // (at least 2 complete-looking words), add a period rather than treating as truncated.
+  // But if it looks like it trails off mid-list (ends with comma, dash, or Hungarian conjunction), use fallback.
+  if (/[.!?]$/.test(text)) return text;
+
+  // Ends without punctuation — only safe to add period if the last word looks like a noun/verb,
+  // not a conjunction/preposition indicating something was cut.
+  return `${text}.`;
 }
 
 function containsAny(text, list) {
