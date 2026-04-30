@@ -2311,12 +2311,15 @@ export async function POST(request) {
     // ── LLM FALLBACK (unknown / clarify) ─────────────────────────────────────
     let finalReply = rawReply;
     let usedLLM = false;
+    const isGreetingOrFarewell = /^(szia|szía|sziá|szio|szió|hello|helló|helo|heló|hali|helo|hay|hey|hi|jo reggelt|jó reggelt|jo napot|jó napot|jo estet|jó estét|jo ejt|jó éjt|jo ejszakat|jó éjszakát|viszlat|viszlát|viszlat|viszlatot|csao|cső|csőáó|csá|csa|bye|seeya|pá|pa|pacsi|üdv|udv|üdvözlöm|udvozlom|köszönöm|köszönöm|köszi|koszi|kösz|kosz|thx|tnx|thanks|köszike|kösziiii+|sziastok|hellosok|szianuszok?)[\s!.]*$/i;
+
     const shouldUseLlmFallback = (
       parsed.intent === 'unknown'
       || action === 'clarify_with_options'
       || parsed.intent === 'help'
       || parsed.intent === 'capabilities'
-    ) && parsed.intent !== 'greeting' && parsed.intent !== 'thanks' && parsed.intent !== 'farewell';
+    ) && parsed.intent !== 'greeting' && parsed.intent !== 'thanks' && parsed.intent !== 'farewell'
+      && !isGreetingOrFarewell.test(String(message || '').trim());
 
     if (shouldUseLlmFallback && process.env.GEMINI_API_KEY) {
       // Rate limit: max 20 LLM hívás / nap / felhasználó
