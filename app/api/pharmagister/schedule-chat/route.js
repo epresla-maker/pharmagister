@@ -2316,7 +2316,7 @@ export async function POST(request) {
       || action === 'clarify_with_options'
       || parsed.intent === 'help'
       || parsed.intent === 'capabilities'
-    );
+    ) && parsed.intent !== 'greeting' && parsed.intent !== 'thanks' && parsed.intent !== 'farewell';
 
     if (shouldUseLlmFallback && process.env.GEMINI_API_KEY) {
       // Rate limit: max 20 LLM hívás / nap / felhasználó
