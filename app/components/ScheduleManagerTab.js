@@ -1674,6 +1674,15 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     }
   }, [aiModeAllowed]);
 
+  useEffect(() => {
+    if (!aiModeAllowed || typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('ai') === '1') {
+      setAiViewEnabled(true);
+      setBettiChatOpen(true);
+    }
+  }, [aiModeAllowed]);
+
   const ownScheduleIds = useMemo(() => {
     const employeeIds = new Set(ownEmployeeRecords.map(item => item.id));
     const email = normalizeEmail(user?.email);
