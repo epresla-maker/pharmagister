@@ -2362,10 +2362,19 @@ export async function POST(request) {
       || isKnownUtterance;
 
     const isDeterministicAction = DETERMINISTIC_ACTIONS.has(action);
+    const isUncertainIntent = (
+      parsed.intent === 'unknown'
+      || action === 'clarify_with_options'
+      || parsed.intent === 'help'
+      || parsed.intent === 'capabilities'
+      || Number(parsed.confidence || 0) < 0.72
+    );
+
     const shouldUseLlmFallback = Boolean(process.env.GEMINI_API_KEY)
       && !isGuardedMessage
       && !isDeterministicAction
-      && parsed.intent !== 'training_saved';
+      && parsed.intent !== 'training_saved'
+      && isUncertainIntent;
 
     if (shouldUseLlmFallback) {
       // Rate limit: max 20 LLM hívás / nap / felhasználó
