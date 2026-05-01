@@ -53,6 +53,8 @@ const EMPLOYEE_UNKNOWN_SUGGESTIONS = [
 ];
 
 const LOW_CONFIDENCE_THRESHOLD = 0.82;
+const TEMP_MEMORY_TTL_DAYS = 21;
+const MAX_TEMP_MEMORY_ITEMS = 120;
 
 const DECISION_WEIGHTS = {
   intent: 0.35,
@@ -1229,6 +1231,222 @@ function stabilizeReplyText(reply, chatRole) {
   return `${text}.`;
 }
 
+function getAgeGroup(age) {
+  const n = Number(age);
+  if (!Number.isInteger(n) || n < 0) return null;
+  if (n < 18) return 'under_18';
+  if (n < 26) return '18_25';
+  if (n < 36) return '26_35';
+  if (n < 46) return '36_45';
+  if (n < 61) return '46_60';
+  return '60_plus';
+}
+
+function pruneTemporaryNotes(notes = [], ttlDays = TEMP_MEMORY_TTL_DAYS, nowTs = Date.now()) {
+  if (!Array.isArray(notes) || notes.length === 0) return [];
+  const ttlMs = Math.max(1, Number(ttlDays || TEMP_MEMORY_TTL_DAYS)) * 24 * 60 * 60 * 1000;
+  return notes
+    .filter((item) => item && typeof item === 'object')
+    .filter((item) => {
+      const expiresTs = getTimeMillis(item.expiresAt);
+      if (expiresTs > 0) return expiresTs > nowTs;
+      const createdTs = getTimeMillis(item.at || item.createdAt || item.timestamp);
+      if (createdTs <= 0) return false;
+      return (createdTs + ttlMs) > nowTs;
+    })
+    .slice(-MAX_TEMP_MEMORY_ITEMS)
+    .map((item) => ({
+      text: String(item.text || '').slice(0, 300),
+      intent: item.intent || null,
+      action: item.action || null,
+      at: item.at || item.createdAt || item.timestamp || new Date(nowTs).toISOString(),
+      expiresAt: item.expiresAt || new Date(nowTs + ttlMs).toISOString(),
+      importance: Number(item.importance || 0),
+    }));
+}
+
+function normalizeAssistantMemory(assistantMemory, nowTs = Date.now()) {
+  const base = {
+    policy: { temporaryTtlDays: TEMP_MEMORY_TTL_DAYS },
+    permanentProfile: {
+      preferredName: null,
+      preferredAddress: null,
+      age: null,
+      ageGroup: null,
+      lastUpdatedAt: null,
+    },
+    temporaryNotes: [],
+    lastPrunedAt: null,
+  };
+
+  const merged = {
+    ...base,
+    ...(assistantMemory || {}),
+    policy: {
+      ...base.policy,
+      ...((assistantMemory && assistantMemory.policy) || {}),
+    },
+    permanentProfile: {
+      ...base.permanentProfile,
+      ...((assistantMemory && assistantMemory.permanentProfile) || {}),
+    },
+  };
+
+  const ttlDays = Number(merged.policy.temporaryTtlDays || TEMP_MEMORY_TTL_DAYS);
+  const pruned = pruneTemporaryNotes(merged.temporaryNotes, ttlDays, nowTs);
+
+  return {
+    ...merged,
+    temporaryNotes: pruned,
+    lastPrunedAt: new Date(nowTs).toISOString(),
+  };
+}
+
+function detectMemoryControlIntent(message) {
+  const norm = normalizeText(message || '');
+  const wantsShow = containsAny(norm, [
+    'mit tudsz rolam', 'mit jegyeztel meg', 'mire emlekszel', 'memoriaim', 'profilom',
+  ]);
+  if (wantsShow) return { type: 'show_memory' };
+
+  const wantsForget = containsAny(norm, ['felejtsd el', 'torold', 'torles']) && containsAny(norm, ['memoria', 'emlek', 'ezt', 'ezt is', 'profil']);
+  if (!wantsForget) return { type: 'none' };
+
+  if (containsAny(norm, ['mindent', 'osszes', 'teljes'])) return { type: 'forget_all' };
+  if (containsAny(norm, ['ideiglenes', 'atmeneti', 'temporary', 'chat']) && containsAny(norm, ['memoria', 'emlek'])) return { type: 'forget_temporary' };
+  if (containsAny(norm, ['eletkor', 'eves', 'korom'])) return { type: 'forget_age' };
+  if (containsAny(norm, ['hogy szolits', 'megszolitas', 'hivj', 'szolits'])) return { type: 'forget_addressing' };
+  if (containsAny(norm, ['nevem', 'nev'])) return { type: 'forget_name' };
+  return { type: 'forget_temporary' };
+}
+
+function extractPermanentProfileUpdates(message) {
+  const norm = normalizeText(message || '');
+  const updates = {};
+
+  const agePatterns = [
+    /\b(\d{1,3})\s*eves\b/,
+    /\beletkorom\s*(\d{1,3})\b/,
+    /\b(\d{1,3})\s*ev\s*vagyok\b/,
+    /\b(\d{1,3})\s*vagyok\b/,
+  ];
+  for (const re of agePatterns) {
+    const m = norm.match(re);
+    if (m) {
+      const age = Number(m[1]);
+      if (Number.isInteger(age) && age >= 13 && age <= 100) {
+        updates.age = age;
+        updates.ageGroup = getAgeGroup(age);
+      }
+      break;
+    }
+  }
+
+  const nameMatch = norm.match(/(?:hivj|szolits|nevezz)\s+(?:engem\s+)?([a-z0-9_.-]{2,32})\b/i);
+  if (nameMatch && nameMatch[1]) {
+    const raw = String(nameMatch[1] || '').trim();
+    if (raw && !['igy', 'inkabb', 'ezentul', 'mostantol'].includes(raw)) {
+      updates.preferredName = raw.charAt(0).toUpperCase() + raw.slice(1);
+    }
+  }
+
+  const addressMatch = norm.match(/(?:hivj|szolits)\s+(?:engem\s+)?(?:nekem\s+)?(?:inkabb\s+)?(doktorno|doktor ur|fonok|fonokno|igazgato ur|igazgato no|tegezz|magazz)\b/i);
+  if (addressMatch && addressMatch[1]) {
+    updates.preferredAddress = String(addressMatch[1] || '').trim();
+  } else if (norm.includes('tegezz')) {
+    updates.preferredAddress = 'tegezz';
+  } else if (norm.includes('magazz')) {
+    updates.preferredAddress = 'magazz';
+  }
+
+  return updates;
+}
+
+function buildPersonalMemoryContext(assistantMemory) {
+  const profile = assistantMemory?.permanentProfile || {};
+  const notes = Array.isArray(assistantMemory?.temporaryNotes) ? assistantMemory.temporaryNotes.slice(-3) : [];
+  const parts = [];
+
+  if (profile.preferredName) parts.push(`Preferalt nev: ${profile.preferredName}`);
+  if (profile.preferredAddress) parts.push(`Preferalt megszolitas: ${profile.preferredAddress}`);
+  if (Number.isInteger(profile.age)) parts.push(`Eletkor: ${profile.age}`);
+  if (profile.ageGroup) parts.push(`Korcsoport: ${profile.ageGroup}`);
+  if (notes.length > 0) {
+    const noteSummary = notes.map((n) => String(n?.text || '').slice(0, 90)).filter(Boolean).join(' | ');
+    if (noteSummary) parts.push(`Rovid ideiglenes kontextus: ${noteSummary}`);
+  }
+
+  return parts.join('; ');
+}
+
+function summarizePersonalMemory(assistantMemory) {
+  const profile = assistantMemory?.permanentProfile || {};
+  const tempCount = Array.isArray(assistantMemory?.temporaryNotes) ? assistantMemory.temporaryNotes.length : 0;
+  const items = [];
+  if (profile.preferredName) items.push(`Preferalt nev: ${profile.preferredName}`);
+  if (profile.preferredAddress) items.push(`Preferalt megszolitas: ${profile.preferredAddress}`);
+  if (Number.isInteger(profile.age)) items.push(`Eletkor: ${profile.age}`);
+  items.push(`Ideiglenes jegyzetek: ${tempCount} db (TTL: ${assistantMemory?.policy?.temporaryTtlDays || TEMP_MEMORY_TTL_DAYS} nap)`);
+  return items.join('\n');
+}
+
+function shouldStoreTemporaryNote(parsed, action, message) {
+  const shortNorm = normalizeText(message || '');
+  if (!shortNorm) return false;
+  if (shortNorm.length < 3) return false;
+  const ignoreIntents = new Set(['greeting', 'farewell', 'thanks']);
+  if (ignoreIntents.has(parsed?.intent) || ignoreIntents.has(action)) return false;
+  return true;
+}
+
+function applyMemoryControl({ assistantMemory, control }) {
+  const next = normalizeAssistantMemory(assistantMemory);
+  const profile = { ...(next.permanentProfile || {}) };
+
+  if (control.type === 'forget_all') {
+    return {
+      ...next,
+      permanentProfile: {
+        preferredName: null,
+        preferredAddress: null,
+        age: null,
+        ageGroup: null,
+        lastUpdatedAt: new Date().toISOString(),
+      },
+      temporaryNotes: [],
+    };
+  }
+
+  if (control.type === 'forget_temporary') {
+    return {
+      ...next,
+      temporaryNotes: [],
+      permanentProfile: profile,
+    };
+  }
+
+  if (control.type === 'forget_age') {
+    profile.age = null;
+    profile.ageGroup = null;
+    profile.lastUpdatedAt = new Date().toISOString();
+    return { ...next, permanentProfile: profile };
+  }
+
+  if (control.type === 'forget_name') {
+    profile.preferredName = null;
+    profile.lastUpdatedAt = new Date().toISOString();
+    return { ...next, permanentProfile: profile };
+  }
+
+  if (control.type === 'forget_addressing') {
+    profile.preferredAddress = null;
+    profile.lastUpdatedAt = new Date().toISOString();
+    return { ...next, permanentProfile: profile };
+  }
+
+  return next;
+}
+
 function containsAny(text, list) {
   return list.some((w) => text.includes(w));
 }
@@ -2316,12 +2534,79 @@ export async function POST(request) {
 
     const mood = detectConversationalMood({ message, recentConversation });
     let longTermMemory = await loadBettiLongTermMemory(uid);
+    const nowTs = Date.now();
+    const memoryControl = detectMemoryControlIntent(message);
+    const permanentProfileUpdates = extractPermanentProfileUpdates(message);
+    const normalizedAssistantMemory = normalizeAssistantMemory(longTermMemory?.assistantMemory, nowTs);
+    const effectiveUserName = userName || normalizedAssistantMemory?.permanentProfile?.preferredName || null;
+    const personalMemoryContext = buildPersonalMemoryContext(normalizedAssistantMemory);
+    const llmRecentConversation = personalMemoryContext
+      ? [...recentConversation.slice(-5), { role: 'assistant', text: `[Szemelyes memoria] ${personalMemoryContext}` }]
+      : recentConversation;
+
+    longTermMemory = {
+      ...longTermMemory,
+      assistantMemory: normalizedAssistantMemory,
+    };
 
     // Load stored conversation state
     const storedState = longTermMemory?.conversationState || null;
     const conversationState = storedState && typeof storedState === 'object'
       ? { ...buildDefaultConversationState(), ...storedState, openLoops: Array.isArray(storedState.openLoops) ? storedState.openLoops.slice(-6) : [] }
       : buildDefaultConversationState();
+
+    if (memoryControl.type === 'show_memory') {
+      const summary = summarizePersonalMemory(normalizedAssistantMemory);
+      return NextResponse.json({
+        success: true,
+        intent: 'memory_profile',
+        action: 'memory_profile',
+        reply: `Amit rolad tarolok:\n${summary}`,
+        usedLLM: false,
+        debug: { responseRoute: 'MEMORY_SHOW' },
+        payload: {
+          action: 'memory_profile',
+          entities: {},
+          uiCommands: [],
+          conversationState,
+        },
+        quickActions: [],
+        proactiveWarnings: [],
+        analysis: {
+          mood,
+          confidence: 1,
+          topCandidates: [],
+        },
+      });
+    }
+
+    if (memoryControl.type !== 'none') {
+      const afterControl = applyMemoryControl({ assistantMemory: normalizedAssistantMemory, control: memoryControl });
+      await saveBettiLongTermMemory(uid, {
+        assistantMemory: afterControl,
+      });
+      return NextResponse.json({
+        success: true,
+        intent: 'memory_update',
+        action: 'memory_update',
+        reply: 'Rendben, frissitettem a memoria-beallitasaidat.',
+        usedLLM: false,
+        debug: { responseRoute: 'MEMORY_CONTROL' },
+        payload: {
+          action: 'memory_update',
+          entities: {},
+          uiCommands: [],
+          conversationState,
+        },
+        quickActions: [],
+        proactiveWarnings: [],
+        analysis: {
+          mood,
+          confidence: 1,
+          topCandidates: [],
+        },
+      });
+    }
 
     // ── TRAINING INPUT (xx <response>) ──────────────────────────────────────
     const training = detectTrainingInput(originalMessage);
@@ -2416,8 +2701,8 @@ export async function POST(request) {
       const routerResult = await callBettiLLMRouter({
         message,
         chatRole,
-        userName,
-        recentConversation,
+        userName: effectiveUserName,
+        recentConversation: llmRecentConversation,
         stats: context.stats || null,
       });
 
@@ -2441,8 +2726,8 @@ export async function POST(request) {
         const llmTextFallback = await callBettiLLM({
           message,
           chatRole,
-          userName,
-          recentConversation,
+          userName: effectiveUserName,
+          recentConversation: llmRecentConversation,
           stats: context.stats || null,
         });
 
@@ -2581,6 +2866,38 @@ export async function POST(request) {
       entities: pipelinePayload?.entities || {},
     });
 
+    const ttlDays = Number(normalizedAssistantMemory?.policy?.temporaryTtlDays || TEMP_MEMORY_TTL_DAYS);
+    const mergedPermanentProfile = {
+      ...(normalizedAssistantMemory?.permanentProfile || {}),
+      ...(permanentProfileUpdates || {}),
+    };
+    if (Object.keys(permanentProfileUpdates || {}).length > 0) {
+      mergedPermanentProfile.lastUpdatedAt = new Date(nowTs).toISOString();
+    }
+
+    const nextTemporaryNotes = pruneTemporaryNotes([
+      ...(Array.isArray(normalizedAssistantMemory?.temporaryNotes) ? normalizedAssistantMemory.temporaryNotes : []),
+      ...(shouldStoreTemporaryNote(parsed, action, message) ? [{
+        text: String(message || '').slice(0, 280),
+        intent: parsed?.intent || null,
+        action: action || null,
+        at: new Date(nowTs).toISOString(),
+        expiresAt: new Date(nowTs + (ttlDays * 24 * 60 * 60 * 1000)).toISOString(),
+        importance: Number(parsed?.confidence || 0),
+      }] : []),
+    ], ttlDays, nowTs);
+
+    const nextAssistantMemory = {
+      ...normalizedAssistantMemory,
+      policy: {
+        ...(normalizedAssistantMemory?.policy || {}),
+        temporaryTtlDays: ttlDays,
+      },
+      permanentProfile: mergedPermanentProfile,
+      temporaryNotes: nextTemporaryNotes,
+      lastPrunedAt: new Date(nowTs).toISOString(),
+    };
+
     const nextSessionMemory = [
       ...(Array.isArray(longTermMemory?.sessionMemory) ? longTermMemory.sessionMemory.slice(-11) : []),
       { text: message, intent: parsed.intent, action, entities: pipelinePayload?.entities || {}, at: new Date().toISOString() },
@@ -2589,6 +2906,7 @@ export async function POST(request) {
     await saveBettiLongTermMemory(uid, {
       conversationState: nextConversationState,
       sessionMemory: nextSessionMemory,
+      assistantMemory: nextAssistantMemory,
       stats: updatedStats,
     });
 
