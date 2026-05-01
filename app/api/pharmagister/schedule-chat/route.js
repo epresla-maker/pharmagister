@@ -2312,6 +2312,7 @@ export async function POST(request) {
     // ── LLM FALLBACK (unknown / clarify) ─────────────────────────────────────
     let finalReply = rawReply;
     let usedLLM = false;
+    let responseRoute = 'RULE';
     const isGreetingOrFarewell = /^(szia|szía|sziá|szio|szió|hello|helló|helo|heló|hali|helo|hay|hey|hi|jo reggelt|jó reggelt|jo napot|jó napot|jo estet|jó estét|jo ejt|jó éjt|jo ejszakat|jó éjszakát|viszlat|viszlát|viszlat|viszlatot|csao|cső|csőáó|csá|csa|bye|seeya|pá|pa|pacsi|üdv|udv|üdvözlöm|udvozlom|köszönöm|köszönöm|köszi|koszi|kösz|kosz|thx|tnx|thanks|köszike|kösziiii+|sziastok|hellosok|szianuszok?)[\s!.]*$/i;
     const isSingleWord = String(message || '').trim().split(/\s+/).length <= 1;
 
@@ -2352,6 +2353,7 @@ export async function POST(request) {
       const rateLimitExceeded = llmCallsToday >= LLM_DAILY_LIMIT;
 
       if (rateLimitExceeded) {
+        responseRoute = 'RATE_LIMIT';
         finalReply = chatRole === 'pharmacy'
           ? 'Ma már elértem a napi segítési limitemet. Holnaptól újra tudok segíteni beosztással kapcsolatban!'
           : 'Ma már elértem a napi segítési limitemet. Holnaptól újra tudok segíteni a beosztásoddal kapcsolatban!';
@@ -2367,10 +2369,12 @@ export async function POST(request) {
         }
 
         if (domainDecision.decision === 'OFFTOPIC') {
+          responseRoute = 'CLASSIFIER_OFFTOPIC';
           finalReply = chatRole === 'pharmacy'
             ? 'Csak a Pharmagistert, a beosztást, a szabadságokat, a túlórát és a helyettesítéseket érintő kérdésekben tudok segíteni.'
             : 'Csak a Pharmagistert, a saját beosztásodat, szabadságodat, túlórádat és helyettesítési kérdéseidet érintő témákban tudok segíteni.';
         } else {
+          responseRoute = 'CLASSIFIER_DOMAIN';
           const llmResult = await callBettiLLM({
             message,
             chatRole,
@@ -2381,11 +2385,15 @@ export async function POST(request) {
           if (llmResult.usedLLM && llmResult.reply) {
             finalReply = llmResult.reply;
             usedLLM = true;
+            responseRoute = 'LLM';
           } else if (llmResult.error) {
+            responseRoute = 'CLASSIFIER_DOMAIN_LLM_ERROR';
             console.warn('[Betti LLM fallback] Gemini call failed:', llmResult.error);
           }
         }
       }
+    } else if (parsed.intent === 'greeting' || parsed.intent === 'thanks' || parsed.intent === 'farewell' || isGreetingOrFarewell.test(String(message || '').trim()) || isSingleWord || isKnownUtterance) {
+      responseRoute = 'RULE_GUARD';
     }
 
     finalReply = stabilizeReplyText(finalReply, chatRole);
@@ -2431,6 +2439,9 @@ export async function POST(request) {
       action,
       reply: finalReply,
       usedLLM,
+      debug: {
+        responseRoute,
+      },
       payload: {
         ...pipelinePayload,
         conversationState: nextConversationState,

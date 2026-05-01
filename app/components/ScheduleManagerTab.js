@@ -3849,6 +3849,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         action: result?.payload?.action || null,
         suggestedAction: result?.payload?.suggestedAction || null,
         entities: result?.payload?.entities || null,
+        debugRoute: result?.debug?.responseRoute || null,
         ts: Date.now(),
       }]);
       setBettiQuickActions(Array.isArray(result.quickActions) ? result.quickActions : []);
@@ -3924,6 +3925,11 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                 <p className={`text-[10px] px-1 ${darkMode ? 'text-gray-500' : 'text-gray-400'} ${isUser ? 'text-right' : 'text-left'}`}>
                   {isUser ? 'Te' : 'Betti'}{msg.ts ? ` · ${formatTime(msg.ts)}` : ''}
                 </p>
+                {!isUser && msg.debugRoute && (
+                  <p className={`text-[10px] px-1 uppercase tracking-wide ${darkMode ? 'text-sky-400' : 'text-sky-600'}`}>
+                    {msg.debugRoute}
+                  </p>
+                )}
               </div>
             </div>
           );
