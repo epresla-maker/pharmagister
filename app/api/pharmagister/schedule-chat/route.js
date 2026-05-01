@@ -5,6 +5,7 @@ import { normalizeHungarianChatInput } from '@/lib/huDictionary';
 import { explainAssignmentDecision } from '@/lib/explanationEngine';
 import { buildProactiveWarnings } from '@/lib/suggestionEngine';
 import { callBettiLLM, classifyBettiDomain } from '@/lib/bettiLLM';
+import { callBettiLLMRouter } from '@/lib/bettiLLMRouter';
 import {
   detectTrainingInput,
   loadBettiLongTermMemory,
@@ -2284,150 +2285,79 @@ export async function POST(request) {
     }
 
     // ── PARSE INTENT ─────────────────────────────────────────────────────────
-    const parsed = parseBettiIntent(message, learnedPatterns);
-
-    if (parsed.isLearned && (parsed.learnedPatternId || parsed.learnedPatternFingerprint)) {
-      await recordTrainingPatternUsage(uid, parsed.learnedPatternId || parsed.learnedPatternFingerprint);
+    // ── LEARNED PATTERNS (user-trained) → first check ────────────────────────
+    const parsedForLearned = parseBettiIntent(message, learnedPatterns);
+    if (parsedForLearned.isLearned && (parsedForLearned.learnedPatternId || parsedForLearned.learnedPatternFingerprint)) {
+      await recordTrainingPatternUsage(uid, parsedForLearned.learnedPatternId || parsedForLearned.learnedPatternFingerprint);
     }
 
-    // ── CENTRAL PIPELINE ─────────────────────────────────────────────────────
-    const pipelineResult = runBettiPipeline({
-      message,
-      parsed,
-      conversationState,
-      chatRole,
-      context: {
-        ...context,
-        _handlers: { explainAssignmentDecision },
-      },
-      mood,
-      lastAssistantAction,
-      lastAssistantEntities,
-      lastAssistantMessage,
-      previousMessageIntent,
-    });
+    // ── LLM-FIRST ROUTING ────────────────────────────────────────────────────
+    const today = new Date().toISOString().slice(0, 10);
+    const LLM_DAILY_LIMIT = 50;
+    const llmRateStats = longTermMemory?.stats?.llm || {};
+    const llmCallsToday = llmRateStats.date === today ? (llmRateStats.callsToday || 0) : 0;
+    const rateLimitExceeded = llmCallsToday >= LLM_DAILY_LIMIT;
 
-    const { action, reply: rawReply, payload: pipelinePayload, quickActions, nextConversationState } = pipelineResult;
+    let parsed = parsedForLearned;
+    let action, finalReply, pipelinePayload = {}, quickActions = [], nextConversationState = conversationState;
+    let usedLLM = false, responseRoute = 'LLM';
 
-    // ── LLM FALLBACK (unknown / clarify) ─────────────────────────────────────
-    let finalReply = rawReply;
-    let usedLLM = false;
-    let responseRoute = 'RULE';
-    const isGreetingOrFarewell = /^(szia|szía|sziá|szio|szió|hello|helló|helo|heló|hali|helo|hay|hey|hi|jo reggelt|jó reggelt|jo napot|jó napot|jo estet|jó estét|jo ejt|jó éjt|jo ejszakat|jó éjszakát|viszlat|viszlát|viszlat|viszlatot|csao|cső|csőáó|csá|csa|bye|seeya|pá|pa|pacsi|üdv|udv|üdvözlöm|udvozlom|köszönöm|köszönöm|köszi|koszi|kösz|kosz|thx|tnx|thanks|köszike|kösziiii+|sziastok|hellosok|szianuszok?)[\s!.]*$/i;
-    const isSingleWord = String(message || '').trim().split(/\s+/).length <= 1;
+    if (parsedForLearned.isLearned && parsedForLearned.reply) {
+      // User-trained response → direct use, no LLM needed
+      action = parsedForLearned.action || parsedForLearned.intent || 'clarify';
+      finalReply = parsedForLearned.reply;
+      pipelinePayload = { action, entities: parsedForLearned.entities || {}, suggestedAction: action };
+      quickActions = buildSuccessQuickActions({ action, chatRole, entities: parsedForLearned.entities || {} });
+      responseRoute = 'LEARNED';
+    } else if (rateLimitExceeded) {
+      responseRoute = 'RATE_LIMIT';
+      action = 'clarify';
+      parsed = { intent: 'clarify', confidence: 0 };
+      finalReply = chatRole === 'pharmacy'
+        ? 'Ma már elértem a napi segítési limitemet. Holnaptól újra tudok segíteni beosztással kapcsolatban!'
+        : 'Ma már elértem a napi segítési limitemet. Holnaptól újra tudok segíteni a beosztásoddal kapcsolatban!';
+      quickActions = getSuggestionPool(chatRole).slice(0, 3);
+    } else {
+      const routerResult = await callBettiLLMRouter({
+        message,
+        chatRole,
+        userName,
+        recentConversation,
+        stats: context.stats || null,
+      });
 
-    // Ismert quick action utterance-ek — ezekre soha ne hívjuk az LLM-et
-    const KNOWN_UTTERANCES = new Set([
-      'mi a beosztasom?', 'mi a beosztasom', 'mikor vagyok szabin?', 'mikor vagyok szabin',
-      'mikor vagyok szabadnapos?', 'mikor vagyok szabadnapos',
-      'mutasd a tulorasokat', 'kik mennek szabira?', 'kik mennek szabira',
-      'ki nem irta meg a tervezetet?', 'ki nem irta meg a tervezetet',
-      'listazd a dolgozoimat', 'listazd a dolgozoikat',
-      'tervezd ujra csak a hetfot', 'ki tudna atvenni a holnapi estet?',
-      'ki tudna atvenni a holnapi estet', 'csokkentsd a tulorat',
-      'legyen igazsagosabb a beosztas', 'beosztast szeretnek irni',
-      'ujratervezes', 'mutasd az alkalmazottakat', 'alkalmazott vagyok?',
-      'arra gondolok, hogy alkalmazottkent vagyok-e rogzitve',
-      'aktualis honap', 'kovetkezo honap', 'elozo honap',
-    ]);
-    const msgNorm = String(message || '').trim().toLowerCase()
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    const isKnownUtterance = KNOWN_UTTERANCES.has(msgNorm);
-
-    const DETERMINISTIC_ACTIONS = new Set([
-      'show_my_schedule',
-      'show_my_vacations',
-      'show_my_free_days',
-      'list_employees',
-      'show_vacation_requests',
-      'missing_drafts',
-      'find_replacement',
-      'replan_all',
-      'replan_specific_day',
-      'lock_shift',
-      'minimal_change_replan',
-      'optimize_fairness',
-      'optimize_overtime',
-      'write_schedule_plan',
-      'add_employee',
-      'remove_employee',
-      'identity_check',
-    ]);
-
-    const isGuardedMessage = parsed.intent === 'greeting'
-      || parsed.intent === 'thanks'
-      || parsed.intent === 'farewell'
-      || isGreetingOrFarewell.test(String(message || '').trim())
-      || isSingleWord
-      || isKnownUtterance;
-
-    const isDeterministicAction = DETERMINISTIC_ACTIONS.has(action);
-    const isUncertainIntent = (
-      parsed.intent === 'unknown'
-      || action === 'clarify_with_options'
-      || parsed.intent === 'help'
-      || parsed.intent === 'capabilities'
-      || Number(parsed.confidence || 0) < 0.72
-    );
-
-    const shouldUseLlmFallback = Boolean(process.env.GEMINI_API_KEY)
-      && !isGuardedMessage
-      && !isDeterministicAction
-      && parsed.intent !== 'training_saved'
-      && isUncertainIntent;
-
-    if (shouldUseLlmFallback) {
-      // Rate limit: max 20 LLM hívás / nap / felhasználó
-      const LLM_DAILY_LIMIT = 10;
-      const today = new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
-      const llmStats = longTermMemory?.stats?.llm || {};
-      const llmCallsToday = llmStats.date === today ? (llmStats.callsToday || 0) : 0;
-      const rateLimitExceeded = llmCallsToday >= LLM_DAILY_LIMIT;
-
-      if (rateLimitExceeded) {
-        responseRoute = 'RATE_LIMIT';
-        finalReply = chatRole === 'pharmacy'
-          ? 'Ma már elértem a napi segítési limitemet. Holnaptól újra tudok segíteni beosztással kapcsolatban!'
-          : 'Ma már elértem a napi segítési limitemet. Holnaptól újra tudok segíteni a beosztásoddal kapcsolatban!';
-      } else {
-        const domainDecision = await classifyBettiDomain({
+      if (routerResult.error) {
+        console.warn('[Betti LLM Router] Fallback to rule pipeline:', routerResult.error);
+        // Fallback: rule-based pipeline if LLM fails
+        const pipelineResult = runBettiPipeline({
           message,
+          parsed: parsedForLearned,
+          conversationState,
           chatRole,
-          userName,
+          context: { ...context, _handlers: { explainAssignmentDecision } },
+          mood,
+          lastAssistantAction,
+          lastAssistantEntities,
+          lastAssistantMessage,
+          previousMessageIntent,
         });
-
-        if (domainDecision.error) {
-          console.warn('[Betti domain classifier] decision fallback:', domainDecision.error);
-        }
-
-        if (domainDecision.decision === 'OFFTOPIC') {
-          responseRoute = 'CLASSIFIER_OFFTOPIC';
-          finalReply = chatRole === 'pharmacy'
-            ? 'Csak a Pharmagistert, a beosztást, a szabadságokat, a túlórát és a helyettesítéseket érintő kérdésekben tudok segíteni.'
-            : 'Csak a Pharmagistert, a saját beosztásodat, szabadságodat, túlórádat és helyettesítési kérdéseidet érintő témákban tudok segíteni.';
-        } else {
-          responseRoute = 'CLASSIFIER_DOMAIN';
-          const llmResult = await callBettiLLM({
-            message,
-            chatRole,
-            userName,
-            recentConversation,
-            stats: context.stats || null,
-          });
-          if (llmResult.usedLLM && llmResult.reply) {
-            finalReply = llmResult.reply;
-            usedLLM = true;
-            responseRoute = 'LLM';
-          } else if (llmResult.error) {
-            responseRoute = 'CLASSIFIER_DOMAIN_LLM_ERROR';
-            console.warn('[Betti LLM fallback] Gemini call failed:', llmResult.error);
-          }
-        }
+        action = pipelineResult.action;
+        finalReply = pipelineResult.reply;
+        pipelinePayload = pipelineResult.payload || {};
+        quickActions = pipelineResult.quickActions || [];
+        nextConversationState = pipelineResult.nextConversationState || conversationState;
+        parsed = parsedForLearned;
+        responseRoute = 'RULE_FALLBACK';
+      } else {
+        action = routerResult.action;
+        finalReply = routerResult.reply;
+        const routerEntities = routerResult.entities || {};
+        pipelinePayload = { action, entities: routerEntities, suggestedAction: action };
+        quickActions = buildSuccessQuickActions({ action, chatRole, entities: routerEntities });
+        parsed = { intent: action, confidence: 1.0, entities: routerEntities };
+        usedLLM = true;
+        responseRoute = 'LLM';
       }
-    } else if (isGuardedMessage) {
-      responseRoute = 'RULE_GUARD';
-    } else if (isDeterministicAction) {
-      responseRoute = 'RULE_ACTION';
     }
 
     finalReply = stabilizeReplyText(finalReply, chatRole);
@@ -2440,7 +2370,6 @@ export async function POST(request) {
 
     // ── SAVE STATE ───────────────────────────────────────────────────────────
     const stats = longTermMemory?.stats || {};
-    const today = new Date().toISOString().slice(0, 10);
     const prevLlm = stats.llm || {};
     const updatedStats = {
       ...stats,
