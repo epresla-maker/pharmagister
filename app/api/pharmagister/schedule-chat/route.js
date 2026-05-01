@@ -2427,26 +2427,62 @@ export async function POST(request) {
           parsed = { intent: action, confidence: 0.9, entities: {} };
           responseRoute = 'HEURISTIC_FALLBACK';
         } else {
-        // Fallback: rule-based pipeline if LLM fails
-        const pipelineResult = runBettiPipeline({
-          message,
-          parsed: parsedForLearned,
-          conversationState,
-          chatRole,
-          context: { ...context, _handlers: { explainAssignmentDecision } },
-          mood,
-          lastAssistantAction,
-          lastAssistantEntities,
-          lastAssistantMessage,
-          previousMessageIntent,
-        });
-        action = pipelineResult.action;
-        finalReply = pipelineResult.reply;
-        pipelinePayload = pipelineResult.payload || {};
-        quickActions = pipelineResult.quickActions || [];
-        nextConversationState = pipelineResult.nextConversationState || conversationState;
-        parsed = parsedForLearned;
-        responseRoute = 'RULE_FALLBACK';
+          // 2nd Gemini attempt before any rule fallback.
+          const llmTextFallback = await callBettiLLM({
+            message,
+            chatRole,
+            userName,
+            recentConversation,
+            stats: context.stats || null,
+          });
+
+          if (llmTextFallback.usedLLM && llmTextFallback.reply) {
+            const inferActionFromMessage = () => {
+              if (isReplacementDemandMessage) return 'find_replacement';
+              if (msgNorm.includes('ujratervez') || msgNorm.includes('ujratervezes')) return 'replan_all';
+              if (msgNorm.includes('tulora')) return 'show_overtime';
+              if (msgNorm.includes('dolgozo') || msgNorm.includes('alkalmazott') || msgNorm.includes('csapat')) {
+                return chatRole === 'pharmacy' ? 'list_employees' : 'clarify';
+              }
+              if (msgNorm.includes('szabadnap')) return chatRole === 'pharmacy' ? 'show_vacation_requests' : 'show_my_free_days';
+              if (msgNorm.includes('szabi') || msgNorm.includes('szabadsag')) {
+                return chatRole === 'pharmacy' ? 'show_vacation_requests' : 'show_my_vacations';
+              }
+              if (msgNorm.includes('beoszt') || msgNorm.includes('muszak')) {
+                return chatRole === 'pharmacy' ? 'missing_drafts' : 'show_my_schedule';
+              }
+              return 'clarify';
+            };
+
+            action = inferActionFromMessage();
+            finalReply = llmTextFallback.reply;
+            pipelinePayload = { action, entities: {}, suggestedAction: action };
+            quickActions = buildSuccessQuickActions({ action, chatRole, entities: {} });
+            parsed = { intent: action, confidence: 0.85, entities: {} };
+            usedLLM = true;
+            responseRoute = 'LLM_TEXT_FALLBACK';
+          } else {
+            // Final fallback only when both Gemini paths fail.
+            const pipelineResult = runBettiPipeline({
+              message,
+              parsed: parsedForLearned,
+              conversationState,
+              chatRole,
+              context: { ...context, _handlers: { explainAssignmentDecision } },
+              mood,
+              lastAssistantAction,
+              lastAssistantEntities,
+              lastAssistantMessage,
+              previousMessageIntent,
+            });
+            action = pipelineResult.action;
+            finalReply = pipelineResult.reply;
+            pipelinePayload = pipelineResult.payload || {};
+            quickActions = pipelineResult.quickActions || [];
+            nextConversationState = pipelineResult.nextConversationState || conversationState;
+            parsed = parsedForLearned;
+            responseRoute = 'RULE_FALLBACK';
+          }
         }
       } else {
         action = routerResult.action;
