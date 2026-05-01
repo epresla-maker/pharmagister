@@ -5297,259 +5297,247 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           </button>
         </div>
 
-        <div className="p-4 space-y-5">
+        <div className="p-4 space-y-4">
 
-          {/* ── Betti kérdés-flow + autosave ───────────────────────────── */}
-          <div className={`rounded-2xl border p-4 space-y-3 ${darkMode ? 'border-violet-700 bg-violet-900/20' : 'border-violet-200 bg-violet-50'}`}>
-            <div className="flex items-center justify-between gap-2">
-              <p className={`text-sm font-bold ${darkMode ? 'text-violet-200' : 'text-violet-900'}`}>Betti kérdései</p>
-              <span className={`text-xs font-semibold rounded-full px-2 py-1 shrink-0 ${darkMode ? 'bg-violet-800 text-violet-100' : 'bg-violet-100 text-violet-800'}`}>
-                {wizardCompletedDisplay}/{wizardTotal} kész
-              </span>
-            </div>
+          {/* ── Betti wizard – nagy kártyás chat UI ───────────────────── */}
+          <div className={`rounded-3xl overflow-hidden shadow-lg border ${darkMode ? 'border-violet-800 bg-gray-900' : 'border-violet-100 bg-white'}`}>
 
-            {contradictionWarnings.length > 0 && (
-              <div className={`rounded-xl border px-3 py-3 space-y-2 ${darkMode ? 'border-amber-700 bg-amber-900/20' : 'border-amber-200 bg-amber-50'}`}>
-                <p className={`text-xs font-bold uppercase tracking-wide ${darkMode ? 'text-amber-300' : 'text-amber-700'}`}>Betti észrevételei</p>
-                {contradictionWarnings.map((warning, index) => (
-                  <div key={index} className={`text-xs ${darkMode ? 'text-amber-200' : 'text-amber-800'}`}>
-                    {index + 1}. {warning}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Betti bemutatkozás – csak az első lépésnél */}
-            {safeWizardStepIndex === 0 && (
-              <div className="flex items-start gap-3">
-                <div className="flex flex-col items-center gap-0.5 shrink-0 pt-1">
-                  <div className={`h-10 w-10 rounded-full flex items-center justify-center text-xl shadow-sm ${darkMode ? 'bg-violet-800' : 'bg-violet-100'}`}>
-                    👩‍⚕️
-                  </div>
-                  <span className={`text-[10px] font-bold ${darkMode ? 'text-violet-300' : 'text-violet-700'}`}>Betti</span>
-                </div>
-                <div className="flex-1 relative">
-                  <div className={`absolute left-[-7px] top-4 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-r-[7px] ${darkMode ? 'border-r-violet-900' : 'border-r-violet-100'}`} />
-                  <div className={`rounded-2xl rounded-tl-sm border px-4 py-3 shadow-sm ${darkMode ? 'border-violet-700 bg-violet-900/40' : 'border-violet-200 bg-violet-50'}`}>
-                    <p className={`text-sm font-semibold ${darkMode ? 'text-violet-100' : 'text-violet-900'}`}>Szia! Én vagyok Betti 👋</p>
-                    <p className={`text-xs mt-1 leading-relaxed ${darkMode ? 'text-violet-200/80' : 'text-violet-800/80'}`}>
-                      A Pharmagister beosztástervező asszisztense vagyok. Néhány rövid kérdéssel segítek beállítani a gyógyszertárad működési kritériumait, hogy az automatikus beosztás a legjobban illeszkedjen hozzátok. Minden válasz azonnal mentődik. Kezdjük! 🚀
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Speech bubble from Betti */}
-            <div className="flex items-start gap-3">
-              {/* Avatar */}
-              <div className="flex flex-col items-center gap-0.5 shrink-0 pt-1">
-                <div className={`h-10 w-10 rounded-full flex items-center justify-center text-xl shadow-sm ${darkMode ? 'bg-violet-800' : 'bg-violet-100'}`}>
+            {/* Progress bar + fejléc */}
+            <div className={`px-5 pt-5 pb-4 ${darkMode ? 'bg-violet-900/30' : 'bg-violet-50'}`}>
+              <div className="flex items-center gap-3 mb-3">
+                <div className={`h-12 w-12 rounded-2xl flex items-center justify-center text-2xl shadow-sm shrink-0 ${darkMode ? 'bg-violet-800' : 'bg-violet-600'}`}>
                   👩‍⚕️
                 </div>
-                <span className={`text-[10px] font-bold ${darkMode ? 'text-violet-300' : 'text-violet-700'}`}>Betti</span>
+                <div>
+                  <p className={`font-bold text-base ${darkMode ? 'text-white' : 'text-gray-900'}`}>Betti</p>
+                  <p className={`text-xs ${darkMode ? 'text-violet-300' : 'text-violet-600'}`}>Beosztástervező asszisztens</p>
+                </div>
+                <div className="ml-auto text-right">
+                  <p className={`text-xs font-semibold ${darkMode ? 'text-violet-300' : 'text-violet-700'}`}>{safeWizardStepIndex + 1} / {wizardTotal}</p>
+                  <p className={`text-[10px] ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>kérdés</p>
+                </div>
               </div>
-              {/* Bubble */}
-              <div className="flex-1 relative">
-                <div className={`absolute left-[-7px] top-4 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-r-[7px] ${darkMode ? 'border-r-gray-800' : 'border-r-white'}`} />
-                <div className={`rounded-2xl rounded-tl-sm border px-4 py-3 shadow-sm ${darkMode ? 'border-violet-700 bg-gray-800' : 'border-violet-200 bg-white'}`}>
-                  <p className={`text-[11px] font-semibold uppercase tracking-wide mb-1.5 ${darkMode ? 'text-violet-300' : 'text-violet-600'}`}>
-                    Kérdés {safeWizardStepIndex + 1}/{wizardTotal}
+              {/* Progress bar */}
+              <div className={`h-2 rounded-full overflow-hidden ${darkMode ? 'bg-gray-800' : 'bg-violet-100'}`}>
+                <div
+                  className="h-full rounded-full bg-violet-500 transition-all duration-300"
+                  style={{ width: `${((safeWizardStepIndex + 1) / wizardTotal) * 100}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Betti üzenet buborék */}
+            <div className="px-5 pt-4 pb-2 space-y-3">
+
+              {/* Bemutatkozás csak első lépésnél */}
+              {safeWizardStepIndex === 0 && (
+                <div className={`rounded-2xl rounded-tl-sm px-5 py-4 ${darkMode ? 'bg-violet-900/50' : 'bg-violet-50'}`}>
+                  <p className={`font-bold text-base mb-1 ${darkMode ? 'text-violet-100' : 'text-violet-900'}`}>Szia! Én vagyok Betti 👋</p>
+                  <p className={`text-sm leading-relaxed ${darkMode ? 'text-violet-200/80' : 'text-violet-800/80'}`}>
+                    Néhány kérdéssel beállítom a gyógyszertárad kritériumait, hogy az automatikus beosztás pontosan illeszkedjen hozzátok. Minden válasz azonnal mentődik! 🚀
                   </p>
-                  <p className={`text-sm font-semibold ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}>{wizardStep.title}</p>
-                  <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{wizardStep.hint}</p>
-
-                  <div className="mt-3">
-                    {wizardStep.key === 'open_sunday' && (
-                      <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={plannerConfigForm.operations?.openingHoursByWeekday?.[0]?.isOpen !== false}
-                          onChange={e => updateOpeningHoursDay(0, { isOpen: e.target.checked })}
-                          className="h-4 w-4 rounded"
-                        />
-                        <span className={darkMode ? 'text-gray-200' : 'text-gray-700'}>Vasárnap nyitva</span>
-                      </label>
-                    )}
-
-                    {wizardStep.key === 'on_call_enabled' && (
-                      <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={plannerConfigForm.operations?.onCall?.enabled === true}
-                          onChange={e => setPlannerConfigForm(prev => ({
-                            ...prev,
-                            operations: {
-                              ...(prev.operations || {}),
-                              onCall: {
-                                ...((prev.operations || {}).onCall || {}),
-                                enabled: e.target.checked,
-                              },
-                            },
-                          }))}
-                          className="h-4 w-4 rounded"
-                        />
-                        <span className={darkMode ? 'text-gray-200' : 'text-gray-700'}>Van ügyeleti szolgálat</span>
-                      </label>
-                    )}
-
-                    {wizardStep.key === 'on_call_days' && (
-                      <div className="flex flex-wrap gap-2">
-                        {WEEKDAY_DISPLAY.map(({ day, label }) => {
-                          const active = onCallDaysSelected.includes(day);
-                          return (
-                            <button
-                              key={day}
-                              type="button"
-                              onClick={() => toggleOnCallDay(day)}
-                              className={`rounded-lg px-3 py-1.5 text-xs font-semibold border ${active ? 'bg-violet-600 border-violet-600 text-white' : darkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-100'}`}
-                            >
-                              {label}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    {wizardStep.key === 'day_min_pharmacists' && (
-                      <input
-                        type="number"
-                        min="0"
-                        value={plannerConfigForm.minPharmacistsPerShift}
-                        onChange={e => setPlannerConfigForm(prev => ({ ...prev, minPharmacistsPerShift: isNaN(e.target.valueAsNumber) ? 0 : e.target.valueAsNumber }))}
-                        className={`w-28 rounded-xl border px-3 py-2 text-sm ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
-                      />
-                    )}
-
-                    {wizardStep.key === 'on_call_min_pharmacists' && (
-                      <input
-                        type="number"
-                        min="0"
-                        value={plannerConfigForm.operations?.onCall?.requiredPharmacists ?? 1}
-                        onChange={e => {
-                          const val = isNaN(e.target.valueAsNumber) ? 0 : e.target.valueAsNumber;
-                          setPlannerConfigForm(prev => ({
-                            ...prev,
-                            operations: {
-                              ...(prev.operations || {}),
-                              onCall: {
-                                ...((prev.operations || {}).onCall || {}),
-                                requiredPharmacists: val,
-                              },
-                            },
-                          }));
-                        }}
-                        className={`w-28 rounded-xl border px-3 py-2 text-sm ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
-                      />
-                    )}
-                  </div>
-
-                  <div className="mt-4 flex items-center justify-between">
-                    <p className={`text-[11px] ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                      {plannerDraftSaving
-                        ? 'Mentés...'
-                        : plannerDraftSavedAt
-                          ? `Mentve: ${plannerDraftSavedAt.toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' })}`
-                          : 'Automatikusan mentődik'}
-                    </p>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={goWizardPrev}
-                        disabled={plannerWizardStep === 0}
-                        className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${darkMode ? 'bg-gray-700 text-gray-200 disabled:opacity-40' : 'bg-gray-200 text-gray-700 disabled:opacity-40'}`}
-                      >
-                        Előző
-                      </button>
-                      {safeWizardStepIndex < wizardTotal - 1 ? (
-                        <button
-                          type="button"
-                          onClick={goWizardNext}
-                          className="rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white"
-                        >
-                          Következő
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={savePlannerConfig}
-                          disabled={plannerConfigSaving}
-                          className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
-                        >
-                          {plannerConfigSaving ? 'Mentés...' : 'Kész ✓'}
-                        </button>
-                      )}
-                    </div>
-                  </div>
                 </div>
-              </div>
-            </div>
+              )}
 
-            {/* Betti záró üzenet – csak az utolsó lépésnél */}
-            {safeWizardStepIndex === wizardTotal - 1 && (
-              <div className="flex items-start gap-3">
-                <div className="flex flex-col items-center gap-0.5 shrink-0 pt-1">
-                  <div className={`h-10 w-10 rounded-full flex items-center justify-center text-xl shadow-sm ${darkMode ? 'bg-violet-800' : 'bg-violet-100'}`}>
-                    👩‍⚕️
-                  </div>
-                  <span className={`text-[10px] font-bold ${darkMode ? 'text-violet-300' : 'text-violet-700'}`}>Betti</span>
-                </div>
-                <div className="flex-1 relative">
-                  <div className={`absolute left-[-7px] top-4 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-r-[7px] ${darkMode ? 'border-r-emerald-900' : 'border-r-emerald-50'}`} />
-                  <div className={`rounded-2xl rounded-tl-sm border px-4 py-3 shadow-sm ${darkMode ? 'border-emerald-700 bg-emerald-900/30' : 'border-emerald-200 bg-emerald-50'}`}>
-                    <p className={`text-sm font-semibold ${darkMode ? 'text-emerald-100' : 'text-emerald-900'}`}>Szuper, minden megvan! 🎉</p>
-                    <p className={`text-xs mt-1 leading-relaxed ${darkMode ? 'text-emerald-200/80' : 'text-emerald-800/80'}`}>
-                      Összegyűjtöttem a beállításaitokat. Nézd át az összefoglalót, és ha minden rendben, kattints a <strong>Jóváhagyom</strong> gombra – ezek alapján fogom elkészíteni a beosztást. 💊
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className={`rounded-xl border px-3 py-3 ${darkMode ? 'border-emerald-700 bg-emerald-900/20' : 'border-emerald-200 bg-emerald-50'}`}>
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className={`text-sm font-bold ${darkMode ? 'text-emerald-200' : 'text-emerald-900'}`}>Betti összefoglalója</p>
-                  <p className={`text-xs ${darkMode ? 'text-emerald-300/80' : 'text-emerald-700/80'}`}>Ezt fogja használni Betti a beosztás generálásnál.</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={savePlannerConfig}
-                  disabled={plannerConfigSaving}
-                  className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
-                >
-                  {plannerConfigSaving ? 'Jóváhagyás...' : 'Jóváhagyom'}
-                </button>
-              </div>
-              <div className="mt-3 space-y-2">
-                {aiSummaryLines.map((line, index) => (
-                  <div key={index} className={`text-xs rounded-lg px-3 py-2 ${darkMode ? 'bg-gray-900 text-gray-200' : 'bg-white text-gray-700'}`}>
-                    {line}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className={`rounded-xl border px-3 py-3 space-y-3 ${darkMode ? 'border-sky-700 bg-sky-900/20' : 'border-sky-200 bg-sky-50'}`}>
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className={`text-sm font-bold ${darkMode ? 'text-sky-200' : 'text-sky-900'}`}>Beszelj Bettivel</p>
-                  <p className={`text-xs ${darkMode ? 'text-sky-300/80' : 'text-sky-700/80'}`}>Pl.: "Mutasd a tulorasokat" vagy "Tervezd ujra csak a hetfot".</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setBettiChatOpen(true)}
-                  className="rounded-lg bg-sky-600 px-3 py-1.5 text-xs font-semibold text-white"
-                >
-                  Chat megnyitasa
-                </button>
-              </div>
-
-              <div className={`rounded-xl border p-3 ${darkMode ? 'border-sky-800 bg-gray-900' : 'border-sky-200 bg-white'}`}>
-                <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Teljes kepernyos chat elerheto. Nyisd meg, es kerdezz Bettitol szabad szovegben.
+              {/* Aktuális kérdés kártya */}
+              <div className={`rounded-2xl rounded-tl-sm border px-5 py-5 shadow-sm ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-white'}`}>
+                <p className={`text-xs font-bold uppercase tracking-widest mb-2 ${darkMode ? 'text-violet-400' : 'text-violet-500'}`}>
+                  {wizardStep.hint}
                 </p>
+                <p className={`text-xl font-bold leading-tight mb-5 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{wizardStep.title}</p>
+
+                {/* Válasz mezők – nagy tap targets */}
+                {wizardStep.key === 'open_sunday' && (
+                  <div className="space-y-3">
+                    {[
+                      { value: true, label: 'Igen, vasárnap is nyitva vagyunk', icon: '✅' },
+                      { value: false, label: 'Nem, vasárnap zárva tartunk', icon: '🚫' },
+                    ].map(opt => {
+                      const current = plannerConfigForm.operations?.openingHoursByWeekday?.[0]?.isOpen !== false;
+                      const selected = opt.value === current;
+                      return (
+                        <button
+                          key={String(opt.value)}
+                          type="button"
+                          onClick={() => updateOpeningHoursDay(0, { isOpen: opt.value })}
+                          className={`w-full flex items-center gap-4 rounded-2xl border-2 px-5 py-4 text-left transition-all ${
+                            selected
+                              ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/40 dark:border-violet-400'
+                              : darkMode ? 'border-gray-700 bg-gray-900 hover:border-gray-600' : 'border-gray-200 bg-gray-50 hover:border-violet-200'
+                          }`}
+                        >
+                          <span className="text-2xl">{opt.icon}</span>
+                          <span className={`text-sm font-semibold ${selected ? (darkMode ? 'text-violet-200' : 'text-violet-900') : (darkMode ? 'text-gray-300' : 'text-gray-700')}`}>{opt.label}</span>
+                          {selected && <span className="ml-auto text-violet-500 text-lg">●</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {wizardStep.key === 'on_call_enabled' && (
+                  <div className="space-y-3">
+                    {[
+                      { value: true, label: 'Igen, van rendszeres ügyelet', icon: '🌙' },
+                      { value: false, label: 'Nem, nincs ügyeleti szolgálat', icon: '☀️' },
+                    ].map(opt => {
+                      const current = plannerConfigForm.operations?.onCall?.enabled === true;
+                      const selected = opt.value === current;
+                      return (
+                        <button
+                          key={String(opt.value)}
+                          type="button"
+                          onClick={() => setPlannerConfigForm(prev => ({
+                            ...prev,
+                            operations: { ...(prev.operations || {}), onCall: { ...((prev.operations || {}).onCall || {}), enabled: opt.value } },
+                          }))}
+                          className={`w-full flex items-center gap-4 rounded-2xl border-2 px-5 py-4 text-left transition-all ${
+                            selected
+                              ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/40 dark:border-violet-400'
+                              : darkMode ? 'border-gray-700 bg-gray-900 hover:border-gray-600' : 'border-gray-200 bg-gray-50 hover:border-violet-200'
+                          }`}
+                        >
+                          <span className="text-2xl">{opt.icon}</span>
+                          <span className={`text-sm font-semibold ${selected ? (darkMode ? 'text-violet-200' : 'text-violet-900') : (darkMode ? 'text-gray-300' : 'text-gray-700')}`}>{opt.label}</span>
+                          {selected && <span className="ml-auto text-violet-500 text-lg">●</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {wizardStep.key === 'on_call_days' && (
+                  <div className="grid grid-cols-4 gap-2">
+                    {WEEKDAY_DISPLAY.map(({ day, fullLabel }) => {
+                      const active = onCallDaysSelected.includes(day);
+                      return (
+                        <button
+                          key={day}
+                          type="button"
+                          onClick={() => toggleOnCallDay(day)}
+                          className={`flex flex-col items-center gap-1 rounded-2xl border-2 py-4 transition-all ${
+                            active
+                              ? 'border-violet-500 bg-violet-500 text-white'
+                              : darkMode ? 'border-gray-700 bg-gray-900 text-gray-400 hover:border-gray-600' : 'border-gray-200 bg-gray-50 text-gray-600 hover:border-violet-200'
+                          }`}
+                        >
+                          <span className="text-lg">{active ? '✓' : '○'}</span>
+                          <span className="text-[11px] font-bold">{fullLabel.slice(0, 3)}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {wizardStep.key === 'day_min_pharmacists' && (
+                  <div className="flex items-center gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setPlannerConfigForm(prev => ({ ...prev, minPharmacistsPerShift: Math.max(0, (prev.minPharmacistsPerShift || 0) - 1) }))}
+                      className={`h-14 w-14 rounded-2xl text-2xl font-bold flex items-center justify-center border-2 ${darkMode ? 'border-gray-600 bg-gray-800 text-gray-200 hover:bg-gray-700' : 'border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100'}`}
+                    >−</button>
+                    <div className="flex-1 text-center">
+                      <p className={`text-5xl font-black ${darkMode ? 'text-white' : 'text-gray-900'}`}>{plannerConfigForm.minPharmacistsPerShift || 0}</p>
+                      <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>gyógyszerész / műszak</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setPlannerConfigForm(prev => ({ ...prev, minPharmacistsPerShift: (prev.minPharmacistsPerShift || 0) + 1 }))}
+                      className={`h-14 w-14 rounded-2xl text-2xl font-bold flex items-center justify-center border-2 border-violet-400 ${darkMode ? 'bg-violet-900/50 text-violet-200 hover:bg-violet-900' : 'bg-violet-50 text-violet-700 hover:bg-violet-100'}`}
+                    >+</button>
+                  </div>
+                )}
+
+                {wizardStep.key === 'on_call_min_pharmacists' && (
+                  <div className="flex items-center gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setPlannerConfigForm(prev => ({ ...prev, operations: { ...(prev.operations || {}), onCall: { ...((prev.operations || {}).onCall || {}), requiredPharmacists: Math.max(0, ((prev.operations || {}).onCall?.requiredPharmacists ?? 1) - 1) } } }))}
+                      className={`h-14 w-14 rounded-2xl text-2xl font-bold flex items-center justify-center border-2 ${darkMode ? 'border-gray-600 bg-gray-800 text-gray-200 hover:bg-gray-700' : 'border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100'}`}
+                    >−</button>
+                    <div className="flex-1 text-center">
+                      <p className={`text-5xl font-black ${darkMode ? 'text-white' : 'text-gray-900'}`}>{plannerConfigForm.operations?.onCall?.requiredPharmacists ?? 1}</p>
+                      <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>gyógyszerész / ügyelet</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setPlannerConfigForm(prev => ({ ...prev, operations: { ...(prev.operations || {}), onCall: { ...((prev.operations || {}).onCall || {}), requiredPharmacists: ((prev.operations || {}).onCall?.requiredPharmacists ?? 1) + 1 } } }))}
+                      className={`h-14 w-14 rounded-2xl text-2xl font-bold flex items-center justify-center border-2 border-violet-400 ${darkMode ? 'bg-violet-900/50 text-violet-200 hover:bg-violet-900' : 'bg-violet-50 text-violet-700 hover:bg-violet-100'}`}
+                    >+</button>
+                  </div>
+                )}
               </div>
+
+              {/* Betti záró üzenet – utolsó lépésnél */}
+              {safeWizardStepIndex === wizardTotal - 1 && (
+                <div className={`rounded-2xl rounded-tl-sm px-5 py-4 ${darkMode ? 'bg-emerald-900/40' : 'bg-emerald-50'}`}>
+                  <p className={`font-bold text-base mb-1 ${darkMode ? 'text-emerald-100' : 'text-emerald-900'}`}>Szuper, minden megvan! 🎉</p>
+                  <p className={`text-sm leading-relaxed ${darkMode ? 'text-emerald-200/80' : 'text-emerald-800/80'}`}>
+                    Nézd át az összefoglalót, és kattints a <strong>Jóváhagyom</strong> gombra – ezek alapján készítem a beosztást. 💊
+                  </p>
+                </div>
+              )}
+
+              {/* Contradiction warnings */}
+              {contradictionWarnings.length > 0 && (
+                <div className={`rounded-2xl px-5 py-4 space-y-2 ${darkMode ? 'bg-amber-900/30' : 'bg-amber-50'}`}>
+                  <p className={`text-xs font-bold uppercase tracking-wide ${darkMode ? 'text-amber-300' : 'text-amber-700'}`}>⚠️ Betti észrevételei</p>
+                  {contradictionWarnings.map((w, i) => (
+                    <p key={i} className={`text-sm ${darkMode ? 'text-amber-200' : 'text-amber-800'}`}>{w}</p>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Navigáció + autosave */}
+            <div className={`px-5 py-4 flex items-center justify-between gap-3 border-t ${darkMode ? 'border-gray-800 bg-gray-900' : 'border-gray-100 bg-gray-50'}`}>
+              <p className={`text-xs ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>
+                {plannerDraftSaving ? '💾 Mentés...' : plannerDraftSavedAt ? `✓ Mentve ${plannerDraftSavedAt.toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' })}` : 'Auto-mentés'}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={goWizardPrev}
+                  disabled={safeWizardStepIndex === 0}
+                  className={`rounded-xl px-5 py-2.5 text-sm font-semibold transition-colors disabled:opacity-30 ${darkMode ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                >
+                  ← Előző
+                </button>
+                {safeWizardStepIndex < wizardTotal - 1 ? (
+                  <button
+                    type="button"
+                    onClick={goWizardNext}
+                    className="rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-violet-700 transition-colors"
+                  >
+                    Következő →
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={savePlannerConfig}
+                    disabled={plannerConfigSaving}
+                    className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60 hover:bg-emerald-700 transition-colors"
+                  >
+                    {plannerConfigSaving ? 'Mentés...' : 'Jóváhagyom ✓'}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Összefoglaló kártya */}
+          <div className={`rounded-3xl border overflow-hidden shadow-sm ${darkMode ? 'border-emerald-800 bg-gray-900' : 'border-emerald-100 bg-white'}`}>
+            <div className={`px-5 py-4 ${darkMode ? 'bg-emerald-900/30' : 'bg-emerald-50'}`}>
+              <p className={`font-bold text-base ${darkMode ? 'text-emerald-100' : 'text-emerald-900'}`}>📋 Betti összefoglalója</p>
+              <p className={`text-xs mt-0.5 ${darkMode ? 'text-emerald-300/70' : 'text-emerald-700/70'}`}>Ezt fogja használni a beosztás generálásnál</p>
+            </div>
+            <div className="px-5 py-4 space-y-2">
+              {aiSummaryLines.map((line, index) => (
+                <div key={index} className={`flex items-start gap-3 rounded-xl px-4 py-3 ${darkMode ? 'bg-gray-800' : 'bg-gray-50'}`}>
+                  <span className="text-emerald-500 mt-0.5 text-sm">✓</span>
+                  <span className={`text-sm ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>{line}</span>
+                </div>
+              ))}
             </div>
           </div>
 
