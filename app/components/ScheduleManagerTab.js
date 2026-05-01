@@ -9,9 +9,12 @@ import {
   addDoc,
   collection,
   doc,
+  getDoc,
   getDocs,
+  increment,
   query,
   serverTimestamp,
+  setDoc,
   updateDoc,
   where,
 } from 'firebase/firestore';
@@ -1560,6 +1563,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   const [bettiKeyboardInset, setBettiKeyboardInset] = useState(0);
   const [bettiVoiceListening, setBettiVoiceListening] = useState(false);
   const [bettiSpeakEnabled, setBettiSpeakEnabled] = useState(false);
+  const [bettiDemandDraft, setBettiDemandDraft] = useState(null);
   const bettiNativeKeyboardHeightRef = useRef(0);
   const bettiRecognitionRef = useRef(null);
   const bettiChatScrollRef = useRef(null);
@@ -3756,6 +3760,48 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     window.speechSynthesis.speak(utterance);
   }
 
+  function resolveDemandDraftDate(dateOffset = 1) {
+    const base = new Date();
+    base.setHours(0, 0, 0, 0);
+    base.setDate(base.getDate() + Number(dateOffset || 0));
+    return formatDateKey(base.getFullYear(), base.getMonth() + 1, base.getDate());
+  }
+
+  function buildDemandWizardCommands(draft) {
+    const safeDraft = draft || { position: 'pharmacist', dateOffset: 1, workHours: '08:00-16:00' };
+    return [
+      {
+        id: safeDraft.position === 'pharmacist' ? 'pos_assistant' : 'pos_pharmacist',
+        type: 'local_demand_wizard_set_position',
+        label: safeDraft.position === 'pharmacist' ? 'Szakasszisztens pozicio' : 'Gyogyszeresz pozicio',
+        position: safeDraft.position === 'pharmacist' ? 'assistant' : 'pharmacist',
+      },
+      {
+        id: 'date_next',
+        type: 'local_demand_wizard_set_date_offset',
+        label: 'Holnap',
+        dateOffset: 1,
+      },
+      {
+        id: 'date_plus2',
+        type: 'local_demand_wizard_set_date_offset',
+        label: '2 nap mulva',
+        dateOffset: 2,
+      },
+      {
+        id: safeDraft.workHours === '08:00-16:00' ? 'hours_12_20' : 'hours_8_16',
+        type: 'local_demand_wizard_set_hours',
+        label: safeDraft.workHours === '08:00-16:00' ? '12:00-20:00' : '08:00-16:00',
+        workHours: safeDraft.workHours === '08:00-16:00' ? '12:00-20:00' : '08:00-16:00',
+      },
+      {
+        id: 'demand_submit',
+        type: 'local_demand_wizard_submit',
+        label: 'Igeny feladasa',
+      },
+    ];
+  }
+
   async function executeBettiUiCommand(command, messageContext = null) {
     const cmd = command || {};
     const cmdType = String(cmd.type || '').trim();
@@ -4019,6 +4065,341 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           role: 'assistant',
           text: 'Hiba tortent a jelentkezesnel. Probald ujra, vagy nyisd meg a naptar oldalt.',
           intent: 'local_apply_error',
+          ts: Date.now(),
+          uiCommands: [{ id: 'open_replacement_calendar', type: 'navigate_url', label: 'Naptar megnyitasa', url: '/pharmagister?tab=calendar' }],
+        }]);
+      }
+      return;
+    }
+
+    if (cmdType === 'local_list_pending_applications') {
+      if (!user || !isPharmacy) return;
+
+      try {
+        const pendingSnap = await getDocs(query(
+          collection(db, 'pharmaApplications'),
+          where('pharmacyId', '==', user.uid),
+          where('status', '==', 'pending')
+        ));
+
+        const pending = pendingSnap.docs
+          .map((d) => ({ id: d.id, ...d.data() }))
+          .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')))
+          .slice(0, 6);
+
+        if (pending.length === 0) {
+          setBettiChatMessages((prev) => [...prev, {
+            role: 'assistant',
+            text: 'Jelenleg nincs fuggo jelentkezesed helyettesitesi igenyekre.',
+            intent: 'local_pending_empty',
+            ts: Date.now(),
+          }]);
+          return;
+        }
+
+        const lines = pending.map((a) => {
+          const roleLabel = a.applicantRole === 'pharmacist' ? 'Gyogyszeresz' : 'Szakasszisztens';
+          return `- ${formatHuDate(a.date)} · ${a.applicantName || 'Jelentkezo'} · ${roleLabel}`;
+        }).join('\n');
+
+        const commands = pending.flatMap((a) => ([
+          {
+            id: `app_accept_${a.id}`,
+            type: 'local_decide_application',
+            label: `Elfogad: ${a.applicantName || 'Jelentkezo'}`,
+            applicationId: a.id,
+            demandId: a.demandId,
+            decision: 'accepted',
+          },
+          {
+            id: `app_reject_${a.id}`,
+            type: 'local_decide_application',
+            label: `Elutasit: ${a.applicantName || 'Jelentkezo'}`,
+            applicationId: a.id,
+            demandId: a.demandId,
+            decision: 'rejected',
+            reason: 'Chatbol elutasitva',
+          },
+        ])).slice(0, 4);
+
+        setBettiChatMessages((prev) => [...prev, {
+          role: 'assistant',
+          text: `Fuggo jelentkezesek:\n${lines}`,
+          intent: 'local_pending_listed',
+          ts: Date.now(),
+          uiCommands: commands,
+        }]);
+      } catch (err) {
+        console.error('Betti local_list_pending_applications error:', err);
+        setBettiChatMessages((prev) => [...prev, {
+          role: 'assistant',
+          text: 'Most nem sikerult lekerdezni a fuggo jelentkezeseket. Probald ujra.',
+          intent: 'local_pending_error',
+          ts: Date.now(),
+        }]);
+      }
+      return;
+    }
+
+    if (cmdType === 'local_decide_application') {
+      if (!user || !isPharmacy) return;
+
+      const applicationId = String(cmd.applicationId || '').trim();
+      const demandId = String(cmd.demandId || '').trim();
+      const decision = String(cmd.decision || '').trim();
+      const rejectReason = String(cmd.reason || 'Chatbol elutasitva').trim();
+      if (!applicationId || !demandId || !['accepted', 'rejected'].includes(decision)) return;
+
+      try {
+        const appRef = doc(db, 'pharmaApplications', applicationId);
+        const appDoc = await getDoc(appRef);
+        if (!appDoc.exists()) {
+          setBettiChatMessages((prev) => [...prev, {
+            role: 'assistant',
+            text: 'A kivalsztott jelentkezes mar nem erheto el.',
+            intent: 'local_decide_missing',
+            ts: Date.now(),
+          }]);
+          return;
+        }
+
+        const appData = appDoc.data();
+        if (decision === 'accepted') {
+          await updateDoc(appRef, {
+            status: 'accepted',
+            acceptedAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          });
+
+          await updateDoc(doc(db, 'pharmaDemands', demandId), {
+            status: 'filled',
+            updatedAt: new Date().toISOString(),
+          });
+
+          const feedPostsSnapshot = await getDocs(query(collection(db, 'serviceFeedPosts'), where('pharmaDemandId', '==', demandId)));
+          for (const fd of feedPostsSnapshot.docs) {
+            await updateDoc(doc(db, 'serviceFeedPosts', fd.id), { status: 'filled' });
+          }
+
+          await createNotificationWithPush({
+            userId: appData.applicantId,
+            type: 'approval_accepted',
+            title: 'Jelentkezes elfogadva! ✅',
+            message: `${userData?.pharmacyName || userData?.displayName || 'Gyogyszertar'} elfogadta a jelentkezesedet.`,
+            data: { demandId, pharmacyId: user.uid, demandDate: appData.date, position: appData.position },
+            url: `/pharmagister/demand/${demandId}`,
+          });
+
+          setBettiChatMessages((prev) => [...prev, {
+            role: 'assistant',
+            text: `${appData.applicantName || 'A jelentkezo'} jelentkezeset elfogadtam ${formatHuDate(appData.date)} napra.`,
+            intent: 'local_decide_accepted',
+            ts: Date.now(),
+            uiCommands: [{ id: 'list_pending_apps', type: 'local_list_pending_applications', label: 'Tovabbi fuggo jelentkezesek' }],
+          }]);
+          return;
+        }
+
+        await updateDoc(appRef, {
+          status: 'rejected',
+          rejectionReason: rejectReason,
+          updatedAt: new Date().toISOString(),
+        });
+
+        await createNotificationWithPush({
+          userId: appData.applicantId,
+          type: 'approval_rejected',
+          title: 'Jelentkezes elutasitva ❌',
+          message: `${userData?.pharmacyName || userData?.displayName || 'Gyogyszertar'} elutasitotta a jelentkezesedet. Indok: ${rejectReason}`,
+          url: '/pharmagister?tab=dashboard',
+        });
+
+        setBettiChatMessages((prev) => [...prev, {
+          role: 'assistant',
+          text: `${appData.applicantName || 'A jelentkezo'} jelentkezeset elutasitottam (${formatHuDate(appData.date)}).`,
+          intent: 'local_decide_rejected',
+          ts: Date.now(),
+          uiCommands: [{ id: 'list_pending_apps', type: 'local_list_pending_applications', label: 'Tovabbi fuggo jelentkezesek' }],
+        }]);
+      } catch (err) {
+        console.error('Betti local_decide_application error:', err);
+        setBettiChatMessages((prev) => [...prev, {
+          role: 'assistant',
+          text: 'Nem sikerult feldolgozni a dontest. Probald ujra.',
+          intent: 'local_decide_error',
+          ts: Date.now(),
+        }]);
+      }
+      return;
+    }
+
+    if (cmdType === 'local_create_demand_wizard_start') {
+      if (!user || !isPharmacy) return;
+
+      const draft = {
+        position: 'pharmacist',
+        dateOffset: 1,
+        workHours: '08:00-16:00',
+      };
+      setBettiDemandDraft(draft);
+
+      const dateKey = resolveDemandDraftDate(draft.dateOffset);
+      const posLabel = draft.position === 'pharmacist' ? 'Gyogyszeresz' : 'Szakasszisztens';
+
+      setBettiChatMessages((prev) => [...prev, {
+        role: 'assistant',
+        text: `Indul az igeny-feladas wizard.\nPozicio: ${posLabel}\nNap: ${formatHuDate(dateKey)}\nMunkaido: ${draft.workHours}`,
+        intent: 'local_demand_wizard_started',
+        ts: Date.now(),
+        uiCommands: buildDemandWizardCommands(draft),
+      }]);
+      return;
+    }
+
+    if (cmdType === 'local_demand_wizard_set_position' || cmdType === 'local_demand_wizard_set_date_offset' || cmdType === 'local_demand_wizard_set_hours') {
+      if (!user || !isPharmacy) return;
+      const curr = bettiDemandDraft || { position: 'pharmacist', dateOffset: 1, workHours: '08:00-16:00' };
+      const next = { ...curr };
+
+      if (cmdType === 'local_demand_wizard_set_position') {
+        const p = String(cmd.position || '').trim();
+        if (p === 'pharmacist' || p === 'assistant') next.position = p;
+      }
+      if (cmdType === 'local_demand_wizard_set_date_offset') {
+        const off = Number(cmd.dateOffset);
+        if (Number.isInteger(off) && off >= 0 && off <= 30) next.dateOffset = off;
+      }
+      if (cmdType === 'local_demand_wizard_set_hours') {
+        const wh = String(cmd.workHours || '').trim();
+        if (/^\d{2}:\d{2}-\d{2}:\d{2}$/.test(wh)) next.workHours = wh;
+      }
+
+      setBettiDemandDraft(next);
+      const dateKey = resolveDemandDraftDate(next.dateOffset);
+      const posLabel = next.position === 'pharmacist' ? 'Gyogyszeresz' : 'Szakasszisztens';
+
+      setBettiChatMessages((prev) => [...prev, {
+        role: 'assistant',
+        text: `Frissitettem a tervezetet.\nPozicio: ${posLabel}\nNap: ${formatHuDate(dateKey)}\nMunkaido: ${next.workHours}`,
+        intent: 'local_demand_wizard_updated',
+        ts: Date.now(),
+        uiCommands: buildDemandWizardCommands(next),
+      }]);
+      return;
+    }
+
+    if (cmdType === 'local_demand_wizard_submit') {
+      if (!user || !isPharmacy) return;
+      const draft = bettiDemandDraft || { position: 'pharmacist', dateOffset: 1, workHours: '08:00-16:00' };
+
+      if (!userData?.pharmaProfileComplete) {
+        setBettiChatMessages((prev) => [...prev, {
+          role: 'assistant',
+          text: 'Igeny feladasa elott kerlek toltsd ki a gyogyszertari profilodat.',
+          intent: 'local_demand_wizard_profile_missing',
+          ts: Date.now(),
+          uiCommands: [{ id: 'go_preferences', type: 'set_main_tab', label: 'Profil beallitasok', tab: 'preferences' }],
+        }]);
+        return;
+      }
+
+      try {
+        const localDateString = resolveDemandDraftDate(draft.dateOffset);
+        const fullAddress = `${userData.pharmacyZipCode || ''} ${userData.pharmacyCity || ''}, ${userData.pharmacyStreet || ''} ${userData.pharmacyHouseNumber || ''}`.trim();
+
+        const demandData = {
+          pharmacyId: user.uid,
+          pharmacyName: userData.pharmacyName || 'Gyogyszertar',
+          pharmacyCity: userData.pharmacyCity || '',
+          pharmacyZipCode: userData.pharmacyZipCode || '',
+          pharmacyStreet: userData.pharmacyStreet || '',
+          pharmacyHouseNumber: userData.pharmacyHouseNumber || '',
+          pharmacyFullAddress: fullAddress,
+          pharmacyPhotoURL: userData.photoURL || userData.pharmaPhotoURL || '',
+          date: localDateString,
+          position: draft.position,
+          workHours: draft.workHours,
+          minExperience: '',
+          requiredSoftware: [],
+          otherSoftware: '',
+          maxHourlyRate: null,
+          additionalRequirements: 'Betti chat wizardbol letrehozva',
+          status: 'open',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          createdBy: user.uid,
+        };
+
+        const demandRef = await addDoc(collection(db, 'pharmaDemands'), demandData);
+
+        try {
+          await setDoc(doc(db, 'firestoreStats', 'demands'), { totalEverCreated: increment(1) }, { merge: true });
+        } catch (statsErr) {
+          console.warn('Betti demand stats increment failed:', statsErr);
+        }
+
+        await addDoc(collection(db, 'serviceFeedPosts'), {
+          postType: 'pharmaDemand',
+          module: 'pharmagister',
+          pharmaDemandId: demandRef.id,
+          pharmacyId: user.uid,
+          pharmacyName: userData.pharmacyName || 'Gyogyszertar',
+          pharmacyCity: userData.pharmacyCity || '',
+          pharmacyZipCode: userData.pharmacyZipCode || '',
+          pharmacyStreet: userData.pharmacyStreet || '',
+          pharmacyHouseNumber: userData.pharmacyHouseNumber || '',
+          pharmacyFullAddress: fullAddress,
+          pharmacyPhotoURL: userData.photoURL || userData.pharmaPhotoURL || '',
+          position: draft.position,
+          positionLabel: draft.position === 'pharmacist' ? 'Gyogyszeresz' : 'Szakasszisztens',
+          workHours: draft.workHours,
+          minExperience: '',
+          requiredSoftware: [],
+          otherSoftware: '',
+          maxHourlyRate: null,
+          additionalRequirements: 'Betti chat wizardbol letrehozva',
+          date: localDateString,
+          createdAt: new Date(),
+          userId: user.uid,
+        });
+
+        try {
+          const idToken = await user.getIdToken();
+          await fetch('/api/notify-new-demand', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${idToken}`,
+            },
+            body: JSON.stringify({
+              demandId: demandRef.id,
+              pharmacyZipCode: userData.pharmacyZipCode || '',
+              position: draft.position,
+              pharmacyName: userData.pharmacyName || 'Gyogyszertar',
+              date: localDateString,
+            }),
+          });
+        } catch (notifyErr) {
+          console.warn('Betti chat demand notify failed:', notifyErr);
+        }
+
+        setBettiDemandDraft(null);
+        setBettiChatMessages((prev) => [...prev, {
+          role: 'assistant',
+          text: `Sikeresen feladtam az uj igenyt: ${formatHuDate(localDateString)} · ${draft.position === 'pharmacist' ? 'Gyogyszeresz' : 'Szakasszisztens'} · ${draft.workHours}.`,
+          intent: 'local_demand_wizard_submitted',
+          ts: Date.now(),
+          uiCommands: [
+            { id: 'open_replacement_dashboard', type: 'navigate_url', label: 'Jelentkezok a dashboardon', url: '/pharmagister?tab=dashboard' },
+            { id: 'list_my_demands', type: 'local_list_my_demands', label: 'Sajat igenyeim listazasa' },
+          ],
+        }]);
+      } catch (err) {
+        console.error('Betti local_demand_wizard_submit error:', err);
+        setBettiChatMessages((prev) => [...prev, {
+          role: 'assistant',
+          text: 'Nem sikerult feladni az igenyt chatbol. Probald ujra, vagy hasznald a naptar modalt.',
+          intent: 'local_demand_wizard_submit_error',
           ts: Date.now(),
           uiCommands: [{ id: 'open_replacement_calendar', type: 'navigate_url', label: 'Naptar megnyitasa', url: '/pharmagister?tab=calendar' }],
         }]);

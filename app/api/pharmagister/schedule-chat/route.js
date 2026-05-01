@@ -991,7 +991,8 @@ function buildChatUiCommands({ action, chatRole, entities = {} }) {
       commands.push(
         { id: 'open_replacement_calendar', type: 'navigate_url', label: 'Igeny feladasa', url: '/pharmagister?tab=calendar' },
         { id: 'open_replacement_dashboard', type: 'navigate_url', label: 'Jelentkezok a dashboardon', url: '/pharmagister?tab=dashboard' },
-        { id: 'list_my_demands', type: 'local_list_my_demands', label: 'Sajat igenyeim listazasa' }
+        { id: 'list_my_demands', type: 'local_list_my_demands', label: 'Sajat igenyeim listazasa' },
+        { id: 'create_demand_wizard', type: 'local_create_demand_wizard_start', label: 'Uj igeny chatbol' }
       );
     } else {
       commands.push(
@@ -1001,6 +1002,15 @@ function buildChatUiCommands({ action, chatRole, entities = {} }) {
       );
     }
     commands.push({ id: 'show_my_schedule_again', type: 'send_message', label: 'Mely napokon dolgozom?', utterance: 'Listazd ki mely napokra vagyok beosztva' });
+  }
+
+  if (chatRole === 'pharmacy' && (
+    action === 'list_employees'
+    || action === 'show_vacation_requests'
+    || action === 'missing_drafts'
+    || action === 'find_replacement'
+  )) {
+    commands.push({ id: 'list_pending_apps', type: 'local_list_pending_applications', label: 'Fuggo jelentkezesek' });
   }
 
   if (action === 'write_schedule_plan') {
