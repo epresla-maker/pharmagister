@@ -55,6 +55,25 @@ const MONTHS_HU = [
 
 const WEEKDAYS_HU = ['H', 'K', 'Sze', 'Cs', 'P', 'Szo', 'V'];
 
+const AI_COMMAND_POLICY = {
+  navigate_url: { allowedRoles: ['pharmacy', 'employee'], riskLevel: 'read', requiresConfirm: false },
+  set_main_tab: { allowedRoles: ['pharmacy', 'employee'], riskLevel: 'read', requiresConfirm: false },
+  set_worker_tab: { allowedRoles: ['pharmacy'], riskLevel: 'read', requiresConfirm: false },
+  rerun_action: { allowedRoles: ['pharmacy', 'employee'], riskLevel: 'write', requiresConfirm: false },
+  local_list_open_demands: { allowedRoles: ['pharmacy', 'employee'], riskLevel: 'read', requiresConfirm: false },
+  local_list_my_demands: { allowedRoles: ['pharmacy'], riskLevel: 'read', requiresConfirm: false },
+  local_apply_demand: { allowedRoles: ['employee'], riskLevel: 'write', requiresConfirm: true },
+  local_list_pending_applications: { allowedRoles: ['pharmacy'], riskLevel: 'read', requiresConfirm: false },
+  local_decide_application: { allowedRoles: ['pharmacy'], riskLevel: 'critical', requiresConfirm: true },
+  local_schedule_wizard_start: { allowedRoles: ['pharmacy'], riskLevel: 'read', requiresConfirm: false },
+  local_create_demand_wizard_start: { allowedRoles: ['pharmacy'], riskLevel: 'read', requiresConfirm: false },
+  local_demand_wizard_set_position: { allowedRoles: ['pharmacy'], riskLevel: 'write', requiresConfirm: false },
+  local_demand_wizard_set_date_offset: { allowedRoles: ['pharmacy'], riskLevel: 'write', requiresConfirm: false },
+  local_demand_wizard_set_hours: { allowedRoles: ['pharmacy'], riskLevel: 'write', requiresConfirm: false },
+  local_demand_wizard_submit: { allowedRoles: ['pharmacy'], riskLevel: 'critical', requiresConfirm: true },
+  send_message: { allowedRoles: ['pharmacy', 'employee'], riskLevel: 'read', requiresConfirm: false },
+};
+
 function formatDateKey(year, month, day) {
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
@@ -1560,6 +1579,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   const [bettiQuickActions, setBettiQuickActions] = useState([]);
   const [bettiLastUnknownMessage, setBettiLastUnknownMessage] = useState('');
   const [bettiChatOpen, setBettiChatOpen] = useState(false);
+  const [aiViewEnabled, setAiViewEnabled] = useState(false);
   const [bettiKeyboardInset, setBettiKeyboardInset] = useState(0);
   const [bettiVoiceListening, setBettiVoiceListening] = useState(false);
   const [bettiSpeakEnabled, setBettiSpeakEnabled] = useState(false);
@@ -1618,6 +1638,36 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     const email = normalizeEmail(user?.email);
     return activeEmployees.filter(item => item.linkedUserId === user?.uid || normalizeEmail(item.email) === email);
   }, [activeEmployees, user]);
+
+  const aiModeAllowed = useMemo(() => {
+    const globalFlag = process.env.NEXT_PUBLIC_PHARMAGISTER_AI_MODE === '1';
+    if (!globalFlag) return false;
+
+    const email = String(user?.email || '').trim().toLowerCase();
+    if (!email) return false;
+
+    const allowlist = String(process.env.NEXT_PUBLIC_PHARMAGISTER_AI_MODE_ALLOWLIST || '')
+      .split(',')
+      .map((x) => x.trim().toLowerCase())
+      .filter(Boolean);
+
+    if (allowlist.length === 0) {
+      return email.includes('epres');
+    }
+    return allowlist.includes(email);
+  }, [user?.email]);
+
+  useEffect(() => {
+    if (!aiModeAllowed && aiViewEnabled) setAiViewEnabled(false);
+  }, [aiModeAllowed, aiViewEnabled]);
+
+  useEffect(() => {
+    if (!aiModeAllowed) return;
+    if (process.env.NEXT_PUBLIC_PHARMAGISTER_AI_MODE_DEFAULT === '1') {
+      setAiViewEnabled(true);
+      setBettiChatOpen(true);
+    }
+  }, [aiModeAllowed]);
 
   const ownScheduleIds = useMemo(() => {
     const employeeIds = new Set(ownEmployeeRecords.map(item => item.id));
@@ -3802,9 +3852,104 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     ];
   }
 
+  async function auditAiCommand(eventType, details = {}) {
+    if (!user) return;
+    try {
+      const token = await user.getIdToken();
+      await fetch('/api/pharmagister/ai-command-audit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          eventType,
+          details,
+          context: {
+            mainTab,
+            role: isPharmacy ? 'pharmacy' : 'employee',
+            aiViewEnabled,
+          },
+        }),
+      });
+    } catch (err) {
+      console.warn('AI audit log failed:', err);
+    }
+  }
+
   async function executeBettiUiCommand(command, messageContext = null) {
     const cmd = command || {};
     const cmdType = String(cmd.type || '').trim();
+    const chatRole = isPharmacy ? 'pharmacy' : 'employee';
+
+    if (cmdType === 'local_confirm_command') {
+      if (cmd.originalCommand && typeof cmd.originalCommand === 'object') {
+        await executeBettiUiCommand({ ...cmd.originalCommand, __confirmed: true }, messageContext);
+      }
+      return;
+    }
+
+    if (cmdType === 'local_cancel_command') {
+      setBettiChatMessages((prev) => [...prev, {
+        role: 'assistant',
+        text: 'Rendben, nem hajtottam vegre a muveletet.',
+        intent: 'command_cancelled',
+        ts: Date.now(),
+      }]);
+      await auditAiCommand('cancelled', { cmdType: String(cmd.originalType || '') });
+      return;
+    }
+
+    const policy = AI_COMMAND_POLICY[cmdType] || null;
+    if (!policy) {
+      await auditAiCommand('blocked_unknown_command', { cmdType, command: cmd });
+      setBettiChatMessages((prev) => [...prev, {
+        role: 'assistant',
+        text: 'Ez a muvelet jelenleg nincs engedelyezve AI modban.',
+        intent: 'command_blocked_unknown',
+        ts: Date.now(),
+      }]);
+      return;
+    }
+
+    if (!policy.allowedRoles.includes(chatRole)) {
+      await auditAiCommand('blocked_role', { cmdType, role: chatRole, policy });
+      setBettiChatMessages((prev) => [...prev, {
+        role: 'assistant',
+        text: 'Ehhez a muvelethez nincs jogosultsagod a szerepkorod alapjan.',
+        intent: 'command_blocked_role',
+        ts: Date.now(),
+      }]);
+      return;
+    }
+
+    if (policy.requiresConfirm && cmd.__confirmed !== true) {
+      await auditAiCommand('confirm_required', { cmdType, riskLevel: policy.riskLevel });
+      setBettiChatMessages((prev) => [...prev, {
+        role: 'assistant',
+        text: 'Ez egy kritikus muvelet. Megerosited, hogy vegrehajtsam?',
+        intent: 'command_confirm_required',
+        ts: Date.now(),
+        uiCommands: [
+          {
+            id: `confirm_${cmdType}_${Date.now()}`,
+            type: 'local_confirm_command',
+            label: 'Igen, vegrehajtom',
+            originalType: cmdType,
+            originalCommand: { ...cmd, __confirmed: true },
+          },
+          {
+            id: `cancel_${cmdType}_${Date.now()}`,
+            type: 'local_cancel_command',
+            label: 'Megse',
+            originalType: cmdType,
+          },
+        ],
+      }]);
+      return;
+    }
+
+    await auditAiCommand('execute', { cmdType, riskLevel: policy.riskLevel, confirmed: Boolean(cmd.__confirmed) });
 
     if (cmdType === 'navigate_url') {
       const url = String(cmd.url || '');
@@ -4692,12 +4837,16 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   }
 
   function renderBettiChatPanel() {
-    if (!bettiChatOpen) return null;
+    const aiOnlyMode = aiViewEnabled === true;
+    if (!bettiChatOpen && !aiOnlyMode) return null;
     const hasSpeechRecognition = typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition);
     const hasSpeechSynthesis = typeof window !== 'undefined' && window.speechSynthesis;
 
     return (
-      <div className="fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm" onClick={() => setBettiChatOpen(false)}>
+      <div
+        className={aiOnlyMode ? `fixed inset-0 z-[90] ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}` : 'fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm'}
+        onClick={() => { if (!aiOnlyMode) setBettiChatOpen(false); }}
+      >
         <div
           className={`absolute inset-x-0 top-0 bottom-0 flex flex-col ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}
           style={{ bottom: `${Math.max(0, bettiKeyboardInset)}px` }}
@@ -4715,6 +4864,18 @@ export default function ScheduleManagerTab({ pharmaRole }) {
               </p>
             </div>
             <div className="flex items-center gap-2">
+              {aiOnlyMode && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAiViewEnabled(false);
+                    setBettiChatOpen(false);
+                  }}
+                  className={`rounded-xl px-3 py-2 text-xs font-semibold ${darkMode ? 'bg-violet-900/40 text-violet-200 border border-violet-700' : 'bg-violet-50 text-violet-700 border border-violet-200'}`}
+                >
+                  Klasszikus nezet
+                </button>
+              )}
               {hasSpeechSynthesis && (
                 <button
                   type="button"
@@ -4734,7 +4895,12 @@ export default function ScheduleManagerTab({ pharmaRole }) {
               )}
               <button
                 type="button"
-                onClick={() => setBettiChatOpen(false)}
+                onClick={() => {
+                  if (aiOnlyMode) {
+                    setAiViewEnabled(false);
+                  }
+                  setBettiChatOpen(false);
+                }}
                 className={`h-9 w-9 rounded-xl flex items-center justify-center text-xl font-bold ${darkMode ? 'bg-gray-800 text-gray-200 hover:bg-gray-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
               >
                 ×
@@ -4747,6 +4913,11 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             ref={bettiChatScrollRef}
             className={`flex-1 overflow-y-auto px-4 py-4 space-y-4 ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}
           >
+            {aiOnlyMode && (
+              <div className={`rounded-xl border px-3 py-2 text-xs ${darkMode ? 'border-violet-700 bg-violet-900/20 text-violet-200' : 'border-violet-200 bg-violet-50 text-violet-800'}`}>
+                AI mod aktiv: a klasszikus felulet el van rejtve. Minden muveletet chaten keresztul tudsz inditani.
+              </div>
+            )}
             {renderBettiMessageBanners(40)}
           </div>
 
@@ -5111,8 +5282,6 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             {plannerConfigSaving ? 'Mentés...' : 'Mentés'}
           </button>
         </div>
-
-        {renderBettiChatPanel()}
 
         <div className="p-4 space-y-5">
 
@@ -5936,8 +6105,6 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
       {!loading && ((isPharmacy && mainTab === 'schedule') || !isPharmacy) ? (
         <div className="space-y-6">
-
-          {renderBettiChatPanel()}
 
           {((isPharmacy && mainTab === 'schedule') || (!isPharmacy && mainTab === 'mine')) && (
             <div className={`rounded-2xl border p-4 space-y-3 ${darkMode ? 'border-sky-700 bg-sky-900/20' : 'border-sky-200 bg-sky-50'}`}>
@@ -7438,6 +7605,21 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           ) : null}
         </div>
       ) : null}
+
+      {renderBettiChatPanel()}
+
+      {aiModeAllowed && !aiViewEnabled && (
+        <button
+          type="button"
+          onClick={() => {
+            setAiViewEnabled(true);
+            setBettiChatOpen(true);
+          }}
+          className={`fixed z-[75] right-4 bottom-6 rounded-full px-4 py-2 text-xs font-bold shadow-lg border ${darkMode ? 'bg-violet-900/90 border-violet-700 text-violet-200' : 'bg-white border-violet-200 text-violet-700'}`}
+        >
+          AI nezet bekapcsolasa
+        </button>
+      )}
     </div>
   );
 }
