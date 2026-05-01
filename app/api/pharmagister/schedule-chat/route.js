@@ -2334,17 +2334,40 @@ export async function POST(request) {
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     const isKnownUtterance = KNOWN_UTTERANCES.has(msgNorm);
 
-    const shouldUseLlmFallback = (
-      parsed.intent === 'unknown'
-      || action === 'clarify_with_options'
-      || parsed.intent === 'help'
-      || parsed.intent === 'capabilities'
-    ) && parsed.intent !== 'greeting' && parsed.intent !== 'thanks' && parsed.intent !== 'farewell'
-      && !isGreetingOrFarewell.test(String(message || '').trim())
-      && !isSingleWord
-      && !isKnownUtterance;
+    const DETERMINISTIC_ACTIONS = new Set([
+      'show_my_schedule',
+      'show_my_vacations',
+      'show_my_free_days',
+      'list_employees',
+      'show_vacation_requests',
+      'missing_drafts',
+      'find_replacement',
+      'replan_all',
+      'replan_specific_day',
+      'lock_shift',
+      'minimal_change_replan',
+      'optimize_fairness',
+      'optimize_overtime',
+      'write_schedule_plan',
+      'add_employee',
+      'remove_employee',
+      'identity_check',
+    ]);
 
-    if (shouldUseLlmFallback && process.env.GEMINI_API_KEY) {
+    const isGuardedMessage = parsed.intent === 'greeting'
+      || parsed.intent === 'thanks'
+      || parsed.intent === 'farewell'
+      || isGreetingOrFarewell.test(String(message || '').trim())
+      || isSingleWord
+      || isKnownUtterance;
+
+    const isDeterministicAction = DETERMINISTIC_ACTIONS.has(action);
+    const shouldUseLlmFallback = Boolean(process.env.GEMINI_API_KEY)
+      && !isGuardedMessage
+      && !isDeterministicAction
+      && parsed.intent !== 'training_saved';
+
+    if (shouldUseLlmFallback) {
       // Rate limit: max 20 LLM hívás / nap / felhasználó
       const LLM_DAILY_LIMIT = 10;
       const today = new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
@@ -2392,8 +2415,10 @@ export async function POST(request) {
           }
         }
       }
-    } else if (parsed.intent === 'greeting' || parsed.intent === 'thanks' || parsed.intent === 'farewell' || isGreetingOrFarewell.test(String(message || '').trim()) || isSingleWord || isKnownUtterance) {
+    } else if (isGuardedMessage) {
       responseRoute = 'RULE_GUARD';
+    } else if (isDeterministicAction) {
+      responseRoute = 'RULE_ACTION';
     }
 
     finalReply = stabilizeReplyText(finalReply, chatRole);
