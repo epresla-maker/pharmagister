@@ -2445,7 +2445,21 @@ export async function POST(request) {
           };
 
           action = inferActionFromMessage();
-          finalReply = llmTextFallback.reply;
+
+          // If we have a concrete action, use an affirmative canned reply instead of
+          // the text-LLM reply which may incorrectly say "I can't do that".
+          const ACTION_REPLIES = {
+            show_my_schedule:        chatRole === 'pharmacy' ? 'Rendben, mutatom a beosztást!' : 'Rendben, mutatom a beosztásodat!',
+            missing_drafts:          'Rendben, mutatom ki nem írta még meg a tervezetét.',
+            show_my_vacations:       'Rendben, mutatom a szabadságokat!',
+            show_my_free_days:       'Rendben, mutatom a szabadnapokat!',
+            show_vacation_requests:  'Rendben, mutatom a szabadság-kérelmeket!',
+            show_overtime:           'Rendben, mutatom a túlórákat!',
+            list_employees:          'Rendben, mutatom a dolgozókat!',
+            find_replacement:        chatRole === 'pharmacy' ? 'Rendben, mutatom a helyettesítési igényeket!' : 'Rendben, mutatom a nyitott helyettesítési igényeket!',
+            replan_all:              'Rendben, segítek az újratervezésben!',
+          };
+          finalReply = (action !== 'clarify' && ACTION_REPLIES[action]) ? ACTION_REPLIES[action] : llmTextFallback.reply;
           pipelinePayload = { action, entities: {}, suggestedAction: action };
           quickActions = buildSuccessQuickActions({ action, chatRole, entities: {} });
           parsed = { intent: action, confidence: 0.85, entities: {} };
