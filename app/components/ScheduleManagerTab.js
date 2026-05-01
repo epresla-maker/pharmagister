@@ -5274,26 +5274,14 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   if (showCriteriaPage) {
     return (
       <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
-        {/* Header */}
-        <div className={`sticky top-0 z-10 flex items-center gap-3 px-4 py-3 border-b ${darkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'}`}>
+        {/* Vissza gomb */}
+        <div className={`sticky top-0 z-10 px-4 py-3 ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
           <button
             type="button"
             onClick={() => setShowCriteriaPage(false)}
-            className={`h-9 w-9 flex items-center justify-center rounded-xl font-bold text-lg ${darkMode ? 'bg-gray-800 text-gray-200 hover:bg-gray-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+            className={`h-9 w-9 flex items-center justify-center rounded-xl font-bold text-lg ${darkMode ? 'bg-gray-800 text-gray-200 hover:bg-gray-700' : 'bg-white text-gray-700 hover:bg-gray-100 shadow-sm border border-gray-200'}`}
           >
             ‹
-          </button>
-          <div className="flex-1">
-            <h2 className={`font-bold text-base ${darkMode ? 'text-white' : 'text-gray-900'}`}>Beosztási alapkritériumok</h2>
-            <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Ezek alapján ellenőrzi és tervezi a rendszer a beosztásokat</p>
-          </div>
-          <button
-            type="button"
-            onClick={savePlannerConfig}
-            disabled={plannerConfigSaving}
-            className="rounded-xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
-          >
-            {plannerConfigSaving ? 'Mentés...' : 'Mentés'}
           </button>
         </div>
 
