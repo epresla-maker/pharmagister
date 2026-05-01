@@ -1641,10 +1641,15 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
   const aiModeAllowed = useMemo(() => {
     const globalFlag = process.env.NEXT_PUBLIC_PHARMAGISTER_AI_MODE === '1';
-    if (!globalFlag) return false;
-
     const email = String(user?.email || '').trim().toLowerCase();
     if (!email) return false;
+
+    // Developer override: allow owner accounts even without env flag.
+    if (!globalFlag && email.includes('epres')) {
+      return true;
+    }
+
+    if (!globalFlag) return false;
 
     const allowlist = String(process.env.NEXT_PUBLIC_PHARMAGISTER_AI_MODE_ALLOWLIST || '')
       .split(',')
