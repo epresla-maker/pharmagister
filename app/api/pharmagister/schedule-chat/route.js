@@ -4,7 +4,7 @@ import { parseBettiIntent } from '@/lib/intentParserV6';
 import { normalizeHungarianChatInput } from '@/lib/huDictionary';
 import { explainAssignmentDecision } from '@/lib/explanationEngine';
 import { buildProactiveWarnings } from '@/lib/suggestionEngine';
-import { callBettiLLM } from '@/lib/bettiLLM';
+import { callBettiLLM, classifyBettiDomain } from '@/lib/bettiLLM';
 import {
   detectTrainingInput,
   loadBettiLongTermMemory,
@@ -2356,18 +2356,34 @@ export async function POST(request) {
           ? 'Ma már elértem a napi segítési limitemet. Holnaptól újra tudok segíteni beosztással kapcsolatban!'
           : 'Ma már elértem a napi segítési limitemet. Holnaptól újra tudok segíteni a beosztásoddal kapcsolatban!';
       } else {
-        const llmResult = await callBettiLLM({
+        const domainDecision = await classifyBettiDomain({
           message,
           chatRole,
           userName,
-          recentConversation,
-          stats: context.stats || null,
         });
-        if (llmResult.usedLLM && llmResult.reply) {
-          finalReply = llmResult.reply;
-          usedLLM = true;
-        } else if (llmResult.error) {
-          console.warn('[Betti LLM fallback] Gemini call failed:', llmResult.error);
+
+        if (domainDecision.error) {
+          console.warn('[Betti domain classifier] decision fallback:', domainDecision.error);
+        }
+
+        if (domainDecision.decision === 'OFFTOPIC') {
+          finalReply = chatRole === 'pharmacy'
+            ? 'Csak a Pharmagistert, a beosztást, a szabadságokat, a túlórát és a helyettesítéseket érintő kérdésekben tudok segíteni.'
+            : 'Csak a Pharmagistert, a saját beosztásodat, szabadságodat, túlórádat és helyettesítési kérdéseidet érintő témákban tudok segíteni.';
+        } else {
+          const llmResult = await callBettiLLM({
+            message,
+            chatRole,
+            userName,
+            recentConversation,
+            stats: context.stats || null,
+          });
+          if (llmResult.usedLLM && llmResult.reply) {
+            finalReply = llmResult.reply;
+            usedLLM = true;
+          } else if (llmResult.error) {
+            console.warn('[Betti LLM fallback] Gemini call failed:', llmResult.error);
+          }
         }
       }
     }
