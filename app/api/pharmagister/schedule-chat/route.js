@@ -990,12 +990,14 @@ function buildChatUiCommands({ action, chatRole, entities = {} }) {
     if (chatRole === 'pharmacy') {
       commands.push(
         { id: 'open_replacement_calendar', type: 'navigate_url', label: 'Igeny feladasa', url: '/pharmagister?tab=calendar' },
-        { id: 'open_replacement_dashboard', type: 'navigate_url', label: 'Jelentkezok a dashboardon', url: '/pharmagister?tab=dashboard' }
+        { id: 'open_replacement_dashboard', type: 'navigate_url', label: 'Jelentkezok a dashboardon', url: '/pharmagister?tab=dashboard' },
+        { id: 'list_my_demands', type: 'local_list_my_demands', label: 'Sajat igenyeim listazasa' }
       );
     } else {
       commands.push(
         { id: 'open_replacement_calendar', type: 'navigate_url', label: 'Nyitott igenyek', url: '/pharmagister?tab=calendar' },
-        { id: 'open_replacement_dashboard', type: 'navigate_url', label: 'Sajat jelentkezeseim', url: '/pharmagister?tab=dashboard' }
+        { id: 'open_replacement_dashboard', type: 'navigate_url', label: 'Sajat jelentkezeseim', url: '/pharmagister?tab=dashboard' },
+        { id: 'list_open_demands', type: 'local_list_open_demands', label: 'Nyitott igenyek listazasa' }
       );
     }
     commands.push({ id: 'show_my_schedule_again', type: 'send_message', label: 'Mely napokon dolgozom?', utterance: 'Listazd ki mely napokra vagyok beosztva' });
