@@ -3819,6 +3819,18 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       const nextTab = String(cmd.tab || '');
       if (allowedTabs.has(nextTab)) {
         setMainTab(nextTab);
+        // Pre-select month if provided
+        if (cmd.monthNumber && cmd.monthNumber >= 1 && cmd.monthNumber <= 12) {
+          const now = new Date();
+          const targetYear = cmd.monthNumber < now.getMonth() + 1 ? now.getFullYear() + 1 : now.getFullYear();
+          setYear(targetYear);
+          setMonth(cmd.monthNumber);
+        } else if (typeof cmd.monthOffset === 'number') {
+          const now = new Date();
+          const targetDate = new Date(now.getFullYear(), now.getMonth() + cmd.monthOffset, 1);
+          setYear(targetDate.getFullYear());
+          setMonth(targetDate.getMonth() + 1);
+        }
       }
       return;
     }
@@ -4230,6 +4242,54 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           ts: Date.now(),
         }]);
       }
+      return;
+    }
+
+    if (cmdType === 'local_schedule_wizard_start') {
+      if (!isPharmacy) return;
+
+      // Resolve target month
+      const now = new Date();
+      let targetMonth = now.getMonth() + 1;
+      let targetYear = now.getFullYear();
+      if (cmd.monthNumber && cmd.monthNumber >= 1 && cmd.monthNumber <= 12) {
+        targetMonth = cmd.monthNumber;
+        if (targetMonth < now.getMonth() + 1) targetYear = now.getFullYear() + 1;
+      } else if (typeof cmd.monthOffset === 'number') {
+        const d = new Date(now.getFullYear(), now.getMonth() + cmd.monthOffset, 1);
+        targetMonth = d.getMonth() + 1;
+        targetYear = d.getFullYear();
+      }
+      const monthName = cmd.monthLabel || MONTHS_HU[targetMonth - 1];
+
+      setBettiChatMessages((prev) => [...prev, {
+        role: 'assistant',
+        text: `Hogyan kezdjük a ${monthName.toLowerCase()}i beosztást?`,
+        intent: 'local_schedule_wizard_started',
+        ts: Date.now(),
+        uiCommands: [
+          {
+            id: 'sw_auto',
+            type: 'send_message',
+            label: `Automatikus tervezés – ${monthName}`,
+            message: `Tervezd újra automatikusan a ${monthName.toLowerCase()}i beosztást`,
+          },
+          {
+            id: 'sw_manual',
+            type: 'set_main_tab',
+            label: `Manuális szerkesztés – ${monthName}`,
+            tab: 'schedule',
+            monthNumber: targetMonth,
+            monthOffset: null,
+          },
+          {
+            id: 'sw_missing',
+            type: 'send_message',
+            label: 'Ki nem küldte be a tervezetét?',
+            message: `Ki nem küldte be még a ${monthName.toLowerCase()}i tervezetét?`,
+          },
+        ],
+      }]);
       return;
     }
 

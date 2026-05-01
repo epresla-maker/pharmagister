@@ -1014,7 +1014,27 @@ function buildChatUiCommands({ action, chatRole, entities = {} }) {
   }
 
   if (action === 'write_schedule_plan') {
-    commands.push({ id: 'go_planner_tab', type: 'set_main_tab', label: 'Tervezo fule', tab: 'planner' });
+    if (chatRole === 'pharmacy') {
+      // Pharmacy: start a guided wizard in chat
+      commands.push({
+        id: 'schedule_wizard_start',
+        type: 'local_schedule_wizard_start',
+        label: 'Elkezdjuk a tervezest',
+        monthNumber: entities?.monthNumber || null,
+        monthLabel: entities?.monthLabel || null,
+        monthOffset: entities?.monthOffset ?? null,
+      });
+    } else {
+      // Employee: navigate to their personal planner tab
+      commands.push({
+        id: 'go_planner_tab',
+        type: 'set_main_tab',
+        label: entities?.monthLabel ? `${entities.monthLabel.charAt(0).toUpperCase() + entities.monthLabel.slice(1)}i tervezetem` : 'Beosztás-tervezetem',
+        tab: 'planner',
+        monthNumber: entities?.monthNumber || null,
+        monthOffset: entities?.monthOffset ?? null,
+      });
+    }
   }
 
   if (action === 'add_employee' || action === 'remove_employee') {
