@@ -3378,10 +3378,13 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       });
       setPlannerConfigForm(normalized);
       setPlannerLastSavedJson(JSON.stringify(normalized));
+      setPlannerDraftSavedAt(new Date());
       setStatusMessage('Tervezési szabályok mentve.');
+      return true;
     } catch (error) {
       console.error('Save planner config error:', error);
       setStatusError('Nem sikerült menteni a tervezési szabályokat.');
+      return false;
     } finally {
       setPlannerConfigSaving(false);
     }
@@ -5502,7 +5505,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                 ) : (
                   <button
                     type="button"
-                    onClick={savePlannerConfig}
+                    onClick={async () => { const ok = await savePlannerConfig(); if (ok) setTimeout(() => setShowCriteriaPage(false), 800); }}
                     disabled={plannerConfigSaving}
                     className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60 hover:bg-emerald-700 transition-colors"
                   >
