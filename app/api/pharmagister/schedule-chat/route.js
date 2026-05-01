@@ -2403,6 +2403,30 @@ export async function POST(request) {
 
       if (routerResult.error) {
         console.warn('[Betti LLM Router] Fallback to rule pipeline:', routerResult.error);
+        const msgNorm = String(message || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const isReplacementDemandMessage = (
+          msgNorm.includes('helyettesit')
+          || msgNorm.includes('beugr')
+          || msgNorm.includes('atven')
+          || msgNorm.includes('potol')
+        ) && (
+          msgNorm.includes('igeny')
+          || msgNorm.includes('igenyek')
+          || msgNorm.includes('keres')
+          || msgNorm.includes('jelentkez')
+          || msgNorm.includes('mutasd')
+        );
+
+        if (isReplacementDemandMessage) {
+          action = 'find_replacement';
+          finalReply = chatRole === 'pharmacy'
+            ? 'Rendben, mutatom a helyettesitesi igenyekkel kapcsolatos lehetosegeket es a kovetkezo lepest.'
+            : 'Rendben, mutatom a nyitott helyettesitesi igenyeket es segitek a jelentkezesben.';
+          pipelinePayload = { action, entities: {}, suggestedAction: action };
+          quickActions = buildSuccessQuickActions({ action, chatRole, entities: {} });
+          parsed = { intent: action, confidence: 0.9, entities: {} };
+          responseRoute = 'HEURISTIC_FALLBACK';
+        } else {
         // Fallback: rule-based pipeline if LLM fails
         const pipelineResult = runBettiPipeline({
           message,
@@ -2423,10 +2447,33 @@ export async function POST(request) {
         nextConversationState = pipelineResult.nextConversationState || conversationState;
         parsed = parsedForLearned;
         responseRoute = 'RULE_FALLBACK';
+        }
       } else {
         action = routerResult.action;
         finalReply = routerResult.reply;
         const routerEntities = routerResult.entities || {};
+
+        const msgNorm = String(message || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const isReplacementDemandMessage = (
+          msgNorm.includes('helyettesit')
+          || msgNorm.includes('beugr')
+          || msgNorm.includes('atven')
+          || msgNorm.includes('potol')
+        ) && (
+          msgNorm.includes('igeny')
+          || msgNorm.includes('igenyek')
+          || msgNorm.includes('keres')
+          || msgNorm.includes('jelentkez')
+          || msgNorm.includes('mutasd')
+        );
+
+        if (action === 'clarify' && isReplacementDemandMessage) {
+          action = 'find_replacement';
+          finalReply = chatRole === 'pharmacy'
+            ? 'Rendben, mutatom a helyettesitesi igenyekkel kapcsolatos lehetosegeket es a kovetkezo lepest.'
+            : 'Rendben, mutatom a nyitott helyettesitesi igenyeket es segitek a jelentkezesben.';
+        }
+
         pipelinePayload = { action, entities: routerEntities, suggestedAction: action };
         quickActions = buildSuccessQuickActions({ action, chatRole, entities: routerEntities });
         parsed = { intent: action, confidence: 1.0, entities: routerEntities };
