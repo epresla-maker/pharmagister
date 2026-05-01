@@ -957,6 +957,69 @@ function buildSuccessQuickActions({ action, chatRole, entities }) {
   ];
 }
 
+function buildChatUiCommands({ action, chatRole, entities = {} }) {
+  const commands = [];
+  const hasMonth = Number.isInteger(entities?.monthOffset) || Number.isInteger(entities?.monthNumber);
+
+  if (action === 'show_my_schedule' || action === 'show_my_vacations' || action === 'show_my_free_days') {
+    commands.push(
+      { id: 'refresh_data', type: 'rerun_action', label: 'Frissites' },
+      { id: 'month_current', type: 'send_message', label: 'Aktualis honap', utterance: 'Aktualis honap' },
+      { id: 'month_next', type: 'send_message', label: 'Kovetkezo honap', utterance: 'Kovetkezo honap' }
+    );
+  }
+
+  if (action === 'list_employees') {
+    commands.push(
+      { id: 'go_workers', type: 'set_main_tab', label: 'Dolgozok fule', tab: 'workers' },
+      { id: 'refresh_data', type: 'rerun_action', label: 'Frissites' }
+    );
+  }
+
+  if (action === 'show_vacation_requests' || action === 'missing_drafts') {
+    commands.push(
+      { id: 'go_schedule_tab', type: 'set_main_tab', label: 'Beosztas fule', tab: 'schedule' },
+      { id: 'refresh_data', type: 'rerun_action', label: 'Frissites' }
+    );
+    if (!hasMonth) {
+      commands.push({ id: 'month_current', type: 'send_message', label: 'Erre a honapra', utterance: 'Aktualis honap' });
+    }
+  }
+
+  if (action === 'find_replacement') {
+    if (chatRole === 'pharmacy') {
+      commands.push(
+        { id: 'open_replacement_calendar', type: 'navigate_url', label: 'Igeny feladasa', url: '/pharmagister?tab=calendar' },
+        { id: 'open_replacement_dashboard', type: 'navigate_url', label: 'Jelentkezok a dashboardon', url: '/pharmagister?tab=dashboard' }
+      );
+    } else {
+      commands.push(
+        { id: 'open_replacement_calendar', type: 'navigate_url', label: 'Nyitott igenyek', url: '/pharmagister?tab=calendar' },
+        { id: 'open_replacement_dashboard', type: 'navigate_url', label: 'Sajat jelentkezeseim', url: '/pharmagister?tab=dashboard' }
+      );
+    }
+    commands.push({ id: 'show_my_schedule_again', type: 'send_message', label: 'Mely napokon dolgozom?', utterance: 'Listazd ki mely napokra vagyok beosztva' });
+  }
+
+  if (action === 'write_schedule_plan') {
+    commands.push({ id: 'go_planner_tab', type: 'set_main_tab', label: 'Tervezo fule', tab: 'planner' });
+  }
+
+  if (action === 'add_employee' || action === 'remove_employee') {
+    commands.push(
+      { id: 'go_workers_tab', type: 'set_main_tab', label: 'Dolgozok fule', tab: 'workers' },
+      { id: 'go_workers_add', type: 'set_worker_tab', label: 'Hozzaadas', tab: 'add' },
+      { id: 'go_workers_remove', type: 'set_worker_tab', label: 'Eltavolitas', tab: 'remove' }
+    );
+  }
+
+  if (commands.length === 0 && action) {
+    commands.push({ id: 'refresh_data', type: 'rerun_action', label: 'Frissites' });
+  }
+
+  return commands.slice(0, 4);
+}
+
 function pickReplyVariant(seed, variants = []) {
   if (!Array.isArray(variants) || variants.length === 0) return '';
   const source = String(seed || 'betti');
@@ -2384,6 +2447,12 @@ export async function POST(request) {
       },
     };
 
+    const uiCommands = buildChatUiCommands({
+      action,
+      chatRole,
+      entities: pipelinePayload?.entities || {},
+    });
+
     const nextSessionMemory = [
       ...(Array.isArray(longTermMemory?.sessionMemory) ? longTermMemory.sessionMemory.slice(-11) : []),
       { text: message, intent: parsed.intent, action, entities: pipelinePayload?.entities || {}, at: new Date().toISOString() },
@@ -2407,6 +2476,7 @@ export async function POST(request) {
       },
       payload: {
         ...pipelinePayload,
+        uiCommands,
         conversationState: nextConversationState,
       },
       quickActions: quickActions || [],

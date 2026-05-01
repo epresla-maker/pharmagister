@@ -3756,6 +3756,54 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     window.speechSynthesis.speak(utterance);
   }
 
+  function executeBettiUiCommand(command, messageContext = null) {
+    const cmd = command || {};
+    const cmdType = String(cmd.type || '').trim();
+
+    if (cmdType === 'navigate_url') {
+      const url = String(cmd.url || '');
+      if (url.startsWith('/pharmagister')) {
+        window.location.href = url;
+      }
+      return;
+    }
+
+    if (cmdType === 'set_main_tab') {
+      const allowedTabs = new Set(['schedule', 'workers', 'history', 'mine', 'planner', 'vacations', 'preferences']);
+      const nextTab = String(cmd.tab || '');
+      if (allowedTabs.has(nextTab)) {
+        setMainTab(nextTab);
+      }
+      return;
+    }
+
+    if (cmdType === 'set_worker_tab') {
+      const allowedWorkerTabs = new Set(['add', 'remove']);
+      const nextWorkerTab = String(cmd.tab || '');
+      if (allowedWorkerTabs.has(nextWorkerTab)) {
+        setMainTab('workers');
+        setWorkerTab(nextWorkerTab);
+      }
+      return;
+    }
+
+    if (cmdType === 'rerun_action') {
+      const action = messageContext?.action;
+      const entities = messageContext?.entities || {};
+      if (action) {
+        handleBettiAction(action, entities);
+      }
+      return;
+    }
+
+    if (cmdType === 'send_message') {
+      const utterance = String(cmd.utterance || '').trim();
+      if (utterance) {
+        sendBettiChatMessage(utterance);
+      }
+    }
+  }
+
   async function sendBettiChatMessage(messageText, options = {}) {
     const text = String(messageText || '').trim();
     if (!text || !user) return;
@@ -3849,6 +3897,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         action: result?.payload?.action || null,
         suggestedAction: result?.payload?.suggestedAction || null,
         entities: result?.payload?.entities || null,
+        uiCommands: Array.isArray(result?.payload?.uiCommands) ? result.payload.uiCommands : [],
         debugRoute: result?.debug?.responseRoute || null,
         ts: Date.now(),
       }]);
@@ -3929,6 +3978,24 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   <p className={`text-[10px] px-1 uppercase tracking-wide ${darkMode ? 'text-sky-400' : 'text-sky-600'}`}>
                     {msg.debugRoute}
                   </p>
+                )}
+                {!isUser && Array.isArray(msg.uiCommands) && msg.uiCommands.length > 0 && (
+                  <div className="flex flex-wrap gap-2 px-1 pt-1">
+                    {msg.uiCommands.slice(0, 4).map((cmd) => (
+                      <button
+                        key={`${cmd.id || cmd.label || cmd.type}`}
+                        type="button"
+                        onClick={() => executeBettiUiCommand(cmd, msg)}
+                        className={`rounded-full px-3 py-1.5 text-xs font-semibold border transition-colors ${
+                          darkMode
+                            ? 'bg-emerald-900/40 border-emerald-700 text-emerald-200 active:bg-emerald-800/60'
+                            : 'bg-emerald-50 border-emerald-200 text-emerald-700 active:bg-emerald-100'
+                        }`}
+                      >
+                        {cmd.label || 'Muvelet'}
+                      </button>
+                    ))}
+                  </div>
                 )}
               </div>
             </div>
