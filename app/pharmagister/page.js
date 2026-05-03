@@ -31,30 +31,21 @@ function PharmagisterContent() {
   const profileComplete = userData?.pharmaProfileComplete || false;
 
   const aiModeAllowed = useMemo(() => {
-    const globalFlag = process.env.NEXT_PUBLIC_PHARMAGISTER_AI_MODE === '1';
     const email = String(user?.email || '').trim().toLowerCase();
     if (!email) return false;
 
-    if (!globalFlag) {
-      const internalAllowlist = [
-        'epresla@icloud.com',
-        'tesztpatika@pharmagister.hu',
-        'kovacs.anna@pharmagister.hu',
-        'nagy.peter@pharmagister.hu',
-        'szabo.katalin@pharmagister.hu',
-        'toth.eszter@pharmagister.hu',
-        'varga.monika@pharmagister.hu',
-        'kiss.reka@pharmagister.hu',
-      ];
-      return internalAllowlist.includes(email);
-    }
+    const internalAiModeEmails = ['epresla@icloud.com'];
+    if (internalAiModeEmails.includes(email)) return true;
+
+    const globalFlag = process.env.NEXT_PUBLIC_PHARMAGISTER_AI_MODE === '1';
+    if (!globalFlag) return false;
 
     const allowlist = String(process.env.NEXT_PUBLIC_PHARMAGISTER_AI_MODE_ALLOWLIST || '')
       .split(',')
       .map((x) => x.trim().toLowerCase())
       .filter(Boolean);
 
-    if (allowlist.length === 0) return true;
+    if (allowlist.length === 0) return false;
     return allowlist.includes(email);
   }, [user?.email]);
 

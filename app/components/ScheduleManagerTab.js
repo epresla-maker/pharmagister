@@ -66,6 +66,7 @@ const AI_COMMAND_POLICY = {
   local_list_pending_applications: { allowedRoles: ['pharmacy'], riskLevel: 'read', requiresConfirm: false },
   local_decide_application: { allowedRoles: ['pharmacy'], riskLevel: 'critical', requiresConfirm: true },
   local_schedule_wizard_start: { allowedRoles: ['pharmacy'], riskLevel: 'read', requiresConfirm: false },
+  local_run_auto_planner: { allowedRoles: ['pharmacy'], riskLevel: 'write', requiresConfirm: false },
   local_create_demand_wizard_start: { allowedRoles: ['pharmacy'], riskLevel: 'read', requiresConfirm: false },
   local_demand_wizard_set_position: { allowedRoles: ['pharmacy'], riskLevel: 'write', requiresConfirm: false },
   local_demand_wizard_set_date_offset: { allowedRoles: ['pharmacy'], riskLevel: 'write', requiresConfirm: false },
@@ -3391,7 +3392,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   }
 
   async function runAutoPlanner({ action = 'plan', sickEmployeeId = null, affectedDates = [] } = {}) {
-    if (!user) return;
+    if (!user) return { success: false, error: 'Nincs bejelentkezett felhasznalo.' };
     setPlannerLoading(true);
     setStatusError('');
     setStatusMessage('');
@@ -3426,9 +3427,11 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       const errorCount = (result.conflicts || []).filter(item => item.severity === 'error').length;
       const warningCount = (result.conflicts || []).filter(item => item.severity === 'warning').length;
       setStatusMessage(`Automatikus tervezés kész: ${result.proposedShifts?.length || 0} javasolt műszak, ${errorCount} piros, ${warningCount} narancs jelzés.`);
+      return { success: true, result };
     } catch (error) {
       console.error('Auto planner error:', error);
       setStatusError(error.message || 'Nem sikerült lefuttatni az automatikus tervezést.');
+      return { success: false, error: error.message || 'Nem sikerült lefuttatni az automatikus tervezést.' };
     } finally {
       setPlannerLoading(false);
     }
@@ -4432,9 +4435,11 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         uiCommands: [
           {
             id: 'sw_auto',
-            type: 'send_message',
+            type: 'local_run_auto_planner',
             label: `Automatikus tervezés – ${monthName}`,
-            message: `Tervezd újra automatikusan a ${monthName.toLowerCase()}i beosztást`,
+            monthNumber: targetMonth,
+            monthOffset: null,
+            monthLabel: monthName,
           },
           {
             id: 'sw_manual',
@@ -4448,10 +4453,58 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             id: 'sw_missing',
             type: 'send_message',
             label: 'Ki nem küldte be a tervezetét?',
-            message: `Ki nem küldte be még a ${monthName.toLowerCase()}i tervezetét?`,
+            utterance: `Ki nem küldte be még a ${monthName.toLowerCase()}i tervezetét?`,
           },
         ],
       }]);
+      return;
+    }
+
+    if (cmdType === 'local_run_auto_planner') {
+      if (!isPharmacy) return;
+
+      const now = new Date();
+      let targetMonth = now.getMonth() + 1;
+      let targetYear = now.getFullYear();
+
+      if (cmd.monthNumber && cmd.monthNumber >= 1 && cmd.monthNumber <= 12) {
+        targetMonth = cmd.monthNumber;
+        if (targetMonth < now.getMonth() + 1) targetYear = now.getFullYear() + 1;
+      } else if (typeof cmd.monthOffset === 'number') {
+        const d = new Date(now.getFullYear(), now.getMonth() + cmd.monthOffset, 1);
+        targetMonth = d.getMonth() + 1;
+        targetYear = d.getFullYear();
+      }
+
+      const monthName = cmd.monthLabel || MONTHS_HU[targetMonth - 1];
+      setMainTab('schedule');
+      setYear(targetYear);
+      setMonth(targetMonth);
+
+      setBettiChatMessages((prev) => [...prev, {
+        role: 'assistant',
+        text: `Elinditottam az automatikus tervezest a ${monthName.toLowerCase()}i honapra.`,
+        intent: 'local_auto_plan_started',
+        ts: Date.now(),
+      }]);
+
+      const plan = await runAutoPlanner({ action: 'plan' });
+      if (plan?.success) {
+        const shifts = Number(plan?.result?.proposedShifts?.length || 0);
+        setBettiChatMessages((prev) => [...prev, {
+          role: 'assistant',
+          text: `Keszen vagyok: ${shifts} javasolt muszak keszult. A Beosztas fuleon latod az eredmenyt.`,
+          intent: 'local_auto_plan_done',
+          ts: Date.now(),
+        }]);
+      } else {
+        setBettiChatMessages((prev) => [...prev, {
+          role: 'assistant',
+          text: plan?.error || 'Nem sikerult lefuttatni az automatikus tervezest.',
+          intent: 'local_auto_plan_error',
+          ts: Date.now(),
+        }]);
+      }
       return;
     }
 
@@ -4630,7 +4683,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     }
 
     if (cmdType === 'send_message') {
-      const utterance = String(cmd.utterance || '').trim();
+      const utterance = String(cmd.utterance || cmd.message || '').trim();
       if (utterance) {
         await sendBettiChatMessage(utterance);
       }
