@@ -1,25 +1,16 @@
-export const dynamic = "force-static";
-import nodemailer from 'nodemailer';
+export const dynamic = "force-dynamic";
+import { Resend } from 'resend';
 import { NextResponse } from 'next/server';
 import { sanitizeUrl } from '@/lib/sanitize';
 
-// SMTP konfiguráció tarhely.eu-hoz
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'mail.pharmagister.hu',
-  port: parseInt(process.env.SMTP_PORT || '465'),
-  secure: true,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(request) {
   try {
     const { email, displayName, verificationLink } = await request.json();
 
     const mailOptions = {
-      from: `"Pharmagister" <${process.env.SMTP_USER || 'noreply@pharmagister.hu'}>`,
+      from: 'Pharmagister <onboarding@resend.dev>',
       to: email,
       subject: 'Erősítsd meg az email címedet - Pharmagister',
       html: `
@@ -118,7 +109,7 @@ export async function POST(request) {
       `,
     };
 
-    await transporter.sendMail(mailOptions);
+    await resend.emails.send(mailOptions);
 
     return NextResponse.json({ 
       success: true, 

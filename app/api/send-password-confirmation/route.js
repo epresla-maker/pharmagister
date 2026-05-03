@@ -1,7 +1,9 @@
-export const dynamic = "force-static";
+export const dynamic = "force-dynamic";
 import { NextResponse } from 'next/server';
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import { escapeHtml } from '@/lib/sanitize';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(request) {
   try {
@@ -10,16 +12,6 @@ export async function POST(request) {
     if (!email) {
       return NextResponse.json({ error: 'Email megadása kötelező' }, { status: 400 });
     }
-
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || 'mail.pharmagister.hu',
-      port: parseInt(process.env.SMTP_PORT || '465'),
-      secure: true,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
 
     const htmlContent = `
 <!DOCTYPE html>
@@ -75,8 +67,8 @@ export async function POST(request) {
 </html>
     `;
 
-    await transporter.sendMail({
-      from: '"Pharmagister" <' + process.env.SMTP_USER + '>',
+    await resend.emails.send({
+      from: 'Pharmagister <onboarding@resend.dev>',
       to: email,
       subject: '✅ Pharmagister - Jelszó sikeresen beállítva',
       html: htmlContent,

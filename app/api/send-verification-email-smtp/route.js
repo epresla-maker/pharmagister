@@ -1,34 +1,19 @@
-export const dynamic = "force-static";
-import nodemailer from 'nodemailer';
+export const dynamic = "force-dynamic";
+import { Resend } from 'resend';
 import { NextResponse } from 'next/server';
 
-// Force Node.js runtime instead of Edge
 export const runtime = 'nodejs';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(request) {
   try {
     const { email, displayName, verificationToken } = await request.json();
     
-    // Create transporter inside the handler
-    // Use IP address directly to avoid DNS issues on Vercel
-    const transporter = nodemailer.createTransport({
-      host: '185.51.191.40', // mail.pharmagister.hu IP
-      port: parseInt(process.env.SMTP_PORT || '465'),
-      secure: true,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-      tls: {
-        rejectUnauthorized: true,
-        servername: 'mail.pharmagister.hu'
-      }
-    });
-    
     const verificationLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://pharmagister.vercel.app'}/verify-email?token=${verificationToken}`;
 
     const mailOptions = {
-      from: `"Pharmagister" <${process.env.SMTP_USER || 'noreply@pharmagister.hu'}>`,
+      from: 'Pharmagister <onboarding@resend.dev>',
       to: email,
       subject: 'Erősítsd meg az email címedet - Pharmagister',
       html: `
@@ -125,7 +110,7 @@ export async function POST(request) {
       `,
     };
 
-    await transporter.sendMail(mailOptions);
+    await resend.emails.send(mailOptions);
 
     return NextResponse.json({ success: true, message: 'Verification email sent' });
   } catch (error) {

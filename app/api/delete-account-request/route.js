@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import { escapeHtml } from '@/lib/sanitize';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 import { checkRateLimit, getClientIp } from '@/lib/rateLimit';
 
 export async function POST(request) {
@@ -21,21 +23,10 @@ export async function POST(request) {
       );
     }
 
-    // SMTP transporter
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: false,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
-
     // Email tartalom
     const mailOptions = {
-      from: process.env.SMTP_FROM || 'noreply@pharmagister.hu',
-      to: process.env.ADMIN_EMAIL || 'info@pharmagister.hu',
+      from: 'Pharmagister <onboarding@resend.dev>',
+      to: process.env.ADMIN_EMAIL || 'epresla@icloud.com',
       subject: '🗑️ Új fiók törlési kérelem - Pharmagister',
       html: `
         <!DOCTYPE html>
@@ -96,7 +87,7 @@ export async function POST(request) {
       `,
     };
 
-    await transporter.sendMail(mailOptions);
+    await resend.emails.send(mailOptions);
 
     return NextResponse.json({ 
       success: true, 

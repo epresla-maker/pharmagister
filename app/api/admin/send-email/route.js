@@ -1,7 +1,9 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import { NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 import { verifyAdmin } from '@/lib/apiAuth';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const runtime = 'nodejs';
 
@@ -25,40 +27,18 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Üzenet megadása kötelező' }, { status: 400 });
     }
 
-    // SMTP transporter - info@pharmagister.hu
-    const transporter = nodemailer.createTransport({
-      host: '185.51.191.40', // mail.pharmagister.hu IP
-      port: parseInt(process.env.SMTP_PORT || '465'),
-      secure: true,
-      auth: {
-        user: 'info@pharmagister.hu',
-        pass: process.env.SMTP_PASS,
-      },
-      tls: {
-        rejectUnauthorized: true,
-        servername: 'mail.pharmagister.hu'
-      }
-    });
-
     const results = [];
     const errors = [];
 
     // Send emails individually to each recipient
     for (const recipient of to) {
       try {
-        const mailOptions = {
-          from: '"Pharmagister" <info@pharmagister.hu>',
+        await resend.emails.send({
+          from: 'Pharmagister <onboarding@resend.dev>',
           to: recipient,
           subject: subject,
-        };
-
-        if (isHtml) {
-          mailOptions.html = generateHtmlEmail(subject, body);
-        } else {
-          mailOptions.html = generateHtmlEmail(subject, body.replace(/\n/g, '<br>'));
-        }
-
-        await transporter.sendMail(mailOptions);
+          html: isHtml ? generateHtmlEmail(subject, body) : generateHtmlEmail(subject, body.replace(/\n/g, '<br>')),
+        });
         results.push({ email: recipient, success: true });
       } catch (err) {
         console.error(`Failed to send to ${recipient}:`, err);

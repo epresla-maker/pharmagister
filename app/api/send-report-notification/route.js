@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
+const resend = new Resend(process.env.RESEND_API_KEY);
 import webpush from 'web-push';
 import { verifyAuth } from '@/lib/apiAuth';
 import { escapeHtml } from '@/lib/sanitize';
@@ -134,17 +135,6 @@ export async function POST(request) {
 
     // === 3. Email értesítés ===
 
-    // SMTP transporter
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: process.env.SMTP_SECURE === 'true',
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
-
     const emailHTML = `
       <!DOCTYPE html>
       <html>
@@ -204,9 +194,9 @@ export async function POST(request) {
       </html>
     `;
 
-    await transporter.sendMail({
-      from: `"Pharmagister Reports" <${process.env.SMTP_USER}>`,
-      to: process.env.ADMIN_EMAIL || 'info@pharmagister.hu',
+    await resend.emails.send({
+      from: 'Pharmagister <onboarding@resend.dev>',
+      to: process.env.ADMIN_EMAIL || 'epresla@icloud.com',
       subject: `⚠️ Új jelentés: ${reportedUserName}`,
       html: emailHTML,
     });
