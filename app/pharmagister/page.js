@@ -35,8 +35,19 @@ function PharmagisterContent() {
     const email = String(user?.email || '').trim().toLowerCase();
     if (!email) return false;
 
-    if (!globalFlag && email.includes('epres')) return true;
-    if (!globalFlag) return false;
+    if (!globalFlag) {
+      const internalAllowlist = [
+        'epresla@icloud.com',
+        'tesztpatika@pharmagister.hu',
+        'kovacs.anna@pharmagister.hu',
+        'nagy.peter@pharmagister.hu',
+        'szabo.katalin@pharmagister.hu',
+        'toth.eszter@pharmagister.hu',
+        'varga.monika@pharmagister.hu',
+        'kiss.reka@pharmagister.hu',
+      ];
+      return internalAllowlist.includes(email);
+    }
 
     const allowlist = String(process.env.NEXT_PUBLIC_PHARMAGISTER_AI_MODE_ALLOWLIST || '')
       .split(',')
