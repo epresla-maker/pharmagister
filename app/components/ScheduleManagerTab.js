@@ -216,6 +216,19 @@ function isPublishedSchedule(schedule) {
   return Boolean(schedule?.publishedAt);
 }
 
+function getPreferenceOwnerKey(item) {
+  const employeeId = String(item?.employeeId || '').trim();
+  if (employeeId) return `emp:${employeeId}`;
+
+  const linkedUserId = String(item?.linkedUserId || '').trim();
+  if (linkedUserId) return `uid:${linkedUserId}`;
+
+  const email = normalizeEmail(item?.employeeEmail || item?.email || '');
+  if (email) return `mail:${email}`;
+
+  return null;
+}
+
 // Hungarian weekday display order: Mon(1) … Sat(6), Sun(0)
 const WEEKDAY_DISPLAY = [
   { label: 'H', fullLabel: 'Hétfő', day: 1 },
@@ -1645,6 +1658,20 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     return activeEmployees.filter(item => item.linkedUserId === user?.uid || normalizeEmail(item.email) === email);
   }, [activeEmployees, user]);
 
+  const ownPreferenceMatcher = useMemo(() => {
+    const ownEmployeeId = ownEmployeeRecords?.[0]?.id || '';
+    const ownLinkedUserId = user?.uid || '';
+    const ownEmail = normalizeEmail(user?.email);
+
+    return (item) => {
+      if (!item || item.status === 'deleted') return false;
+      if (ownEmployeeId && item.employeeId === ownEmployeeId) return true;
+      if (ownLinkedUserId && item.linkedUserId === ownLinkedUserId) return true;
+      const itemEmail = normalizeEmail(item.employeeEmail || '');
+      return Boolean(ownEmail && itemEmail && itemEmail === ownEmail);
+    };
+  }, [ownEmployeeRecords, user]);
+
   const aiModeAllowed = useMemo(() => {
     const globalFlag = process.env.NEXT_PUBLIC_PHARMAGISTER_AI_MODE === '1';
     const email = String(user?.email || '').trim().toLowerCase();
@@ -1729,6 +1756,54 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     () => activeMonthSchedules.filter(item => item.publishedAt).length,
     [activeMonthSchedules]
   );
+
+  const currentMonthDraftPublishSummary = useMemo(() => {
+    if (!isPharmacy) {
+      return { missingEmployees: [], missingCount: 0, totalEligible: 0 };
+    }
+
+    const currentMonthPreferences = schedulePreferences.filter(
+      (item) => item.status !== 'deleted' && item.year === thisYear && item.month === thisMonth
+    );
+
+    const publishedOwnerKeys = new Set(
+      currentMonthPreferences
+        .filter((item) => Boolean(item.publishedAt))
+        .map((item) => getPreferenceOwnerKey(item))
+        .filter(Boolean)
+    );
+
+    const eligibleEmployees = activeEmployees.filter(
+      (item) => Boolean(getPreferenceOwnerKey(item))
+    );
+
+    const missingEmployees = eligibleEmployees.filter(
+      (item) => !publishedOwnerKeys.has(getPreferenceOwnerKey(item))
+    );
+
+    return {
+      missingEmployees,
+      missingCount: missingEmployees.length,
+      totalEligible: eligibleEmployees.length,
+    };
+  }, [activeEmployees, isPharmacy, schedulePreferences, thisMonth, thisYear]);
+
+  const ownSelectedMonthDraftSummary = useMemo(() => {
+    if (isPharmacy) {
+      return { total: 0, published: 0, fullyPublished: false };
+    }
+
+    const ownMonthItems = schedulePreferences.filter(
+      (item) => item.year === year && item.month === month && ownPreferenceMatcher(item)
+    );
+    const published = ownMonthItems.filter((item) => Boolean(item.publishedAt)).length;
+
+    return {
+      total: ownMonthItems.length,
+      published,
+      fullyPublished: ownMonthItems.length > 0 && published === ownMonthItems.length,
+    };
+  }, [isPharmacy, month, ownPreferenceMatcher, schedulePreferences, year]);
 
   useEffect(() => {
     const maxDays = getDaysInMonth(year, month);
@@ -2018,6 +2093,72 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     } catch (err) {
       console.error('handleSavePreferenceDaySchedules error:', err);
       setStatusError('Nem sikerült menteni a tervezetet.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handlePublishPreferenceDraftMonth(targetYear = year, targetMonth = month) {
+    if (!user?.uid) return { success: false };
+
+    const ownRec = ownEmployeeRecords[0];
+    const pharmacyId = ownRec?.pharmacyId;
+    if (!pharmacyId) {
+      setStatusError('Nincs hozzarendelt gyogyszertar a publikalahoz.');
+      return { success: false };
+    }
+
+    const ownMonthItems = schedulePreferences.filter(
+      (item) => item.year === targetYear && item.month === targetMonth && ownPreferenceMatcher(item)
+    );
+
+    if (ownMonthItems.length === 0) {
+      setStatusError('Nincs mit publikalni: nincs mentett tervezeted ebben a honapban.');
+      return { success: false };
+    }
+
+    setSaving(true);
+    setStatusError('');
+    setStatusMessage('');
+
+    try {
+      const publishedAtIso = new Date().toISOString();
+      let updatedCount = 0;
+
+      for (const item of ownMonthItems) {
+        if (item.publishedAt) continue;
+        await updateDoc(doc(db, 'schedulePreferences', item.id), {
+          publishedAt: publishedAtIso,
+          publishedBy: user.uid,
+          status: 'published',
+          updatedAt: serverTimestamp(),
+        });
+        updatedCount += 1;
+      }
+
+      await createNotificationWithPush({
+        userId: pharmacyId,
+        type: 'schedule_preference_published',
+        title: 'Dolgozoi tervezet publikalva',
+        message: `${ownRec?.name || userData?.name || user.email} publikalta a ${MONTHS_HU[targetMonth - 1]} ${targetYear} havi tervezetet.`,
+        data: { employeeId: ownRec?.id || '', year: targetYear, month: targetMonth },
+        url: '/pharmagister?tab=schedule-manager',
+        dedupeWindowSeconds: 120,
+        dedupeByDataKeys: ['employeeId', 'year', 'month'],
+      });
+
+      if (updatedCount > 0) {
+        setStatusMessage(`Sikeres publikalas: ${updatedCount} tervezett nap publikalva (${MONTHS_HU[targetMonth - 1]} ${targetYear}).`);
+      } else {
+        setStatusMessage(`A ${MONTHS_HU[targetMonth - 1]} ${targetYear} havi tervezet mar korabban publikalva lett.`);
+      }
+
+      await loadData();
+      return { success: true, updatedCount };
+    } catch (error) {
+      console.error('Publish preference month error:', error);
+      setStatusError(error.message || 'Nem sikerult publikalni a havi tervezetet.');
+      return { success: false };
     } finally {
       setSaving(false);
     }
@@ -6313,6 +6454,14 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                           <span className={`text-sm font-semibold ${darkMode ? 'text-emerald-300' : 'text-emerald-700'}`}>{pendingPrefs} dolgozói kérés</span>
                         </div>
                       )}
+                      {currentMonthDraftPublishSummary.missingCount > 0 && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">⚠️</span>
+                          <span className="text-sm font-semibold text-amber-600">
+                            {currentMonthDraftPublishSummary.missingCount} dolgozo nem publikalta az aktualis havi tervezetet
+                          </span>
+                        </div>
+                      )}
                       <div className="flex items-center gap-2">
                         {isPublished
                           ? <><span className="text-lg">✅</span><span className={`text-sm font-semibold ${darkMode ? 'text-emerald-300' : 'text-emerald-700'}`}>Publikálva ({publishedScheduleCount})</span></>
@@ -6369,6 +6518,16 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   hints.push('💡 Kattints a hónap nevére a beosztás elkezdéséhez');
                 if (ignoredPrefs > 0)
                   hints.push(`💬 ${ignoredPrefs} dolgozói kérés van, amit még nem vettél figyelembe`);
+                if (currentMonthDraftPublishSummary.missingCount > 0) {
+                  const names = currentMonthDraftPublishSummary.missingEmployees
+                    .slice(0, 3)
+                    .map((item) => item.name)
+                    .filter(Boolean)
+                    .join(', ');
+                  hints.push(
+                    `⚠️ Aktuális havi tervezet még nincs publikálva: ${names || 'tobb dolgozo'}${currentMonthDraftPublishSummary.missingCount > 3 ? ' stb.' : ''}`
+                  );
+                }
                 if (year === thisYear && month === thisMonth && daysLeft < 5 && publishedScheduleCount === 0 && activeMonthSchedules.length > 0)
                   hints.push('⏰ Hamarosan véget ér a hónap — ne feledd publikálni a beosztást!');
                 if (hints.length === 0) return null;
@@ -7279,6 +7438,34 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                       Add meg, hogy mikor szeretnél dolgozni. A tervezet látható lesz a gyógyszertár számára és a kollégáknak is.
                     </p>
                   </div>
+                  <div className={`rounded-xl border px-3 py-3 ${darkMode ? 'border-emerald-800 bg-emerald-900/30' : 'border-emerald-200 bg-white/80'}`}>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className={`text-sm font-semibold ${darkMode ? 'text-emerald-200' : 'text-emerald-800'}`}>
+                          {MONTHS_HU[month - 1]} {year} - publikacio
+                        </p>
+                        <p className={`text-xs mt-1 ${darkMode ? 'text-emerald-300/80' : 'text-emerald-700/80'}`}>
+                          {ownSelectedMonthDraftSummary.total === 0
+                            ? 'Meg nincs mentett tervezet erre a honapra.'
+                            : ownSelectedMonthDraftSummary.fullyPublished
+                              ? `Publikalva (${ownSelectedMonthDraftSummary.published}/${ownSelectedMonthDraftSummary.total} nap).`
+                              : `Meg nincs teljesen publikalva (${ownSelectedMonthDraftSummary.published}/${ownSelectedMonthDraftSummary.total} nap).`}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={saving || ownSelectedMonthDraftSummary.total === 0}
+                        onClick={() => { void handlePublishPreferenceDraftMonth(year, month); }}
+                        className={`rounded-xl px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
+                          darkMode
+                            ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                            : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                        }`}
+                      >
+                        {saving ? 'Publikalas...' : 'Tervezet publikálása'}
+                      </button>
+                    </div>
+                  </div>
                   {[thisYear, thisYear + 1].map(y => {
                     const startM = y === thisYear ? thisMonth : 1;
                     const months = MONTHS_HU.slice(startM - 1).map((label, i) => ({ label, m: startM + i }));
@@ -7290,8 +7477,9 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                             const isActive = y === year && m === month && preferenceCalendarOpen;
                             const myPrefs = schedulePreferences.filter(p =>
                               p.status !== 'deleted' && p.year === y && p.month === m &&
-                              (p.linkedUserId === user?.uid || (p.employeeEmail && user?.email && p.employeeEmail.toLowerCase() === user.email.toLowerCase()))
+                              ownPreferenceMatcher(p)
                             );
+                            const myPublishedPrefs = myPrefs.filter((p) => Boolean(p.publishedAt)).length;
                             return (
                               <button
                                 key={m}
@@ -7310,6 +7498,15 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                                 {myPrefs.length > 0 && (
                                   <span className={`mt-1 text-[10px] font-semibold rounded-full px-2 py-0.5 ${isActive ? 'bg-white/25 text-white' : darkMode ? 'bg-gray-700 text-gray-300' : 'bg-emerald-100 text-emerald-700'}`}>
                                     {myPrefs.length} tervezett nap
+                                  </span>
+                                )}
+                                {myPrefs.length > 0 && (
+                                  <span className={`mt-1 text-[10px] font-semibold rounded-full px-2 py-0.5 ${
+                                    myPublishedPrefs === myPrefs.length
+                                      ? (isActive ? 'bg-white/25 text-white' : darkMode ? 'bg-emerald-800 text-emerald-200' : 'bg-emerald-100 text-emerald-700')
+                                      : (isActive ? 'bg-white/20 text-white' : darkMode ? 'bg-amber-900/50 text-amber-200' : 'bg-amber-100 text-amber-700')
+                                  }`}>
+                                    {myPublishedPrefs}/{myPrefs.length} publikalva
                                   </span>
                                 )}
                               </button>
