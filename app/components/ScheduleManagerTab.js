@@ -4807,11 +4807,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                 <p className={`text-[10px] px-1 ${darkMode ? 'text-gray-500' : 'text-gray-400'} ${isUser ? 'text-right' : 'text-left'}`}>
                   {isUser ? 'Te' : 'Betti'}{msg.ts ? ` · ${formatTime(msg.ts)}` : ''}
                 </p>
-                {!isUser && msg.debugRoute && (
-                  <p className={`text-[10px] px-1 uppercase tracking-wide ${darkMode ? 'text-sky-400' : 'text-sky-600'}`}>
-                    {msg.debugRoute}
-                  </p>
-                )}
+
                 {!isUser && Array.isArray(msg.uiCommands) && msg.uiCommands.length > 0 && (
                   <div className="flex flex-wrap gap-2 px-1 pt-1">
                     {msg.uiCommands.slice(0, 4).map((cmd) => (
