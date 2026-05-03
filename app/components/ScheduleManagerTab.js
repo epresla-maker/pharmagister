@@ -1773,8 +1773,16 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         .filter(Boolean)
     );
 
+    // Csak azok a dolgozók akiknek VAN draft preferenciájuk az aktuális hónapra,
+    // de egyik sincs publikálva (publishedAt hiányzik)
+    const draftOwnerKeys = new Set(
+      currentMonthPreferences
+        .map((item) => getPreferenceOwnerKey(item))
+        .filter(Boolean)
+    );
+
     const eligibleEmployees = activeEmployees.filter(
-      (item) => Boolean(getPreferenceOwnerKey(item))
+      (item) => draftOwnerKeys.has(getPreferenceOwnerKey(item))
     );
 
     const missingEmployees = eligibleEmployees.filter(
@@ -6458,7 +6466,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                         <div className="flex items-center gap-2">
                           <span className="text-lg">⚠️</span>
                           <span className="text-sm font-semibold text-amber-600">
-                            {currentMonthDraftPublishSummary.missingCount} dolgozo nem publikalta az aktualis havi tervezetet
+                            {currentMonthDraftPublishSummary.missingCount} dolgozó tervezete még nincs publikálva
                           </span>
                         </div>
                       )}
