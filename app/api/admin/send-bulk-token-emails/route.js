@@ -1,7 +1,9 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import { NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 import { verifyAdmin } from '@/lib/apiAuth';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const runtime = 'nodejs';
 
@@ -92,21 +94,6 @@ export async function POST(request) {
     // Max 10 email per request a Vercel timeout elkerüléséhez
     const batch = tokens.slice(0, 10);
 
-    // SMTP transporter
-    const transporter = nodemailer.createTransport({
-      host: '185.51.191.40',
-      port: parseInt(process.env.SMTP_PORT || '465'),
-      secure: true,
-      auth: {
-        user: 'epresla@icloud.com',
-        pass: process.env.SMTP_PASS,
-      },
-      tls: {
-        rejectUnauthorized: true,
-        servername: 'mail.pharmagister.hu'
-      }
-    });
-
     const results = [];
     const errors = [];
 
@@ -121,14 +108,12 @@ export async function POST(request) {
           tokenData.deleteLink
         );
 
-        const mailOptions = {
-          from: '"Pharmagister" <epresla@icloud.com>',
+        await resend.emails.send({
+          from: 'Pharmagister <noreply@pharmagister.hu>',
           to: tokenData.email,
           subject,
           html: generateHtmlEmail(subject, body.replace(/\n/g, '<br>')),
-        };
-
-        await transporter.sendMail(mailOptions);
+        });
         results.push({ 
           email: tokenData.email, 
           name: tokenData.name, 
@@ -161,7 +146,7 @@ export async function POST(request) {
         sentAt: admin.firestore.FieldValue.serverTimestamp(),
         sentCount: results.length,
         failedCount: errors.length,
-        from: 'epresla@icloud.com',
+        from: 'noreply@pharmagister.hu',
         type: 'bulk-token-email',
       });
     } catch (saveErr) {

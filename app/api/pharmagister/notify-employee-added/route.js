@@ -1,6 +1,8 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import { NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/apiAuth';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const runtime = 'nodejs';
 
@@ -63,32 +65,9 @@ export async function POST(request) {
       return NextResponse.json({ error: 'A dolgozó email címe kötelező' }, { status: 400 });
     }
 
-    if (!process.env.SMTP_PASS) {
-      console.warn('notify-employee-added: SMTP_PASS missing, email notification skipped');
-      return NextResponse.json({
-        success: false,
-        skipped: true,
-        reason: 'smtp_not_configured',
-      });
-    }
-
-    const transporter = nodemailer.createTransport({
-      host: '185.51.191.40',
-      port: parseInt(process.env.SMTP_PORT || '465', 10),
-      secure: true,
-      auth: {
-        user: 'epresla@icloud.com',
-        pass: process.env.SMTP_PASS,
-      },
-      tls: {
-        rejectUnauthorized: true,
-        servername: 'mail.pharmagister.hu'
-      }
-    });
-
     try {
-      await transporter.sendMail({
-        from: '"Pharmagister" <epresla@icloud.com>',
+      await resend.emails.send({
+        from: 'Pharmagister <noreply@pharmagister.hu>',
         to: employeeEmail,
         subject: 'Pharmagister - Felvettek egy gyógyszertár dolgozói közé',
         html: buildHtml({ employeeName, pharmacyName, pharmacyEmail })

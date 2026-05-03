@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import admin from 'firebase-admin';
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 import { randomBytes } from 'crypto';
 import { escapeHtml } from '@/lib/sanitize';
 import { checkRateLimit, getClientIp } from '@/lib/rateLimit';
@@ -128,29 +130,9 @@ export async function POST(request) {
     const resetLink = `${baseUrl}/set-password?token=${resetToken}`;
     const userName = userData.name || userData.displayName || 'Felhasználó';
 
-    // Use direct IP connection to avoid DNS issues on Vercel serverless
-    const SMTP_IP = '185.51.191.40';
-    const SMTP_DOMAIN = 'mail.pharmagister.hu';
-
-    // Setup email transporter with direct IP
-    const transporter = nodemailer.createTransport({
-      host: SMTP_IP,
-      port: parseInt(process.env.SMTP_PORT || '465'),
-      secure: true,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-      tls: {
-        rejectUnauthorized: true,
-        servername: SMTP_DOMAIN
-      },
-      name: 'pharmagister.hu'
-    });
-
-    // Send email
-    await transporter.sendMail({
-      from: '"Pharmagister" <' + process.env.SMTP_USER + '>',
+    // Send email via Resend
+    await resend.emails.send({
+      from: 'Pharmagister <noreply@pharmagister.hu>',
       to: email,
       subject: 'Pharmagister - Jelszó visszaállítás',
       html: generateEmailHtml(userName, email, resetLink),
