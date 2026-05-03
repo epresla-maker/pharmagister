@@ -4426,12 +4426,30 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         targetYear = d.getFullYear();
       }
       const monthName = cmd.monthLabel || MONTHS_HU[targetMonth - 1];
+      const employeeNames = activeEmployees
+        .map((emp) => String(emp?.name || '').trim())
+        .filter(Boolean)
+        .slice(0, 10);
 
       setBettiChatMessages((prev) => [...prev, {
         role: 'assistant',
-        text: `Hogyan kezdjük a ${monthName.toLowerCase()}i beosztást?`,
+        text: `Rendben, kerlek valassz. A ${monthName.toLowerCase()}i tervezeshez osszeallitottam a csapatot.`,
         intent: 'local_schedule_wizard_started',
         ts: Date.now(),
+        plannerCard: {
+          monthName,
+          monthNumber: targetMonth,
+          year: targetYear,
+          employeeNames,
+          planCommand: {
+            id: `planner_card_auto_${Date.now()}`,
+            type: 'local_run_auto_planner',
+            label: `Tervezes inditasa - ${monthName}`,
+            monthNumber: targetMonth,
+            monthOffset: null,
+            monthLabel: monthName,
+          },
+        },
         uiCommands: [
           {
             id: 'sw_auto',
@@ -4857,6 +4875,50 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                 >
                   {msg.text}
                 </div>
+
+                {!isUser && msg?.plannerCard && (
+                  <div className={`w-full rounded-2xl border px-4 py-3 shadow-sm ${
+                    darkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-sky-50 border-sky-200 text-slate-800'
+                  }`}>
+                    <p className={`text-xs font-bold uppercase tracking-wide ${darkMode ? 'text-sky-300' : 'text-sky-700'}`}>
+                      Beosztastervezes
+                    </p>
+                    <p className={`mt-1 text-sm font-semibold ${darkMode ? 'text-white' : 'text-slate-900'}`}>
+                      {msg.plannerCard.monthName} {msg.plannerCard.year}
+                    </p>
+                    <p className={`mt-2 text-xs font-medium ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                      Dolgozok ({Array.isArray(msg.plannerCard.employeeNames) ? msg.plannerCard.employeeNames.length : 0}):
+                    </p>
+                    <div className="mt-1 flex flex-wrap gap-1.5">
+                      {Array.isArray(msg.plannerCard.employeeNames) && msg.plannerCard.employeeNames.length > 0 ? (
+                        msg.plannerCard.employeeNames.map((name) => (
+                          <span
+                            key={name}
+                            className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${
+                              darkMode ? 'bg-slate-700 text-slate-100 border border-slate-600' : 'bg-white text-slate-700 border border-sky-200'
+                            }`}
+                          >
+                            {name}
+                          </span>
+                        ))
+                      ) : (
+                        <span className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Nincs aktiv dolgozo a listaban.</span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => { void executeBettiUiCommand(msg.plannerCard.planCommand, msg); }}
+                      className={`mt-3 w-full rounded-xl px-3 py-2 text-sm font-bold transition-colors ${
+                        darkMode
+                          ? 'bg-emerald-600 text-white active:bg-emerald-500'
+                          : 'bg-emerald-500 text-white active:bg-emerald-600'
+                      }`}
+                    >
+                      Tervezes inditasa
+                    </button>
+                  </div>
+                )}
+
                 <p className={`text-[10px] px-1 ${darkMode ? 'text-gray-500' : 'text-gray-400'} ${isUser ? 'text-right' : 'text-left'}`}>
                   {isUser ? 'Te' : 'Betti'}{msg.ts ? ` · ${formatTime(msg.ts)}` : ''}
                 </p>
