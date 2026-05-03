@@ -2785,10 +2785,29 @@ export async function POST(request) {
             find_replacement:        chatRole === 'pharmacy' ? 'Rendben, mutatom a helyettesítési igényeket!' : 'Rendben, mutatom a nyitott helyettesítési igényeket!',
             replan_all:              'Rendben, segítek az újratervezésben!',
           };
-          finalReply = (action !== 'clarify' && ACTION_REPLIES[action]) ? ACTION_REPLIES[action] : llmTextFallback.reply;
-          pipelinePayload = { action, entities: {}, suggestedAction: action };
-          quickActions = buildSuccessQuickActions({ action, chatRole, entities: {} });
-          parsed = { intent: action, confidence: 0.85, entities: {} };
+          // Detect month entities so the wizard card shows the correct month
+          const textFallbackDetectedMonth = detectMonthReference(message);
+          const textFallbackEntities = {};
+          if (textFallbackDetectedMonth) {
+            textFallbackEntities.monthNumber = textFallbackDetectedMonth.monthNumber;
+            textFallbackEntities.monthOffset = textFallbackDetectedMonth.monthOffset;
+            const rawLabel = textFallbackDetectedMonth.label || '';
+            textFallbackEntities.monthLabel = rawLabel
+              ? rawLabel.charAt(0).toUpperCase() + rawLabel.slice(1)
+              : null;
+          }
+
+          if (action === 'write_schedule_plan' && chatRole === 'pharmacy' && textFallbackDetectedMonth) {
+            const ml = textFallbackEntities.monthLabel || '';
+            finalReply = ml
+              ? `Rendben, kerlek valassz. A ${ml.toLowerCase()}i tervezeshez osszeallitottam a csapatot.`
+              : 'Rendben, kerlek valassz. Indulhat a beosztastervezes.';
+          } else {
+            finalReply = (action !== 'clarify' && ACTION_REPLIES[action]) ? ACTION_REPLIES[action] : llmTextFallback.reply;
+          }
+          pipelinePayload = { action, entities: textFallbackEntities, suggestedAction: action };
+          quickActions = buildSuccessQuickActions({ action, chatRole, entities: textFallbackEntities });
+          parsed = { intent: action, confidence: 0.85, entities: textFallbackEntities };
           usedLLM = true;
           responseRoute = 'LLM_TEXT_FALLBACK';
         } else if (isReplacementDemandMessage) {
