@@ -3572,6 +3572,26 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       setBettiChatMessages((prev) => [...prev, { role: 'assistant', text }]);
     };
 
+    if (action === 'write_schedule_plan') {
+      if (!isPharmacy) {
+        appendBettiMessage('A tervezes inditasa ebben a nezetben nem erheto el.');
+        return;
+      }
+
+      const { targetYear, targetMonth, monthLabel } = resolveTargetMonth();
+      await executeBettiUiCommand({
+        type: 'local_schedule_wizard_start',
+        monthNumber: targetMonth,
+        monthLabel,
+        monthOffset: null,
+      }, {
+        role: 'assistant',
+        action: 'write_schedule_plan',
+        entities: { monthNumber: targetMonth, monthLabel, monthOffset: null, year: targetYear },
+      });
+      return;
+    }
+
     if (action === 'replan_all') {
       await runAutoPlanner({ action: 'plan' });
       return;

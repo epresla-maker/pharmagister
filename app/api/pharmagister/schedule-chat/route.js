@@ -2849,15 +2849,15 @@ export async function POST(request) {
             : 'Rendben, mutatom a nyitott helyettesitesi igenyeket es segitek a jelentkezesben.';
         }
 
-        if (action === 'clarify' && chatRole === 'pharmacy' && isDirectSchedulePlanningPrompt(message)) {
+        if (chatRole === 'pharmacy' && isDirectSchedulePlanningPrompt(message)) {
           action = 'write_schedule_plan';
           const detectedMonth = detectMonthReference(message);
           const monthLabel = detectedMonth?.label
             ? String(detectedMonth.label).charAt(0).toUpperCase() + String(detectedMonth.label).slice(1)
             : null;
           finalReply = monthLabel
-            ? `Rendben, indulhat a ${monthLabel.toLowerCase()}i beosztas tervezese.`
-            : 'Rendben, indulhat az automatikus beosztastervezes.';
+            ? `Rendben, kerlek valassz. A ${monthLabel.toLowerCase()}i beosztas tervezesehez keszen allok.`
+            : 'Rendben, kerlek valassz. Indulhat a beosztastervezes.';
           if (detectedMonth) {
             routerEntities.monthOffset = detectedMonth.monthOffset;
             routerEntities.monthNumber = detectedMonth.monthNumber;
