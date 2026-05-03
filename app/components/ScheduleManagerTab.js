@@ -1585,6 +1585,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   const [bettiVoiceListening, setBettiVoiceListening] = useState(false);
   const [bettiSpeakEnabled, setBettiSpeakEnabled] = useState(false);
   const [bettiDemandDraft, setBettiDemandDraft] = useState(null);
+  const [bettiChatHydrated, setBettiChatHydrated] = useState(false);
   const bettiNativeKeyboardHeightRef = useRef(0);
   const bettiRecognitionRef = useRef(null);
   const bettiChatScrollRef = useRef(null);
@@ -1608,6 +1609,10 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   });
   const [profileSaving, setProfileSaving] = useState(false);
   const [showProfileForm, setShowProfileForm] = useState(false);
+
+  useEffect(() => {
+    setBettiChatHydrated(true);
+  }, []);
 
   // Full-screen calendar overlay (pharmacy schedule)
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -4848,6 +4853,10 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   }
 
   function renderBettiMessageBanners(limit = 10) {
+    if (!bettiChatHydrated) {
+      return null;
+    }
+
     const visibleMessages = bettiChatMessages.slice(-limit);
 
     const formatTime = (ts) => {
