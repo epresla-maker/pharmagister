@@ -25,7 +25,7 @@ export async function POST(request) {
 
     // Email tartalom
     const mailOptions = {
-      from: 'Pharmagister <onboarding@resend.dev>',
+      from: 'Pharmagister <noreply@pharmagister.hu>',
       to: process.env.ADMIN_EMAIL || 'epresla@icloud.com',
       subject: '🗑️ Új fiók törlési kérelem - Pharmagister',
       html: `

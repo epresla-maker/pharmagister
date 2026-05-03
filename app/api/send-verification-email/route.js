@@ -10,7 +10,7 @@ export async function POST(request) {
     const { email, displayName, verificationLink } = await request.json();
 
     const mailOptions = {
-      from: 'Pharmagister <onboarding@resend.dev>',
+      from: 'Pharmagister <noreply@pharmagister.hu>',
       to: email,
       subject: 'Erősítsd meg az email címedet - Pharmagister',
       html: `

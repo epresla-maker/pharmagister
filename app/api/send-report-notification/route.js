@@ -195,7 +195,7 @@ export async function POST(request) {
     `;
 
     await resend.emails.send({
-      from: 'Pharmagister <onboarding@resend.dev>',
+      from: 'Pharmagister <noreply@pharmagister.hu>',
       to: process.env.ADMIN_EMAIL || 'epresla@icloud.com',
       subject: `⚠️ Új jelentés: ${reportedUserName}`,
       html: emailHTML,

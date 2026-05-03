@@ -13,7 +13,7 @@ export async function POST(request) {
     const verificationLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://pharmagister.vercel.app'}/verify-email?token=${verificationToken}`;
 
     const mailOptions = {
-      from: 'Pharmagister <onboarding@resend.dev>',
+      from: 'Pharmagister <noreply@pharmagister.hu>',
       to: email,
       subject: 'Erősítsd meg az email címedet - Pharmagister',
       html: `

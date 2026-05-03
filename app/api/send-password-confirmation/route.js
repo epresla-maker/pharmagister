@@ -68,7 +68,7 @@ export async function POST(request) {
     `;
 
     await resend.emails.send({
-      from: 'Pharmagister <onboarding@resend.dev>',
+      from: 'Pharmagister <noreply@pharmagister.hu>',
       to: email,
       subject: '✅ Pharmagister - Jelszó sikeresen beállítva',
       html: htmlContent,

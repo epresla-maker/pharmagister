@@ -34,7 +34,7 @@ export async function POST(request) {
     for (const recipient of to) {
       try {
         await resend.emails.send({
-          from: 'Pharmagister <onboarding@resend.dev>',
+          from: 'Pharmagister <noreply@pharmagister.hu>',
           to: recipient,
           subject: subject,
           html: isHtml ? generateHtmlEmail(subject, body) : generateHtmlEmail(subject, body.replace(/\n/g, '<br>')),
