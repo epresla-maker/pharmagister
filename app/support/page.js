@@ -50,8 +50,8 @@ export default function SupportPage() {
               </div>
               <div>
                 <p className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>E-mail</p>
-                <a href="mailto:info@pharmagister.hu" className="text-purple-600 hover:underline">
-                  info@pharmagister.hu
+                <a href="mailto:epresla@icloud.com" className="text-purple-600 hover:underline">
+                  epresla@icloud.com
                 </a>
                 <p className={`text-sm mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                   Válaszidő: általában 24 órán belül
@@ -166,7 +166,7 @@ export default function SupportPage() {
           </h2>
           <p className="leading-relaxed">
             <strong>Név:</strong> Epres László<br />
-            <strong>E-mail:</strong> info@pharmagister.hu<br />
+            <strong>E-mail:</strong> epresla@icloud.com<br />
             <strong>Alkalmazás:</strong> Pharmagister v1.0.0
           </p>
         </div>

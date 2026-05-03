@@ -77,7 +77,7 @@ export async function POST(request) {
       port: parseInt(process.env.SMTP_PORT || '465', 10),
       secure: true,
       auth: {
-        user: 'info@pharmagister.hu',
+        user: 'epresla@icloud.com',
         pass: process.env.SMTP_PASS,
       },
       tls: {
@@ -88,7 +88,7 @@ export async function POST(request) {
 
     try {
       await transporter.sendMail({
-        from: '"Pharmagister" <info@pharmagister.hu>',
+        from: '"Pharmagister" <epresla@icloud.com>',
         to: employeeEmail,
         subject: 'Pharmagister - Felvettek egy gyógyszertár dolgozói közé',
         html: buildHtml({ employeeName, pharmacyName, pharmacyEmail })

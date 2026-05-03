@@ -88,7 +88,7 @@ export default function ChildSafetyPage() {
               <li><strong>Report modal on community posts:</strong> Every community post has a &quot;Report&quot; (Jelentés) button that opens an in-app reporting modal where users can select a reason and submit the report directly</li>
               <li><strong>Report modal on chat messages:</strong> In private chat conversations, users can report individual messages or the other user via the same in-app reporting modal</li>
               <li><strong>In-app Support page:</strong> A dedicated Support page is accessible from the Settings menu at any time, providing direct contact options</li>
-              <li><strong>Email:</strong> Reports can also be sent directly to <a href="mailto:info@pharmagister.hu" className="text-purple-600 hover:underline">info@pharmagister.hu</a></li>
+              <li><strong>Email:</strong> Reports can also be sent directly to <a href="mailto:epresla@icloud.com" className="text-purple-600 hover:underline">epresla@icloud.com</a></li>
             </ul>
             <p className="leading-relaxed mt-3">
               All reports are stored in our database and reviewed by the app operator. Reports related to
@@ -129,7 +129,7 @@ export default function ChildSafetyPage() {
               <p><strong>Name:</strong> Epres László</p>
               <p><strong>Title:</strong> Child Safety Officer &amp; App Operator</p>
               <p><strong>Organization:</strong> Pharmagister (com.pharmagister.app)</p>
-              <p><strong>Email:</strong> <a href="mailto:info@pharmagister.hu" className="text-purple-600 hover:underline">info@pharmagister.hu</a></p>
+              <p><strong>Email:</strong> <a href="mailto:epresla@icloud.com" className="text-purple-600 hover:underline">epresla@icloud.com</a></p>
               <p><strong>Response time:</strong> Within 24–48 hours</p>
               <p><strong>Languages:</strong> Hungarian, English</p>
             </div>
@@ -233,7 +233,7 @@ export default function ChildSafetyPage() {
                     <li><strong>Jelentés gomb közösségi posztokon:</strong> Minden közösségi bejegyzésnél elérhető a „Jelentés" gomb</li>
                     <li><strong>Jelentés gomb chat üzenetekben:</strong> Privát beszélgetésekben az üzenetek és felhasználók jelenthetők</li>
                     <li><strong>Támogatás oldal:</strong> A Beállítások menüből bármikor elérhető</li>
-                    <li><strong>Email:</strong> <a href="mailto:info@pharmagister.hu" className="text-purple-600 hover:underline">info@pharmagister.hu</a></li>
+                    <li><strong>Email:</strong> <a href="mailto:epresla@icloud.com" className="text-purple-600 hover:underline">epresla@icloud.com</a></li>
                   </ul>
                 </section>
 
@@ -261,7 +261,7 @@ export default function ChildSafetyPage() {
                     <p><strong>Név:</strong> Epres László</p>
                     <p><strong>Beosztás:</strong> Gyermekbiztonsági felelős és alkalmazás-üzemeltető</p>
                     <p><strong>Szervezet:</strong> Pharmagister (com.pharmagister.app)</p>
-                    <p><strong>Email:</strong> <a href="mailto:info@pharmagister.hu" className="text-purple-600 hover:underline">info@pharmagister.hu</a></p>
+                    <p><strong>Email:</strong> <a href="mailto:epresla@icloud.com" className="text-purple-600 hover:underline">epresla@icloud.com</a></p>
                     <p><strong>Válaszidő:</strong> 24–48 órán belül</p>
                     <p><strong>Nyelvek:</strong> magyar, angol</p>
                   </div>
@@ -284,7 +284,7 @@ export default function ChildSafetyPage() {
           {/* Footer */}
           <div className={`border-t pt-4 mt-6 text-sm ${darkMode ? 'border-gray-700 text-gray-400' : 'border-gray-200 text-gray-500'}`}>
             <p>Pharmagister &mdash; developed by Epres László</p>
-            <p>Contact: <a href="mailto:info@pharmagister.hu" className="text-purple-600 hover:underline">info@pharmagister.hu</a></p>
+            <p>Contact: <a href="mailto:epresla@icloud.com" className="text-purple-600 hover:underline">epresla@icloud.com</a></p>
             <p className="mt-2">
               <Link href="/privacy-policy" className="text-purple-600 hover:underline">Privacy Policy</Link>
               {' | '}

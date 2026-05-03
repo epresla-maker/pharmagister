@@ -98,7 +98,7 @@ export async function POST(request) {
       port: parseInt(process.env.SMTP_PORT || '465'),
       secure: true,
       auth: {
-        user: 'info@pharmagister.hu',
+        user: 'epresla@icloud.com',
         pass: process.env.SMTP_PASS,
       },
       tls: {
@@ -122,7 +122,7 @@ export async function POST(request) {
         );
 
         const mailOptions = {
-          from: '"Pharmagister" <info@pharmagister.hu>',
+          from: '"Pharmagister" <epresla@icloud.com>',
           to: tokenData.email,
           subject,
           html: generateHtmlEmail(subject, body.replace(/\n/g, '<br>')),
@@ -161,7 +161,7 @@ export async function POST(request) {
         sentAt: admin.firestore.FieldValue.serverTimestamp(),
         sentCount: results.length,
         failedCount: errors.length,
-        from: 'info@pharmagister.hu',
+        from: 'epresla@icloud.com',
         type: 'bulk-token-email',
       });
     } catch (saveErr) {

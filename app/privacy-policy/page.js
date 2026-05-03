@@ -50,7 +50,7 @@ export default function PrivacyPolicyPage() {
             <p className="leading-relaxed">
               <strong>Fejlesztő neve:</strong> Epres László<br />
               <strong>Alkalmazás neve:</strong> Pharmagister<br />
-              <strong>E-mail:</strong> info@pharmagister.hu<br />
+              <strong>E-mail:</strong> epresla@icloud.com<br />
               <strong>Weboldal:</strong> https://pharmagister.hu
             </p>
           </section>
@@ -158,7 +158,7 @@ export default function PrivacyPolicyPage() {
               <li><strong>Tiltakozás joga:</strong> tiltakozhat az adatkezelés ellen</li>
             </ul>
             <p className="leading-relaxed mt-3">
-              Jogai gyakorlásához írjon az <strong>info@pharmagister.hu</strong> e-mail címre. Fiókja azonnali törléséhez lépjen be az alkalmazásba és navigáljon a{' '}
+              Jogai gyakorlásához írjon az <strong>epresla@icloud.com</strong> e-mail címre. Fiókja azonnali törléséhez lépjen be az alkalmazásba és navigáljon a{' '}
               <Link href="/settings" className="text-purple-600 hover:text-purple-700 font-semibold underline">
                 Beállítások → Fiók törlése
               </Link>{' '}
@@ -221,7 +221,7 @@ export default function PrivacyPolicyPage() {
             <p className="leading-relaxed">
               Adatvédelmi kérdésekkel kapcsolatban írjon nekünk:<br /><br />
               <strong>Fejlesztő:</strong> Epres László<br />
-              <strong>E-mail:</strong> info@pharmagister.hu<br />
+              <strong>E-mail:</strong> epresla@icloud.com<br />
               <strong>Weboldal:</strong> https://pharmagister.hu
             </p>
           </section>

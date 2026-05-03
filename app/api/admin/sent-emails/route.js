@@ -31,7 +31,7 @@ export async function GET(request) {
         sentAt: data.sentAt ? data.sentAt.toDate().toISOString() : null,
         sentCount: data.sentCount || 0,
         failedCount: data.failedCount || 0,
-        from: data.from || 'info@pharmagister.hu',
+        from: data.from || 'epresla@icloud.com',
       };
     });
 

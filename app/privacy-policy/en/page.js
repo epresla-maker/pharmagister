@@ -50,7 +50,7 @@ export default function PrivacyPolicyEnPage() {
             <p className="leading-relaxed">
               <strong>Developer:</strong> Epres László<br />
               <strong>Application name:</strong> Pharmagister<br />
-              <strong>Email:</strong> info@pharmagister.hu<br />
+              <strong>Email:</strong> epresla@icloud.com<br />
               <strong>Website:</strong> https://pharmagister.hu
             </p>
           </section>
@@ -158,7 +158,7 @@ export default function PrivacyPolicyEnPage() {
               <li><strong>Right to object:</strong> object to data processing</li>
             </ul>
             <p className="leading-relaxed mt-3">
-              To exercise your rights, write to <strong>info@pharmagister.hu</strong>. To delete your account instantly, log in and go to{' '}
+              To exercise your rights, write to <strong>epresla@icloud.com</strong>. To delete your account instantly, log in and go to{' '}
               <Link href="/settings" className="text-purple-600 hover:text-purple-700 font-semibold underline">
                 Settings → Delete Account
               </Link>, or use the{' '}
@@ -207,7 +207,7 @@ export default function PrivacyPolicyEnPage() {
             <p className="leading-relaxed">
               For data protection inquiries, please contact us:<br /><br />
               <strong>Developer:</strong> Epres László<br />
-              <strong>Email:</strong> info@pharmagister.hu<br />
+              <strong>Email:</strong> epresla@icloud.com<br />
               <strong>Website:</strong> https://pharmagister.hu
             </p>
           </section>

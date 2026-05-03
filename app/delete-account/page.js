@@ -51,11 +51,11 @@ export default function DeleteAccountPage() {
       if (response.ok) {
         setSubmitted(true);
       } else {
-        setError('Hiba történt. Kérjük írjon közvetlenül az info@pharmagister.hu címre.');
+        setError('Hiba történt. Kérjük írjon közvetlenül az epresla@icloud.com címre.');
       }
     } catch (err) {
       console.error('Delete account request error:', err);
-      setError('Hiba történt. Kérjük írjon közvetlenül az info@pharmagister.hu címre.');
+      setError('Hiba történt. Kérjük írjon közvetlenül az epresla@icloud.com címre.');
     } finally {
       setSubmitting(false);
     }
@@ -282,8 +282,8 @@ export default function DeleteAccountPage() {
           <div className={`mt-6 pt-6 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
             <p className="text-sm text-center">
               <strong>Egyéb kérdés?</strong> Írjon nekünk:{' '}
-              <a href="mailto:info@pharmagister.hu" className="text-purple-600 hover:text-purple-700 font-medium">
-                info@pharmagister.hu
+              <a href="mailto:epresla@icloud.com" className="text-purple-600 hover:text-purple-700 font-medium">
+                epresla@icloud.com
               </a>
             </p>
           </div>

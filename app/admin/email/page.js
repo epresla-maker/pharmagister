@@ -380,7 +380,7 @@ export default function AdminEmailPage() {
               Admin
             </button>
           </div>
-          <p className="text-sm text-gray-500">Feladó: info@pharmagister.hu</p>
+          <p className="text-sm text-gray-500">Feladó: epresla@icloud.com</p>
 
           {/* Tabs */}
           <div className="flex gap-2 mt-4">

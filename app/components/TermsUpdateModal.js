@@ -192,7 +192,7 @@ export default function TermsUpdateModal() {
           <p style={{ marginBottom: 16 }}>
             Az adatvédelmi tájékoztatóban rögzített jogaid (hozzáférés, helyesbítés, törlés,
             tiltakozás) változatlanul érvényesek. Ha bármilyen kérdésed van a módosítással
-            kapcsolatban, kérjük, írd meg az info@pharmagister.hu címre.
+            kapcsolatban, kérjük, írd meg az epresla@icloud.com címre.
           </p>
 
           <hr style={{ border: 'none', borderTop: `1px solid ${darkMode ? '#374151' : '#e5e7eb'}`, margin: '16px 0' }} />

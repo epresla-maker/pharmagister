@@ -58,7 +58,7 @@ export async function POST(request) {
         sentAt: admin.firestore.FieldValue.serverTimestamp(),
         sentCount: results.length,
         failedCount: errors.length,
-        from: 'info@pharmagister.hu',
+        from: 'epresla@icloud.com',
       });
     } catch (saveErr) {
       console.error('Failed to save sent email log:', saveErr);
