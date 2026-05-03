@@ -2552,7 +2552,7 @@ export async function POST(request) {
     // Load stored conversation state
     const storedState = longTermMemory?.conversationState || null;
     const conversationState = storedState && typeof storedState === 'object'
-      ? { ...buildDefaultConversationState(), ...storedState, openLoops: Array.isArray(storedState.openLoops) ? storedState.openLoops.slice(-6) : [] }
+      ? { ...buildDefaultConversationState(), ...storedState, openLoops: Array.isArray(storedState.openLoops) ? storedState.openLoops.filter((l) => l?.status === 'open' && Number(l?.age || 0) === 0).slice(-3) : [] }
       : buildDefaultConversationState();
 
     if (memoryControl.type === 'show_memory') {
