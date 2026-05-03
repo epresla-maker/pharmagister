@@ -809,6 +809,26 @@ function detectMonthReference(text) {
   return null;
 }
 
+function isDirectSchedulePlanningPrompt(text) {
+  const norm = normalizeText(text);
+  if (!norm) return false;
+
+  const hasScheduleWord = containsAny(norm, ['beosztas', 'muszak']);
+  const hasPlanningVerb = containsAny(norm, [
+    'tervez',
+    'tervezz',
+    'tervezzuk',
+    'tervezzuk meg',
+    'irjuk meg',
+    'csinaljuk meg',
+    'ujratervez',
+    'ujratervezz',
+    'teljes',
+  ]);
+
+  return hasScheduleWord && hasPlanningVerb;
+}
+
 function buildMonthQuickActions(topic = 'beosztas') {
   const utteranceByTopic = {
     beosztas: {
@@ -2734,6 +2754,7 @@ export async function POST(request) {
         if (llmTextFallback.usedLLM && llmTextFallback.reply) {
           const inferActionFromMessage = () => {
             if (isReplacementDemandMessage) return 'find_replacement';
+            if (chatRole === 'pharmacy' && isDirectSchedulePlanningPrompt(message)) return 'write_schedule_plan';
             if (msgNorm.includes('ujratervez') || msgNorm.includes('ujratervezes')) return 'replan_all';
             if (msgNorm.includes('tulora')) return 'show_overtime';
             if (msgNorm.includes('dolgozo') || msgNorm.includes('alkalmazott') || msgNorm.includes('csapat')) {
@@ -2826,6 +2847,22 @@ export async function POST(request) {
           finalReply = chatRole === 'pharmacy'
             ? 'Rendben, mutatom a helyettesitesi igenyekkel kapcsolatos lehetosegeket es a kovetkezo lepest.'
             : 'Rendben, mutatom a nyitott helyettesitesi igenyeket es segitek a jelentkezesben.';
+        }
+
+        if (action === 'clarify' && chatRole === 'pharmacy' && isDirectSchedulePlanningPrompt(message)) {
+          action = 'write_schedule_plan';
+          const detectedMonth = detectMonthReference(message);
+          const monthLabel = detectedMonth?.label
+            ? String(detectedMonth.label).charAt(0).toUpperCase() + String(detectedMonth.label).slice(1)
+            : null;
+          finalReply = monthLabel
+            ? `Rendben, indulhat a ${monthLabel.toLowerCase()}i beosztas tervezese.`
+            : 'Rendben, indulhat az automatikus beosztastervezes.';
+          if (detectedMonth) {
+            routerEntities.monthOffset = detectedMonth.monthOffset;
+            routerEntities.monthNumber = detectedMonth.monthNumber;
+            routerEntities.monthLabel = monthLabel || detectedMonth.label;
+          }
         }
 
         pipelinePayload = { action, entities: routerEntities, suggestedAction: action };
