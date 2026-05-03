@@ -4991,7 +4991,48 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         setBettiLastUnknownMessage('');
       }
 
-      if (result?.payload?.action) {
+      // write_schedule_plan: directly show the planner card (most reliable path)
+      if ((result?.payload?.action === 'write_schedule_plan' || result?.action === 'write_schedule_plan') && isPharmacy) {
+        const entities = result?.payload?.entities || {};
+        const now = new Date();
+        let targetMonth = now.getMonth() + 1;
+        let targetYear = now.getFullYear();
+        if (entities.monthNumber && entities.monthNumber >= 1 && entities.monthNumber <= 12) {
+          targetMonth = entities.monthNumber;
+          if (targetMonth < now.getMonth() + 1) targetYear = now.getFullYear() + 1;
+        } else if (typeof entities.monthOffset === 'number') {
+          const d = new Date(now.getFullYear(), now.getMonth() + entities.monthOffset, 1);
+          targetMonth = d.getMonth() + 1;
+          targetYear = d.getFullYear();
+        }
+        const monthName = MONTHS_HU[targetMonth - 1] || 'honap';
+        const empNames = activeEmployees.map((e) => String(e?.name || '').trim()).filter(Boolean).slice(0, 10);
+        setBettiChatMessages((prev) => [...prev, {
+          role: 'assistant',
+          text: `Rendben, kerlek valassz. A ${monthName.toLowerCase()}i tervezeshez osszeallitottam a csapatot.`,
+          intent: 'local_schedule_wizard_started',
+          ts: Date.now(),
+          plannerCard: {
+            monthName,
+            monthNumber: targetMonth,
+            year: targetYear,
+            employeeNames: empNames,
+            planCommand: {
+              id: `planner_card_auto_${Date.now()}`,
+              type: 'local_run_auto_planner',
+              label: `Tervezes inditasa - ${monthName}`,
+              monthNumber: targetMonth,
+              monthOffset: null,
+              monthLabel: monthName,
+            },
+          },
+          uiCommands: [
+            { id: 'sw_auto', type: 'local_run_auto_planner', label: `Automatikus tervezes – ${monthName}`, monthNumber: targetMonth, monthOffset: null, monthLabel: monthName },
+            { id: 'sw_manual', type: 'set_main_tab', label: `Manualis szerkesztes – ${monthName}`, tab: 'schedule', monthNumber: targetMonth, monthOffset: null },
+            { id: 'sw_missing', type: 'send_message', label: 'Ki nem kuldte be a tervezetet?', utterance: `Ki nem kuldte be meg a ${monthName.toLowerCase()}i tervezetet?` },
+          ],
+        }]);
+      } else if (result?.payload?.action) {
         await handleBettiAction(result.payload.action, result.payload.entities || {});
       }
     } catch (error) {
