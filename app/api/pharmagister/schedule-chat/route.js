@@ -2779,9 +2779,14 @@ export async function POST(request) {
             );
             const hasYearToken = /\b20\d{2}\b/.test(msgNorm);
             const hasMonthToken = Boolean(detectMonthReference(message));
+            const hasExplicitMissingDraftSignal = (
+              (msgNorm.includes('ki nem irta') || msgNorm.includes('nem irta meg') || msgNorm.includes('hianyzik'))
+              && (msgNorm.includes('tervezet') || msgNorm.includes('draft'))
+            );
 
             if (isReplacementDemandMessage) return 'find_replacement';
             if (chatRole === 'pharmacy' && isDirectSchedulePlanningPrompt(message)) return 'write_schedule_plan';
+            if (chatRole === 'pharmacy' && hasExplicitMissingDraftSignal) return 'missing_drafts';
             if (chatRole === 'pharmacy' && hasScheduleWord && (hasPlanningSignal || hasMonthToken || hasYearToken)) {
               return 'write_schedule_plan';
             }
