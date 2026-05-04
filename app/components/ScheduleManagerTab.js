@@ -682,6 +682,7 @@ function PharmacyScheduleCalendar({
   const [swapPickerRowIdx, setSwapPickerRowIdx] = useState(null);
   const [swapTarget, setSwapTarget] = useState(null); // { scheduleId, date, employeeId, employeeName, from, to }
   const [swapSaving, setSwapSaving] = useState(false);
+  const [swapIgnoreRole, setSwapIgnoreRole] = useState(false);
   const [readOnlySwapSaving, setReadOnlySwapSaving] = useState(false);
   const [readOnlySwapDone, setReadOnlySwapDone] = useState(null); // success message
   const [ownView, setOwnView] = useState(true); // readOnly: default to own-only view
@@ -837,6 +838,7 @@ function PharmacyScheduleCalendar({
       await onSaveDaySchedules(dateKey, employeeRows);
       setSwapPickerRowIdx(null);
       setSwapTarget(null);
+      setSwapIgnoreRole(false);
       setShowModal(false);
     } finally {
       setModalSaving(false);
@@ -905,6 +907,7 @@ function PharmacyScheduleCalendar({
       }]);
       setSwapTarget(null);
       setSwapPickerRowIdx(null);
+      setSwapIgnoreRole(false);
     } catch (err) {
       console.error('executeSwap error', err);
     } finally {
@@ -963,6 +966,7 @@ function PharmacyScheduleCalendar({
       setReadOnlySwapDone(`Csereigény elküldve ${targetSchedule.employeeName} felé!`);
       setSwapTarget(null);
       setSwapPickerRowIdx(null);
+      setSwapIgnoreRole(false);
     } catch (err) {
       console.error('executeReadOnlySwapRequest error', err);
     } finally {
@@ -1870,8 +1874,8 @@ function PharmacyScheduleCalendar({
                         if (s.employeeId === row.employeeId) return;
                         if (!s.startTime || !s.endTime) return;
                         if (s.date === currentDateKey) return; // skip same-day shifts (no point swapping same day)
-                        // Role rule: pharmacist ↔ pharmacist only, assistant ↔ assistant only
-                        if (isPharmacistRole(s.role) !== rowIsPharmacist) return;
+                        // Role rule: pharmacist ↔ pharmacist only, assistant ↔ assistant only (unless létszámkényszer override)
+                        if (!swapIgnoreRole && isPharmacistRole(s.role) !== rowIsPharmacist) return;
                         if (!empMap.has(s.employeeId)) {
                           empMap.set(s.employeeId, { employeeId: s.employeeId, employeeName: s.employeeName, role: s.role, shifts: [] });
                         }
@@ -1891,15 +1895,30 @@ function PharmacyScheduleCalendar({
                       return (
                         <div className={`w-full mt-2 rounded-xl border overflow-hidden ${darkMode ? 'border-indigo-700/60 bg-indigo-900/20' : 'border-indigo-200 bg-indigo-50'}`}>
                           {/* Header */}
-                          <div className={`flex items-center justify-between gap-2 px-3 py-2 border-b ${darkMode ? 'border-indigo-700/40' : 'border-indigo-200'}`}>
-                            <span className={`text-xs font-bold ${darkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>
-                              {swapTarget ? '✅ Csere megerősítése' : `⇄ ${row.name} – melyik műszakkal cseréljük?`}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => { setSwapPickerRowIdx(null); setSwapTarget(null); }}
-                              className={`text-xs leading-none px-1.5 ${darkMode ? 'text-gray-400 hover:text-gray-200' : 'text-gray-400 hover:text-gray-600'}`}
-                            >✕</button>
+                          <div className={`px-3 py-2 border-b ${darkMode ? 'border-indigo-700/40' : 'border-indigo-200'}`}>
+                            <div className="flex items-center justify-between gap-2">
+                              <span className={`text-xs font-bold ${darkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>
+                                {swapTarget ? '✅ Csere megerősítése' : `⇄ ${row.name} – melyik műszakkal cseréljük?`}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => { setSwapPickerRowIdx(null); setSwapTarget(null); setSwapIgnoreRole(false); }}
+                                className={`text-xs leading-none px-1.5 ${darkMode ? 'text-gray-400 hover:text-gray-200' : 'text-gray-400 hover:text-gray-600'}`}
+                              >✕</button>
+                            </div>
+                            {!swapTarget && (
+                              <label className={`flex items-center gap-1.5 mt-1.5 cursor-pointer w-fit select-none`}>
+                                <input
+                                  type="checkbox"
+                                  checked={swapIgnoreRole}
+                                  onChange={e => { setSwapIgnoreRole(e.target.checked); setSwapTarget(null); }}
+                                  className="w-3 h-3 rounded accent-amber-500"
+                                />
+                                <span className={`text-[11px] ${swapIgnoreRole ? 'text-amber-500 font-semibold' : darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                                  Létszámkényszer – bármely beosztottal
+                                </span>
+                              </label>
+                            )}
                           </div>
 
                           {swapTarget ? (
@@ -1948,7 +1967,9 @@ function PharmacyScheduleCalendar({
                             // ── Employee + shift picker ─────────────────────────
                             candidateEmps.length === 0 ? (
                               <p className={`text-xs px-3 py-3 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                                Nincs csereképes {rowIsPharmacist ? 'gyógyszerész' : 'szakasszisztens'} ebben a hónapban.
+                                {swapIgnoreRole
+                                  ? 'Nincs beosztott dolgozó ebben a hónapban.'
+                                  : `Nincs csereképes ${rowIsPharmacist ? 'gyógyszerész' : 'szakasszisztens'} ebben a hónapban.`}
                               </p>
                             ) : (
                               <div className="overflow-y-auto" style={{ maxHeight: '260px' }}>
