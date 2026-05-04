@@ -1150,7 +1150,6 @@ function PharmacyScheduleCalendar({
           </button>
           <div className="text-center">
             <span className="text-white font-bold text-lg tracking-tight">{monthLabel} {year}</span>
-            <span className="ml-2 text-xs font-medium text-white/70">{activeMonthSchedules?.length ?? 0} műszak</span>
           </div>
           <button
             type="button"
