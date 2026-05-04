@@ -515,16 +515,44 @@ function MonthCalendar({ year, month, selectedDate, schedules, ownScheduleIds, o
                           : darkMode ? 'text-gray-100' : 'text-gray-900'
                     }
                   `}>{day}</span>
-                  {/* Shift dots */}
-                  {daySchedules.length > 0 && (
-                    <div className="mt-1 flex gap-0.5 justify-center flex-wrap max-w-[36px]">
-                      {hasOwn && (
-                        <span className="h-1.5 w-1.5 rounded-full bg-violet-500 flex-shrink-0" />
-                      )}
-                      {daySchedules.filter(s => !ownScheduleIds?.has(s.id)).slice(0, 3).map((_, i) => (
-                        <span key={i} className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${darkMode ? 'bg-gray-500' : 'bg-gray-300'}`} />
-                      ))}
-                    </div>
+                  {/* Shift indicator */}
+                  {filterOwn ? (
+                    // Saját nézet: színes kocka az idővel
+                    daySchedules.length > 0 && (() => {
+                      const s = daySchedules[0];
+                      const st = getShiftType(s.shiftType);
+                      const timeLabel = (s.from && s.to) ? `${s.from.replace(':00','')}-${s.to.replace(':00','')}` : st.label;
+                      // inline bg color map
+                      const bgMap = { N: '#10b981', 'É': '#6366f1', 'Ü': '#8b5cf6', B: '#f43f5e', Sz: '#fb923c', P: '#38bdf8' };
+                      const bg = bgMap[s.shiftType] || '#8b5cf6';
+                      return (
+                        <div className="mt-1 w-full px-0.5">
+                          <div
+                            className="rounded text-white text-[9px] font-bold leading-tight text-center py-[2px] px-0.5 truncate"
+                            style={{ backgroundColor: bg }}
+                          >
+                            {timeLabel}
+                          </div>
+                          {daySchedules.length > 1 && (
+                            <div className="text-center text-[8px] leading-none mt-0.5" style={{ color: bg }}>
+                              +{daySchedules.length - 1}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()
+                  ) : (
+                    // Összes / admin nézet: pontok
+                    daySchedules.length > 0 && (
+                      <div className="mt-1 flex gap-0.5 justify-center flex-wrap max-w-[36px]">
+                        {hasOwn && (
+                          <span className="h-1.5 w-1.5 rounded-full bg-violet-500 flex-shrink-0" />
+                        )}
+                        {daySchedules.filter(s => !ownScheduleIds?.has(s.id)).slice(0, 3).map((_, i) => (
+                          <span key={i} className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${darkMode ? 'bg-gray-500' : 'bg-gray-300'}`} />
+                        ))}
+                      </div>
+                    )
                   )}
                 </>
               )}
