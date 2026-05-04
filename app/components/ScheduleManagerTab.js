@@ -8677,6 +8677,13 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   publishedScheduleCount={0}
                   readOnly={true}
                   ownScheduleIds={ownScheduleIds}
+                  swapLog={[]}
+                  setSwapLog={() => {}}
+                  showSwapLog={false}
+                  setShowSwapLog={() => {}}
+                  onPublishChanges={() => {}}
+                  onAutoFix={() => {}}
+                  onDeleteMonth={() => {}}
                 />
               )}
             </div>
