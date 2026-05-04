@@ -1775,9 +1775,9 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       };
     }
 
-    // Aktuális hónap tényleges beosztásai (pharmacySchedules)
+    // Kiválasztott hónap tényleges beosztásai (pharmacySchedules)
     const currentMonthSchedules = schedules.filter(
-      (item) => item.status !== 'deleted' && item.year === thisYear && item.month === thisMonth
+      (item) => item.status !== 'deleted' && item.year === year && item.month === month
     );
 
     // Mely dolgozóknak van publikált beosztásuk (publishedAt)
@@ -1809,7 +1809,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       noDraftEmployees,
       noDraftCount: noDraftEmployees.length,
     };
-  }, [activeEmployees, isPharmacy, schedules, thisMonth, thisYear]);
+  }, [activeEmployees, isPharmacy, schedules, year, month]);
 
   const ownSelectedMonthDraftSummary = useMemo(() => {
     if (isPharmacy) {
@@ -5703,13 +5703,14 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         if (existingSet.has(dedupeKey)) continue;
 
         const employee = employeeMap.get(item.employeeId);
+        const [itemYear, itemMonth, itemDay] = item.date.split('-').map(Number);
         await addDoc(collection(db, 'pharmacySchedules'), {
           pharmacyId: user.uid,
           pharmacyName,
           date: item.date,
-          year,
-          month,
-          day: Number(item.date.split('-')[2]),
+          year: itemYear,
+          month: itemMonth,
+          day: itemDay,
           employeeId: item.employeeId,
           employeeName: item.employeeName || employee?.name || 'Ismeretlen dolgozó',
           employeeEmail: item.employeeEmail || employee?.email || '',
