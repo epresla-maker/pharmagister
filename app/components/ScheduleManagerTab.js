@@ -641,6 +641,7 @@ function PharmacyScheduleCalendar({
   onCopyPrev, onExport, onPublish, onAutoFix,
   activeMonthSchedules, publishedScheduleCount,
   readOnly, ownScheduleIds,
+  config,
 }) {
   const [selectedDay, setSelectedDay] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -651,6 +652,64 @@ function PharmacyScheduleCalendar({
   const [publishBlockModal, setPublishBlockModal] = useState(null);
   const [autoFixing, setAutoFixing] = useState(false);
   const [autoFixResult, setAutoFixResult] = useState(null);
+
+  // ── Staffing warnings: detect under-staffed templates when rows change ────
+  const staffingWarnings = useMemo(() => {
+    if (!showModal || !selectedDay || !config?.shiftTemplates?.length) return [];
+    const dow = new Date(year, month - 1, selectedDay).getDay();
+    const dayOpening = config?.operations?.openingHoursByWeekday?.[dow];
+    if (dayOpening && !dayOpening.isOpen) return [];
+
+    const openTime = dayOpening?.openTime || '00:00';
+    const closeTime = dayOpening?.closeTime || '24:00';
+    const enforce = config?.operations?.enforceOpeningHours !== false;
+
+    function minsOf(t) { if (!t) return 0; const [h, m] = t.split(':').map(Number); return h * 60 + m; }
+    function fitsInDay(start, end) {
+      if (!enforce) return true;
+      return minsOf(start) >= minsOf(openTime) && minsOf(end) <= minsOf(closeTime);
+    }
+    function normalizeRoleLocal(r) {
+      if (!r) return 'assistant';
+      const s = String(r).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      if (s === 'pharmacist' || s === 'gyogyszeresz' || s === 'gyógyszerész') return 'pharmacist';
+      return 'assistant';
+    }
+
+    const activeRows = employeeRows.filter(r => r.checked && !isOffShift(r.shiftType));
+    // Only show warnings if there are some scheduled workers (day is not empty)
+    if (activeRows.length === 0) return [];
+
+    const warnings = [];
+    for (const template of config.shiftTemplates) {
+      if (template.onCall) continue;
+      if (!fitsInDay(template.startTime, template.endTime)) continue;
+
+      const workers = activeRows.filter(r => r.from === template.startTime && r.to === template.endTime);
+      const pharmacists = workers.filter(r => normalizeRoleLocal(r.role) === 'pharmacist');
+      const shortage = (template.requiredStaff || 0) - workers.length;
+      const pharmacistShortage = (template.requiredPharmacists || 0) - pharmacists.length;
+
+      if (shortage > 0 || pharmacistShortage > 0) {
+        // Available replacements: unchecked employees (not already on vacation)
+        const available = employeeRows.filter(r =>
+          (!r.checked || isOffShift(r.shiftType)) && !r.isPublished
+        );
+        // Sort: pharmacists first if pharmacist is missing
+        const sorted = [...available].sort((a, b) => {
+          if (pharmacistShortage > 0) {
+            const aP = normalizeRoleLocal(a.role) === 'pharmacist';
+            const bP = normalizeRoleLocal(b.role) === 'pharmacist';
+            if (aP && !bP) return -1;
+            if (!aP && bP) return 1;
+          }
+          return a.name.localeCompare(b.name, 'hu');
+        });
+        warnings.push({ template, workers: workers.length, required: template.requiredStaff || 0, pharmacists: pharmacists.length, requiredPharmacists: template.requiredPharmacists || 0, shortage: Math.max(0, shortage), pharmacistShortage: Math.max(0, pharmacistShortage), suggestions: sorted });
+      }
+    }
+    return warnings;
+  }, [showModal, selectedDay, employeeRows, config, year, month]);
 
   // Hide bottom nav while overlay is visible
   useEffect(() => {
@@ -1235,6 +1294,64 @@ function PharmacyScheduleCalendar({
                 );
               })}
             </div>
+
+            {/* Staffing warning + replacement suggestions */}
+            {staffingWarnings.length > 0 && (
+              <div className={`flex-shrink-0 border-t px-6 py-4 space-y-3 ${darkMode ? 'border-amber-800/60 bg-amber-900/10' : 'border-amber-200 bg-amber-50'}`}>
+                <div className="flex items-center gap-2">
+                  <span className="text-amber-500 text-base">⚠️</span>
+                  <span className={`text-sm font-bold ${darkMode ? 'text-amber-300' : 'text-amber-700'}`}>
+                    Létszámhiány – javaslat a pótláshoz
+                  </span>
+                </div>
+                {staffingWarnings.map((w, wi) => (
+                  <div key={wi} className={`rounded-xl border px-4 py-3 space-y-2 ${darkMode ? 'border-amber-700/50 bg-amber-900/20' : 'border-amber-200 bg-white'}`}>
+                    <div className={`text-xs font-semibold ${darkMode ? 'text-amber-300' : 'text-amber-700'}`}>
+                      {w.template.startTime}–{w.template.endTime} műszak:{' '}
+                      <span className="font-black">{w.workers}/{w.required} fő</span>
+                      {w.pharmacistShortage > 0 && (
+                        <span className={`ml-2 ${darkMode ? 'text-rose-300' : 'text-rose-600'}`}>
+                          • {w.pharmacists}/{w.requiredPharmacists} gyógyszerész
+                        </span>
+                      )}
+                    </div>
+                    {w.suggestions.length > 0 ? (
+                      <div className="space-y-1.5">
+                        <p className={`text-[11px] font-semibold uppercase tracking-wide ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Elérhető dolgozók:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {w.suggestions.map(s => {
+                            const isPharm = (s.role || '').toLowerCase().includes('pharmacist') || (s.role || '').toLowerCase().includes('gyógyszerész') || (s.role || '').toLowerCase().includes('gyogyszeresz');
+                            return (
+                              <button
+                                key={s.employeeId}
+                                type="button"
+                                onClick={() => {
+                                  const idx = employeeRows.findIndex(r => r.employeeId === s.employeeId);
+                                  if (idx >= 0) updateRow(idx, { checked: true, shiftType: 'N', from: w.template.startTime, to: w.template.endTime });
+                                }}
+                                className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                                  isPharm
+                                    ? darkMode ? 'border-violet-600 bg-violet-900/30 text-violet-200 hover:bg-violet-800/50' : 'border-violet-300 bg-violet-50 text-violet-700 hover:bg-violet-100'
+                                    : darkMode ? 'border-gray-600 bg-gray-800 text-gray-200 hover:bg-gray-700' : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-100'
+                                }`}
+                              >
+                                <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-black ${isPharm ? 'bg-violet-500 text-white' : 'bg-gray-300 text-gray-700'}`}>
+                                  {isPharm ? 'Gy' : 'A'}
+                                </span>
+                                {s.name}
+                                <span className="text-[10px] opacity-60">+ hozzáad</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : (
+                      <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Nincs szabad dolgozó erre a napra.</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Footer */}
             <div className={`flex-shrink-0 flex items-center justify-between gap-3 border-t px-6 py-4 ${darkMode ? 'border-gray-700 bg-gray-800/60' : 'border-gray-100 bg-gray-50'}`}>
@@ -7135,6 +7252,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   onAutoFix={handleAutoFixSchedules}
                   activeMonthSchedules={activeMonthSchedules}
                   publishedScheduleCount={publishedScheduleCount}
+                  config={normalizePlanningConfig(plannerConfigForm)}
                 />
               )}
             </div>
@@ -7747,6 +7865,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   onPublish={handlePublishSchedules}
                   activeMonthSchedules={activeMonthSchedules}
                   publishedScheduleCount={publishedScheduleCount}
+                  config={normalizePlanningConfig(plannerConfigForm)}
                 />
               )}
             </div>
