@@ -1266,8 +1266,8 @@ function PharmacyScheduleCalendar({
 
       {/* Day list — full width, vertically scrollable */}
       <div className="flex-1 overflow-y-auto overscroll-contain">
-        {/* readOnly mode: iOS-style month grid */}
-        {readOnly && (
+        {/* readOnly + Saját nézet: iOS-style month grid */}
+        {readOnly && ownView && (
           <div className="px-3 pt-3 pb-2">
             <MonthCalendar
               year={year}
@@ -1284,8 +1284,8 @@ function PharmacyScheduleCalendar({
             />
           </div>
         )}
-        {/* Admin mode only: full day list */}
-        {!readOnly && Array.from({ length: getDaysInMonth(year, month) }, (_, i) => i + 1).map(day => {
+        {/* Admin mode + readOnly Összes: full day list */}
+        {(!readOnly || !ownView) && Array.from({ length: getDaysInMonth(year, month) }, (_, i) => i + 1).map(day => {
           const dateKey = formatDateKey(year, month, day);
           const allDayScheds = schedules.filter(s => s.date === dateKey && s.status !== 'deleted');
           const dayScheds = (readOnly && ownView && ownScheduleIds)
