@@ -895,7 +895,6 @@ function PharmacyScheduleCalendar({
       }]);
       setSwapTarget(null);
       setSwapPickerRowIdx(null);
-      setShowModal(false);
     } catch (err) {
       console.error('executeSwap error', err);
     } finally {
@@ -1930,6 +1929,19 @@ function PharmacyScheduleCalendar({
                   </div>
                 ))}
               </div>
+            )}
+
+            {/* Swap log row */}
+            {swapLog.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowSwapLog(true)}
+                className={`flex-shrink-0 w-full flex items-center gap-2 px-6 py-2.5 text-xs font-semibold border-t transition-colors ${darkMode ? 'bg-amber-900/30 border-amber-700/60 text-amber-300 hover:bg-amber-900/50' : 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100'}`}
+              >
+                <span>🔄</span>
+                <span>{swapLog.length} rögzített csere – Változtatások megtekintése</span>
+                <ChevronRight className="h-3 w-3 ml-auto" />
+              </button>
             )}
 
             {/* Footer */}
