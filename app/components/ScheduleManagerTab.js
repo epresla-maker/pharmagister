@@ -4618,10 +4618,16 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           planCommand: {
             id: `planner_card_auto_${Date.now()}`,
             type: 'local_run_auto_planner',
-            label: `Tervezes inditasa - ${monthName}`,
+            label: 'Igen, beosztas-tervezetet kerek',
             monthNumber: targetMonth,
             monthOffset: null,
             monthLabel: monthName,
+          },
+          cancelCommand: {
+            id: `planner_card_cancel_${Date.now()}`,
+            type: 'local_cancel_command',
+            label: 'Megse',
+            originalType: 'local_schedule_wizard_start',
           },
         },
         uiCommands: [
@@ -5020,10 +5026,16 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             planCommand: {
               id: `planner_card_auto_${Date.now()}`,
               type: 'local_run_auto_planner',
-              label: `Tervezes inditasa - ${monthName}`,
+              label: 'Igen, beosztas-tervezetet kerek',
               monthNumber: targetMonth,
               monthOffset: null,
               monthLabel: monthName,
+            },
+            cancelCommand: {
+              id: `planner_card_cancel_${Date.now()}`,
+              type: 'local_cancel_command',
+              label: 'Megse',
+              originalType: 'local_schedule_wizard_start',
             },
           },
           uiCommands: [
@@ -5124,17 +5136,49 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                         <span className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Nincs aktiv dolgozo a listaban.</span>
                       )}
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => { void executeBettiUiCommand(msg.plannerCard.planCommand, msg); }}
-                      className={`mt-3 w-full rounded-xl px-3 py-2 text-sm font-bold transition-colors ${
-                        darkMode
-                          ? 'bg-emerald-600 text-white active:bg-emerald-500'
-                          : 'bg-emerald-500 text-white active:bg-emerald-600'
-                      }`}
-                    >
-                      Tervezes inditasa
-                    </button>
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          void executeBettiUiCommand(msg.plannerCard.planCommand, msg);
+                          setBettiChatMessages((prev) => prev.map((m) => (
+                            m?.ts === msg?.ts
+                              ? { ...m, plannerCard: null }
+                              : m
+                          )));
+                        }}
+                        className={`w-full rounded-xl px-3 py-2 text-sm font-bold transition-colors ${
+                          darkMode
+                            ? 'bg-emerald-600 text-white active:bg-emerald-500'
+                            : 'bg-emerald-500 text-white active:bg-emerald-600'
+                        }`}
+                      >
+                        {msg?.plannerCard?.planCommand?.label || 'Igen, beosztas-tervezetet kerek'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const cancelCmd = msg?.plannerCard?.cancelCommand || {
+                            type: 'local_cancel_command',
+                            label: 'Megse',
+                            originalType: 'local_schedule_wizard_start',
+                          };
+                          void executeBettiUiCommand(cancelCmd, msg);
+                          setBettiChatMessages((prev) => prev.map((m) => (
+                            m?.ts === msg?.ts
+                              ? { ...m, plannerCard: null, uiCommands: [] }
+                              : m
+                          )));
+                        }}
+                        className={`w-full rounded-xl px-3 py-2 text-sm font-semibold border transition-colors ${
+                          darkMode
+                            ? 'bg-slate-700 text-slate-200 border-slate-600 active:bg-slate-600'
+                            : 'bg-white text-slate-700 border-slate-300 active:bg-slate-100'
+                        }`}
+                      >
+                        {msg?.plannerCard?.cancelCommand?.label || 'Megse'}
+                      </button>
+                    </div>
                   </div>
                 )}
 
