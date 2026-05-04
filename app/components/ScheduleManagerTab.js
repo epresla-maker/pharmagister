@@ -652,7 +652,7 @@ function PharmacyScheduleCalendar({
   user, userData, darkMode,
   onSaveDaySchedules, saving,
   // action handlers passed through for the overlay toolbar
-  onCopyPrev, onExport, onPublish, onAutoFix,
+  onCopyPrev, onExport, onPublish, onAutoFix, onDeleteMonth,
   activeMonthSchedules, publishedScheduleCount,
   readOnly, ownScheduleIds,
   config,
@@ -670,6 +670,7 @@ function PharmacyScheduleCalendar({
   const [summaryProfiles, setSummaryProfiles] = useState([]);
   const [summaryProfilesLoading, setSummaryProfilesLoading] = useState(false);
   const [swapPickerRowIdx, setSwapPickerRowIdx] = useState(null);
+  const [deleteMonthConfirm, setDeleteMonthConfirm] = useState(0); // 0=off 1=first 2=second
 
   // ── Load employee profiles when summary modal opens ───────────────────
   useEffect(() => {
@@ -992,6 +993,9 @@ function PharmacyScheduleCalendar({
             <button type="button" onClick={handlePublishClick} disabled={saving} title="Publikálás" className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 text-white disabled:opacity-50">
               <Send className="h-4 w-4" />
             </button>
+            <button type="button" onClick={() => setDeleteMonthConfirm(1)} disabled={saving} title="Havi beosztás törlése" className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-rose-500/70 hover:bg-rose-500/90 text-white disabled:opacity-50">
+              <Trash2 className="h-4 w-4" />
+            </button>
           </>
         )}
       </div>
@@ -1141,6 +1145,60 @@ function PharmacyScheduleCalendar({
           );
         })}
       </div>{/* end day list */}
+
+      {/* ── Delete month confirmation modal ──────────────────────────────── */}
+      {deleteMonthConfirm > 0 && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-6" style={{backdropFilter:'blur(6px)', background:'rgba(0,0,0,0.6)'}}>
+          <div className={`w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden ${darkMode ? 'bg-gray-900 border border-rose-800' : 'bg-white border border-rose-200'}`}>
+            <div className="bg-gradient-to-br from-rose-600 to-red-700 px-6 py-5">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">🗑️</span>
+                <div>
+                  <p className="text-rose-100 text-xs font-semibold uppercase tracking-widest">Figyelem</p>
+                  <h3 className="text-white font-black text-lg">
+                    {deleteMonthConfirm === 1 ? 'Törlöd a havi beosztást?' : 'Biztosan törlöd?'}
+                  </h3>
+                </div>
+              </div>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              {deleteMonthConfirm === 1 ? (
+                <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                  Ez törli <strong>{monthLabel} {year}</strong> összes nem publikált beosztás-bejegyzését. A már publikált műszakok megmaradnak.
+                </p>
+              ) : (
+                <div className={`rounded-xl border px-4 py-3 ${darkMode ? 'border-rose-800 bg-rose-900/30 text-rose-200' : 'border-rose-200 bg-rose-50 text-rose-700'}`}>
+                  <p className="text-sm font-bold">Ez a művelet nem vonható vissza!</p>
+                  <p className="text-xs mt-1">Az összes nem zárt műszak véglegesen törlődik {monthLabel} {year} hónapból.</p>
+                </div>
+              )}
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDeleteMonthConfirm(0)}
+                  className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold ${darkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-200' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}
+                >
+                  Mégse
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (deleteMonthConfirm === 1) {
+                      setDeleteMonthConfirm(2);
+                    } else {
+                      setDeleteMonthConfirm(0);
+                      onDeleteMonth && onDeleteMonth();
+                    }
+                  }}
+                  className="flex-1 rounded-xl px-4 py-2.5 text-sm font-bold bg-rose-600 hover:bg-rose-700 text-white"
+                >
+                  {deleteMonthConfirm === 1 ? 'Folytatás →' : '🗑️ Végleges törlés'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Monthly summary overlay ───────────────────────────────────────── */}
       {showSummary && (
@@ -3603,6 +3661,30 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       const msg = error.message || 'Nem sikerült publikálni a beosztásokat.';
       setStatusError(msg);
       return { success: false, blockingErrors: [{ message: msg }] };
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDeleteMonth() {
+    if (!user?.uid) return;
+    setSaving(true);
+    setStatusError('');
+    setStatusMessage('');
+    try {
+      const toDelete = schedules.filter(s =>
+        s.year === year && s.month === month &&
+        s.status !== 'deleted' &&
+        !isPublishedSchedule(s)
+      );
+      await Promise.all(toDelete.map(s =>
+        updateDoc(doc(db, 'pharmacySchedules', s.id), { status: 'deleted', updatedAt: serverTimestamp() })
+      ));
+      setStatusMessage(`${toDelete.length} beosztás törölve (${MONTHS_HU[month - 1]} ${year}).`);
+      await loadData();
+    } catch (err) {
+      console.error('handleDeleteMonth error', err);
+      setStatusError('Nem sikerült törölni a havi beosztást.');
     } finally {
       setSaving(false);
     }
@@ -7590,6 +7672,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   onExport={handleExportSchedules}
                   onPublish={handlePublishSchedules}
                   onAutoFix={handleAutoFixSchedules}
+                  onDeleteMonth={handleDeleteMonth}
                   activeMonthSchedules={activeMonthSchedules}
                   publishedScheduleCount={publishedScheduleCount}
                   config={normalizePlanningConfig(plannerConfigForm)}
