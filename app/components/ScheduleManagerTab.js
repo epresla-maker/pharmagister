@@ -666,6 +666,28 @@ function PharmacyScheduleCalendar({
   const [publishBlockModal, setPublishBlockModal] = useState(null);
   const [autoFixing, setAutoFixing] = useState(false);
   const [autoFixResult, setAutoFixResult] = useState(null);
+  const [showSummary, setShowSummary] = useState(false);
+  const [summaryProfiles, setSummaryProfiles] = useState([]);
+  const [summaryProfilesLoading, setSummaryProfilesLoading] = useState(false);
+
+  // ── Load employee profiles when summary modal opens ───────────────────
+  useEffect(() => {
+    if (!showSummary) return;
+    const linkedIds = employees.map(e => e.linkedUserId).filter(Boolean);
+    if (linkedIds.length === 0) return;
+    setSummaryProfilesLoading(true);
+    const chunks = [];
+    for (let i = 0; i < linkedIds.length; i += 10) chunks.push(linkedIds.slice(i, i + 10));
+    Promise.all(
+      chunks.map(chunk =>
+        getDocs(query(collection(db, 'employeeProfiles'), where('userId', 'in', chunk)))
+      )
+    ).then(snapshots => {
+      const profiles = snapshots.flatMap(s => s.docs.map(d => ({ id: d.id, ...d.data() })));
+      setSummaryProfiles(profiles);
+    }).catch(err => console.error('summaryProfiles load error', err))
+      .finally(() => setSummaryProfilesLoading(false));
+  }, [showSummary]);
 
   // ── Staffing warnings: detect under-staffed templates when rows change ────
   const staffingWarnings = useMemo(() => {
@@ -926,6 +948,15 @@ function PharmacyScheduleCalendar({
         >
           ×
         </button>
+        {/* Summary info */}
+        <button
+          type="button"
+          onClick={() => setShowSummary(true)}
+          title="Havi összefoglaló"
+          className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 text-white"
+        >
+          <Info className="h-4 w-4" />
+        </button>
         {/* Prev month */}
         <button
           type="button"
@@ -1108,6 +1139,178 @@ function PharmacyScheduleCalendar({
           );
         })}
       </div>{/* end day list */}
+
+      {/* ── Monthly summary overlay ───────────────────────────────────────── */}
+      {showSummary && (
+        <div className="fixed inset-0 z-50 flex flex-col" style={{background: darkMode ? '#111827' : '#F9FAFB'}}>
+          {/* Header */}
+          <div className={`flex-shrink-0 flex items-center gap-2 px-3 border-b ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-[#E5E7EB] bg-gradient-to-r from-violet-600 to-indigo-600'}`} style={{height:'56px'}}>
+            <button
+              type="button"
+              onClick={() => setShowSummary(false)}
+              className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold text-xl leading-none"
+            >
+              ×
+            </button>
+            <div className="flex-1 text-center">
+              <span className="text-white font-bold text-base tracking-tight">{monthLabel} {year} – összefoglaló</span>
+            </div>
+          </div>
+          {/* Body */}
+          <div className="flex-1 overflow-y-auto overscroll-contain px-3 py-4 space-y-3">
+            {summaryProfilesLoading ? (
+              <div className={`text-center text-sm py-10 ${darkMode ? 'text-gray-400' : 'text-gray-400'}`}>Betöltés…</div>
+            ) : (() => {
+              const activeEmps = employees.filter(e => e.status !== 'inactive').sort((a, b) => a.name.localeCompare(b.name, 'hu'));
+              const monthSchedules = schedules.filter(s => s.status !== 'deleted');
+              const monthPrefs = preferences ? preferences.filter(p => p.status !== 'deleted') : [];
+              const daysInMonth = getDaysInMonth(year, month);
+
+              return activeEmps.map(emp => {
+                const empScheds = monthSchedules.filter(s =>
+                  s.employeeId === emp.id ||
+                  (s.employeeEmail && emp.email && s.employeeEmail.toLowerCase() === emp.email.toLowerCase())
+                );
+                const workScheds = empScheds.filter(s => !isOffShift(s.shiftType));
+                const szScheds   = empScheds.filter(s => s.shiftType === 'Sz');
+                const pScheds    = empScheds.filter(s => s.shiftType === 'P');
+
+                // Hours from schedules
+                const scheduledHours = workScheds.reduce((sum, s) => {
+                  if (!s.startTime || !s.endTime) return sum;
+                  const [sh, sm] = s.startTime.split(':').map(Number);
+                  const [eh, em] = s.endTime.split(':').map(Number);
+                  return sum + Math.max(0, (eh * 60 + em - sh * 60 - sm) / 60);
+                }, 0);
+
+                // Sz days from preferences too (count unique dates not already in schedules)
+                const empPrefs = monthPrefs.filter(p =>
+                  p.employeeId === emp.id ||
+                  (p.employeeEmail && emp.email && p.employeeEmail.toLowerCase() === emp.email.toLowerCase())
+                );
+                const prefSzDates = new Set(empPrefs.filter(p => p.shiftType === 'Sz').map(p => p.date));
+                const schedSzDates = new Set(szScheds.map(s => s.date));
+                const allSzDates = new Set([...schedSzDates, ...prefSzDates]);
+                const szDays = allSzDates.size;
+
+                // Profile data
+                const profile = summaryProfiles.find(pr => pr.userId === emp.linkedUserId);
+                const contractHours = Number(profile?.contractHours) || 0;
+                const monthlyRequired = contractHours ? calcMonthlyRequiredHours(contractHours, year, month) : 0;
+                const hourDiff = monthlyRequired > 0 ? scheduledHours - monthlyRequired : null;
+
+                const annualVac = profile?.birthDate
+                  ? calcAnnualVacationDays(profile.birthDate, profile.childrenCount, year)
+                  : null;
+                const carryOver = Number(profile?.vacationCarriedOver) || 0;
+                const takenThisYear = Number(profile?.vacationTakenThisYear) || 0;
+                const totalVac = annualVac !== null ? annualVac + carryOver - takenThisYear : null;
+                const vacAfter = totalVac !== null ? totalVac - szDays : null;
+
+                const isPharmacist = (emp.role === 'pharmacist' || emp.role === 'gyógyszerész');
+                const roleColor = isPharmacist
+                  ? (darkMode ? 'text-violet-300' : 'text-violet-700')
+                  : (darkMode ? 'text-emerald-300' : 'text-emerald-700');
+                const roleBg = isPharmacist
+                  ? (darkMode ? 'bg-violet-900/30 border-violet-700/40' : 'bg-violet-50 border-violet-200')
+                  : (darkMode ? 'bg-emerald-900/30 border-emerald-700/40' : 'bg-emerald-50 border-emerald-200');
+
+                return (
+                  <div
+                    key={emp.id}
+                    className={`rounded-2xl border p-4 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-[#E5E7EB]'} shadow-sm`}
+                  >
+                    {/* Name + role */}
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-sm font-black bg-gradient-to-br from-violet-500 to-indigo-500 text-white flex-shrink-0`}>
+                        {emp.name.charAt(0)}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className={`font-bold text-sm truncate ${darkMode ? 'text-white' : 'text-gray-900'}`}>{emp.name}</p>
+                        <p className={`text-xs font-medium ${roleColor}`}>{isPharmacist ? 'Gyógyszerész' : 'Asszisztens'}</p>
+                      </div>
+                      <span className={`flex-shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full border ${roleBg} ${roleColor}`}>
+                        {workScheds.length} műszak
+                      </span>
+                    </div>
+
+                    {/* Stats grid */}
+                    <div className="grid grid-cols-2 gap-2">
+                      {/* Scheduled hours */}
+                      <div className={`rounded-xl p-3 ${darkMode ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
+                        <p className={`text-xs font-medium mb-0.5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Beosztott órák</p>
+                        <p className={`text-xl font-black tabular-nums ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                          {scheduledHours % 1 === 0 ? scheduledHours : scheduledHours.toFixed(1)}<span className="text-sm font-semibold ml-0.5">ó</span>
+                        </p>
+                        {monthlyRequired > 0 && (
+                          <p className={`text-xs mt-0.5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Keret: {monthlyRequired}ó</p>
+                        )}
+                        {hourDiff !== null && (
+                          <p className={`text-xs font-semibold mt-0.5 ${
+                            hourDiff >= 0
+                              ? (darkMode ? 'text-emerald-400' : 'text-emerald-600')
+                              : (darkMode ? 'text-rose-400' : 'text-rose-600')
+                          }`}>
+                            {hourDiff >= 0 ? '+' : ''}{hourDiff % 1 === 0 ? hourDiff : hourDiff.toFixed(1)}ó
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Vacation */}
+                      <div className={`rounded-xl p-3 ${darkMode ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
+                        <p className={`text-xs font-medium mb-0.5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Szabadság</p>
+                        <p className={`text-xl font-black tabular-nums ${darkMode ? 'text-orange-300' : 'text-orange-600'}`}>
+                          {szDays}<span className="text-sm font-semibold ml-0.5">nap</span>
+                        </p>
+                        {totalVac !== null && (
+                          <p className={`text-xs mt-0.5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Éves keret: {totalVac} nap</p>
+                        )}
+                        {vacAfter !== null && (
+                          <p className={`text-xs font-semibold mt-0.5 ${
+                            vacAfter >= 0
+                              ? (darkMode ? 'text-sky-400' : 'text-sky-600')
+                              : (darkMode ? 'text-rose-400' : 'text-rose-600')
+                          }`}>
+                            Maradék: {Math.max(0, vacAfter)} nap
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Working days */}
+                      <div className={`rounded-xl p-3 ${darkMode ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
+                        <p className={`text-xs font-medium mb-0.5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Munkanapok</p>
+                        <p className={`text-xl font-black tabular-nums ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                          {workScheds.length}<span className={`text-xs font-medium ml-0.5 ${darkMode ? 'text-gray-400' : 'text-gray-400'}`}>/ {daysInMonth}</span>
+                        </p>
+                      </div>
+
+                      {/* Off days */}
+                      <div className={`rounded-xl p-3 ${darkMode ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
+                        <p className={`text-xs font-medium mb-0.5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Távollétek</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {szDays > 0 && (
+                            <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-orange-400 text-white`}>
+                              Sz {szDays}
+                            </span>
+                          )}
+                          {pScheds.length > 0 && (
+                            <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-400 text-white`}>
+                              P {pScheds.length}
+                            </span>
+                          )}
+                          {szDays === 0 && pScheds.length === 0 && (
+                            <span className={`text-sm font-black ${darkMode ? 'text-gray-600' : 'text-gray-300'}`}>–</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              });
+            })()}
+          </div>
+        </div>
+      )}
 
       {/* Day edit modal */}
       {showModal && selectedDay && (
