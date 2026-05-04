@@ -157,6 +157,16 @@ export default function NotificationsPage() {
     else if (notification.type === 'rating_request' && notification.data?.demandId) {
       router.push(`/ertekeles/${notification.data.demandId}`);
     }
+    // Beosztás csereigény értesítések - csereigény kezelő megnyitása
+    else if ([
+      'schedule_swap_request',
+      'schedule_swap_employee_accepted',
+      'schedule_swap_awaiting_pharmacy',
+      'schedule_swap_result',
+      'schedule_swap_result_for_pharmacy',
+    ].includes(notification.type)) {
+      router.push('/pharmagister?tab=schedule-manager&subtab=swaps');
+    }
     // Ha van url a notification data-ban
     else if (notification.url) {
       router.push(notification.url);

@@ -426,13 +426,16 @@ function SegmentedTabs({ tabs, active, onChange }) {
           key={tab.key}
           type="button"
           onClick={() => onChange(tab.key)}
-          className={`flex-1 rounded-xl px-3 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
+          className={`relative flex-1 rounded-xl px-3 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
             active === tab.key
               ? 'bg-[#6B46C1] text-white'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-700'
           }`}
         >
           {tab.label}
+          {tab.badge > 0 && (
+            <span className="absolute -top-1 -right-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white">{tab.badge}</span>
+          )}
         </button>
       ))}
     </div>
@@ -2719,6 +2722,15 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     }
   }, [aiModeAllowed]);
 
+  // Deep-link: subtab=swaps URL param → nyissa meg a Cserék tabot
+  useEffect(() => {
+    if (isPharmacy || typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('subtab') === 'swaps') {
+      setMainTab('swaps');
+    }
+  }, [isPharmacy]);
+
   const ownScheduleIds = useMemo(() => {
     const employeeIds = new Set(ownEmployeeRecords.map(item => item.id));
     const email = normalizeEmail(user?.email);
@@ -4420,6 +4432,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     setStatusMessage('CSV export elkészült.');
   }
 
+  const pendingIncomingSwaps = swapRequests.filter(r => r.targetUserId === user?.uid && r.status === 'pending');
+
   const topTabs = isPharmacy
     ? [
         { key: 'schedule', label: 'Beosztás', fullLabel: 'Beosztások kezelése' },
@@ -4427,7 +4441,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       ]
     : [
         { key: 'mine', label: 'Beosztásom' },
-        { key: 'planner', label: 'Beosztás-tervező' },
+        { key: 'swaps', label: 'Cserék', badge: pendingIncomingSwaps.length },
         { key: 'vacations', label: 'Szabadságolások' },
         { key: 'preferences', label: 'Preferenciák' },
       ];
@@ -7546,7 +7560,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         <h2 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-[#111827]'}`}>
           {isPharmacy
             ? (topTabs.find(t => t.key === mainTab)?.fullLabel || topTabs.find(t => t.key === mainTab)?.label)
-            : (mainTab === 'mine' ? 'Beosztásom' : mainTab === 'vacations' ? 'Szabadságolások' : mainTab === 'planner' ? 'Beosztás-tervező' : 'Preferenciák')}
+            : (mainTab === 'mine' ? 'Beosztásom' : mainTab === 'swaps' ? 'Csereigények' : mainTab === 'vacations' ? 'Szabadságolások' : mainTab === 'planner' ? 'Beosztás-tervező' : 'Preferenciák')}
         </h2>
         <p className={`mt-1 text-sm ${darkMode ? 'text-gray-400' : 'text-[#6B7280]'}`}>
           {isPharmacy
@@ -8139,7 +8153,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           ) : null}
 
           {/* ── Old month/day selectors + calendar (shown for history and employee views) ── */}
-          {!(isPharmacy && mainTab === 'schedule') && !(!isPharmacy && (mainTab === 'mine' || mainTab === 'preferences' || mainTab === 'planner' || mainTab === 'vacations')) ? (
+          {!(isPharmacy && mainTab === 'schedule') && !(!isPharmacy && (mainTab === 'mine' || mainTab === 'preferences' || mainTab === 'planner' || mainTab === 'swaps' || mainTab === 'vacations')) ? (
           <div className={`rounded-2xl border p-5 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Field label="Év">
@@ -9004,6 +9018,138 @@ export default function ScheduleManagerTab({ pharmaRole }) {
               )}
             </div>
           ) : null}
+
+          {/* ── Cserék panel (alkalmazott) ── */}
+          {!isPharmacy && mainTab === 'swaps' ? (() => {
+            const incoming = swapRequests.filter(r => r.targetUserId === user?.uid && r.status === 'pending');
+            const outgoing = swapRequests.filter(r => r.requesterUserId === user?.uid);
+            const awaitingPharmacy = swapRequests.filter(r =>
+              (r.requesterUserId === user?.uid || r.targetUserId === user?.uid) && r.status === 'employee_accepted'
+            );
+            const done = swapRequests.filter(r =>
+              (r.requesterUserId === user?.uid || r.targetUserId === user?.uid) &&
+              (r.status === 'accepted' || r.status === 'rejected' || r.status === 'rejected_by_pharmacy')
+            );
+
+            const statusLabel = (s) => {
+              if (s === 'pending') return { text: 'Várakozik', color: 'text-amber-600' };
+              if (s === 'employee_accepted') return { text: 'Gyógyszertár jóváhagyása szükséges', color: 'text-blue-600' };
+              if (s === 'accepted') return { text: 'Elfogadva ✓', color: 'text-green-600' };
+              if (s === 'rejected') return { text: 'Elutasítva', color: 'text-rose-600' };
+              if (s === 'rejected_by_pharmacy') return { text: 'Gyógyszertár elutasította', color: 'text-rose-600' };
+              return { text: s, color: 'text-gray-500' };
+            };
+
+            const SwapCard = ({ item, actions }) => (
+              <div className={`rounded-xl border p-4 space-y-2 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="space-y-0.5 flex-1">
+                    <p className={`font-semibold text-sm ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                      {item.requesterName} ↔ {item.targetName}
+                    </p>
+                    {item.requesterScheduleDate && (
+                      <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                        {item.requesterName}: {item.requesterScheduleDate} {item.requesterFrom && item.requesterTo ? `${item.requesterFrom}–${item.requesterTo}` : ''}
+                      </p>
+                    )}
+                    {item.targetScheduleDate && (
+                      <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                        {item.targetName}: {item.targetScheduleDate} {item.targetFrom && item.targetTo ? `${item.targetFrom}–${item.targetTo}` : ''}
+                      </p>
+                    )}
+                    {item.message ? (
+                      <p className={`text-xs italic ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>"{item.message}"</p>
+                    ) : null}
+                    <p className={`text-xs font-medium ${statusLabel(item.status).color}`}>{statusLabel(item.status).text}</p>
+                  </div>
+                  {actions && (
+                    <div className="flex gap-2 flex-shrink-0">
+                      <button
+                        type="button"
+                        disabled={saving}
+                        onClick={() => handleRespondToSwapRequest(item.id, 'accepted')}
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-green-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
+                      >
+                        <CheckCircle2 className="h-4 w-4" />Elfogadom
+                      </button>
+                      <button
+                        type="button"
+                        disabled={saving}
+                        onClick={() => handleRespondToSwapRequest(item.id, 'rejected')}
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-rose-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
+                      >
+                        <XCircle className="h-4 w-4" />Elutasítom
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+
+            return (
+              <div className="space-y-5">
+                {/* Beérkező csereigények */}
+                <div className={`rounded-2xl border p-5 space-y-3 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
+                  <div className="flex items-center gap-2">
+                    <ArrowLeftRight className="h-5 w-5 text-violet-600" />
+                    <h3 className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Beérkező csereigények</h3>
+                    {incoming.length > 0 && (
+                      <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-xs font-bold text-white">{incoming.length}</span>
+                    )}
+                  </div>
+                  {incoming.length === 0 ? (
+                    <p className={`text-sm ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Nincs beérkező csereigény.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {incoming.map(item => <SwapCard key={item.id} item={item} actions={true} />)}
+                    </div>
+                  )}
+                </div>
+
+                {/* Gyógyszertár jóváhagyására váró */}
+                {awaitingPharmacy.length > 0 && (
+                  <div className={`rounded-2xl border p-5 space-y-3 ${darkMode ? 'border-amber-800 bg-amber-950/30' : 'border-amber-200 bg-amber-50'}`}>
+                    <div className="flex items-center gap-2">
+                      <ArrowLeftRight className="h-5 w-5 text-amber-600" />
+                      <h3 className={`font-semibold ${darkMode ? 'text-amber-300' : 'text-amber-800'}`}>Gyógyszertár jóváhagyására vár</h3>
+                      <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-xs font-bold text-white">{awaitingPharmacy.length}</span>
+                    </div>
+                    <div className="space-y-3">
+                      {awaitingPharmacy.map(item => <SwapCard key={item.id} item={item} actions={false} />)}
+                    </div>
+                  </div>
+                )}
+
+                {/* Küldött csereigények */}
+                <div className={`rounded-2xl border p-5 space-y-3 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
+                  <div className="flex items-center gap-2">
+                    <ArrowLeftRight className="h-5 w-5 text-gray-500" />
+                    <h3 className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Általam küldött csereigények</h3>
+                  </div>
+                  {outgoing.length === 0 ? (
+                    <p className={`text-sm ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Még nem küldtél csereigényt.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {outgoing.map(item => <SwapCard key={item.id} item={item} actions={false} />)}
+                    </div>
+                  )}
+                </div>
+
+                {/* Lezárt cserék */}
+                {done.length > 0 && (
+                  <div className={`rounded-2xl border p-5 space-y-3 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="h-5 w-5 text-gray-400" />
+                      <h3 className={`font-semibold ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Lezárt cserék</h3>
+                    </div>
+                    <div className="space-y-3">
+                      {done.map(item => <SwapCard key={item.id} item={item} actions={false} />)}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })() : null}
 
           {!isPharmacy && mainTab === 'vacations' ? (() => {
             // Collect all own Sz (vacation) preferences across all months
