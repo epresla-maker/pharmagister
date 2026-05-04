@@ -1601,6 +1601,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   const [bettiSpeakEnabled, setBettiSpeakEnabled] = useState(false);
   const [bettiDemandDraft, setBettiDemandDraft] = useState(null);
   const [bettiChatHydrated, setBettiChatHydrated] = useState(false);
+  const [draftStatusTab, setDraftStatusTab] = useState('planned');
   const bettiNativeKeyboardHeightRef = useRef(0);
   const bettiRecognitionRef = useRef(null);
   const bettiChatScrollRef = useRef(null);
@@ -1761,7 +1762,17 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
   const currentMonthDraftPublishSummary = useMemo(() => {
     if (!isPharmacy) {
-      return { missingEmployees: [], missingCount: 0, totalEligible: 0 };
+      return {
+        missingEmployees: [],
+        missingCount: 0,
+        totalEligible: 0,
+        plannedEmployees: [],
+        plannedCount: 0,
+        publishedEmployees: [],
+        publishedCount: 0,
+        noDraftEmployees: [],
+        noDraftCount: 0,
+      };
     }
 
     const currentMonthPreferences = schedulePreferences.filter(
@@ -1783,18 +1794,26 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         .filter(Boolean)
     );
 
-    const eligibleEmployees = activeEmployees.filter(
-      (item) => draftOwnerKeys.has(getPreferenceOwnerKey(item))
-    );
-
-    const missingEmployees = eligibleEmployees.filter(
+    const eligibleEmployees = activeEmployees.filter((item) => Boolean(getPreferenceOwnerKey(item)));
+    const draftEmployees = eligibleEmployees.filter((item) => draftOwnerKeys.has(getPreferenceOwnerKey(item)));
+    const publishedEmployees = draftEmployees.filter((item) => publishedOwnerKeys.has(getPreferenceOwnerKey(item)));
+    const plannedEmployees = draftEmployees.filter(
       (item) => !publishedOwnerKeys.has(getPreferenceOwnerKey(item))
+    );
+    const noDraftEmployees = eligibleEmployees.filter(
+      (item) => !draftOwnerKeys.has(getPreferenceOwnerKey(item))
     );
 
     return {
-      missingEmployees,
-      missingCount: missingEmployees.length,
+      missingEmployees: plannedEmployees,
+      missingCount: plannedEmployees.length,
       totalEligible: eligibleEmployees.length,
+      plannedEmployees,
+      plannedCount: plannedEmployees.length,
+      publishedEmployees,
+      publishedCount: publishedEmployees.length,
+      noDraftEmployees,
+      noDraftCount: noDraftEmployees.length,
     };
   }, [activeEmployees, isPharmacy, schedulePreferences, thisMonth, thisYear]);
 
@@ -6712,6 +6731,60 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                         }
                       </div>
                     </div>
+
+                    {/* ── Tervezet státusz fülek ── */}
+                    <div className={`px-4 pb-3 ${darkMode ? 'border-violet-800' : 'border-violet-200'}`}>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setDraftStatusTab('planned')}
+                          className={`rounded-xl px-3 py-2 text-sm font-bold border transition-colors ${
+                            draftStatusTab === 'planned'
+                              ? (darkMode ? 'bg-amber-900/60 border-amber-700 text-amber-200' : 'bg-amber-100 border-amber-300 text-amber-800')
+                              : (darkMode ? 'bg-amber-900/20 border-amber-800 text-amber-300' : 'bg-white border-amber-200 text-amber-700')
+                          }`}
+                        >
+                          Tervezett ({currentMonthDraftPublishSummary.plannedCount})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDraftStatusTab('published')}
+                          className={`rounded-xl px-3 py-2 text-sm font-bold border transition-colors ${
+                            draftStatusTab === 'published'
+                              ? (darkMode ? 'bg-emerald-900/60 border-emerald-700 text-emerald-200' : 'bg-emerald-100 border-emerald-300 text-emerald-800')
+                              : (darkMode ? 'bg-emerald-900/20 border-emerald-800 text-emerald-300' : 'bg-white border-emerald-200 text-emerald-700')
+                          }`}
+                        >
+                          Publikált ({currentMonthDraftPublishSummary.publishedCount})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDraftStatusTab('none')}
+                          className={`rounded-xl px-3 py-2 text-sm font-bold border transition-colors ${
+                            draftStatusTab === 'none'
+                              ? (darkMode ? 'bg-rose-900/60 border-rose-700 text-rose-200' : 'bg-rose-100 border-rose-300 text-rose-800')
+                              : (darkMode ? 'bg-rose-900/20 border-rose-800 text-rose-300' : 'bg-white border-rose-200 text-rose-700')
+                          }`}
+                        >
+                          Nincs tervezet ({currentMonthDraftPublishSummary.noDraftCount})
+                        </button>
+                      </div>
+
+                      <div className={`mt-2 rounded-xl px-3 py-2 text-xs ${darkMode ? 'bg-gray-900/40 text-gray-300' : 'bg-white/70 text-gray-700'}`}>
+                        {(() => {
+                          const selected = draftStatusTab === 'planned'
+                            ? currentMonthDraftPublishSummary.plannedEmployees
+                            : draftStatusTab === 'published'
+                              ? currentMonthDraftPublishSummary.publishedEmployees
+                              : currentMonthDraftPublishSummary.noDraftEmployees;
+                          const names = selected.slice(0, 6).map((item) => item.name).filter(Boolean).join(', ');
+                          if (!names) return 'Nincs dolgozó ebben a státuszban.';
+                          const more = selected.length > 6 ? ` +${selected.length - 6} fo` : '';
+                          return `${names}${more}`;
+                        })()}
+                      </div>
+                    </div>
+
                     {/* Kritériumok gomb */}
                     <div className={`px-4 pb-3 border-t pt-3 ${darkMode ? 'border-violet-800' : 'border-violet-200'}`}>
                       <button
