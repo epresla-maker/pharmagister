@@ -1266,7 +1266,25 @@ function PharmacyScheduleCalendar({
 
       {/* Day list — full width, vertically scrollable */}
       <div className="flex-1 overflow-y-auto overscroll-contain">
-        {Array.from({ length: getDaysInMonth(year, month) }, (_, i) => i + 1).map(day => {
+        {/* readOnly mode: iOS-style month grid */}
+        {readOnly && (
+          <div className="px-3 pt-3 pb-2">
+            <MonthCalendar
+              year={year}
+              month={month}
+              selectedDate={selectedDay ? formatDateKey(year, month, selectedDay) : null}
+              schedules={schedules}
+              ownScheduleIds={ownScheduleIds}
+              onSelectDate={(dateKey) => {
+                const day = Number(dateKey.split('-')[2]);
+                openDay(day);
+              }}
+              darkMode={darkMode}
+            />
+          </div>
+        )}
+        {/* Admin mode only: full day list */}
+        {!readOnly && Array.from({ length: getDaysInMonth(year, month) }, (_, i) => i + 1).map(day => {
           const dateKey = formatDateKey(year, month, day);
           const allDayScheds = schedules.filter(s => s.date === dateKey && s.status !== 'deleted');
           const dayScheds = (readOnly && ownView && ownScheduleIds)
