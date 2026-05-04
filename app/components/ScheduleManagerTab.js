@@ -197,22 +197,22 @@ function getHungarianHolidays(year) {
 
 // Pastel bg colors per weekday (0=Sun..6=Sat), light mode
 const DAY_PASTEL = [
-  { bg: '#E5E7EB', chipBg: 'rgba(255,255,255,0.70)' }, // Sun  – darker grey (weekend)
-  { bg: '#EFF6FF', chipBg: 'rgba(255,255,255,0.80)' }, // Mon  – sky blue
-  { bg: '#F0FDF4', chipBg: 'rgba(255,255,255,0.80)' }, // Tue  – mint green
-  { bg: '#F5F3FF', chipBg: 'rgba(255,255,255,0.80)' }, // Wed  – lavender
-  { bg: '#FFFBEB', chipBg: 'rgba(255,255,255,0.80)' }, // Thu  – amber
-  { bg: '#FFF1F2', chipBg: 'rgba(255,255,255,0.80)' }, // Fri  – rose
-  { bg: '#E5E7EB', chipBg: 'rgba(255,255,255,0.70)' }, // Sat  – darker grey (weekend)
+  { bg: '#F3F4F6', chipBg: 'rgba(255,255,255,0.80)' }, // Sun  – weekend light grey
+  { bg: '#FFFFFF', chipBg: 'rgba(255,255,255,0.80)' }, // Mon
+  { bg: '#FFFFFF', chipBg: 'rgba(255,255,255,0.80)' }, // Tue
+  { bg: '#FFFFFF', chipBg: 'rgba(255,255,255,0.80)' }, // Wed
+  { bg: '#FFFFFF', chipBg: 'rgba(255,255,255,0.80)' }, // Thu
+  { bg: '#FFFFFF', chipBg: 'rgba(255,255,255,0.80)' }, // Fri
+  { bg: '#F3F4F6', chipBg: 'rgba(255,255,255,0.80)' }, // Sat  – weekend light grey
 ];
 const DAY_PASTEL_DARK = [
-  { bg: 'rgba(15,23,42,0.75)', chipBg: 'rgba(255,255,255,0.05)' }, // Sun  – darker
-  { bg: 'rgba(30,58,138,0.2)', chipBg: 'rgba(255,255,255,0.07)' }, // Mon
-  { bg: 'rgba(20,83,45,0.2)',  chipBg: 'rgba(255,255,255,0.07)' }, // Tue
-  { bg: 'rgba(46,16,101,0.25)',chipBg: 'rgba(255,255,255,0.07)' }, // Wed
-  { bg: 'rgba(120,53,15,0.2)', chipBg: 'rgba(255,255,255,0.07)' }, // Thu
-  { bg: 'rgba(136,19,55,0.15)',chipBg: 'rgba(255,255,255,0.07)' }, // Fri
-  { bg: 'rgba(15,23,42,0.75)', chipBg: 'rgba(255,255,255,0.05)' }, // Sat  – darker
+  { bg: 'rgba(15,23,42,0.60)', chipBg: 'rgba(255,255,255,0.05)' }, // Sun  – darker
+  { bg: 'rgba(30,41,59,0.35)', chipBg: 'rgba(255,255,255,0.06)' }, // Mon
+  { bg: 'rgba(30,41,59,0.35)', chipBg: 'rgba(255,255,255,0.06)' }, // Tue
+  { bg: 'rgba(30,41,59,0.35)', chipBg: 'rgba(255,255,255,0.06)' }, // Wed
+  { bg: 'rgba(30,41,59,0.35)', chipBg: 'rgba(255,255,255,0.06)' }, // Thu
+  { bg: 'rgba(30,41,59,0.35)', chipBg: 'rgba(255,255,255,0.06)' }, // Fri
+  { bg: 'rgba(15,23,42,0.60)', chipBg: 'rgba(255,255,255,0.05)' }, // Sat  – darker
 ];
 
 function isPublishedSchedule(schedule) {
