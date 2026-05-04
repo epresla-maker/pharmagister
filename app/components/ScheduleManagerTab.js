@@ -68,6 +68,7 @@ const AI_COMMAND_POLICY = {
   local_schedule_wizard_start: { allowedRoles: ['pharmacy'], riskLevel: 'read', requiresConfirm: false },
   local_schedule_control_panel: { allowedRoles: ['pharmacy'], riskLevel: 'read', requiresConfirm: false },
   local_run_auto_planner: { allowedRoles: ['pharmacy'], riskLevel: 'write', requiresConfirm: false },
+  local_apply_planner_result: { allowedRoles: ['pharmacy'], riskLevel: 'write', requiresConfirm: false },
   local_create_demand_wizard_start: { allowedRoles: ['pharmacy'], riskLevel: 'read', requiresConfirm: false },
   local_demand_wizard_set_position: { allowedRoles: ['pharmacy'], riskLevel: 'write', requiresConfirm: false },
   local_demand_wizard_set_date_offset: { allowedRoles: ['pharmacy'], riskLevel: 'write', requiresConfirm: false },
@@ -4741,9 +4742,22 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         const shifts = Number(plan?.result?.proposedShifts?.length || 0);
         setBettiChatMessages((prev) => [...prev, {
           role: 'assistant',
-          text: `Keszen vagyok: ${shifts} javasolt muszak keszult. A Beosztas fuleon latod az eredmenyt.`,
+          text: `Keszen vagyok: ${shifts} javasolt muszak keszult. Ez meg csak tervezet-javaslat, menteshez nyomd meg a Mentes tervezetkent gombot.`,
           intent: 'local_auto_plan_done',
           ts: Date.now(),
+          uiCommands: [
+            {
+              id: `apply_planner_${Date.now()}`,
+              type: 'local_apply_planner_result',
+              label: 'Mentes tervezetkent',
+            },
+            {
+              id: `open_schedule_${Date.now()}`,
+              type: 'set_main_tab',
+              label: 'Beosztas ful megnyitasa',
+              tab: 'schedule',
+            },
+          ],
         }]);
       } else {
         setBettiChatMessages((prev) => [...prev, {
@@ -4753,6 +4767,38 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           ts: Date.now(),
         }]);
       }
+      return;
+    }
+
+    if (cmdType === 'local_apply_planner_result') {
+      if (!isPharmacy) return;
+
+      if (!plannerResult?.proposedShifts?.length) {
+        setBettiChatMessages((prev) => [...prev, {
+          role: 'assistant',
+          text: 'Nincs mentheto tervezet-javaslat. Elobb futtasd az automatikus tervezest.',
+          intent: 'local_apply_planner_missing_result',
+          ts: Date.now(),
+        }]);
+        return;
+      }
+
+      const beforeCount = Number(plannerResult?.proposedShifts?.length || 0);
+      await handleApplyPlannerResult();
+      setBettiChatMessages((prev) => [...prev, {
+        role: 'assistant',
+        text: `Elmentettem a tervezetet a beosztasba. Forras: automatikus javaslat (${beforeCount} elem).`,
+        intent: 'local_apply_planner_saved',
+        ts: Date.now(),
+        uiCommands: [
+          {
+            id: `open_schedule_after_apply_${Date.now()}`,
+            type: 'set_main_tab',
+            label: 'Beosztas ful megnyitasa',
+            tab: 'schedule',
+          },
+        ],
+      }]);
       return;
     }
 
