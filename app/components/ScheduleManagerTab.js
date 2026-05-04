@@ -478,7 +478,10 @@ function MonthCalendar({ year, month, selectedDate, schedules, ownScheduleIds, o
       <div className="grid grid-cols-7">
         {cells.map((day, index) => {
           const dateKey = day ? formatDateKey(year, month, day) : null;
-          const daySchedules = dateKey ? schedules.filter(item => item.date === dateKey && item.status !== 'deleted') : [];
+          const allDaySchedules = dateKey ? schedules.filter(item => item.date === dateKey && item.status !== 'deleted') : [];
+          const daySchedules = (readOnly && ownView && ownScheduleIds)
+            ? allDaySchedules.filter(item => ownScheduleIds.has(item.id))
+            : allDaySchedules;
           const hasOwnSchedule = daySchedules.some(item => ownScheduleIds.has(item.id));
 
           return (
@@ -676,6 +679,7 @@ function PharmacyScheduleCalendar({
   const [swapSaving, setSwapSaving] = useState(false);
   const [readOnlySwapSaving, setReadOnlySwapSaving] = useState(false);
   const [readOnlySwapDone, setReadOnlySwapDone] = useState(null); // success message
+  const [ownView, setOwnView] = useState(true); // readOnly: default to own-only view
   const [publishChangesLoading, setPublishChangesLoading] = useState(false);
   const [deleteMonthConfirm, setDeleteMonthConfirm] = useState(0); // 0=off 1=first 2=second
 
@@ -1098,6 +1102,25 @@ function PharmacyScheduleCalendar({
             <Info className="h-4 w-4" />
           </button>
           <div className="flex-1" />
+          {/* Own/All toggle — only in readOnly mode */}
+          {readOnly && ownScheduleIds && ownScheduleIds.size > 0 && (
+            <div className={`flex rounded-xl overflow-hidden border ${darkMode ? 'border-white/20' : 'border-white/30'}`}>
+              <button
+                type="button"
+                onClick={() => setOwnView(true)}
+                className={`px-3 py-1.5 text-xs font-bold transition-colors ${
+                  ownView ? 'bg-white text-violet-700' : 'bg-white/15 text-white hover:bg-white/25'
+                }`}
+              >Saját</button>
+              <button
+                type="button"
+                onClick={() => setOwnView(false)}
+                className={`px-3 py-1.5 text-xs font-bold transition-colors ${
+                  !ownView ? 'bg-white text-violet-700' : 'bg-white/15 text-white hover:bg-white/25'
+                }`}
+              >Összes</button>
+            </div>
+          )}
           {/* Actions — hidden in readOnly mode */}
           {!readOnly && (
             <>
@@ -1245,7 +1268,10 @@ function PharmacyScheduleCalendar({
       <div className="flex-1 overflow-y-auto overscroll-contain">
         {Array.from({ length: getDaysInMonth(year, month) }, (_, i) => i + 1).map(day => {
           const dateKey = formatDateKey(year, month, day);
-          const dayScheds = schedules.filter(s => s.date === dateKey && s.status !== 'deleted');
+          const allDayScheds = schedules.filter(s => s.date === dateKey && s.status !== 'deleted');
+          const dayScheds = (readOnly && ownView && ownScheduleIds)
+            ? allDayScheds.filter(s => ownScheduleIds.has(s.id))
+            : allDayScheds;
           const dayPrefs = preferences ? preferences.filter(p => p.date === dateKey && p.status !== 'deleted') : [];
           const isToday = dateKey === today;
           const dow = new Date(year, month - 1, day).getDay();
@@ -1340,7 +1366,9 @@ function PharmacyScheduleCalendar({
                   })}
                 </div>
               ) : (
-                <p className={`text-xs ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>Nincs beosztás</p>
+                <p className={`text-xs ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>
+                  {readOnly && ownView ? 'Nincs műszakod' : 'Nincs beosztás'}
+                </p>
               )}
               {/* Preference chips */}
               {dayPrefs.length > 0 && (
