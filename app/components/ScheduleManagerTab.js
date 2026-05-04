@@ -795,7 +795,7 @@ function PharmacyScheduleCalendar({
       </div>
       {/* Publish status bar */}
       {!readOnly && (() => {
-        const cnt = activeMonthSchedules ?? 0;
+        const cnt = activeMonthSchedules?.length ?? 0;
         const canPublish = cnt > 0;
         const alreadyPublished = publishedScheduleCount > 0;
         const statusText = !canPublish
