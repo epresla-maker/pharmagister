@@ -674,6 +674,8 @@ function PharmacyScheduleCalendar({
   const [swapPickerRowIdx, setSwapPickerRowIdx] = useState(null);
   const [swapTarget, setSwapTarget] = useState(null); // { scheduleId, date, employeeId, employeeName, from, to }
   const [swapSaving, setSwapSaving] = useState(false);
+  const [readOnlySwapSaving, setReadOnlySwapSaving] = useState(false);
+  const [readOnlySwapDone, setReadOnlySwapDone] = useState(null); // success message
   const [publishChangesLoading, setPublishChangesLoading] = useState(false);
   const [deleteMonthConfirm, setDeleteMonthConfirm] = useState(0); // 0=off 1=first 2=second
 
@@ -898,6 +900,64 @@ function PharmacyScheduleCalendar({
       console.error('executeSwap error', err);
     } finally {
       setSwapSaving(false);
+    }
+  }
+
+  async function executeReadOnlySwapRequest(rowIdx) {
+    if (!swapTarget) return;
+    const row = employeeRows[rowIdx];
+    const requesterScheduleId = row.existingId;
+    const targetScheduleId = swapTarget.scheduleId;
+    if (!requesterScheduleId || !targetScheduleId) return;
+    const requesterSchedule = schedules.find(s => s.id === requesterScheduleId);
+    const targetSchedule = schedules.find(s => s.id === targetScheduleId);
+    if (!requesterSchedule || !targetSchedule) return;
+    setReadOnlySwapSaving(true);
+    try {
+      await addDoc(collection(db, 'scheduleSwapRequests'), {
+        pharmacyId: requesterSchedule.pharmacyId,
+        requesterUserId: user?.uid || '',
+        requesterName: requesterSchedule.employeeName,
+        requesterEmail: user?.email || requesterSchedule.employeeEmail || '',
+        requesterScheduleId: requesterSchedule.id,
+        targetScheduleId: targetSchedule.id,
+        targetUserId: targetSchedule.linkedUserId || null,
+        targetName: targetSchedule.employeeName,
+        targetEmail: targetSchedule.employeeEmail || '',
+        date: requesterSchedule.date,
+        targetDate: targetSchedule.date,
+        message: '',
+        status: 'pending',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+      if (targetSchedule.linkedUserId) {
+        await createNotificationWithPush({
+          userId: targetSchedule.linkedUserId,
+          type: 'schedule_swap_request',
+          title: 'Beosztás csere igény',
+          message: `${requesterSchedule.employeeName} csereigényt küldött a beosztásodra (${requesterSchedule.date} ${requesterSchedule.startTime}–${requesterSchedule.endTime}).`,
+          data: { requesterScheduleId: requesterSchedule.id, targetScheduleId: targetSchedule.id },
+          url: '/pharmagister?tab=schedule-manager',
+        });
+      }
+      if (requesterSchedule.pharmacyId) {
+        await createNotificationWithPush({
+          userId: requesterSchedule.pharmacyId,
+          type: 'schedule_swap_request_for_pharmacy',
+          title: 'Új beosztás csere igény',
+          message: `${requesterSchedule.employeeName} cserét kért ${targetSchedule.employeeName} beosztásával.`,
+          data: { requesterScheduleId: requesterSchedule.id, targetScheduleId: targetSchedule.id },
+          url: '/pharmagister?tab=schedule-manager',
+        });
+      }
+      setReadOnlySwapDone(`Csereigény elküldve ${targetSchedule.employeeName} felé!`);
+      setSwapTarget(null);
+      setSwapPickerRowIdx(null);
+    } catch (err) {
+      console.error('executeReadOnlySwapRequest error', err);
+    } finally {
+      setReadOnlySwapSaving(false);
     }
   }
 
@@ -1261,7 +1321,13 @@ function PharmacyScheduleCalendar({
                         <span className={`flex-shrink-0 inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-black ${st.bg} ${st.text}`}>
                           {st.label}
                         </span>
-                        <span className={`flex-1 text-sm font-medium ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>
+                        <span className={`flex-1 text-sm font-medium ${
+                          readOnly
+                            ? ownScheduleIds?.has(s.id)
+                              ? (darkMode ? 'text-sky-300 font-bold' : 'text-sky-700 font-bold')
+                              : (darkMode ? 'text-gray-500' : 'text-gray-400')
+                            : (darkMode ? 'text-gray-100' : 'text-gray-800')
+                        }`}>
                           {s.employeeName}
                         </span>
                         {hrs && (
@@ -1644,7 +1710,13 @@ function PharmacyScheduleCalendar({
                     />
 
                     {/* Name */}
-                    <span className={`flex-1 font-semibold text-sm min-w-[120px] ${row.isPublished ? 'opacity-60' : ''} ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>
+                    <span className={`flex-1 font-semibold text-sm min-w-[120px] ${row.isPublished ? 'opacity-60' : ''} ${
+                      readOnly
+                        ? ownScheduleIds?.has(row.existingId)
+                          ? (darkMode ? 'text-sky-300' : 'text-sky-700')
+                          : (darkMode ? 'text-gray-500' : 'text-gray-400')
+                        : (darkMode ? 'text-gray-100' : 'text-gray-800')
+                    }`}>
                       {row.name}
                       {row.isPublished && <span className="ml-2 text-[10px] font-normal text-amber-600">zárolt</span>}
                       {!row.isPublished && row.locked && <span className="ml-2 text-[10px] font-normal text-sky-600">locked</span>}
@@ -1676,6 +1748,22 @@ function PharmacyScheduleCalendar({
                         title="Csere: helyettesítő kiválasztása"
                       >
                         ⇄ Csere
+                      </button>
+                    )}
+
+                    {/* Csere kérése gomb – readOnly nézetben saját műszakon */}
+                    {readOnly && row.checked && !isOffShift(row.shiftType) && ownScheduleIds?.has(row.existingId) && (
+                      <button
+                        type="button"
+                        onClick={() => { setReadOnlySwapDone(null); setSwapPickerRowIdx(swapPickerRowIdx === idx ? null : idx); setSwapTarget(null); }}
+                        className={`rounded-lg px-2 py-1 text-[10px] font-semibold border transition-colors ${
+                          swapPickerRowIdx === idx
+                            ? (darkMode ? 'border-rose-500 bg-rose-700/50 text-rose-100' : 'border-rose-400 bg-rose-50 text-rose-700')
+                            : (darkMode ? 'border-sky-600 bg-sky-900/40 text-sky-200' : 'border-sky-300 bg-sky-50 text-sky-700')
+                        }`}
+                        title="Csere kérése egy kollégával"
+                      >
+                        ⇄ Csere kérése
                       </button>
                     )}
 
@@ -1808,12 +1896,21 @@ function PharmacyScheduleCalendar({
                                   onClick={() => setSwapTarget(null)}
                                   className={`flex-1 rounded-xl px-3 py-2 text-xs font-semibold ${darkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-200' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}
                                 >← Vissza</button>
-                                <button
-                                  type="button"
-                                  disabled={swapSaving}
-                                  onClick={() => executeSwap(idx)}
-                                  className="flex-1 rounded-xl px-3 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50"
-                                >{swapSaving ? 'Mentés…' : '⇄ Csere elvégzése'}</button>
+                                {readOnly ? (
+                                  <button
+                                    type="button"
+                                    disabled={readOnlySwapSaving}
+                                    onClick={() => executeReadOnlySwapRequest(idx)}
+                                    className="flex-1 rounded-xl px-3 py-2 text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white disabled:opacity-50"
+                                  >{readOnlySwapSaving ? 'Küldés…' : '⇄ Csereigény küldése'}</button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    disabled={swapSaving}
+                                    onClick={() => executeSwap(idx)}
+                                    className="flex-1 rounded-xl px-3 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50"
+                                  >{swapSaving ? 'Mentés…' : '⇄ Csere elvégzése'}</button>
+                                )}
                               </div>
                             </div>
                           ) : (
@@ -1941,6 +2038,15 @@ function PharmacyScheduleCalendar({
                 <span>{swapLog.length} rögzített csere – Változtatások megtekintése</span>
                 <ChevronRight className="h-3 w-3 ml-auto" />
               </button>
+            )}
+
+            {/* ReadOnly swap success message */}
+            {readOnly && readOnlySwapDone && (
+              <div className={`flex-shrink-0 flex items-center gap-2 px-6 py-2.5 text-xs font-semibold border-t ${darkMode ? 'bg-sky-900/30 border-sky-700/60 text-sky-300' : 'bg-sky-50 border-sky-200 text-sky-700'}`}>
+                <span>✅</span>
+                <span>{readOnlySwapDone}</span>
+                <button type="button" onClick={() => setReadOnlySwapDone(null)} className="ml-auto text-xs opacity-60 hover:opacity-100">✕</button>
+              </div>
             )}
 
             {/* Footer */}
