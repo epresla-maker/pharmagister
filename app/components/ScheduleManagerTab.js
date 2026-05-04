@@ -8605,7 +8605,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                 const endM = 12;
                 const months = MONTHS_HU.slice(startM - 1, endM).map((label, i) => ({ label, m: startM + i }));
                 const publishedMonths = months.filter(({ m }) =>
-                  schedules.some(s => s.status !== 'deleted' && s.year === y && s.month === m && s.isPublished)
+                  schedules.some(s => s.status !== 'deleted' && s.year === y && s.month === m && Boolean(s.publishedAt))
                 );
                 if (publishedMonths.length === 0 && y !== thisYear) return null;
                 return (
@@ -8614,7 +8614,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                     <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
                       {months.map(({ label, m }) => {
                         const isActive = y === year && m === month && calendarOpen;
-                        const monthScheds = schedules.filter(s => s.status !== 'deleted' && s.year === y && s.month === m && s.isPublished);
+                        const monthScheds = schedules.filter(s => s.status !== 'deleted' && s.year === y && s.month === m && Boolean(s.publishedAt));
                         const ownCount = monthScheds.filter(s => ownScheduleIds.has(s.id)).length;
                         if (monthScheds.length === 0) return null;
                         return (
@@ -8644,7 +8644,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   </div>
                 );
               })}
-              {schedules.filter(s => s.status !== 'deleted' && s.isPublished).length === 0 && (
+              {schedules.filter(s => s.status !== 'deleted' && Boolean(s.publishedAt)).length === 0 && (
                 <p className={`text-sm text-center py-8 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Még nincs publikált beosztás.</p>
               )}
               {/* Full-screen calendar overlay */}
@@ -8662,7 +8662,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                     }
                   }}
                   onClose={() => setCalendarOpen(false)}
-                  schedules={schedules.filter(s => s.status !== 'deleted' && s.isPublished)}
+                  schedules={schedules.filter(s => s.status !== 'deleted' && Boolean(s.publishedAt))}
                   employees={employees}
                   preferences={[]}
                   user={user}
@@ -8673,7 +8673,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   onCopyPrev={() => {}}
                   onExport={() => {}}
                   onPublish={() => {}}
-                  activeMonthSchedules={schedules.filter(s => s.status !== 'deleted' && s.isPublished && s.year === year && s.month === month).length}
+                  activeMonthSchedules={schedules.filter(s => s.status !== 'deleted' && Boolean(s.publishedAt) && s.year === year && s.month === month).length}
                   publishedScheduleCount={0}
                   readOnly={true}
                   ownScheduleIds={ownScheduleIds}
