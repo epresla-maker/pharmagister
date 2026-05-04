@@ -27,6 +27,7 @@ import {
   Bell,
   CheckCircle,
   CheckCircle2,
+  ChevronRight,
   Copy,
   Download,
   Info,
@@ -652,7 +653,7 @@ function PharmacyScheduleCalendar({
   user, userData, darkMode,
   onSaveDaySchedules, saving,
   // action handlers passed through for the overlay toolbar
-  onCopyPrev, onExport, onPublish, onAutoFix, onDeleteMonth,
+  onCopyPrev, onExport, onPublish, onAutoFix, onDeleteMonth, onPublishChanges,
   activeMonthSchedules, publishedScheduleCount,
   readOnly, ownScheduleIds,
   config,
@@ -672,6 +673,9 @@ function PharmacyScheduleCalendar({
   const [swapPickerRowIdx, setSwapPickerRowIdx] = useState(null);
   const [swapTarget, setSwapTarget] = useState(null); // { scheduleId, date, employeeId, employeeName, from, to }
   const [swapSaving, setSwapSaving] = useState(false);
+  const [swapLog, setSwapLog] = useState([]); // [{nameA,dateA,fromA,toA,nameB,dateB,fromB,toB}]
+  const [showSwapLog, setShowSwapLog] = useState(false);
+  const [publishChangesLoading, setPublishChangesLoading] = useState(false);
   const [deleteMonthConfirm, setDeleteMonthConfirm] = useState(0); // 0=off 1=first 2=second
 
   // ── Load employee profiles when summary modal opens ───────────────────
@@ -879,6 +883,16 @@ function PharmacyScheduleCalendar({
       // 4. Save current day
       await onSaveDaySchedules(currentDateKey, newRows);
 
+      setSwapLog(prev => [...prev, {
+        nameA: row.name,
+        dateA: currentDateKey,
+        fromA: row.from,
+        toA: row.to,
+        nameB: swapTarget.employeeName,
+        dateB: swapTarget.date,
+        fromB: swapTarget.from,
+        toB: swapTarget.to,
+      }]);
       setSwapTarget(null);
       setSwapPickerRowIdx(null);
     } catch (err) {
@@ -1088,6 +1102,85 @@ function PharmacyScheduleCalendar({
           </div>
         );
       })()}
+
+      {/* Swap changes banner */}
+      {swapLog.length > 0 && !readOnly && (
+        <button
+          type="button"
+          onClick={() => setShowSwapLog(true)}
+          className={`flex-shrink-0 w-full flex items-center gap-2 px-4 py-2 text-xs font-semibold border-b transition-colors ${darkMode ? 'bg-amber-900/30 border-amber-700/60 text-amber-300 hover:bg-amber-900/50' : 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100'}`}
+        >
+          <span>🔄</span>
+          <span>{swapLog.length} csere nincs publikálva – Változtatások megtekintése</span>
+          <ChevronRight className="h-3 w-3 ml-auto" />
+        </button>
+      )}
+
+      {/* Swap log overlay */}
+      {showSwapLog && (
+        <div className={`absolute inset-0 z-30 flex flex-col overflow-hidden ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
+          {/* Header */}
+          <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-amber-500 to-orange-500">
+            <button
+              type="button"
+              onClick={() => setShowSwapLog(false)}
+              className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold text-xl leading-none"
+            >×</button>
+            <span className="text-white font-bold text-base flex-1">Rögzített változtatások</span>
+            <span className="text-white/70 text-xs">{swapLog.length} csere</span>
+          </div>
+          {/* List */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            {swapLog.map((entry, idx) => {
+              const [ayear, amonth, aday] = entry.dateA.split('-').map(Number);
+              const [byear, bmonth, bday] = entry.dateB.split('-').map(Number);
+              const dowA = new Date(ayear, amonth - 1, aday).getDay();
+              const dowB = new Date(byear, bmonth - 1, bday).getDay();
+              const labelA = `${MONTHS_HU[amonth-1]} ${aday}. (${DOW_LABELS[dowA]})`;
+              const labelB = `${MONTHS_HU[bmonth-1]} ${bday}. (${DOW_LABELS[dowB]})`;
+              return (
+                <div key={idx} className={`rounded-xl border p-3 ${darkMode ? 'border-amber-700/60 bg-amber-900/20' : 'border-amber-200 bg-amber-50'}`}>
+                  <div className={`flex items-center gap-2 text-sm font-bold mb-2 ${darkMode ? 'text-amber-200' : 'text-amber-900'}`}>
+                    <span>{entry.nameA}</span>
+                    <span className="text-amber-500">⇄</span>
+                    <span>{entry.nameB}</span>
+                  </div>
+                  <div className={`text-xs space-y-1 ${darkMode ? 'text-amber-300/80' : 'text-amber-700'}`}>
+                    <div><span className="font-semibold">{entry.nameA}:</span> {labelA} {entry.fromA}–{entry.toA} → {labelB} {entry.fromB}–{entry.toB}</div>
+                    <div><span className="font-semibold">{entry.nameB}:</span> {labelB} {entry.fromB}–{entry.toB} → {labelA} {entry.fromA}–{entry.toA}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {/* Footer */}
+          <div className={`flex-shrink-0 flex gap-3 p-4 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+            <button
+              type="button"
+              onClick={() => setShowSwapLog(false)}
+              className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-medium ${darkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-800' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}
+            >Bezárás</button>
+            <button
+              type="button"
+              disabled={publishChangesLoading}
+              onClick={async () => {
+                setPublishChangesLoading(true);
+                try {
+                  await onPublishChanges(swapLog);
+                  setSwapLog([]);
+                  setShowSwapLog(false);
+                } finally {
+                  setPublishChangesLoading(false);
+                }
+              }}
+              className="flex-1 rounded-xl bg-violet-600 hover:bg-violet-700 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60 flex items-center justify-center gap-2"
+            >
+              {publishChangesLoading ? <span className="animate-spin">⏳</span> : <Send className="h-4 w-4" />}
+              {publishChangesLoading ? 'Publikálás...' : 'Változtatások publikálása'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Day list — full width, vertically scrollable */}
       <div className="flex-1 overflow-y-auto overscroll-contain">
@@ -3766,6 +3859,50 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       const msg = error.message || 'Nem sikerült publikálni a beosztásokat.';
       setStatusError(msg);
       return { success: false, blockingErrors: [{ message: msg }] };
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handlePublishSwapChanges() {
+    if (!user?.uid) return;
+    setSaving(true);
+    setStatusError('');
+    setStatusMessage('');
+    try {
+      const publishedAtIso = new Date().toISOString();
+      // Mark all unpublished active schedules for this month as published
+      const toPublish = schedules.filter(s =>
+        s.year === year && s.month === month &&
+        s.status !== 'deleted' &&
+        !isPublishedSchedule(s)
+      );
+      await Promise.all(toPublish.map(s =>
+        updateDoc(doc(db, 'pharmacySchedules', s.id), {
+          publishedAt: publishedAtIso,
+          publishedBy: user.uid,
+          updatedAt: serverTimestamp(),
+        })
+      ));
+      // Notify ALL pharmacy employees with linked accounts
+      const allLinkedUsers = employees.map(e => e.linkedUserId).filter(Boolean);
+      for (const userId of allLinkedUsers) {
+        await createNotificationWithPush({
+          userId,
+          type: 'schedule_updated',
+          title: 'Beosztas valtozas',
+          message: `${MONTHS_HU[month - 1]} ${year} havi beosztasban csere tortent.`,
+          data: { pharmacyId: user.uid, year, month },
+          url: '/pharmagister?tab=schedule-manager',
+          dedupeWindowSeconds: 60,
+          dedupeByDataKeys: ['pharmacyId', 'year', 'month', 'type'],
+        });
+      }
+      setStatusMessage(`Változtatások publikálva. Értesítés elküldve ${allLinkedUsers.length} dolgozónak.`);
+      await loadData();
+    } catch (err) {
+      console.error('handlePublishSwapChanges error', err);
+      setStatusError('Nem sikerült publikálni a változtatásokat.');
     } finally {
       setSaving(false);
     }
@@ -7778,6 +7915,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   onPublish={handlePublishSchedules}
                   onAutoFix={handleAutoFixSchedules}
                   onDeleteMonth={handleDeleteMonth}
+                  onPublishChanges={handlePublishSwapChanges}
                   activeMonthSchedules={activeMonthSchedules}
                   publishedScheduleCount={publishedScheduleCount}
                   config={normalizePlanningConfig(plannerConfigForm)}
