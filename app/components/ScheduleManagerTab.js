@@ -66,6 +66,7 @@ const AI_COMMAND_POLICY = {
   local_list_pending_applications: { allowedRoles: ['pharmacy'], riskLevel: 'read', requiresConfirm: false },
   local_decide_application: { allowedRoles: ['pharmacy'], riskLevel: 'critical', requiresConfirm: true },
   local_schedule_wizard_start: { allowedRoles: ['pharmacy'], riskLevel: 'read', requiresConfirm: false },
+  local_schedule_control_panel: { allowedRoles: ['pharmacy'], riskLevel: 'read', requiresConfirm: false },
   local_run_auto_planner: { allowedRoles: ['pharmacy'], riskLevel: 'write', requiresConfirm: false },
   local_create_demand_wizard_start: { allowedRoles: ['pharmacy'], riskLevel: 'read', requiresConfirm: false },
   local_demand_wizard_set_position: { allowedRoles: ['pharmacy'], riskLevel: 'write', requiresConfirm: false },
@@ -4658,6 +4659,55 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       return;
     }
 
+    if (cmdType === 'local_schedule_control_panel') {
+      if (!isPharmacy) return;
+
+      const now = new Date();
+      let targetMonth = now.getMonth() + 1;
+      let targetYear = now.getFullYear();
+      if (cmd.monthNumber && cmd.monthNumber >= 1 && cmd.monthNumber <= 12) {
+        targetMonth = cmd.monthNumber;
+        if (targetMonth < now.getMonth() + 1) targetYear = now.getFullYear() + 1;
+      } else if (typeof cmd.monthOffset === 'number') {
+        const d = new Date(now.getFullYear(), now.getMonth() + cmd.monthOffset, 1);
+        targetMonth = d.getMonth() + 1;
+        targetYear = d.getFullYear();
+      }
+
+      const monthName = cmd.monthLabel || MONTHS_HU[targetMonth - 1] || 'honap';
+      const lowerMonth = String(monthName).toLowerCase();
+      const commands = [
+        { id: `scp_plan_${Date.now()}`, type: 'send_message', label: 'Beosztas tervezes inditasa', utterance: `Ird meg a ${lowerMonth}i beosztast` },
+        { id: `scp_show_${Date.now()}`, type: 'send_message', label: 'Havi beosztas mutatasa', utterance: `Mutasd a ${lowerMonth}i beosztast` },
+        { id: `scp_vac_${Date.now()}`, type: 'send_message', label: 'Szabadsagok lekerdezese', utterance: `Kik mennek szabira ${lowerMonth}ban?` },
+        { id: `scp_draft_${Date.now()}`, type: 'send_message', label: 'Hianyzo tervezetek', utterance: `Ki nem kuldte be a ${lowerMonth}i tervezetet?` },
+        { id: `scp_replan_${Date.now()}`, type: 'send_message', label: 'Ujratervezes', utterance: `Tervezd ujra a ${lowerMonth}i beosztast` },
+        { id: `scp_ot_${Date.now()}`, type: 'send_message', label: 'Tulora csokkentese', utterance: 'Csokkentsd a tulorat' },
+        { id: `scp_fair_${Date.now()}`, type: 'send_message', label: 'Igazsagosabb beosztas', utterance: 'Legyen igazsagosabb a beosztas' },
+        { id: `scp_rep_${Date.now()}`, type: 'send_message', label: 'Helyettesitesi igenyek', utterance: 'Mutasd a nyitott helyettesitesi igenyeket' },
+      ];
+
+      setBettiChatMessages((prev) => [...prev, {
+        role: 'assistant',
+        text: 'Valaszd ki, miben segitsek a beosztassal kapcsolatban.',
+        intent: 'local_schedule_control_panel',
+        ts: Date.now(),
+        scheduleControlCard: {
+          title: 'Beosztas kezelo panel',
+          monthName,
+          year: targetYear,
+          commands,
+          cancelCommand: {
+            id: `schedule_panel_cancel_${Date.now()}`,
+            type: 'local_cancel_command',
+            label: 'Megse',
+            originalType: 'local_schedule_control_panel',
+          },
+        },
+      }]);
+      return;
+    }
+
     if (cmdType === 'local_run_auto_planner') {
       if (!isPharmacy) return;
 
@@ -5179,6 +5229,60 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                         {msg?.plannerCard?.cancelCommand?.label || 'Megse'}
                       </button>
                     </div>
+                  </div>
+                )}
+
+                {!isUser && msg?.scheduleControlCard && (
+                  <div className={`w-full rounded-2xl border px-4 py-3 shadow-sm ${
+                    darkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-emerald-50 border-emerald-200 text-slate-800'
+                  }`}>
+                    <p className={`text-xs font-bold uppercase tracking-wide ${darkMode ? 'text-emerald-300' : 'text-emerald-700'}`}>
+                      {msg?.scheduleControlCard?.title || 'Beosztas kezelo panel'}
+                    </p>
+                    <p className={`mt-1 text-sm font-semibold ${darkMode ? 'text-white' : 'text-slate-900'}`}>
+                      {msg?.scheduleControlCard?.monthName || ''} {msg?.scheduleControlCard?.year || ''}
+                    </p>
+
+                    <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {(Array.isArray(msg?.scheduleControlCard?.commands) ? msg.scheduleControlCard.commands : []).slice(0, 8).map((cmd) => (
+                        <button
+                          key={`${cmd.id || cmd.label || cmd.type}`}
+                          type="button"
+                          onClick={() => { void executeBettiUiCommand(cmd, msg); }}
+                          className={`w-full rounded-xl px-3 py-2 text-sm font-semibold border transition-colors text-left ${
+                            darkMode
+                              ? 'bg-slate-700 text-slate-100 border-slate-600 active:bg-slate-600'
+                              : 'bg-white text-slate-700 border-emerald-200 active:bg-emerald-100'
+                          }`}
+                        >
+                          {cmd.label || 'Muvelet'}
+                        </button>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const cancelCmd = msg?.scheduleControlCard?.cancelCommand || {
+                          type: 'local_cancel_command',
+                          label: 'Megse',
+                          originalType: 'local_schedule_control_panel',
+                        };
+                        void executeBettiUiCommand(cancelCmd, msg);
+                        setBettiChatMessages((prev) => prev.map((m) => (
+                          m?.ts === msg?.ts
+                            ? { ...m, scheduleControlCard: null, uiCommands: [] }
+                            : m
+                        )));
+                      }}
+                      className={`mt-3 w-full rounded-xl px-3 py-2 text-sm font-semibold border transition-colors ${
+                        darkMode
+                          ? 'bg-slate-700 text-slate-200 border-slate-600 active:bg-slate-600'
+                          : 'bg-white text-slate-700 border-slate-300 active:bg-slate-100'
+                      }`}
+                    >
+                      {msg?.scheduleControlCard?.cancelCommand?.label || 'Megse'}
+                    </button>
                   </div>
                 )}
 

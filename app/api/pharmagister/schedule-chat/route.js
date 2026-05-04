@@ -848,6 +848,26 @@ function isDirectSchedulePlanningPrompt(text) {
   return hasScheduleWord && hasPlanningVerb;
 }
 
+function isScheduleRelatedRequest(text) {
+  const norm = normalizeText(text);
+  if (!norm) return false;
+
+  return containsAny(norm, [
+    'beosztas',
+    'muszak',
+    'tervezet',
+    'szabadsag',
+    'szabadnap',
+    'tulora',
+    'helyettesit',
+    'helyettesites',
+    'ujratervez',
+    'dolgozo',
+    'alkalmazott',
+    'csapat',
+  ]);
+}
+
 function buildMonthQuickActions(topic = 'beosztas') {
   const utteranceByTopic = {
     beosztas: {
@@ -2995,11 +3015,26 @@ export async function POST(request) {
       },
     };
 
-    const uiCommands = buildChatUiCommands({
+    let uiCommands = buildChatUiCommands({
       action,
       chatRole,
       entities: pipelinePayload?.entities || {},
     });
+
+    if (chatRole === 'pharmacy' && (isScheduleRelatedRequest(message) || action === 'clarify' || action === 'offtopic')) {
+      const panelCommand = {
+        id: 'open_schedule_control_panel',
+        type: 'local_schedule_control_panel',
+        label: 'Beosztas kezelo panel',
+        monthNumber: pipelinePayload?.entities?.monthNumber || null,
+        monthOffset: pipelinePayload?.entities?.monthOffset ?? null,
+        monthLabel: pipelinePayload?.entities?.monthLabel || null,
+      };
+      if (!Array.isArray(uiCommands)) uiCommands = [];
+      if (!uiCommands.some((c) => String(c?.type || '') === 'local_schedule_control_panel')) {
+        uiCommands = [panelCommand, ...uiCommands].slice(0, 4);
+      }
+    }
 
     const ttlDays = Number(normalizedAssistantMemory?.policy?.temporaryTtlDays || TEMP_MEMORY_TTL_DAYS);
     const mergedPermanentProfile = {
