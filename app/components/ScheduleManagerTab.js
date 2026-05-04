@@ -895,6 +895,7 @@ function PharmacyScheduleCalendar({
       }]);
       setSwapTarget(null);
       setSwapPickerRowIdx(null);
+      setShowModal(false);
     } catch (err) {
       console.error('executeSwap error', err);
     } finally {
