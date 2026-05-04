@@ -560,6 +560,76 @@ function calcHours(from, to) {
 
 const HU_DAYS_LONG = ['Vasárnap', 'Hétfő', 'Kedd', 'Szerda', 'Csütörtök', 'Péntek', 'Szombat'];
 
+function getErrorAdvice(code) {
+  const map = {
+    min_staff: {
+      title: 'Létszámhiány',
+      tip: 'Az adott műszakban kevesebb dolgozó van beosztva a megkövetelt minimumnál.',
+      suggestion: 'Bővítsd a dolgozói létszámot, csökkentsd a minimális létszámkövetelményt a tervezési kritériumokban, vagy adj be kézzel beosztást a hiányzó napokra.',
+    },
+    missing_pharmacist: {
+      title: 'Hiányzó gyógyszerész',
+      tip: 'A beállított műszakhoz legalább egy gyógyszerész jelenléte kötelező, de nincs ilyen szerepkörű dolgozó beosztva.',
+      suggestion: 'Osztj be gyógyszerész végzettségű dolgozót erre a napra, vagy kapcsold ki a gyógyszerész-kötelezettséget a tervezési kritériumokban.',
+    },
+    rest_time: {
+      title: 'Elégtelen pihenőidő',
+      tip: 'Két egymást követő műszak között nincs elegendő pihenőidő az alkalmazott egyéni korlátja szerint.',
+      suggestion: 'Módosítsd az érintett műszakok időpontját, vagy ossz be másik dolgozót a következő napra.',
+    },
+    legal_rest_time: {
+      title: 'Törvényi pihenőidő-sérülés',
+      tip: 'Két egymást követő műszak között kevesebb mint 11 óra pihenőidő van – ez sérti a Munka Törvénykönyvét.',
+      suggestion: 'Állítsd be a műszakokat úgy, hogy köztük legalább 11 óra szünet legyen, vagy cseréld le a dolgozót a következő napra.',
+    },
+    max_daily_hours: {
+      title: 'Napi óratúllépés',
+      tip: 'A dolgozó aznapi összes munkaórái meghaladják a beállított napi maximumot.',
+      suggestion: 'Rövidítsd le a műszakot, vegyél ki egy beosztást aznap, vagy növeld a dolgozó napi maximumát a profiljában.',
+    },
+    legal_max_daily_hours: {
+      title: 'Törvényi napi maximum túllépés',
+      tip: 'A napi munkaórák meghaladják a törvényi maximumot (általában 12 óra).',
+      suggestion: 'Csökkentsd az aznapi összesített munkaidőt 12 óra alá.',
+    },
+    legal_weekly_hours_limit: {
+      title: 'Törvényi heti maximum túllépés',
+      tip: 'A dolgozó adott heti munkaórái meghaladják a törvényi heti maximumot (általában 48 óra).',
+      suggestion: 'Vegyél ki egy műszakot ebből a hétből, vagy oszd el egyenletesebben a terhelést a heti beosztásban.',
+    },
+    double_shift: {
+      title: 'Átfedő műszakok',
+      tip: 'Ugyanannak a dolgozónak ugyanazon a napon két egymást átfedő műszakja van.',
+      suggestion: 'Töröld vagy igazítsd az átfedő műszakok egyikét.',
+    },
+    time_off_violation: {
+      title: 'Szabadságon lévő dolgozó beosztva',
+      tip: 'A dolgozónak erre a napra jóváhagyott szabadsága vagy távolléte van, mégis be lett osztva.',
+      suggestion: 'Töröld ezt a műszakot, és jelölj ki helyette egy elérhető kollégát.',
+    },
+    outside_opening_hours: {
+      title: 'Nyitvatartáson kívüli műszak',
+      tip: 'A beosztott műszak kezdete vagy vége kívül esik a beállított nyitvatartási időn.',
+      suggestion: 'Igazítsd a műszak időpontját a nyitvatartáshoz, vagy módosítsd a nyitvatartást a tervezési kritériumokban.',
+    },
+    shift_type_permission: {
+      title: 'Jogosulatlan műszaktípus',
+      tip: 'A dolgozónak nincs engedélye az adott műszaktípushoz (pl. éjszakai, hétvégi műszak).',
+      suggestion: 'Engedélyezd a műszaktípust a dolgozó profiljában, vagy cseréld le egy jogosult kollégára.',
+    },
+    site_permission: {
+      title: 'Telephely-jogosultság hiánya',
+      tip: 'A dolgozó nem rendelkezik jogosultsággal erre a telephelyre.',
+      suggestion: 'Add hozzá a telephelyet a dolgozó beállításaihoz, vagy jelölj ki erre jogosult kollégát.',
+    },
+  };
+  return map[code] || {
+    title: 'Ismeretlen hiba',
+    tip: null,
+    suggestion: 'Ellenőrizd a beosztást kézzel és javítsd a hibát.',
+  };
+}
+
 // ── Full-screen pharmacy schedule calendar ────────────────────────────────────
 function PharmacyScheduleCalendar({
   year, month, onChangeMonth, onClose,
@@ -732,16 +802,42 @@ function PharmacyScheduleCalendar({
               </div>
             )}
 
-            <div className="space-y-2">
-              {publishBlockModal.map((err, i) => (
-                <div key={i} className={`rounded-xl border px-4 py-3 text-sm ${darkMode ? 'border-rose-700 bg-rose-900/30 text-rose-200' : 'border-rose-200 bg-rose-50 text-rose-700'}`}>
-                  <div className="flex items-start gap-2">
-                    <span className="flex-shrink-0">🚫</span>
-                    <span>{err.message}</span>
-                  </div>
+            {/* Grouped error cards with explanations and suggestions */}
+            {(() => {
+              const seen = new Set();
+              const uniqueErrors = publishBlockModal.filter(e => {
+                const k = e.code || 'unknown';
+                if (seen.has(k)) return false;
+                seen.add(k); return true;
+              });
+              return (
+                <div className="space-y-3">
+                  {uniqueErrors.map((err, i) => {
+                    const advice = getErrorAdvice(err.code);
+                    const group = publishBlockModal.filter(e => (e.code || 'unknown') === (err.code || 'unknown'));
+                    return (
+                      <div key={i} className={`rounded-xl border p-4 ${darkMode ? 'border-rose-700 bg-rose-900/30' : 'border-rose-200 bg-rose-50'}`}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="flex-shrink-0">🚫</span>
+                          <span className={`font-semibold text-sm flex-1 ${darkMode ? 'text-rose-200' : 'text-rose-800'}`}>{advice.title}</span>
+                          {group.length > 1 && <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${darkMode ? 'bg-rose-800 text-rose-200' : 'bg-rose-200 text-rose-700'}`}>{group.length} eset</span>}
+                        </div>
+                        {advice.tip && <p className={`text-xs mb-2 ${darkMode ? 'text-rose-300' : 'text-rose-700'}`}>{advice.tip}</p>}
+                        <div className={`rounded-lg px-3 py-2 text-xs flex items-start gap-2 mb-2 ${darkMode ? 'bg-amber-900/40 text-amber-300' : 'bg-amber-50 text-amber-800'}`}>
+                          <span className="flex-shrink-0">💡</span>
+                          <span>{advice.suggestion}</span>
+                        </div>
+                        <div className="space-y-1">
+                          {group.map((e2, j) => (
+                            <p key={j} className={`text-xs pl-2 border-l-2 ${darkMode ? 'border-rose-700 text-rose-400' : 'border-rose-300 text-rose-600'}`}>{e2.message}</p>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              ))}
-            </div>
+              );
+            })()}
             <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Javítsd a hibákat, majd próbáld újra a publikálást.</p>
           </div>
         </div>
