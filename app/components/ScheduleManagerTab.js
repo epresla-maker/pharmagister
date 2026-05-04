@@ -659,7 +659,7 @@ function PharmacyScheduleCalendar({
   }
 
   async function handlePublishClick() {
-    if ((activeMonthSchedules ?? 0) === 0) {
+    if ((activeMonthSchedules?.length ?? 0) === 0) {
       setPublishBlockModal([{ message: 'Nincs kitöltött beosztás ebben a hónapban.' }]);
       return;
     }
@@ -768,7 +768,7 @@ function PharmacyScheduleCalendar({
         {/* Title */}
         <div className="flex-1 text-center">
           <span className="text-white font-bold text-base tracking-tight">{monthLabel} {year}</span>
-          <span className={`ml-2 text-xs font-medium text-white/70`}>{activeMonthSchedules ?? 0} műszak</span>
+          <span className={`ml-2 text-xs font-medium text-white/70`}>{activeMonthSchedules?.length ?? 0} műszak</span>
         </div>
         {/* Next month */}
         <button
@@ -6995,7 +6995,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   onExport={handleExportSchedules}
                   onPublish={handlePublishSchedules}
                   onAutoFix={handleAutoFixSchedules}
-                  activeMonthSchedules={activeMonthSchedules.length}
+                  activeMonthSchedules={activeMonthSchedules}
                   publishedScheduleCount={publishedScheduleCount}
                 />
               )}
@@ -7607,7 +7607,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   onCopyPrev={handleCopyPreviousMonth}
                   onExport={handleExportSchedules}
                   onPublish={handlePublishSchedules}
-                  activeMonthSchedules={activeMonthSchedules.length}
+                  activeMonthSchedules={activeMonthSchedules}
                   publishedScheduleCount={publishedScheduleCount}
                 />
               )}
