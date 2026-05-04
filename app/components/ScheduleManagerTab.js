@@ -219,6 +219,11 @@ function isPublishedSchedule(schedule) {
   return Boolean(schedule?.publishedAt);
 }
 
+function isPharmacistRole(role) {
+  const r = (role || '').toLowerCase();
+  return r.includes('pharmacist') || r.includes('gyógyszerész') || r.includes('gyogyszeresz');
+}
+
 function getPreferenceOwnerKey(item) {
   const employeeId = String(item?.employeeId || '').trim();
   if (employeeId) return `emp:${employeeId}`;
@@ -1858,12 +1863,15 @@ function PharmacyScheduleCalendar({
                       const currentDateKey = formatDateKey(year, month, selectedDay);
                       // Build candidate map from month schedules: employees with non-off, non-deleted shifts (excluding current employee)
                       const empMap = new Map();
+                      const rowIsPharmacist = isPharmacistRole(row.role);
                       schedules.forEach(s => {
                         if (s.status === 'deleted') return;
                         if (isOffShift(s.shiftType)) return;
                         if (s.employeeId === row.employeeId) return;
                         if (!s.startTime || !s.endTime) return;
                         if (s.date === currentDateKey) return; // skip same-day shifts (no point swapping same day)
+                        // Role rule: pharmacist ↔ pharmacist only, assistant ↔ assistant only
+                        if (isPharmacistRole(s.role) !== rowIsPharmacist) return;
                         if (!empMap.has(s.employeeId)) {
                           empMap.set(s.employeeId, { employeeId: s.employeeId, employeeName: s.employeeName, role: s.role, shifts: [] });
                         }
@@ -1940,7 +1948,7 @@ function PharmacyScheduleCalendar({
                             // ── Employee + shift picker ─────────────────────────
                             candidateEmps.length === 0 ? (
                               <p className={`text-xs px-3 py-3 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                                Nincs olyan dolgozó, akinek beosztott műszakja van ebben a hónapban.
+                                Nincs csereképes {rowIsPharmacist ? 'gyógyszerész' : 'szakasszisztens'} ebben a hónapban.
                               </p>
                             ) : (
                               <div className="overflow-y-auto" style={{ maxHeight: '260px' }}>
