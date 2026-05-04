@@ -670,6 +670,8 @@ function PharmacyScheduleCalendar({
   const [summaryProfiles, setSummaryProfiles] = useState([]);
   const [summaryProfilesLoading, setSummaryProfilesLoading] = useState(false);
   const [swapPickerRowIdx, setSwapPickerRowIdx] = useState(null);
+  const [swapTarget, setSwapTarget] = useState(null); // { scheduleId, date, employeeId, employeeName, from, to }
+  const [swapSaving, setSwapSaving] = useState(false);
   const [deleteMonthConfirm, setDeleteMonthConfirm] = useState(0); // 0=off 1=first 2=second
 
   // ── Load employee profiles when summary modal opens ───────────────────
@@ -820,9 +822,69 @@ function PharmacyScheduleCalendar({
       const dateKey = formatDateKey(year, month, selectedDay);
       await onSaveDaySchedules(dateKey, employeeRows);
       setSwapPickerRowIdx(null);
+      setSwapTarget(null);
       setShowModal(false);
     } finally {
       setModalSaving(false);
+    }
+  }
+
+  async function executeSwap(rowIdx) {
+    if (!swapTarget) return;
+    const row = employeeRows[rowIdx];
+    const currentDateKey = formatDateKey(year, month, selectedDay);
+    setSwapSaving(true);
+    try {
+      const bScheduleData = schedules.find(s => s.id === swapTarget.scheduleId);
+      const empA = employees.find(e => e.id === row.employeeId);
+
+      // 1. Mark B's schedule on the target day as deleted
+      await updateDoc(doc(db, 'pharmacySchedules', swapTarget.scheduleId), {
+        status: 'deleted',
+        updatedAt: serverTimestamp(),
+      });
+
+      // 2. Create A's schedule on the target day (with B's times)
+      await addDoc(collection(db, 'pharmacySchedules'), {
+        pharmacyId: user?.uid || '',
+        pharmacyName: userData?.pharmacyName || userData?.name || user?.email || '',
+        date: swapTarget.date,
+        year: Number(swapTarget.date.split('-')[0]),
+        month: Number(swapTarget.date.split('-')[1]),
+        day: Number(swapTarget.date.split('-')[2]),
+        employeeId: row.employeeId,
+        employeeName: row.name,
+        employeeEmail: empA?.email || row.email || '',
+        linkedUserId: empA?.linkedUserId || row.linkedUserId || null,
+        role: empA?.role || row.role || 'other',
+        startTime: swapTarget.from,
+        endTime: swapTarget.to,
+        shiftType: bScheduleData?.shiftType || 'N',
+        notes: `Csere: ${row.name} ↔ ${swapTarget.employeeName}`,
+        locked: false,
+        status: 'active',
+        createdBy: user?.uid || '',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+
+      // 3. Update current day rows: uncheck A, check B with A's times
+      const newRows = employeeRows.map((r, i) => {
+        if (i === rowIdx) return { ...r, checked: false, shiftType: 'N' };
+        if (r.employeeId === swapTarget.employeeId) return { ...r, checked: true, shiftType: row.shiftType || 'N', from: row.from, to: row.to };
+        return r;
+      });
+      setEmployeeRows(newRows);
+
+      // 4. Save current day
+      await onSaveDaySchedules(currentDateKey, newRows);
+
+      setSwapTarget(null);
+      setSwapPickerRowIdx(null);
+    } catch (err) {
+      console.error('executeSwap error', err);
+    } finally {
+      setSwapSaving(false);
     }
   }
 
@@ -1586,86 +1648,125 @@ function PharmacyScheduleCalendar({
 
                     {/* ── Csere panel ─────────────────────────────────────── */}
                     {swapPickerRowIdx === idx && (() => {
-                      // Employees that are free (not checked or off) and not published — sorted: same role first, then alpha
-                      const isPharmRow = (row.role || '').toLowerCase().includes('pharmacist') || (row.role || '').toLowerCase().includes('gyógyszerész') || (row.role || '').toLowerCase().includes('gyogyszeresz');
-                      const candidates = employeeRows
-                        .filter(r => r.employeeId !== row.employeeId && !r.isPublished && (!r.checked || isOffShift(r.shiftType)))
-                        .sort((a, b) => {
-                          const aP = (a.role || '').toLowerCase().includes('pharmacist') || (a.role || '').toLowerCase().includes('gyógyszerész') || (a.role || '').toLowerCase().includes('gyogyszeresz');
-                          const bP = (b.role || '').toLowerCase().includes('pharmacist') || (b.role || '').toLowerCase().includes('gyógyszerész') || (b.role || '').toLowerCase().includes('gyogyszeresz');
-                          // If row is pharmacist, pharmacists first; otherwise assistants first
-                          if (isPharmRow) {
-                            if (aP && !bP) return -1;
-                            if (!aP && bP) return 1;
-                          } else {
-                            if (!aP && bP) return -1;
-                            if (aP && !bP) return 1;
-                          }
-                          return a.name.localeCompare(b.name, 'hu');
+                      const currentDateKey = formatDateKey(year, month, selectedDay);
+                      // Build candidate map from month schedules: employees with non-off, non-deleted shifts (excluding current employee)
+                      const empMap = new Map();
+                      schedules.forEach(s => {
+                        if (s.status === 'deleted') return;
+                        if (isOffShift(s.shiftType)) return;
+                        if (s.employeeId === row.employeeId) return;
+                        if (!s.startTime || !s.endTime) return;
+                        if (s.date === currentDateKey) return; // skip same-day shifts (no point swapping same day)
+                        if (!empMap.has(s.employeeId)) {
+                          empMap.set(s.employeeId, { employeeId: s.employeeId, employeeName: s.employeeName, role: s.role, shifts: [] });
+                        }
+                        const d = new Date(s.date + 'T00:00:00');
+                        empMap.get(s.employeeId).shifts.push({
+                          scheduleId: s.id,
+                          date: s.date,
+                          day: s.day || Number(s.date.split('-')[2]),
+                          dow: DOW_LABELS[d.getDay()],
+                          from: s.startTime,
+                          to: s.endTime,
                         });
+                      });
+                      empMap.forEach(emp => emp.shifts.sort((a, b) => a.date.localeCompare(b.date)));
+                      const candidateEmps = [...empMap.values()].sort((a, b) => a.employeeName.localeCompare(b.employeeName, 'hu'));
+
                       return (
                         <div className={`w-full mt-2 rounded-xl border overflow-hidden ${darkMode ? 'border-indigo-700/60 bg-indigo-900/20' : 'border-indigo-200 bg-indigo-50'}`}>
-                          <div className={`flex items-center gap-2 px-3 py-2 border-b ${darkMode ? 'border-indigo-700/40' : 'border-indigo-200'}`}>
-                            <span className="text-sm">⇄</span>
+                          {/* Header */}
+                          <div className={`flex items-center justify-between gap-2 px-3 py-2 border-b ${darkMode ? 'border-indigo-700/40' : 'border-indigo-200'}`}>
                             <span className={`text-xs font-bold ${darkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>
-                              {row.name} helyett ki jöhet? ({row.from}–{row.to})
+                              {swapTarget ? '✅ Csere megerősítése' : `⇄ ${row.name} – melyik műszakkal cseréljük?`}
                             </span>
+                            <button
+                              type="button"
+                              onClick={() => { setSwapPickerRowIdx(null); setSwapTarget(null); }}
+                              className={`text-xs leading-none px-1.5 ${darkMode ? 'text-gray-400 hover:text-gray-200' : 'text-gray-400 hover:text-gray-600'}`}
+                            >✕</button>
                           </div>
-                          {candidates.length === 0 ? (
-                            <p className={`text-xs px-3 py-2 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Nincs szabad dolgozó</p>
+
+                          {swapTarget ? (
+                            // ── Confirmation step ───────────────────────────────
+                            <div className="px-3 py-3 space-y-3">
+                              <div className={`rounded-xl border p-3 ${darkMode ? 'border-violet-700/50 bg-violet-900/20' : 'border-violet-200 bg-white'}`}>
+                                <div className="flex items-center gap-2">
+                                  <div className={`flex-1 text-center text-xs ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                                    <p className="font-bold">{row.name}</p>
+                                    <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{currentDateKey.slice(5).replace('-', '.')}. · {row.from}–{row.to}</p>
+                                  </div>
+                                  <span className="text-xl font-black text-indigo-500">⇄</span>
+                                  <div className={`flex-1 text-center text-xs ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                                    <p className="font-bold">{swapTarget.employeeName}</p>
+                                    <p className={`text-[11px] mt-0.5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{swapTarget.date.slice(5).replace('-', '.')}. · {swapTarget.from}–{swapTarget.to}</p>
+                                  </div>
+                                </div>
+                                <p className={`text-[10px] text-center mt-2.5 leading-snug ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                                  {row.name} → {swapTarget.date.slice(5).replace('-', '.')}. ({swapTarget.from}–{swapTarget.to}){'  ·  '}{swapTarget.employeeName} → {currentDateKey.slice(5).replace('-', '.')}. ({row.from}–{row.to})
+                                </p>
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setSwapTarget(null)}
+                                  className={`flex-1 rounded-xl px-3 py-2 text-xs font-semibold ${darkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-200' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}
+                                >← Vissza</button>
+                                <button
+                                  type="button"
+                                  disabled={swapSaving}
+                                  onClick={() => executeSwap(idx)}
+                                  className="flex-1 rounded-xl px-3 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50"
+                                >{swapSaving ? 'Mentés…' : '⇄ Csere elvégzése'}</button>
+                              </div>
+                            </div>
                           ) : (
-                            <div className="flex flex-col divide-y">
-                              {(() => {
-                                // group: same role first label
-                                let lastGroup = null;
-                                return candidates.map(c => {
-                                  const cP = (c.role || '').toLowerCase().includes('pharmacist') || (c.role || '').toLowerCase().includes('gyógyszerész') || (c.role || '').toLowerCase().includes('gyogyszeresz');
-                                  const groupLabel = cP ? 'Gyógyszerész' : 'Asszisztens';
-                                  const showHeader = groupLabel !== lastGroup;
-                                  lastGroup = groupLabel;
+                            // ── Employee + shift picker ─────────────────────────
+                            candidateEmps.length === 0 ? (
+                              <p className={`text-xs px-3 py-3 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                                Nincs olyan dolgozó, akinek beosztott műszakja van ebben a hónapban.
+                              </p>
+                            ) : (
+                              <div className="overflow-y-auto" style={{ maxHeight: '260px' }}>
+                                {candidateEmps.map(emp => {
+                                  const isPharm = (emp.role || '').toLowerCase().includes('pharmacist') || (emp.role || '').toLowerCase().includes('gyógyszerész') || (emp.role || '').toLowerCase().includes('gyogyszeresz');
                                   return (
-                                    <div key={c.employeeId}>
-                                      {showHeader && (
-                                        <p className={`px-3 pt-2 pb-0.5 text-[10px] font-black uppercase tracking-widest ${cP ? (darkMode ? 'text-violet-400' : 'text-violet-600') : (darkMode ? 'text-emerald-400' : 'text-emerald-600')}`}>
-                                          {groupLabel}
-                                        </p>
-                                      )}
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          // Uncheck the current row, assign the candidate with same times
-                                          const newRows = employeeRows.map((r, i) => {
-                                            if (i === idx) return { ...r, checked: false, shiftType: 'N' };
-                                            if (r.employeeId === c.employeeId) return { ...r, checked: true, shiftType: row.shiftType, from: row.from, to: row.to };
-                                            return r;
-                                          });
-                                          // Use setEmployeeRows (via a helper we need to call updateRow for each change)
-                                          // We'll setEmployeeRows directly since we need atomic update
-                                          setEmployeeRows(newRows);
-                                          setSwapPickerRowIdx(null);
-                                        }}
-                                        className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-left transition-colors ${
-                                          darkMode
-                                            ? 'hover:bg-indigo-800/40 text-gray-200'
-                                            : 'hover:bg-indigo-100 text-gray-800'
-                                        }`}
-                                      >
-                                        <span className={`flex-shrink-0 inline-flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-black ${cP ? 'bg-violet-500 text-white' : 'bg-emerald-500 text-white'}`}>
-                                          {c.name.charAt(0)}
+                                    <div key={emp.employeeId} className={`border-b last:border-0 ${darkMode ? 'border-gray-700' : 'border-gray-100'}`}>
+                                      <div className={`flex items-center gap-2 px-3 pt-2 pb-1`}>
+                                        <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-black flex-shrink-0 ${isPharm ? 'bg-violet-500 text-white' : 'bg-emerald-500 text-white'}`}>
+                                          {emp.employeeName.charAt(0)}
                                         </span>
-                                        <span className="flex-1">{c.name}</span>
-                                        {c.shiftType === 'Sz' && (
-                                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-orange-400 text-white`}>Sz</span>
-                                        )}
-                                        <span className={`text-[10px] font-semibold ml-auto ${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>
-                                          {row.from}–{row.to} ✓
+                                        <span className={`text-xs font-bold ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>{emp.employeeName}</span>
+                                        <span className={`text-[10px] font-medium ${isPharm ? (darkMode ? 'text-violet-400' : 'text-violet-600') : (darkMode ? 'text-emerald-400' : 'text-emerald-600')}`}>
+                                          {isPharm ? 'Gyógyszerész' : 'Asszisztens'}
                                         </span>
-                                      </button>
+                                      </div>
+                                      <div className="px-2 pb-2 flex flex-wrap gap-1.5">
+                                        {emp.shifts.map(shift => (
+                                          <button
+                                            key={shift.scheduleId}
+                                            type="button"
+                                            onClick={() => setSwapTarget({
+                                              scheduleId: shift.scheduleId,
+                                              date: shift.date,
+                                              employeeId: emp.employeeId,
+                                              employeeName: emp.employeeName,
+                                              from: shift.from,
+                                              to: shift.to,
+                                            })}
+                                            className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${darkMode ? 'border-gray-600 bg-gray-800 hover:bg-indigo-800 hover:border-indigo-500 text-gray-200' : 'border-gray-200 bg-white hover:bg-indigo-50 hover:border-indigo-300 text-gray-700'}`}
+                                          >
+                                            <span className="font-bold">{shift.day}.</span>
+                                            <span className={`ml-0.5 text-[10px] ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{shift.dow.slice(0,2)}</span>
+                                            <span className={`ml-1.5 tabular-nums ${darkMode ? 'text-indigo-300' : 'text-indigo-600'}`}>{shift.from}–{shift.to}</span>
+                                          </button>
+                                        ))}
+                                      </div>
                                     </div>
                                   );
-                                });
-                              })()}
-                            </div>
+                                })}
+                              </div>
+                            )
                           )}
                         </div>
                       );
