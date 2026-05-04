@@ -6573,6 +6573,48 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         </div>
       ) : null}
 
+      {/* Planner conflict explanations — shown below status message when errors exist */}
+      {plannerResult && (plannerResult.conflicts || []).some(c => c.severity === 'error') ? (() => {
+        const errors = (plannerResult.conflicts || []).filter(c => c.severity === 'error');
+        const seen = new Set();
+        const uniqueCodes = errors.filter(e => {
+          const k = e.code || 'unknown';
+          if (seen.has(k)) return false;
+          seen.add(k); return true;
+        });
+        return (
+          <div className={`rounded-xl border p-4 space-y-3 ${darkMode ? 'border-rose-800 bg-rose-900/20' : 'border-rose-200 bg-rose-50'}`}>
+            <div className="flex items-center justify-between">
+              <p className={`font-semibold text-sm ${darkMode ? 'text-rose-300' : 'text-rose-800'}`}>🚫 {errors.length} piros figyelmeztetés – magyarázat és javaslatok</p>
+              <button type="button" onClick={() => setPlannerResult(null)} className={`text-xs underline ${darkMode ? 'text-rose-400' : 'text-rose-600'}`}>bezár</button>
+            </div>
+            {uniqueCodes.map((err, i) => {
+              const advice = getErrorAdvice(err.code);
+              const group = errors.filter(e => (e.code || 'unknown') === (err.code || 'unknown'));
+              return (
+                <div key={i} className={`rounded-lg border p-3 ${darkMode ? 'border-rose-700 bg-rose-900/30' : 'border-rose-200 bg-white'}`}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`font-semibold text-sm ${darkMode ? 'text-rose-200' : 'text-rose-800'}`}>{advice.title}</span>
+                    {group.length > 1 && <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${darkMode ? 'bg-rose-800 text-rose-200' : 'bg-rose-100 text-rose-700'}`}>{group.length}×</span>}
+                  </div>
+                  {advice.tip && <p className={`text-xs mb-2 ${darkMode ? 'text-rose-300' : 'text-rose-600'}`}>{advice.tip}</p>}
+                  <div className={`rounded px-3 py-2 text-xs flex items-start gap-2 mb-2 ${darkMode ? 'bg-amber-900/40 text-amber-300' : 'bg-amber-50 text-amber-800'}`}>
+                    <span className="flex-shrink-0">💡</span>
+                    <span>{advice.suggestion}</span>
+                  </div>
+                  <div className="space-y-0.5">
+                    {group.slice(0, 5).map((e2, j) => (
+                      <p key={j} className={`text-xs pl-2 border-l-2 ${darkMode ? 'border-rose-700 text-rose-400' : 'border-rose-300 text-rose-600'}`}>{e2.message}</p>
+                    ))}
+                    {group.length > 5 && <p className={`text-xs pl-2 ${darkMode ? 'text-rose-500' : 'text-rose-400'}`}>+ {group.length - 5} további eset</p>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })() : null}
+
       {statusError ? (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {statusError}
