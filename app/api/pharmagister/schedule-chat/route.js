@@ -820,15 +820,22 @@ function isDirectSchedulePlanningPrompt(text) {
     'tervezz',
     'tervezzuk',
     'tervezzuk meg',
+    'ird meg',
+    'irdd meg',
+    'irja meg',
+    'irjuk meg',
     'hozzuk letre',
     'hozd letre',
     'letrehoz',
+    'letrehozzuk',
+    'letrehozni',
+    'keszitsd el',
+    'keszitsuk el',
     'keszits',
     'keszitsuk',
     'keszitsd',
     'generalj',
     'generaljunk',
-    'irjuk meg',
     'csinaljuk meg',
     'csinaljunk',
     'automata',
@@ -2938,6 +2945,30 @@ export async function POST(request) {
         usedLLM = true;
         responseRoute = 'LLM';
       }
+    }
+
+    // Deterministic safety guard: clear pharmacy planning prompts must open planning card.
+    if (chatRole === 'pharmacy' && isDirectSchedulePlanningPrompt(message)) {
+      action = 'write_schedule_plan';
+      const forcedDetectedMonth = detectMonthReference(message);
+      const forcedEntities = { ...(pipelinePayload?.entities || {}) };
+      if (forcedDetectedMonth) {
+        const forcedMonthLabel = forcedDetectedMonth.label
+          ? String(forcedDetectedMonth.label).charAt(0).toUpperCase() + String(forcedDetectedMonth.label).slice(1)
+          : null;
+        forcedEntities.monthOffset = forcedDetectedMonth.monthOffset;
+        forcedEntities.monthNumber = forcedDetectedMonth.monthNumber;
+        forcedEntities.monthLabel = forcedMonthLabel || forcedDetectedMonth.label || null;
+      }
+      pipelinePayload = { ...pipelinePayload, action, suggestedAction: action, entities: forcedEntities };
+      quickActions = buildSuccessQuickActions({ action, chatRole, entities: forcedEntities });
+      parsed = { intent: action, confidence: Math.max(Number(parsed?.confidence || 0), 0.95), entities: forcedEntities };
+
+      const fl = forcedEntities.monthLabel || null;
+      finalReply = fl
+        ? `Rendben, kerlek valassz. A ${String(fl).toLowerCase()}i tervezeshez osszeallitottam a csapatot.`
+        : 'Rendben, kerlek valassz. Indulhat a beosztastervezes.';
+      responseRoute = `${responseRoute}_FORCED_SCHEDULE_PLANNING`;
     }
 
     finalReply = stabilizeReplyText(finalReply, chatRole);
