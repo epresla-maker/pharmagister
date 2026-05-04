@@ -461,25 +461,17 @@ function getShiftChipClasses(item, isOwn, darkMode) {
 function MonthCalendar({ year, month, selectedDate, schedules, ownScheduleIds, onSelectDate, darkMode }) {
   const cells = getCalendarCells(year, month);
   const today = getTodayKey();
+  const DOW_SHORT = ['H', 'K', 'Sz', 'Cs', 'P', 'Sz', 'V']; // Mon–Sun
 
   return (
     <div className={`overflow-hidden rounded-2xl border ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
-      <div className={`flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 ${darkMode ? 'border-gray-700 bg-gray-800/80' : 'border-[#E5E7EB] bg-[#F9FAFB]'}`}>
-        <div className="flex flex-wrap items-center gap-2 text-xs font-medium">
-          <span className={`rounded-full px-2.5 py-1 ${darkMode ? 'bg-emerald-900/60 text-emerald-100 border border-emerald-700' : 'bg-emerald-100 text-emerald-800 border border-emerald-200'}`}>Saját műszak</span>
-          <span className={`rounded-full px-2.5 py-1 ${darkMode ? 'bg-sky-900/60 text-sky-100 border border-sky-700' : 'bg-sky-100 text-sky-800 border border-sky-200'}`}>Gyógyszerész</span>
-          <span className={`rounded-full px-2.5 py-1 ${darkMode ? 'bg-amber-900/50 text-amber-100 border border-amber-700' : 'bg-amber-100 text-amber-800 border border-amber-200'}`}>Szakasszisztens</span>
-          <span className={`rounded-full px-2.5 py-1 ${darkMode ? 'bg-fuchsia-900/50 text-fuchsia-100 border border-fuchsia-700' : 'bg-fuchsia-100 text-fuchsia-800 border border-fuchsia-200'}`}>Egyéb</span>
-        </div>
-        <p className={`text-xs ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>Kattints egy napra a részletekhez</p>
-      </div>
-      <div className={`grid grid-cols-7 ${darkMode ? 'bg-gray-800' : 'bg-[#F9FAFB]'} border-b ${darkMode ? 'border-gray-700' : 'border-[#E5E7EB]'}`}>
-        {WEEKDAYS_HU.map(day => (
-          <div key={day} className="px-2 py-3 text-center text-[11px] font-semibold uppercase tracking-wide">
-            {day}
-          </div>
+      {/* Weekday headers */}
+      <div className={`grid grid-cols-7 border-b ${darkMode ? 'border-gray-700' : 'border-[#E5E7EB]'}`}>
+        {DOW_SHORT.map((d, i) => (
+          <div key={i} className={`py-2 text-center text-[11px] font-medium ${i >= 5 ? darkMode ? 'text-gray-500' : 'text-gray-400' : darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{d}</div>
         ))}
       </div>
+      {/* Calendar grid */}
       <div className="grid grid-cols-7">
         {cells.map((day, index) => {
           const dateKey = day ? formatDateKey(year, month, day) : null;
@@ -487,7 +479,13 @@ function MonthCalendar({ year, month, selectedDate, schedules, ownScheduleIds, o
           const daySchedules = (readOnly && ownView && ownScheduleIds)
             ? allDaySchedules.filter(item => ownScheduleIds.has(item.id))
             : allDaySchedules;
-          const hasOwnSchedule = daySchedules.some(item => ownScheduleIds.has(item.id));
+          const hasOwn = daySchedules.some(item => ownScheduleIds?.has(item.id));
+          const isToday = dateKey === today;
+          const isSelected = dateKey === selectedDate;
+          const colIdx = index % 7; // 0=Mon…6=Sun
+          const isWeekend = colIdx >= 5;
+          const isLastInRow = colIdx === 6;
+          const isInLastRow = index >= cells.length - 7;
 
           return (
             <button
@@ -495,48 +493,41 @@ function MonthCalendar({ year, month, selectedDate, schedules, ownScheduleIds, o
               type="button"
               disabled={!day}
               onClick={() => day && onSelectDate(dateKey)}
-              className={`min-h-[132px] border-r border-b p-2.5 text-left align-top transition-colors ${
-                darkMode ? 'border-gray-800' : 'border-[#E5E7EB]'
-              } ${
-                !day
-                  ? darkMode ? 'bg-gray-950' : 'bg-[#F9FAFB]'
-                  : selectedDate === dateKey
-                    ? 'bg-violet-100 ring-2 ring-violet-400 ring-inset dark:bg-violet-900/30'
-                    : hasOwnSchedule
-                      ? 'bg-emerald-50 dark:bg-emerald-900/15'
-                      : daySchedules.length > 0
-                        ? darkMode ? 'bg-slate-800/70 hover:bg-slate-800' : 'bg-slate-50 hover:bg-slate-100'
-                        : 'hover:bg-gray-50 dark:hover:bg-gray-800'
-              }`}
+              className={`relative flex flex-col items-center pt-1.5 pb-2 border-b border-r transition-colors
+                ${isLastInRow ? 'border-r-0' : ''}
+                ${isInLastRow ? 'border-b-0' : ''}
+                ${darkMode ? 'border-gray-800' : 'border-[#F0F0F0]'}
+                ${!day ? 'opacity-0 pointer-events-none' : ''}
+                ${day && !isSelected && !isToday ? (darkMode ? 'hover:bg-gray-800/60' : 'hover:bg-gray-50') : ''}
+              `}
+              style={{ minHeight: '62px' }}
             >
-              {day ? (
+              {day && (
                 <>
-                  <div className="flex items-center justify-between">
-                    <span className={`text-sm font-semibold ${dateKey === today ? 'text-[#6B46C1]' : ''}`}>{day}</span>
-                    {daySchedules.length > 0 ? (
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${hasOwnSchedule ? 'bg-emerald-600 text-white' : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-100'}`}>
-                        {daySchedules.length}
-                      </span>
-                    ) : null}
-                  </div>
-                  <div className="mt-2.5 space-y-1.5">
-                    {daySchedules.slice(0, 3).map(item => (
-                      <div
-                        key={item.id}
-                        className={`truncate rounded-md px-2 py-1 text-[11px] ${getShiftChipClasses(item, ownScheduleIds.has(item.id), darkMode)}`}
-                        title={`${item.employeeName} ${item.startTime || ''}-${item.endTime || ''}`}
-                      >
-                        {item.startTime && item.endTime ? `${item.startTime}-${item.endTime} ` : ''}{item.employeeName}
-                      </div>
-                    ))}
-                    {daySchedules.length > 3 ? (
-                      <div className={`text-[11px] font-medium ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                        +{daySchedules.length - 3} további műszak
-                      </div>
-                    ) : null}
-                  </div>
+                  {/* Day number */}
+                  <span className={`flex h-7 w-7 items-center justify-center rounded-full text-sm font-semibold
+                    ${isToday
+                      ? 'bg-violet-600 text-white'
+                      : isSelected
+                        ? darkMode ? 'bg-gray-600 text-white' : 'bg-gray-200 text-gray-900'
+                        : isWeekend
+                          ? darkMode ? 'text-gray-500' : 'text-gray-400'
+                          : darkMode ? 'text-gray-100' : 'text-gray-900'
+                    }
+                  `}>{day}</span>
+                  {/* Shift dots */}
+                  {daySchedules.length > 0 && (
+                    <div className="mt-1 flex gap-0.5 justify-center flex-wrap max-w-[36px]">
+                      {hasOwn && (
+                        <span className="h-1.5 w-1.5 rounded-full bg-violet-500 flex-shrink-0" />
+                      )}
+                      {daySchedules.filter(s => !ownScheduleIds?.has(s.id)).slice(0, 3).map((_, i) => (
+                        <span key={i} className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${darkMode ? 'bg-gray-500' : 'bg-gray-300'}`} />
+                      ))}
+                    </div>
+                  )}
                 </>
-              ) : null}
+              )}
             </button>
           );
         })}
