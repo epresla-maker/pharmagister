@@ -266,6 +266,8 @@ function getDefaultPlanningConfig() {
   return {
     minStaffPerShift: 2,
     minPharmacistsPerShift: 1,
+    maxStaffPerShift: 0,
+    maxPharmacistsPerShift: 0,
     shiftTemplates: [
       { key: 'day', startTime: '08:00', endTime: '16:00', requiredStaff: 2, requiredPharmacists: 1, onCall: false },
       { key: 'evening', startTime: '16:00', endTime: '20:00', requiredStaff: 1, requiredPharmacists: 1, onCall: false },
@@ -316,6 +318,8 @@ function normalizePlanningConfig(config) {
   return {
     minStaffPerShift: Math.max(1, Number(config?.minStaffPerShift || defaults.minStaffPerShift)),
     minPharmacistsPerShift: Math.max(0, Number(config?.minPharmacistsPerShift || defaults.minPharmacistsPerShift)),
+    maxStaffPerShift: Math.max(0, Number(config?.maxStaffPerShift ?? defaults.maxStaffPerShift)),
+    maxPharmacistsPerShift: Math.max(0, Number(config?.maxPharmacistsPerShift ?? defaults.maxPharmacistsPerShift)),
     shiftTemplates: templates.map((item, index) => ({
       key: item.key || `shift-${index + 1}`,
       startTime: item.startTime || '08:00',
@@ -621,6 +625,16 @@ function getErrorAdvice(code) {
       title: 'Telephely-jogosultság hiánya',
       tip: 'A dolgozó nem rendelkezik jogosultsággal erre a telephelyre.',
       suggestion: 'Add hozzá a telephelyet a dolgozó beállításaihoz, vagy jelölj ki erre jogosult kollégát.',
+    },
+    max_staff: {
+      title: 'Túl sok dolgozó a műszakban',
+      tip: 'A beosztott létszám meghaladja az alapkritériumokban beállított maximumot.',
+      suggestion: 'Vegyél ki egy dolgozót a műszakból, vagy emeld a maximum létszámot az alapkritériumokban.',
+    },
+    max_pharmacist: {
+      title: 'Túl sok gyógyszerész a műszakban',
+      tip: 'A beosztott gyógyszerészek száma meghaladja a beállított maximumot.',
+      suggestion: 'Vegyél ki egy gyógyszerészt a műszakból, vagy emeld a maximum gyógyszerész értéket az alapkritériumokban.',
     },
   };
   return map[code] || {
@@ -6285,7 +6299,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           <div className={`rounded-2xl border p-4 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
             <h3 className={`font-bold text-sm uppercase tracking-widest ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Napi létszám követelmények</h3>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Minimum létszám / nap">
+              <Field label="Minimum létszám / műszak">
                 <input
                   type="number" min="1"
                   value={plannerConfigForm.minStaffPerShift}
@@ -6293,7 +6307,15 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   className={`w-full rounded-xl border px-3 py-2.5 text-base ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
                 />
               </Field>
-              <Field label="Min. gyógyszerész / nap">
+              <Field label="Maximum létszám / műszak">
+                <input
+                  type="number" min="0"
+                  value={plannerConfigForm.maxStaffPerShift ?? 0}
+                  onChange={e => setPlannerConfigForm(prev => ({ ...prev, maxStaffPerShift: Number(e.target.value || 0) }))}
+                  className={`w-full rounded-xl border px-3 py-2.5 text-base ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                />
+              </Field>
+              <Field label="Min. gyógyszerész / műszak">
                 <input
                   type="number" min="0"
                   value={plannerConfigForm.minPharmacistsPerShift}
@@ -6301,8 +6323,16 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   className={`w-full rounded-xl border px-3 py-2.5 text-base ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
                 />
               </Field>
+              <Field label="Max. gyógyszerész / műszak">
+                <input
+                  type="number" min="0"
+                  value={plannerConfigForm.maxPharmacistsPerShift ?? 0}
+                  onChange={e => setPlannerConfigForm(prev => ({ ...prev, maxPharmacistsPerShift: Number(e.target.value || 0) }))}
+                  className={`w-full rounded-xl border px-3 py-2.5 text-base ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                />
+              </Field>
             </div>
-            <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Az automatikus terv és az ellenőrzés ennek alapján figyeli a fedettséget.</p>
+            <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Az automatikus terv és az ellenőrzés ennek alapján figyeli a fedettséget. A maximum 0 = nincs korlát.</p>
           </div>
 
           {/* ── Munkaügyi jog ─────────────────────────────────────── */}
