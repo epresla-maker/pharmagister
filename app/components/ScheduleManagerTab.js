@@ -1938,6 +1938,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
   async function loadData() {
     setLoading(true);
+    setSchedules([]);
     setStatusError('');
     try {
       if (isPharmacy) {
