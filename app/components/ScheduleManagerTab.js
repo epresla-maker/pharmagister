@@ -7567,8 +7567,9 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setBettiChatOpen(true)}
-                  className="rounded-lg bg-sky-600 px-3 py-1.5 text-xs font-semibold text-white"
+                  disabled
+                  title="Hamarosan elérhető"
+                  className="rounded-lg bg-gray-400 px-3 py-1.5 text-xs font-semibold text-white cursor-not-allowed opacity-60"
                 >
                   Chat megnyitasa
                 </button>
