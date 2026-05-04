@@ -491,7 +491,11 @@ function MonthCalendar({ year, month, selectedDate, schedules, ownScheduleIds, o
           const isInLastRow = index >= cells.length - 7;
           // Pending swap requests targeting this day's own schedule
           const daySwaps = (filterOwn && pendingSwapRequests && dateKey)
-            ? pendingSwapRequests.filter(r => r.targetScheduleDate === dateKey || r.requesterScheduleDate === dateKey)
+            ? pendingSwapRequests.filter(r => {
+                const rd = r.requesterScheduleDate || r.date;
+                const td = r.targetScheduleDate || r.targetDate;
+                return rd === dateKey || td === dateKey;
+              })
             : [];
 
           return (
@@ -975,10 +979,16 @@ function PharmacyScheduleCalendar({
         requesterName: requesterSchedule.employeeName,
         requesterEmail: user?.email || requesterSchedule.employeeEmail || '',
         requesterScheduleId: requesterSchedule.id,
+        requesterScheduleDate: requesterSchedule.date,
+        requesterFrom: requesterSchedule.from || requesterSchedule.startTime || '',
+        requesterTo: requesterSchedule.to || requesterSchedule.endTime || '',
         targetScheduleId: targetSchedule.id,
         targetUserId: targetSchedule.linkedUserId || null,
         targetName: targetSchedule.employeeName,
         targetEmail: targetSchedule.employeeEmail || '',
+        targetScheduleDate: targetSchedule.date,
+        targetFrom: targetSchedule.from || targetSchedule.startTime || '',
+        targetTo: targetSchedule.to || targetSchedule.endTime || '',
         date: requesterSchedule.date,
         targetDate: targetSchedule.date,
         message: '',
@@ -3591,10 +3601,16 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         requesterName: requesterSchedule.employeeName,
         requesterEmail: user.email || requesterSchedule.employeeEmail || '',
         requesterScheduleId: requesterSchedule.id,
+        requesterScheduleDate: requesterSchedule.date,
+        requesterFrom: requesterSchedule.from || requesterSchedule.startTime || '',
+        requesterTo: requesterSchedule.to || requesterSchedule.endTime || '',
         targetScheduleId: targetSchedule.id,
         targetUserId: targetSchedule.linkedUserId || null,
         targetName: targetSchedule.employeeName,
         targetEmail: targetSchedule.employeeEmail || '',
+        targetScheduleDate: targetSchedule.date,
+        targetFrom: targetSchedule.from || targetSchedule.startTime || '',
+        targetTo: targetSchedule.to || targetSchedule.endTime || '',
         date: requesterSchedule.date,
         targetDate: targetSchedule.date,
         message: swapForm.message.trim(),
@@ -3653,10 +3669,16 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         requesterName: requesterSchedule.employeeName,
         requesterEmail: user.email || requesterSchedule.employeeEmail || '',
         requesterScheduleId: requesterSchedule.id,
+        requesterScheduleDate: requesterSchedule.date,
+        requesterFrom: requesterSchedule.from || requesterSchedule.startTime || '',
+        requesterTo: requesterSchedule.to || requesterSchedule.endTime || '',
         targetScheduleId: targetSchedule.id,
         targetUserId: targetSchedule.linkedUserId || null,
         targetName: targetSchedule.employeeName,
         targetEmail: targetSchedule.employeeEmail || '',
+        targetScheduleDate: targetSchedule.date,
+        targetFrom: targetSchedule.from || targetSchedule.startTime || '',
+        targetTo: targetSchedule.to || targetSchedule.endTime || '',
         date: requesterSchedule.date,
         targetDate: targetSchedule.date,
         message: (message || '').trim(),
@@ -9074,24 +9096,33 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                     </p>
                     {/* Dátum blokk */}
                     <div className={`rounded-lg px-3 py-2 space-y-1 text-xs ${darkMode ? 'bg-gray-700/60' : 'bg-gray-50'}`}>
-                      {item.requesterScheduleDate && (
-                        <div className="flex items-center gap-1.5">
-                          <span className={`font-semibold min-w-[70px] ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>{item.requesterName?.split(' ').pop()}:</span>
-                          <span className={darkMode ? 'text-gray-400' : 'text-gray-500'}>
-                            {item.requesterScheduleDate}{item.requesterFrom && item.requesterTo ? ` ${item.requesterFrom}–${item.requesterTo}` : ''}
-                          </span>
-                        </div>
-                      )}
-                      {/* ívelt nyíl szimbólum */}
-                      <div className="text-center text-base leading-none select-none">⇅</div>
-                      {item.targetScheduleDate && (
-                        <div className="flex items-center gap-1.5">
-                          <span className={`font-semibold min-w-[70px] ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>{item.targetName?.split(' ').pop()}:</span>
-                          <span className={darkMode ? 'text-gray-400' : 'text-gray-500'}>
-                            {item.targetScheduleDate}{item.targetFrom && item.targetTo ? ` ${item.targetFrom}–${item.targetTo}` : ''}
-                          </span>
-                        </div>
-                      )}
+                      {(() => {
+                        const rd = item.requesterScheduleDate || item.date;
+                        const td = item.targetScheduleDate || item.targetDate;
+                        const rf = item.requesterFrom || '';
+                        const rt = item.requesterTo || '';
+                        const tf = item.targetFrom || '';
+                        const tt = item.targetTo || '';
+                        return (<>
+                          {rd && (
+                            <div className="flex items-center gap-1.5">
+                              <span className={`font-semibold min-w-[70px] ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>{item.requesterName?.split(' ').pop()}:</span>
+                              <span className={darkMode ? 'text-gray-400' : 'text-gray-500'}>
+                                {rd}{rf && rt ? ` ${rf}–${rt}` : ''}
+                              </span>
+                            </div>
+                          )}
+                          <div className="text-center text-base leading-none select-none">⇅</div>
+                          {td && (
+                            <div className="flex items-center gap-1.5">
+                              <span className={`font-semibold min-w-[70px] ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>{item.targetName?.split(' ').pop()}:</span>
+                              <span className={darkMode ? 'text-gray-400' : 'text-gray-500'}>
+                                {td}{tf && tt ? ` ${tf}–${tt}` : ''}
+                              </span>
+                            </div>
+                          )}
+                        </>);
+                      })()}
                     </div>
                     {item.message ? (
                       <p className={`text-xs italic ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>„{item.message}"</p>
