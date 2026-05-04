@@ -461,7 +461,7 @@ function getShiftChipClasses(item, isOwn, darkMode) {
     : 'bg-fuchsia-100 text-fuchsia-800 border border-fuchsia-200';
 }
 
-function MonthCalendar({ year, month, selectedDate, schedules, ownScheduleIds, onSelectDate, darkMode, filterOwn }) {
+function MonthCalendar({ year, month, selectedDate, schedules, ownScheduleIds, onSelectDate, darkMode, filterOwn, pendingSwapRequests, onOpenSwaps }) {
   const cells = getCalendarCells(year, month);
   const today = getTodayKey();
   const DOW_SHORT = ['H', 'K', 'Sz', 'Cs', 'P', 'Sz', 'V']; // Mon–Sun
@@ -489,6 +489,10 @@ function MonthCalendar({ year, month, selectedDate, schedules, ownScheduleIds, o
           const isWeekend = colIdx >= 5;
           const isLastInRow = colIdx === 6;
           const isInLastRow = index >= cells.length - 7;
+          // Pending swap requests targeting this day's own schedule
+          const daySwaps = (filterOwn && pendingSwapRequests && dateKey)
+            ? pendingSwapRequests.filter(r => r.targetScheduleDate === dateKey || r.requesterScheduleDate === dateKey)
+            : [];
 
           return (
             <button
@@ -556,6 +560,22 @@ function MonthCalendar({ year, month, selectedDate, schedules, ownScheduleIds, o
                         ))}
                       </div>
                     )
+                  )}
+                  {/* Pending swap badge */}
+                  {filterOwn && daySwaps.length > 0 && (
+                    <div className="w-full px-0.5 mt-0.5">
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); onOpenSwaps && onOpenSwaps(); }}
+                        className="w-full rounded text-[8px] font-bold leading-tight text-center py-[2px] px-0.5 truncate text-white"
+                        style={{ background: 'linear-gradient(135deg, #f59e0b, #ef4444)' }}
+                      >
+                        ⇄ Csere
+                      </button>
+                      <p className="text-center text-[7px] leading-none mt-0.5 truncate" style={{ color: '#f59e0b' }}>
+                        {daySwaps[0].requesterName?.split(' ').pop() || '?'}
+                      </p>
+                    </div>
                   )}
                 </>
               )}
@@ -688,6 +708,7 @@ function PharmacyScheduleCalendar({
   activeMonthSchedules, publishedScheduleCount,
   readOnly, ownScheduleIds,
   config,
+  pendingSwapRequests, onOpenSwaps,
 }) {
   const [selectedDay, setSelectedDay] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -1311,6 +1332,8 @@ function PharmacyScheduleCalendar({
               }}
               darkMode={darkMode}
               filterOwn={ownView}
+              pendingSwapRequests={pendingSwapRequests}
+              onOpenSwaps={onOpenSwaps}
             />
           </div>
         )}
@@ -8886,6 +8909,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   publishedScheduleCount={0}
                   readOnly={true}
                   ownScheduleIds={ownScheduleIds}
+                  pendingSwapRequests={swapRequests.filter(r => r.targetUserId === user?.uid && r.status === 'pending')}
+                  onOpenSwaps={() => setMainTab('swaps')}
                   swapLog={[]}
                   setSwapLog={() => {}}
                   showSwapLog={false}
@@ -9043,46 +9068,57 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             const SwapCard = ({ item, actions }) => (
               <div className={`rounded-xl border p-4 space-y-2 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
                 <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div className="space-y-0.5 flex-1">
+                  <div className="space-y-1 flex-1">
                     <p className={`font-semibold text-sm ${darkMode ? 'text-white' : 'text-gray-900'}`}>
                       {item.requesterName} ↔ {item.targetName}
                     </p>
-                    {item.requesterScheduleDate && (
-                      <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                        {item.requesterName}: {item.requesterScheduleDate} {item.requesterFrom && item.requesterTo ? `${item.requesterFrom}–${item.requesterTo}` : ''}
-                      </p>
-                    )}
-                    {item.targetScheduleDate && (
-                      <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                        {item.targetName}: {item.targetScheduleDate} {item.targetFrom && item.targetTo ? `${item.targetFrom}–${item.targetTo}` : ''}
-                      </p>
-                    )}
+                    {/* Dátum blokk */}
+                    <div className={`rounded-lg px-3 py-2 space-y-1 text-xs ${darkMode ? 'bg-gray-700/60' : 'bg-gray-50'}`}>
+                      {item.requesterScheduleDate && (
+                        <div className="flex items-center gap-1.5">
+                          <span className={`font-semibold min-w-[70px] ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>{item.requesterName?.split(' ').pop()}:</span>
+                          <span className={darkMode ? 'text-gray-400' : 'text-gray-500'}>
+                            {item.requesterScheduleDate}{item.requesterFrom && item.requesterTo ? ` ${item.requesterFrom}–${item.requesterTo}` : ''}
+                          </span>
+                        </div>
+                      )}
+                      {/* ívelt nyíl szimbólum */}
+                      <div className="text-center text-base leading-none select-none">⇅</div>
+                      {item.targetScheduleDate && (
+                        <div className="flex items-center gap-1.5">
+                          <span className={`font-semibold min-w-[70px] ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>{item.targetName?.split(' ').pop()}:</span>
+                          <span className={darkMode ? 'text-gray-400' : 'text-gray-500'}>
+                            {item.targetScheduleDate}{item.targetFrom && item.targetTo ? ` ${item.targetFrom}–${item.targetTo}` : ''}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                     {item.message ? (
-                      <p className={`text-xs italic ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>"{item.message}"</p>
+                      <p className={`text-xs italic ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>„{item.message}"</p>
                     ) : null}
                     <p className={`text-xs font-medium ${statusLabel(item.status).color}`}>{statusLabel(item.status).text}</p>
                   </div>
-                  {actions && (
-                    <div className="flex gap-2 flex-shrink-0">
-                      <button
-                        type="button"
-                        disabled={saving}
-                        onClick={() => handleRespondToSwapRequest(item.id, 'accepted')}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-green-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
-                      >
-                        <CheckCircle2 className="h-4 w-4" />Elfogadom
-                      </button>
-                      <button
-                        type="button"
-                        disabled={saving}
-                        onClick={() => handleRespondToSwapRequest(item.id, 'rejected')}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-rose-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
-                      >
-                        <XCircle className="h-4 w-4" />Elutasítom
-                      </button>
-                    </div>
-                  )}
                 </div>
+                {actions && (
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      type="button"
+                      disabled={saving}
+                      onClick={() => handleRespondToSwapRequest(item.id, 'accepted')}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-green-600 px-3 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+                    >
+                      <CheckCircle2 className="h-4 w-4" />Elfogadom
+                    </button>
+                    <button
+                      type="button"
+                      disabled={saving}
+                      onClick={() => handleRespondToSwapRequest(item.id, 'rejected')}
+                      className={`flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 text-sm font-semibold disabled:opacity-60 ${darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'}`}
+                    >
+                      <XCircle className="h-4 w-4" />Most inkább nem
+                    </button>
+                  </div>
+                )}
               </div>
             );
 
