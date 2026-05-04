@@ -819,8 +819,19 @@ function isDirectSchedulePlanningPrompt(text) {
     'tervezz',
     'tervezzuk',
     'tervezzuk meg',
+    'hozzuk letre',
+    'hozd letre',
+    'letrehoz',
+    'keszits',
+    'keszitsuk',
+    'keszitsd',
+    'generalj',
+    'generaljunk',
     'irjuk meg',
     'csinaljuk meg',
+    'csinaljunk',
+    'automata',
+    'automatan',
     'ujratervez',
     'ujratervezz',
     'teljes',
@@ -2753,8 +2764,27 @@ export async function POST(request) {
 
         if (llmTextFallback.usedLLM && llmTextFallback.reply) {
           const inferActionFromMessage = () => {
+            const hasScheduleWord = msgNorm.includes('beoszt') || msgNorm.includes('muszak');
+            const hasPlanningSignal = (
+              msgNorm.includes('tervez')
+              || msgNorm.includes('hozzuk letre')
+              || msgNorm.includes('hozd letre')
+              || msgNorm.includes('letrehoz')
+              || msgNorm.includes('keszit')
+              || msgNorm.includes('general')
+              || msgNorm.includes('automata')
+              || msgNorm.includes('automatan')
+              || msgNorm.includes('irjuk meg')
+              || msgNorm.includes('csinaljuk meg')
+            );
+            const hasYearToken = /\b20\d{2}\b/.test(msgNorm);
+            const hasMonthToken = Boolean(detectMonthReference(message));
+
             if (isReplacementDemandMessage) return 'find_replacement';
             if (chatRole === 'pharmacy' && isDirectSchedulePlanningPrompt(message)) return 'write_schedule_plan';
+            if (chatRole === 'pharmacy' && hasScheduleWord && (hasPlanningSignal || hasMonthToken || hasYearToken)) {
+              return 'write_schedule_plan';
+            }
             if (msgNorm.includes('ujratervez') || msgNorm.includes('ujratervezes')) return 'replan_all';
             if (msgNorm.includes('tulora')) return 'show_overtime';
             if (msgNorm.includes('dolgozo') || msgNorm.includes('alkalmazott') || msgNorm.includes('csapat')) {
@@ -2765,7 +2795,7 @@ export async function POST(request) {
               return chatRole === 'pharmacy' ? 'show_vacation_requests' : 'show_my_vacations';
             }
             if (msgNorm.includes('beoszt') || msgNorm.includes('muszak')) {
-              return chatRole === 'pharmacy' ? 'missing_drafts' : 'show_my_schedule';
+              return chatRole === 'pharmacy' ? 'write_schedule_plan' : 'show_my_schedule';
             }
             return 'clarify';
           };
