@@ -669,6 +669,7 @@ function PharmacyScheduleCalendar({
   const [showSummary, setShowSummary] = useState(false);
   const [summaryProfiles, setSummaryProfiles] = useState([]);
   const [summaryProfilesLoading, setSummaryProfilesLoading] = useState(false);
+  const [swapPickerRowIdx, setSwapPickerRowIdx] = useState(null);
 
   // ── Load employee profiles when summary modal opens ───────────────────
   useEffect(() => {
@@ -817,6 +818,7 @@ function PharmacyScheduleCalendar({
     try {
       const dateKey = formatDateKey(year, month, selectedDay);
       await onSaveDaySchedules(dateKey, employeeRows);
+      setSwapPickerRowIdx(null);
       setShowModal(false);
     } finally {
       setModalSaving(false);
@@ -1445,6 +1447,22 @@ function PharmacyScheduleCalendar({
                       </button>
                     )}
 
+                    {/* Csere gomb – csak aktív (checked, nem kiadott) sorokon */}
+                    {row.checked && !isOffShift(row.shiftType) && !row.isPublished && (
+                      <button
+                        type="button"
+                        onClick={() => setSwapPickerRowIdx(swapPickerRowIdx === idx ? null : idx)}
+                        className={`rounded-lg px-2 py-1 text-[10px] font-semibold border transition-colors ${
+                          swapPickerRowIdx === idx
+                            ? (darkMode ? 'border-rose-500 bg-rose-700/50 text-rose-100' : 'border-rose-400 bg-rose-50 text-rose-700')
+                            : (darkMode ? 'border-indigo-600 bg-indigo-900/40 text-indigo-200' : 'border-indigo-300 bg-indigo-50 text-indigo-700')
+                        }`}
+                        title="Csere: helyettesítő kiválasztása"
+                      >
+                        ⇄ Csere
+                      </button>
+                    )}
+
                     {/* Shift type selector */}
                     <div className="flex gap-1">
                       {SHIFT_TYPES.map(t => (
@@ -1507,6 +1525,93 @@ function PharmacyScheduleCalendar({
                         </div>
                       </div>
                     )}
+
+                    {/* ── Csere panel ─────────────────────────────────────── */}
+                    {swapPickerRowIdx === idx && (() => {
+                      // Employees that are free (not checked or off) and not published — sorted: same role first, then alpha
+                      const isPharmRow = (row.role || '').toLowerCase().includes('pharmacist') || (row.role || '').toLowerCase().includes('gyógyszerész') || (row.role || '').toLowerCase().includes('gyogyszeresz');
+                      const candidates = employeeRows
+                        .filter(r => r.employeeId !== row.employeeId && !r.isPublished && (!r.checked || isOffShift(r.shiftType)))
+                        .sort((a, b) => {
+                          const aP = (a.role || '').toLowerCase().includes('pharmacist') || (a.role || '').toLowerCase().includes('gyógyszerész') || (a.role || '').toLowerCase().includes('gyogyszeresz');
+                          const bP = (b.role || '').toLowerCase().includes('pharmacist') || (b.role || '').toLowerCase().includes('gyógyszerész') || (b.role || '').toLowerCase().includes('gyogyszeresz');
+                          // If row is pharmacist, pharmacists first; otherwise assistants first
+                          if (isPharmRow) {
+                            if (aP && !bP) return -1;
+                            if (!aP && bP) return 1;
+                          } else {
+                            if (!aP && bP) return -1;
+                            if (aP && !bP) return 1;
+                          }
+                          return a.name.localeCompare(b.name, 'hu');
+                        });
+                      return (
+                        <div className={`w-full mt-2 rounded-xl border overflow-hidden ${darkMode ? 'border-indigo-700/60 bg-indigo-900/20' : 'border-indigo-200 bg-indigo-50'}`}>
+                          <div className={`flex items-center gap-2 px-3 py-2 border-b ${darkMode ? 'border-indigo-700/40' : 'border-indigo-200'}`}>
+                            <span className="text-sm">⇄</span>
+                            <span className={`text-xs font-bold ${darkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>
+                              {row.name} helyett ki jöhet? ({row.from}–{row.to})
+                            </span>
+                          </div>
+                          {candidates.length === 0 ? (
+                            <p className={`text-xs px-3 py-2 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Nincs szabad dolgozó</p>
+                          ) : (
+                            <div className="flex flex-col divide-y">
+                              {(() => {
+                                // group: same role first label
+                                let lastGroup = null;
+                                return candidates.map(c => {
+                                  const cP = (c.role || '').toLowerCase().includes('pharmacist') || (c.role || '').toLowerCase().includes('gyógyszerész') || (c.role || '').toLowerCase().includes('gyogyszeresz');
+                                  const groupLabel = cP ? 'Gyógyszerész' : 'Asszisztens';
+                                  const showHeader = groupLabel !== lastGroup;
+                                  lastGroup = groupLabel;
+                                  return (
+                                    <div key={c.employeeId}>
+                                      {showHeader && (
+                                        <p className={`px-3 pt-2 pb-0.5 text-[10px] font-black uppercase tracking-widest ${cP ? (darkMode ? 'text-violet-400' : 'text-violet-600') : (darkMode ? 'text-emerald-400' : 'text-emerald-600')}`}>
+                                          {groupLabel}
+                                        </p>
+                                      )}
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          // Uncheck the current row, assign the candidate with same times
+                                          const newRows = employeeRows.map((r, i) => {
+                                            if (i === idx) return { ...r, checked: false, shiftType: 'N' };
+                                            if (r.employeeId === c.employeeId) return { ...r, checked: true, shiftType: row.shiftType, from: row.from, to: row.to };
+                                            return r;
+                                          });
+                                          // Use setEmployeeRows (via a helper we need to call updateRow for each change)
+                                          // We'll setEmployeeRows directly since we need atomic update
+                                          setEmployeeRows(newRows);
+                                          setSwapPickerRowIdx(null);
+                                        }}
+                                        className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-left transition-colors ${
+                                          darkMode
+                                            ? 'hover:bg-indigo-800/40 text-gray-200'
+                                            : 'hover:bg-indigo-100 text-gray-800'
+                                        }`}
+                                      >
+                                        <span className={`flex-shrink-0 inline-flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-black ${cP ? 'bg-violet-500 text-white' : 'bg-emerald-500 text-white'}`}>
+                                          {c.name.charAt(0)}
+                                        </span>
+                                        <span className="flex-1">{c.name}</span>
+                                        {c.shiftType === 'Sz' && (
+                                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-orange-400 text-white`}>Sz</span>
+                                        )}
+                                        <span className={`text-[10px] font-semibold ml-auto ${darkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>
+                                          {row.from}–{row.to} ✓
+                                        </span>
+                                      </button>
+                                    </div>
+                                  );
+                                });
+                              })()}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 );
               })}
