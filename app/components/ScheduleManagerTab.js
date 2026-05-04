@@ -458,7 +458,7 @@ function getShiftChipClasses(item, isOwn, darkMode) {
     : 'bg-fuchsia-100 text-fuchsia-800 border border-fuchsia-200';
 }
 
-function MonthCalendar({ year, month, selectedDate, schedules, ownScheduleIds, onSelectDate, darkMode }) {
+function MonthCalendar({ year, month, selectedDate, schedules, ownScheduleIds, onSelectDate, darkMode, filterOwn }) {
   const cells = getCalendarCells(year, month);
   const today = getTodayKey();
   const DOW_SHORT = ['H', 'K', 'Sz', 'Cs', 'P', 'Sz', 'V']; // Mon–Sun
@@ -476,7 +476,7 @@ function MonthCalendar({ year, month, selectedDate, schedules, ownScheduleIds, o
         {cells.map((day, index) => {
           const dateKey = day ? formatDateKey(year, month, day) : null;
           const allDaySchedules = dateKey ? schedules.filter(item => item.date === dateKey && item.status !== 'deleted') : [];
-          const daySchedules = (readOnly && ownView && ownScheduleIds)
+          const daySchedules = (filterOwn && ownScheduleIds)
             ? allDaySchedules.filter(item => ownScheduleIds.has(item.id))
             : allDaySchedules;
           const hasOwn = daySchedules.some(item => ownScheduleIds?.has(item.id));
@@ -1280,6 +1280,7 @@ function PharmacyScheduleCalendar({
                 openDay(day);
               }}
               darkMode={darkMode}
+              filterOwn={ownView}
             />
           </div>
         )}
