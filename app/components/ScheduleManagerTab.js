@@ -6310,9 +6310,10 @@ export default function ScheduleManagerTab({ pharmaRole }) {
               <Field label="Maximum létszám / műszak">
                 <input
                   type="number" min="0"
-                  value={plannerConfigForm.maxStaffPerShift ?? 0}
+                  value={(plannerConfigForm.maxStaffPerShift ?? 0) === 0 ? '' : plannerConfigForm.maxStaffPerShift}
+                  placeholder="nincs maximum"
                   onChange={e => setPlannerConfigForm(prev => ({ ...prev, maxStaffPerShift: Number(e.target.value || 0) }))}
-                  className={`w-full rounded-xl border px-3 py-2.5 text-base ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                  className={`w-full rounded-xl border px-3 py-2.5 text-base ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-500' : 'bg-white border-gray-300 placeholder-gray-400'}`}
                 />
               </Field>
               <Field label="Min. gyógyszerész / műszak">
@@ -6326,13 +6327,14 @@ export default function ScheduleManagerTab({ pharmaRole }) {
               <Field label="Max. gyógyszerész / műszak">
                 <input
                   type="number" min="0"
-                  value={plannerConfigForm.maxPharmacistsPerShift ?? 0}
+                  value={(plannerConfigForm.maxPharmacistsPerShift ?? 0) === 0 ? '' : plannerConfigForm.maxPharmacistsPerShift}
+                  placeholder="nincs maximum"
                   onChange={e => setPlannerConfigForm(prev => ({ ...prev, maxPharmacistsPerShift: Number(e.target.value || 0) }))}
-                  className={`w-full rounded-xl border px-3 py-2.5 text-base ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                  className={`w-full rounded-xl border px-3 py-2.5 text-base ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-500' : 'bg-white border-gray-300 placeholder-gray-400'}`}
                 />
               </Field>
             </div>
-            <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Az automatikus terv és az ellenőrzés ennek alapján figyeli a fedettséget. A maximum 0 = nincs korlát.</p>
+            <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Az automatikus terv és az ellenőrzés ennek alapján figyeli a fedettséget. Ha a maximum mezőt üresen hagyod, nincs felső korlát.</p>
           </div>
 
           {/* ── Munkaügyi jog ─────────────────────────────────────── */}
