@@ -654,6 +654,7 @@ function PharmacyScheduleCalendar({
   onSaveDaySchedules, saving,
   // action handlers passed through for the overlay toolbar
   onCopyPrev, onExport, onPublish, onAutoFix, onDeleteMonth, onPublishChanges,
+  swapLog, setSwapLog, showSwapLog, setShowSwapLog,
   activeMonthSchedules, publishedScheduleCount,
   readOnly, ownScheduleIds,
   config,
@@ -673,8 +674,6 @@ function PharmacyScheduleCalendar({
   const [swapPickerRowIdx, setSwapPickerRowIdx] = useState(null);
   const [swapTarget, setSwapTarget] = useState(null); // { scheduleId, date, employeeId, employeeName, from, to }
   const [swapSaving, setSwapSaving] = useState(false);
-  const [swapLog, setSwapLog] = useState([]); // [{nameA,dateA,fromA,toA,nameB,dateB,fromB,toB}]
-  const [showSwapLog, setShowSwapLog] = useState(false);
   const [publishChangesLoading, setPublishChangesLoading] = useState(false);
   const [deleteMonthConfirm, setDeleteMonthConfirm] = useState(0); // 0=off 1=first 2=second
 
@@ -2436,6 +2435,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
   // Full-screen calendar overlay (pharmacy schedule)
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [swapLog, setSwapLog] = useState([]); // lifted from PharmacyScheduleCalendar
+  const [showSwapLog, setShowSwapLog] = useState(false);
   // Full-screen preference calendar overlay (employee draft)
   const [preferenceCalendarOpen, setPreferenceCalendarOpen] = useState(false);
   const [preferenceInitialDay, setPreferenceInitialDay] = useState(null);
@@ -7930,6 +7931,10 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   onAutoFix={handleAutoFixSchedules}
                   onDeleteMonth={handleDeleteMonth}
                   onPublishChanges={handlePublishSwapChanges}
+                  swapLog={swapLog}
+                  setSwapLog={setSwapLog}
+                  showSwapLog={showSwapLog}
+                  setShowSwapLog={setShowSwapLog}
                   activeMonthSchedules={activeMonthSchedules}
                   publishedScheduleCount={publishedScheduleCount}
                   config={normalizePlanningConfig(plannerConfigForm)}
