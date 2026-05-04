@@ -6725,7 +6725,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                       </div>
                     </div>
 
-                    {/* Kritériumok gomb */
+                    {/* Kritériumok gomb */}
                     <div className={`px-4 pb-3 border-t pt-3 ${darkMode ? 'border-violet-800' : 'border-violet-200'}`}>
                       <button
                         type="button"
