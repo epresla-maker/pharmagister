@@ -3594,9 +3594,6 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       }
 
       setPlannerResult(result);
-      const errorCount = (result.conflicts || []).filter(item => item.severity === 'error').length;
-      const warningCount = (result.conflicts || []).filter(item => item.severity === 'warning').length;
-      setStatusMessage(`Automatikus tervezés kész: ${result.proposedShifts?.length || 0} javasolt műszak, ${errorCount} piros, ${warningCount} narancs jelzés.`);
       return { success: true, result };
     } catch (error) {
       console.error('Auto planner error:', error);
