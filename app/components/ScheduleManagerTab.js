@@ -1004,62 +1004,66 @@ function PharmacyScheduleCalendar({
       )}
 
       {/* Overlay header */}
-      <div className={`flex-shrink-0 flex items-center gap-2 px-3 border-b ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-[#E5E7EB] bg-gradient-to-r from-violet-600 to-indigo-600'}`} style={{height:'56px'}}>
-        {/* Close */}
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold text-xl leading-none"
-        >
-          ×
-        </button>
-        {/* Summary info */}
-        <button
-          type="button"
-          onClick={() => setShowSummary(true)}
-          title="Havi összefoglaló"
-          className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 text-white"
-        >
-          <Info className="h-4 w-4" />
-        </button>
-        {/* Prev month */}
-        <button
-          type="button"
-          onClick={() => onChangeMonth('prev')}
-          className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold text-xl leading-none"
-        >
-          ‹
-        </button>
-        {/* Title */}
-        <div className="flex-1 text-center">
-          <span className="text-white font-bold text-base tracking-tight">{monthLabel} {year}</span>
-          <span className={`ml-2 text-xs font-medium text-white/70`}>{activeMonthSchedules?.length ?? 0} műszak</span>
+      <div className={`flex-shrink-0 flex flex-col border-b ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-[#E5E7EB] bg-gradient-to-r from-violet-600 to-indigo-600'}`}>
+        {/* Row 1: action buttons */}
+        <div className="flex items-center gap-2 px-3" style={{height:'48px'}}>
+          {/* Close */}
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold text-xl leading-none"
+          >
+            ×
+          </button>
+          {/* Summary info */}
+          <button
+            type="button"
+            onClick={() => setShowSummary(true)}
+            title="Havi összefoglaló"
+            className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 text-white"
+          >
+            <Info className="h-4 w-4" />
+          </button>
+          <div className="flex-1" />
+          {/* Actions — hidden in readOnly mode */}
+          {!readOnly && (
+            <>
+              <button type="button" onClick={onCopyPrev} disabled={saving} title="Előző hónap másolása" className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 text-white disabled:opacity-50">
+                <Copy className="h-4 w-4" />
+              </button>
+              <button type="button" onClick={onExport} title="CSV export" className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 text-white">
+                <Download className="h-4 w-4" />
+              </button>
+              <button type="button" onClick={handlePublishClick} disabled={saving} title="Publikálás" className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 text-white disabled:opacity-50">
+                <Send className="h-4 w-4" />
+              </button>
+              <button type="button" onClick={() => setDeleteMonthConfirm(1)} disabled={saving} title="Havi beosztás törlése" className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-rose-500/70 hover:bg-rose-500/90 text-white disabled:opacity-50">
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </>
+          )}
         </div>
-        {/* Next month */}
-        <button
-          type="button"
-          onClick={() => onChangeMonth('next')}
-          className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold text-xl leading-none"
-        >
-          ›
-        </button>
-        {/* Actions — hidden in readOnly mode */}
-        {!readOnly && (
-          <>
-            <button type="button" onClick={onCopyPrev} disabled={saving} title="Előző hónap másolása" className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 text-white disabled:opacity-50">
-              <Copy className="h-4 w-4" />
-            </button>
-            <button type="button" onClick={onExport} title="CSV export" className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 text-white">
-              <Download className="h-4 w-4" />
-            </button>
-            <button type="button" onClick={handlePublishClick} disabled={saving} title="Publikálás" className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 text-white disabled:opacity-50">
-              <Send className="h-4 w-4" />
-            </button>
-            <button type="button" onClick={() => setDeleteMonthConfirm(1)} disabled={saving} title="Havi beosztás törlése" className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-rose-500/70 hover:bg-rose-500/90 text-white disabled:opacity-50">
-              <Trash2 className="h-4 w-4" />
-            </button>
-          </>
-        )}
+        {/* Row 2: month/year navigation */}
+        <div className="flex items-center justify-center gap-3 px-3 pb-2">
+          <button
+            type="button"
+            onClick={() => onChangeMonth('prev')}
+            className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold text-xl leading-none"
+          >
+            ‹
+          </button>
+          <div className="text-center">
+            <span className="text-white font-bold text-lg tracking-tight">{monthLabel} {year}</span>
+            <span className="ml-2 text-xs font-medium text-white/70">{activeMonthSchedules?.length ?? 0} műszak</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => onChangeMonth('next')}
+            className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold text-xl leading-none"
+          >
+            ›
+          </button>
+        </div>
       </div>
       {/* Publish status bar */}
       {!readOnly && (() => {
