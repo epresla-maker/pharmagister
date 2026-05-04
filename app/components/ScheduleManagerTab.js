@@ -565,21 +565,36 @@ function MonthCalendar({ year, month, selectedDate, schedules, ownScheduleIds, o
                       </div>
                     )
                   )}
-                  {/* Pending swap badge */}
+                  {/* Pending swap badge – "drawn on" overlay */}
                   {filterOwn && daySwaps.length > 0 && (
-                    <div className="w-full px-0.5 mt-0.5">
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); onOpenSwaps && onOpenSwaps(); }}
-                        className="w-full rounded text-[8px] font-bold leading-tight text-center py-[2px] px-0.5 truncate text-white"
-                        style={{ background: 'linear-gradient(135deg, #f59e0b, #ef4444)' }}
-                      >
-                        ⇄ Csere
-                      </button>
-                      <p className="text-center text-[7px] leading-none mt-0.5 truncate" style={{ color: '#f59e0b' }}>
-                        {daySwaps[0].requesterName?.split(' ').pop() || '?'}
-                      </p>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); onOpenSwaps && onOpenSwaps(); }}
+                      className="absolute inset-x-0 bottom-0 z-10 flex flex-col items-center justify-center"
+                      style={{ top: '28px', background: 'transparent' }}
+                    >
+                      <div style={{ transform: 'rotate(-6deg)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1px' }}>
+                        <svg width="26" height="14" viewBox="0 0 26 14" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ overflow: 'visible' }}>
+                          {/* white outline for contrast over colored shift blocks */}
+                          <path d="M3 11 C6 3 10 2 13 6 C16 10 20 9 23 3" stroke="white" strokeWidth="4" strokeLinecap="round" fill="none" strokeOpacity="0.7"/>
+                          <path d="M20 1 L23 3 L21 6" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none" strokeOpacity="0.7"/>
+                          <path d="M6 13 L3 11 L5 8" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none" strokeOpacity="0.7"/>
+                          {/* main orange arrow */}
+                          <path d="M3 11 C6 3 10 2 13 6 C16 10 20 9 23 3" stroke="#f97316" strokeWidth="2" strokeLinecap="round" fill="none"/>
+                          <path d="M20 1 L23 3 L21 6" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                          <path d="M6 13 L3 11 L5 8" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                        </svg>
+                        <span style={{
+                          fontSize: '7px',
+                          fontWeight: 900,
+                          color: '#f97316',
+                          letterSpacing: '0.08em',
+                          textTransform: 'uppercase',
+                          textShadow: '0 0 4px rgba(255,255,255,0.95), 0 0 8px rgba(255,255,255,0.8)',
+                          lineHeight: 1,
+                        }}>Csere</span>
+                      </div>
+                    </button>
                   )}
                 </>
               )}
