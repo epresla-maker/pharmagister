@@ -6725,60 +6725,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                       </div>
                     </div>
 
-                    {/* ── Tervezet státusz fülek ── */}
-                    <div className={`px-4 pb-3 ${darkMode ? 'border-violet-800' : 'border-violet-200'}`}>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setDraftStatusTab('planned')}
-                          className={`rounded-xl px-3 py-2 text-sm font-bold border transition-colors ${
-                            draftStatusTab === 'planned'
-                              ? (darkMode ? 'bg-amber-900/60 border-amber-700 text-amber-200' : 'bg-amber-100 border-amber-300 text-amber-800')
-                              : (darkMode ? 'bg-amber-900/20 border-amber-800 text-amber-300' : 'bg-white border-amber-200 text-amber-700')
-                          }`}
-                        >
-                          Tervezett ({currentMonthDraftPublishSummary.plannedCount})
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setDraftStatusTab('published')}
-                          className={`rounded-xl px-3 py-2 text-sm font-bold border transition-colors ${
-                            draftStatusTab === 'published'
-                              ? (darkMode ? 'bg-emerald-900/60 border-emerald-700 text-emerald-200' : 'bg-emerald-100 border-emerald-300 text-emerald-800')
-                              : (darkMode ? 'bg-emerald-900/20 border-emerald-800 text-emerald-300' : 'bg-white border-emerald-200 text-emerald-700')
-                          }`}
-                        >
-                          Publikált ({currentMonthDraftPublishSummary.publishedCount})
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setDraftStatusTab('none')}
-                          className={`rounded-xl px-3 py-2 text-sm font-bold border transition-colors ${
-                            draftStatusTab === 'none'
-                              ? (darkMode ? 'bg-rose-900/60 border-rose-700 text-rose-200' : 'bg-rose-100 border-rose-300 text-rose-800')
-                              : (darkMode ? 'bg-rose-900/20 border-rose-800 text-rose-300' : 'bg-white border-rose-200 text-rose-700')
-                          }`}
-                        >
-                          Nincs tervezet ({currentMonthDraftPublishSummary.noDraftCount})
-                        </button>
-                      </div>
-
-                      <div className={`mt-2 rounded-xl px-3 py-2 text-xs ${darkMode ? 'bg-gray-900/40 text-gray-300' : 'bg-white/70 text-gray-700'}`}>
-                        {(() => {
-                          const selected = draftStatusTab === 'planned'
-                            ? currentMonthDraftPublishSummary.plannedEmployees
-                            : draftStatusTab === 'published'
-                              ? currentMonthDraftPublishSummary.publishedEmployees
-                              : currentMonthDraftPublishSummary.noDraftEmployees;
-                          const names = selected.slice(0, 6).map((item) => item.name).filter(Boolean).join(', ');
-                          if (!names) return 'Nincs dolgozó ebben a státuszban.';
-                          const more = selected.length > 6 ? ` +${selected.length - 6} fo` : '';
-                          return `${names}${more}`;
-                        })()}
-                      </div>
-                    </div>
-
-                    {/* Kritériumok gomb */}
+                    {/* Kritériumok gomb */
                     <div className={`px-4 pb-3 border-t pt-3 ${darkMode ? 'border-violet-800' : 'border-violet-200'}`}>
                       <button
                         type="button"
@@ -6845,6 +6792,64 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                     {hints.map((hint, i) => (
                       <div key={i} className={`rounded-xl px-4 py-2.5 text-sm ${darkMode ? 'bg-blue-900/30 text-blue-300' : 'bg-blue-50 text-blue-700'}`}>{hint}</div>
                     ))}
+                  </div>
+                );
+              })()}
+
+              {/* ── Hónap státusz összesítő ──────────────────────────── */}
+              {(() => {
+                const allMonths = [...availableYears, ...pastYears].flatMap(y => {
+                  const startMonth = y === thisYear ? thisMonth : 1;
+                  return Array.from({ length: 13 - startMonth }, (_, i) => ({ y, m: startMonth + i }));
+                });
+                const publishedMonths = allMonths.filter(({ y, m }) =>
+                  schedules.some(s => s.status !== 'deleted' && s.year === y && s.month === m && s.publishedAt)
+                );
+                const plannedMonths = allMonths.filter(({ y, m }) =>
+                  schedules.some(s => s.status !== 'deleted' && s.year === y && s.month === m) &&
+                  !schedules.some(s => s.status !== 'deleted' && s.year === y && s.month === m && s.publishedAt)
+                );
+                const emptyMonths = allMonths.filter(({ y, m }) =>
+                  !schedules.some(s => s.status !== 'deleted' && s.year === y && s.month === m)
+                );
+                return (
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setDraftStatusTab(draftStatusTab === 'planned' ? null : 'planned')}
+                      className={`rounded-xl px-3 py-2.5 text-center border transition-colors ${
+                        draftStatusTab === 'planned'
+                          ? (darkMode ? 'bg-amber-900/60 border-amber-700' : 'bg-amber-100 border-amber-300')
+                          : (darkMode ? 'bg-amber-900/20 border-amber-800' : 'bg-white border-amber-200')
+                      }`}
+                    >
+                      <div className={`text-lg font-black ${darkMode ? 'text-amber-300' : 'text-amber-700'}`}>{plannedMonths.length}</div>
+                      <div className={`text-[11px] font-semibold ${darkMode ? 'text-amber-400' : 'text-amber-600'}`}>Tervezett</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDraftStatusTab(draftStatusTab === 'published' ? null : 'published')}
+                      className={`rounded-xl px-3 py-2.5 text-center border transition-colors ${
+                        draftStatusTab === 'published'
+                          ? (darkMode ? 'bg-emerald-900/60 border-emerald-700' : 'bg-emerald-100 border-emerald-300')
+                          : (darkMode ? 'bg-emerald-900/20 border-emerald-800' : 'bg-white border-emerald-200')
+                      }`}
+                    >
+                      <div className={`text-lg font-black ${darkMode ? 'text-emerald-300' : 'text-emerald-700'}`}>{publishedMonths.length}</div>
+                      <div className={`text-[11px] font-semibold ${darkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>Publikált</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDraftStatusTab(draftStatusTab === 'none' ? null : 'none')}
+                      className={`rounded-xl px-3 py-2.5 text-center border transition-colors ${
+                        draftStatusTab === 'none'
+                          ? (darkMode ? 'bg-rose-900/60 border-rose-700' : 'bg-rose-100 border-rose-300')
+                          : (darkMode ? 'bg-rose-900/20 border-rose-800' : 'bg-white border-rose-200')
+                      }`}
+                    >
+                      <div className={`text-lg font-black ${darkMode ? 'text-rose-300' : 'text-rose-700'}`}>{emptyMonths.length}</div>
+                      <div className={`text-[11px] font-semibold ${darkMode ? 'text-rose-400' : 'text-rose-600'}`}>Üres</div>
+                    </button>
                   </div>
                 );
               })()}
