@@ -53,6 +53,7 @@ const EMPLOYEE_UNKNOWN_SUGGESTIONS = [
 ];
 
 const LOW_CONFIDENCE_THRESHOLD = 0.82;
+const GEMINI_FULL_FIRST_MODE = String(process.env.BETTI_GEMINI_FULL_FIRST_MODE || 'true').toLowerCase() !== 'false';
 const TEMP_MEMORY_TTL_DAYS = 21;
 const MAX_TEMP_MEMORY_ITEMS = 120;
 
@@ -2738,7 +2739,7 @@ export async function POST(request) {
       });
 
       if (routerResult.error) {
-        console.warn('[Betti LLM Router] Fallback to rule pipeline:', routerResult.error);
+        console.warn('[Betti LLM Router] Router failed, trying Gemini text fallback:', routerResult.error);
         const msgNorm = String(message || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         const isReplacementDemandMessage = (
           msgNorm.includes('helyettesit')
@@ -2762,7 +2763,19 @@ export async function POST(request) {
           stats: context.stats || null,
         });
 
-        if (llmTextFallback.usedLLM && llmTextFallback.reply) {
+        if (GEMINI_FULL_FIRST_MODE) {
+          action = 'clarify';
+          finalReply = llmTextFallback.usedLLM && llmTextFallback.reply
+            ? llmTextFallback.reply
+            : (chatRole === 'pharmacy'
+              ? 'Most nem tudtam biztosan ertelmezni a keresedet. Ird meg roviden: melyik honapra tervezzuk a beosztast?'
+              : 'Most nem tudtam biztosan ertelmezni a keresedet. Ird meg roviden: melyik honapra szeretned a beosztast?');
+          pipelinePayload = { action, entities: {}, suggestedAction: action };
+          quickActions = getSuggestionPool(chatRole).slice(0, 3);
+          parsed = { intent: 'clarify', confidence: llmTextFallback.usedLLM ? 0.75 : 0.6, entities: {} };
+          usedLLM = Boolean(llmTextFallback.usedLLM);
+          responseRoute = llmTextFallback.usedLLM ? 'LLM_TEXT_CLARIFY_FALLBACK' : 'LLM_STRICT_CLARIFY';
+        } else if (llmTextFallback.usedLLM && llmTextFallback.reply) {
           const inferActionFromMessage = () => {
             const hasScheduleWord = msgNorm.includes('beoszt') || msgNorm.includes('muszak');
             const hasPlanningSignal = (
@@ -2896,14 +2909,14 @@ export async function POST(request) {
           || msgNorm.includes('mutasd')
         );
 
-        if (action === 'clarify' && isReplacementDemandMessage) {
+        if (!GEMINI_FULL_FIRST_MODE && action === 'clarify' && isReplacementDemandMessage) {
           action = 'find_replacement';
           finalReply = chatRole === 'pharmacy'
             ? 'Rendben, mutatom a helyettesitesi igenyekkel kapcsolatos lehetosegeket es a kovetkezo lepest.'
             : 'Rendben, mutatom a nyitott helyettesitesi igenyeket es segitek a jelentkezesben.';
         }
 
-        if (chatRole === 'pharmacy' && isDirectSchedulePlanningPrompt(message)) {
+        if (!GEMINI_FULL_FIRST_MODE && chatRole === 'pharmacy' && isDirectSchedulePlanningPrompt(message)) {
           action = 'write_schedule_plan';
           const detectedMonth = detectMonthReference(message);
           const monthLabel = detectedMonth?.label
