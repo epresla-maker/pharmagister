@@ -1775,33 +1775,27 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       };
     }
 
-    const currentMonthPreferences = schedulePreferences.filter(
+    // Aktuális hónap tényleges beosztásai (pharmacySchedules)
+    const currentMonthSchedules = schedules.filter(
       (item) => item.status !== 'deleted' && item.year === thisYear && item.month === thisMonth
     );
 
-    const publishedOwnerKeys = new Set(
-      currentMonthPreferences
-        .filter((item) => Boolean(item.publishedAt))
-        .map((item) => getPreferenceOwnerKey(item))
-        .filter(Boolean)
+    // Mely dolgozóknak van publikált beosztásuk (publishedAt)
+    const publishedEmpIds = new Set(
+      currentMonthSchedules.filter((item) => Boolean(item.publishedAt)).map((item) => item.employeeId).filter(Boolean)
+    );
+    // Mely dolgozóknak van bármilyen beosztásuk (akár még nem publikált)
+    const anyScheduleEmpIds = new Set(
+      currentMonthSchedules.map((item) => item.employeeId).filter(Boolean)
     );
 
-    // Csak azok a dolgozók akiknek VAN draft preferenciájuk az aktuális hónapra,
-    // de egyik sincs publikálva (publishedAt hiányzik)
-    const draftOwnerKeys = new Set(
-      currentMonthPreferences
-        .map((item) => getPreferenceOwnerKey(item))
-        .filter(Boolean)
-    );
-
-    const eligibleEmployees = activeEmployees.filter((item) => Boolean(getPreferenceOwnerKey(item)));
-    const draftEmployees = eligibleEmployees.filter((item) => draftOwnerKeys.has(getPreferenceOwnerKey(item)));
-    const publishedEmployees = draftEmployees.filter((item) => publishedOwnerKeys.has(getPreferenceOwnerKey(item)));
-    const plannedEmployees = draftEmployees.filter(
-      (item) => !publishedOwnerKeys.has(getPreferenceOwnerKey(item))
+    const eligibleEmployees = activeEmployees;
+    const publishedEmployees = eligibleEmployees.filter((item) => publishedEmpIds.has(item.id));
+    const plannedEmployees = eligibleEmployees.filter(
+      (item) => anyScheduleEmpIds.has(item.id) && !publishedEmpIds.has(item.id)
     );
     const noDraftEmployees = eligibleEmployees.filter(
-      (item) => !draftOwnerKeys.has(getPreferenceOwnerKey(item))
+      (item) => !anyScheduleEmpIds.has(item.id)
     );
 
     return {
@@ -1815,7 +1809,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       noDraftEmployees,
       noDraftCount: noDraftEmployees.length,
     };
-  }, [activeEmployees, isPharmacy, schedulePreferences, thisMonth, thisYear]);
+  }, [activeEmployees, isPharmacy, schedules, thisMonth, thisYear]);
 
   const ownSelectedMonthDraftSummary = useMemo(() => {
     if (isPharmacy) {
