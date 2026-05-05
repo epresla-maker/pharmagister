@@ -1567,12 +1567,12 @@ function PharmacyScheduleCalendar({
             <div className="px-6 py-5 space-y-4">
               {deleteMonthConfirm === 1 ? (
                 <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                  Ez törli <strong>{monthLabel} {year}</strong> összes nem publikált beosztás-bejegyzését. A már publikált műszakok megmaradnak.
+                  Ez törli <strong>{monthLabel} {year}</strong> összes beosztás-bejegyzését, beleértve a már publikált műszakokat is.
                 </p>
               ) : (
                 <div className={`rounded-xl border px-4 py-3 ${darkMode ? 'border-rose-800 bg-rose-900/30 text-rose-200' : 'border-rose-200 bg-rose-50 text-rose-700'}`}>
                   <p className="text-sm font-bold">Ez a művelet nem vonható vissza!</p>
-                  <p className="text-xs mt-1">Az összes nem zárt műszak véglegesen törlődik {monthLabel} {year} hónapból.</p>
+                  <p className="text-xs mt-1">Az összes műszak (publikált is) véglegesen törlődik {monthLabel} {year} hónapból.</p>
                 </div>
               )}
               <div className="flex gap-3">
@@ -4320,8 +4320,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     try {
       const toDelete = schedules.filter(s =>
         s.year === year && s.month === month &&
-        s.status !== 'deleted' &&
-        !isPublishedSchedule(s)
+        s.status !== 'deleted'
       );
       const deletedIds = new Set(toDelete.map(s => s.id));
       await Promise.all(toDelete.map(s =>
