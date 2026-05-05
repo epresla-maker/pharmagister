@@ -8339,34 +8339,49 @@ export default function ScheduleManagerTab({ pharmaRole }) {
               })()}
 
               {/* ── Month picker ─────────────────────────────────────── */}
-              {availableYears.map(y => {
-                // Current year starts from current month; future years from January
-                const startMonth = y === thisYear ? thisMonth : 1;
-                const months = MONTHS_HU.slice(startMonth - 1).map((label, i) => ({ label, m: startMonth + i }));
+              {(() => {
                 return (
-                  <div key={y}>
-                    <p className={`text-xs font-bold uppercase tracking-widest mb-2 px-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{y}</p>
-                    <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-                      {months.map(({ label, m }) => {
-                        const isActive = y === year && m === month;
-                        const monthScheds = schedules.filter(s => s.status !== 'deleted' && s.year === y && s.month === m);
+                  <div>
+                    <p className={`text-xs font-bold uppercase tracking-widest mb-2 px-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{thisYear}</p>
+                    <div className="grid grid-cols-4 gap-2">
+                      {MONTHS_HU.map((label, i) => {
+                        const m = i + 1;
+                        const isActive = year === thisYear && m === month;
+                        const isCurrentMonth = m === thisMonth;
+                        const isPast = m < thisMonth;
+                        const monthScheds = schedules.filter(s => s.status !== 'deleted' && s.year === thisYear && s.month === m);
+                        const hasPublished = monthScheds.some(s => isPublishedSchedule(s));
+
+                        let bgClass, textClass, badgeClass;
+                        if (hasPublished) {
+                          bgClass = darkMode ? 'bg-emerald-900/50 border-emerald-700' : 'bg-emerald-100 border-emerald-300';
+                          textClass = darkMode ? 'text-emerald-200' : 'text-emerald-800';
+                          badgeClass = darkMode ? 'bg-emerald-800 text-emerald-200' : 'bg-emerald-200 text-emerald-700';
+                        } else if (isPast) {
+                          bgClass = darkMode ? 'bg-orange-900/40 border-orange-700' : 'bg-orange-100 border-orange-300';
+                          textClass = darkMode ? 'text-orange-200' : 'text-orange-800';
+                          badgeClass = darkMode ? 'bg-orange-800 text-orange-200' : 'bg-orange-200 text-orange-700';
+                        } else {
+                          bgClass = darkMode ? 'bg-gray-800 border-gray-600' : 'bg-gray-100 border-gray-300';
+                          textClass = darkMode ? 'text-gray-300' : 'text-gray-600';
+                          badgeClass = darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-600';
+                        }
+
                         return (
                           <button
                             key={m}
                             type="button"
-                            onClick={() => { setYear(y); setMonth(m); setCalendarOpen(true); }}
+                            onClick={() => { setYear(thisYear); setMonth(m); setCalendarOpen(true); }}
                             className={[
-                              'flex-shrink-0 flex flex-col items-center rounded-2xl px-4 py-3 transition-all border',
-                              isActive
-                                ? 'bg-gradient-to-br from-violet-600 to-indigo-600 text-white border-transparent shadow-lg shadow-violet-200'
-                                : darkMode
-                                  ? 'bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-700'
-                                  : 'bg-white border-gray-200 text-gray-800 hover:bg-violet-50 hover:border-violet-300',
+                              'flex flex-col items-center rounded-2xl px-2 py-3 transition-all',
+                              isCurrentMonth ? 'border-[3px] border-blue-500 shadow-md shadow-blue-100' : 'border-2',
+                              bgClass,
+                              isActive && !isCurrentMonth ? 'ring-2 ring-offset-1 ring-violet-400' : '',
                             ].join(' ')}
                           >
-                            <span className="font-bold text-sm whitespace-nowrap">{label}</span>
+                            <span className={`font-bold text-sm whitespace-nowrap ${textClass}`}>{label}</span>
                             {monthScheds.length > 0 && (
-                              <span className={`mt-1 text-[10px] font-semibold rounded-full px-2 py-0.5 ${isActive ? 'bg-white/25 text-white' : darkMode ? 'bg-gray-700 text-gray-300' : 'bg-violet-100 text-violet-700'}`}>
+                              <span className={`mt-1 text-[10px] font-semibold rounded-full px-2 py-0.5 ${badgeClass}`}>
                                 {monthScheds.length} műszak
                               </span>
                             )}
@@ -8376,7 +8391,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                     </div>
                   </div>
                 );
-              })}
+              })()}
 
               {/* ── Javasolt beosztás gyors-gomb ─────────────────────── */}
               {activeEmployees.length > 0 && (
