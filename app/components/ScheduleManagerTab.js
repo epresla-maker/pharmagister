@@ -7840,35 +7840,6 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       {!loading && ((isPharmacy && mainTab === 'schedule') || !isPharmacy) ? (
         <div className="space-y-6">
 
-          {((isPharmacy && mainTab === 'schedule') || (!isPharmacy && mainTab === 'mine')) && (
-            <div className={`rounded-2xl border p-4 space-y-3 ${darkMode ? 'border-sky-700 bg-sky-900/20' : 'border-sky-200 bg-sky-50'}`}>
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className={`text-sm font-bold ${darkMode ? 'text-sky-200' : 'text-sky-900'}`}>Betti chat</p>
-                  <p className={`text-xs ${darkMode ? 'text-sky-300/80' : 'text-sky-700/80'}`}>
-                    {isPharmacy
-                      ? 'Kerdezhetsz ujratervezesrol, tulorarol, helyettesitesrol.'
-                      : 'Kerdezhetsz a sajat muszakjaidrol, szabadsagrol es szabadnapokrol.'}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  disabled
-                  title="Hamarosan elérhető"
-                  className="rounded-lg bg-gray-400 px-3 py-1.5 text-xs font-semibold text-white cursor-not-allowed opacity-60"
-                >
-                  Chat megnyitasa
-                </button>
-              </div>
-
-              <div className={`rounded-xl border p-3 ${darkMode ? 'border-sky-800 bg-gray-900' : 'border-sky-200 bg-white'}`}>
-                <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Nyisd meg a teljes kepernyos chatet, ahol kenyelmesen tudsz irni Bettinek, es alul azonnali gyors gombokat is kapsz.
-                </p>
-              </div>
-            </div>
-          )}
-
           {/* ── Értesítési / figyelmeztető blokk ─────────────────────────── */}
           {((isPharmacy && mainTab === 'schedule') || (!isPharmacy && mainTab === 'mine')) && (() => {
             const alerts = [];
