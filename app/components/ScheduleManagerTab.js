@@ -8142,34 +8142,61 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   ))}
                 </div>
               ) : null}
-              {swapRequests.filter(r => r.status === 'employee_accepted').length > 0 ? (
+              {swapRequests.filter(r => r.status === 'pending').length > 0 && (
+                <div className={`rounded-2xl border p-5 space-y-3 ${darkMode ? 'border-blue-900 bg-blue-950/20' : 'border-blue-100 bg-blue-50'}`}>
+                  <div className="flex items-center gap-2">
+                    <ArrowLeftRight className="h-5 w-5 text-blue-500" />
+                    <h3 className={`text-base font-semibold ${darkMode ? 'text-blue-300' : 'text-blue-700'}`}>Folyamatban lévő csereigények</h3>
+                    <span className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-400 text-xs font-bold text-white">{swapRequests.filter(r => r.status === 'pending').length}</span>
+                  </div>
+                  <p className={`text-xs ${darkMode ? 'text-blue-400' : 'text-blue-500'}`}>Ezekre a cserékre még vár a másik dolgozó válasza. Jóváhagyási lehetőség az elfogadás után jelenik meg.</p>
+                  <div className="space-y-2">
+                    {swapRequests.filter(r => r.status === 'pending').map(item => {
+                      const rd = item.requesterScheduleDate || item.date || '?';
+                      const td = item.targetScheduleDate || item.targetDate || '?';
+                      return (
+                        <div key={item.id} className={`rounded-xl border px-4 py-3 text-sm ${darkMode ? 'border-gray-700 bg-gray-800/60 text-gray-300' : 'border-blue-100 bg-white text-gray-700'}`}>
+                          <span className="font-semibold">{item.requesterName}</span> cseret kért <span className="font-semibold">{item.targetName}</span>-tól — <span className={darkMode ? 'text-blue-300' : 'text-blue-600'}>{rd}</span> ↔ <span className={darkMode ? 'text-blue-300' : 'text-blue-600'}>{td}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              {swapRequests.filter(r => r.status === 'employee_accepted').length > 0 && (
                 <div className={`rounded-2xl border p-5 space-y-4 ${darkMode ? 'border-amber-800 bg-amber-950/30' : 'border-amber-200 bg-amber-50'}`}>
                   <div className="flex items-center gap-2">
                     <ArrowLeftRight className="h-5 w-5 text-amber-600" />
                     <h3 className="text-lg font-semibold">Csereigények – jóváhagyásra várnak</h3>
                     <span className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-xs font-bold text-white">{swapRequests.filter(r => r.status === 'employee_accepted').length}</span>
                   </div>
+                  <p className={`text-sm ${darkMode ? 'text-amber-300' : 'text-amber-700'}`}>Mindkét dolgozó elfogadta — az Ön jóváhagyása szükséges a tényleges csere végrehajtásához.</p>
                   <div className="space-y-3">
-                    {swapRequests.filter(r => r.status === 'employee_accepted').map(item => (
-                      <div key={item.id} className={`rounded-xl border p-4 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
-                        <div className="flex flex-wrap items-start justify-between gap-3">
-                          <div className="space-y-0.5">
-                            <p className="font-semibold">{item.requesterName} ↔ {item.targetName}</p>
-                          </div>
+                    {swapRequests.filter(r => r.status === 'employee_accepted').map(item => {
+                      const rd = item.requesterScheduleDate || item.date || '?';
+                      const td = item.targetScheduleDate || item.targetDate || '?';
+                      return (
+                        <div key={item.id} className={`rounded-xl border p-4 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
+                          <p className="font-semibold text-sm mb-1">
+                            <span>{item.requesterName}</span> cseret kért <span>{item.targetName}</span>-tól
+                          </p>
+                          <p className={`text-xs mb-3 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                            {item.requesterName?.split(' ').pop()} {rd} ↔ {item.targetName?.split(' ').pop()} {td}
+                          </p>
                           <div className="flex gap-2">
-                            <button type="button" disabled={saving} onClick={() => handlePharmacyRespondToSwapRequest(item.id, 'accepted')} className="inline-flex items-center gap-2 rounded-xl bg-green-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-60">
+                            <button type="button" disabled={saving} onClick={() => handlePharmacyRespondToSwapRequest(item.id, 'accepted')} className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-green-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-60">
                               <CheckCircle2 className="h-4 w-4" />Jóváhagyom
                             </button>
-                            <button type="button" disabled={saving} onClick={() => handlePharmacyRespondToSwapRequest(item.id, 'rejected')} className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-60">
+                            <button type="button" disabled={saving} onClick={() => handlePharmacyRespondToSwapRequest(item.id, 'rejected')} className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-red-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-60">
                               <XCircle className="h-4 w-4" />Elutasítom
                             </button>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
-              ) : null}
+              )}
 
               {/* Full-screen calendar overlay */}
               {calendarOpen && (
@@ -8696,35 +8723,54 @@ export default function ScheduleManagerTab({ pharmaRole }) {
               </div>
             </div>
 
-            {/* Pharmacy swap approvals: global panel for employee_accepted swaps */}
-            {swapRequests.filter(r => r.status === 'employee_accepted').length > 0 ? (
+            {/* Pharmacy swap panels */}
+            {swapRequests.filter(r => r.status === 'pending').length > 0 && (
+              <div className={`rounded-2xl border p-5 space-y-3 mt-6 ${darkMode ? 'border-blue-900 bg-blue-950/20' : 'border-blue-100 bg-blue-50'}`}>
+                <div className="flex items-center gap-2">
+                  <ArrowLeftRight className="h-5 w-5 text-blue-500" />
+                  <h3 className={`text-base font-semibold ${darkMode ? 'text-blue-300' : 'text-blue-700'}`}>Folyamatban lévő csereigények</h3>
+                  <span className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-400 text-xs font-bold text-white">{swapRequests.filter(r => r.status === 'pending').length}</span>
+                </div>
+                <p className={`text-xs ${darkMode ? 'text-blue-400' : 'text-blue-500'}`}>Ezekre a cserékre még vár a másik dolgozó válasza. Jóváhagyási lehetőség az elfogadás után jelenik meg.</p>
+                <div className="space-y-2">
+                  {swapRequests.filter(r => r.status === 'pending').map(item => {
+                    const rd = item.requesterScheduleDate || item.date || '?';
+                    const td = item.targetScheduleDate || item.targetDate || '?';
+                    return (
+                      <div key={item.id} className={`rounded-xl border px-4 py-3 text-sm ${darkMode ? 'border-gray-700 bg-gray-800/60 text-gray-300' : 'border-blue-100 bg-white text-gray-700'}`}>
+                        <span className="font-semibold">{item.requesterName}</span> cseret kért <span className="font-semibold">{item.targetName}</span>-tól — <span className={darkMode ? 'text-blue-300' : 'text-blue-600'}>{rd}</span> ↔ <span className={darkMode ? 'text-blue-300' : 'text-blue-600'}>{td}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            {swapRequests.filter(r => r.status === 'employee_accepted').length > 0 && (
               <div className={`rounded-2xl border p-5 space-y-4 mt-6 ${darkMode ? 'border-amber-800 bg-amber-950/30' : 'border-amber-200 bg-amber-50'}`}>
                 <div className="flex items-center gap-2">
                   <ArrowLeftRight className="h-5 w-5 text-amber-600" />
                   <h3 className="text-lg font-semibold">Csereigények – jóváhagyásra várnak</h3>
                   <span className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-xs font-bold text-white">{swapRequests.filter(r => r.status === 'employee_accepted').length}</span>
                 </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Az alábbi cseréket mindkét dolgozó elfogadta. A tényleges beosztásváltozás csak az Ön jóváhagyása után lép érvénybe.</p>
+                <p className={`text-sm ${darkMode ? 'text-amber-300' : 'text-amber-700'}`}>Mindkét dolgozó elfogadta — az Ön jóváhagyása szükséges a tényleges csere végrehajtásához.</p>
                 <div className="space-y-3">
-                  {swapRequests.filter(r => r.status === 'employee_accepted').map(item => (
-                    <div key={item.id} className={`rounded-xl border p-4 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div className="space-y-0.5">
-                          <p className="font-semibold">{item.requesterName} ↔ {item.targetName}</p>
-                          <p className="text-sm text-gray-500">
-                            {item.requesterName}: {item.date} {schedules.find(s => s.id === item.requesterScheduleId)?.startTime}–{schedules.find(s => s.id === item.requesterScheduleId)?.endTime}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            {item.targetName}: {item.targetDate} {schedules.find(s => s.id === item.targetScheduleId)?.startTime}–{schedules.find(s => s.id === item.targetScheduleId)?.endTime}
-                          </p>
-                          {item.message ? <p className="mt-1 text-sm italic text-gray-500">"{item.message}"</p> : null}
-                        </div>
+                  {swapRequests.filter(r => r.status === 'employee_accepted').map(item => {
+                    const rd = item.requesterScheduleDate || item.date || '?';
+                    const td = item.targetScheduleDate || item.targetDate || '?';
+                    return (
+                      <div key={item.id} className={`rounded-xl border p-4 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
+                        <p className="font-semibold text-sm mb-1">
+                          <span>{item.requesterName}</span> cseret kért <span>{item.targetName}</span>-tól
+                        </p>
+                        <p className={`text-xs mb-3 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                          {item.requesterName?.split(' ').pop()} {rd} ↔ {item.targetName?.split(' ').pop()} {td}
+                        </p>
                         <div className="flex gap-2">
                           <button
                             type="button"
                             disabled={saving}
                             onClick={() => handlePharmacyRespondToSwapRequest(item.id, 'accepted')}
-                            className="inline-flex items-center gap-2 rounded-xl bg-green-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
+                            className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-green-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
                           >
                             <CheckCircle2 className="h-4 w-4" />
                             Jóváhagyom
@@ -8733,18 +8779,18 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                             type="button"
                             disabled={saving}
                             onClick={() => handlePharmacyRespondToSwapRequest(item.id, 'rejected')}
-                            className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
+                            className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-red-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
                           >
                             <XCircle className="h-4 w-4" />
                             Elutasítom
                           </button>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
-            ) : null}
+            )}
             </div>
             ) : null}
 
