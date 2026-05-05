@@ -3586,11 +3586,22 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             });
           }
         } else if (!row.checked && row.existingId) {
-          // Delete
+          // Delete schedule
           await updateDoc(doc(db, 'pharmacySchedules', row.existingId), {
             status: 'deleted',
             updatedAt: serverTimestamp(),
           });
+          // Cancel any pending swap requests referencing this schedule
+          const relatedSwaps = swapRequests.filter(r =>
+            (r.requesterScheduleId === row.existingId || r.targetScheduleId === row.existingId) &&
+            !['accepted', 'rejected', 'rejected_by_pharmacy', 'cancelled', 'cancelled_schedule_deleted'].includes(r.status)
+          );
+          await Promise.all(relatedSwaps.map(r =>
+            updateDoc(doc(db, 'scheduleSwapRequests', r.id), {
+              status: 'cancelled_schedule_deleted',
+              updatedAt: serverTimestamp(),
+            })
+          ));
         }
       }
       setStatusMessage('Beosztás mentve.');
@@ -3627,6 +3638,18 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         status: 'deleted',
         updatedAt: serverTimestamp(),
       });
+
+      // Cancel any pending swap requests for this schedule
+      const relatedSwaps = swapRequests.filter(r =>
+        (r.requesterScheduleId === scheduleId || r.targetScheduleId === scheduleId) &&
+        !['accepted', 'rejected', 'rejected_by_pharmacy', 'cancelled', 'cancelled_schedule_deleted'].includes(r.status)
+      );
+      await Promise.all(relatedSwaps.map(r =>
+        updateDoc(doc(db, 'scheduleSwapRequests', r.id), {
+          status: 'cancelled_schedule_deleted',
+          updatedAt: serverTimestamp(),
+        })
+      ));
 
       if (scheduleItem.linkedUserId) {
         const pharmacyName = scheduleItem.pharmacyName || userData?.pharmacyName || userData?.name || user?.displayName || user?.email || 'Gyógyszertár';
@@ -3911,11 +3934,28 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
     try {
       if (decision === 'accepted') {
-        const requesterSchedule = schedules.find(item => item.id === requestItem.requesterScheduleId);
-        const targetSchedule = schedules.find(item => item.id === requestItem.targetScheduleId);
+        let requesterSchedule = schedules.find(item => item.id === requestItem.requesterScheduleId);
+        let targetSchedule = schedules.find(item => item.id === requestItem.targetScheduleId);
+
+        // If not in memory (different month), fetch from Firestore directly
+        if (!requesterSchedule && requestItem.requesterScheduleId) {
+          const snap = await getDoc(doc(db, 'pharmacySchedules', requestItem.requesterScheduleId));
+          if (snap.exists()) requesterSchedule = { id: snap.id, ...snap.data() };
+        }
+        if (!targetSchedule && requestItem.targetScheduleId) {
+          const snap = await getDoc(doc(db, 'pharmacySchedules', requestItem.targetScheduleId));
+          if (snap.exists()) targetSchedule = { id: snap.id, ...snap.data() };
+        }
 
         if (!requesterSchedule || !targetSchedule) {
-          throw new Error('A csere egyik beosztása már nem található.');
+          // Schedules gone — cancel the swap request and reload
+          await updateDoc(doc(db, 'scheduleSwapRequests', requestId), {
+            status: 'cancelled_schedule_deleted',
+            updatedAt: serverTimestamp(),
+          });
+          await loadData();
+          setStatusError('A csere egyik beosztása már nem található, a csereigényt visszavontuk.');
+          return;
         }
 
         const publishedAtIso = new Date().toISOString();
@@ -4284,8 +4324,20 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         s.status !== 'deleted' &&
         !isPublishedSchedule(s)
       );
+      const deletedIds = new Set(toDelete.map(s => s.id));
       await Promise.all(toDelete.map(s =>
         updateDoc(doc(db, 'pharmacySchedules', s.id), { status: 'deleted', updatedAt: serverTimestamp() })
+      ));
+      // Cancel swap requests referencing any of the deleted schedules
+      const relatedSwaps = swapRequests.filter(r =>
+        (deletedIds.has(r.requesterScheduleId) || deletedIds.has(r.targetScheduleId)) &&
+        !['accepted', 'rejected', 'rejected_by_pharmacy', 'cancelled', 'cancelled_schedule_deleted'].includes(r.status)
+      );
+      await Promise.all(relatedSwaps.map(r =>
+        updateDoc(doc(db, 'scheduleSwapRequests', r.id), {
+          status: 'cancelled_schedule_deleted',
+          updatedAt: serverTimestamp(),
+        })
       ));
       setStatusMessage(`${toDelete.length} beosztás törölve (${MONTHS_HU[month - 1]} ${year}).`);
       await loadData();
