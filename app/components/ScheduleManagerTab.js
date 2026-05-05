@@ -8028,18 +8028,6 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   onClick: () => setMainTab('vacations'),
                 });
               }
-              // Új dolgozói preferenciák az aktuális hónapra
-              const newPrefs = schedulePreferences.filter(p => p.year === year && p.month === month && p.status !== 'deleted');
-              if (newPrefs.length > 0) {
-                alerts.push({
-                  key: 'prefs',
-                  icon: '💬',
-                  color: 'violet',
-                  label: `${newPrefs.length} dolgozói preferencia erre a hónapra`,
-                  sub: [...new Set(newPrefs.map(p => p.employeeName?.split(' ').pop()).filter(Boolean))].join(', '),
-                  onClick: () => setCalendarOpen(true),
-                });
-              }
               // Nem publikált beosztás
               if (publishedScheduleCount === 0 && activeMonthSchedules.filter(s => s.year === year && s.month === month).length > 0) {
                 alerts.push({
