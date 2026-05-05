@@ -2688,6 +2688,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
   const [employees, setEmployees] = useState([]);
   const [schedules, setSchedules] = useState([]);
+  const [allYearSchedules, setAllYearSchedules] = useState([]);
   const [swapRequests, setSwapRequests] = useState([]);
   const [vacationRequests, setVacationRequests] = useState([]);
 
@@ -3100,9 +3101,10 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   }
 
   async function loadPharmacyData() {
-    const [employeesSnapshot, schedulesSnapshot, swapSnapshot, vacationSnapshot, prefsSnapshot, allPrefsSnapshot] = await Promise.all([
+    const [employeesSnapshot, schedulesSnapshot, allYearSnapshot, swapSnapshot, vacationSnapshot, prefsSnapshot, allPrefsSnapshot] = await Promise.all([
       getDocs(query(collection(db, 'pharmacyEmployees'), where('pharmacyId', '==', user.uid))),
       getDocs(query(collection(db, 'pharmacySchedules'), where('pharmacyId', '==', user.uid), where('year', '==', year), where('month', '==', month))),
+      getDocs(query(collection(db, 'pharmacySchedules'), where('pharmacyId', '==', user.uid), where('year', '==', thisYear))),
       getDocs(query(collection(db, 'scheduleSwapRequests'), where('pharmacyId', '==', user.uid))),
       getDocs(query(collection(db, 'scheduleVacationRequests'), where('pharmacyId', '==', user.uid))),
       getDocs(query(collection(db, 'schedulePreferences'), where('pharmacyId', '==', user.uid), where('year', '==', year), where('month', '==', month))),
@@ -3111,6 +3113,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
     setEmployees(employeesSnapshot.docs.map(item => ({ id: item.id, ...item.data() })));
     setSchedules(sortByDateAndTime(schedulesSnapshot.docs.map(item => ({ id: item.id, ...item.data() }))));
+    setAllYearSchedules(allYearSnapshot.docs.map(item => ({ id: item.id, ...item.data() })));
     setSwapRequests(swapSnapshot.docs.map(item => ({ id: item.id, ...item.data() })));
     setVacationRequests(vacationSnapshot.docs.map(item => ({ id: item.id, ...item.data() })));
     setSchedulePreferences(prefsSnapshot.docs.map(item => ({ id: item.id, ...item.data() })));
@@ -8367,7 +8370,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                         const isActive = year === thisYear && m === month;
                         const isCurrentMonth = m === thisMonth;
                         const isPast = m < thisMonth;
-                        const monthScheds = schedules.filter(s => s.status !== 'deleted' && s.year === thisYear && s.month === m);
+                        const monthScheds = allYearSchedules.filter(s => s.status !== 'deleted' && s.year === thisYear && s.month === m);
                         const hasPublished = monthScheds.some(s => isPublishedSchedule(s));
 
                         let bgClass, textClass, badgeClass;
