@@ -143,9 +143,6 @@ function calcMonthlyRequiredHours(contractHours, year, month) {
   if (!h) return 0;
   const workdays = countWorkdaysInMonth(year, month);
   // 12h-s műszakos dolgozóknál ugyanannyi a havi munkaidő-keret mint 8h-s teljes állásban
-  // (munkaidőkeret: kevesebb nap, hosszabb műszakok, azonos összóraszám)
-  if (h === 12) return workdays * 8;
-  return h * workdaysszakok, azonos összóraszám)
   if (h === 12) return workdays * 8;
   return h * workdays;
 }
