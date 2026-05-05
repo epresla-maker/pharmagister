@@ -779,6 +779,25 @@ function PharmacyScheduleCalendar({
       .finally(() => setSummaryProfilesLoading(false));
   }, [showSummary]);
 
+  // ── Load employee profiles for pharmacy workers tab ───────────────────
+  useEffect(() => {
+    if (!isPharmacy || mainTab !== 'workers') return;
+    const linkedIds = employees.map(e => e.linkedUserId).filter(Boolean);
+    if (linkedIds.length === 0) return;
+    const chunks = [];
+    for (let i = 0; i < linkedIds.length; i += 10) chunks.push(linkedIds.slice(i, i + 10));
+    Promise.all(
+      chunks.map(chunk =>
+        getDocs(query(collection(db, 'employeeProfiles'), where('userId', 'in', chunk)))
+      )
+    ).then(snapshots => {
+      const profiles = snapshots.flatMap(s => s.docs.map(d => ({ id: d.id, ...d.data() })));
+      const map = {};
+      profiles.forEach(p => { map[p.userId] = p; });
+      setWorkerProfiles(map);
+    }).catch(err => console.error('workerProfiles load error', err));
+  }, [isPharmacy, mainTab, employees]);
+
   // ── Staffing warnings: detect under-staffed templates when rows change ────
   const staffingWarnings = useMemo(() => {
     if (!showModal || !selectedDay || !config?.shiftTemplates?.length) return [];
@@ -2782,8 +2801,9 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   const [schedulePreferences, setSchedulePreferences] = useState([]);
   const [allPreferences, setAllPreferences] = useState([]);
   const [expandedWorker, setExpandedWorker] = useState(null);
-  const [workerEditForms, setWorkerEditForms] = useState({}); // { [employeeId]: { phone, address, notes, contractHours } }
+  const [workerEditForms, setWorkerEditForms] = useState({}); // { [employeeId]: { phone, address, notes, contractHours, birthDate, childrenCount, vacationTakenThisYear, vacationCarriedOver } }
   const [workerEditSaving, setWorkerEditSaving] = useState({}); // { [employeeId]: bool }
+  const [workerProfiles, setWorkerProfiles] = useState({}); // { [linkedUserId]: { id, ...profileData } }
 
   // Quick swap: which own schedule is currently open for partner selection
   const [quickSwapScheduleId, setQuickSwapScheduleId] = useState(null);
@@ -3446,17 +3466,42 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   async function handleSaveWorkerBasicData(employeeId) {
     const form = workerEditForms[employeeId];
     if (!form) return;
+    const employee = activeEmployees.find(e => e.id === employeeId);
     setWorkerEditSaving(prev => ({ ...prev, [employeeId]: true }));
     try {
-      const payload = {
+      const contractHours = Number(form.contractHours) || 0;
+      // Save to pharmacyEmployees
+      const empPayload = {
         phone: (form.phone || '').trim(),
         address: (form.address || '').trim(),
         notes: (form.notes || '').trim(),
-        contractHours: Number(form.contractHours) || 0,
+        contractHours,
         updatedAt: serverTimestamp(),
       };
-      await updateDoc(doc(db, 'pharmacyEmployees', employeeId), payload);
-      setEmployees(prev => prev.map(e => e.id === employeeId ? { ...e, ...payload } : e));
+      await updateDoc(doc(db, 'pharmacyEmployees', employeeId), empPayload);
+      setEmployees(prev => prev.map(e => e.id === employeeId ? { ...e, ...empPayload } : e));
+
+      // Save to employeeProfiles (if employee has a linkedUserId)
+      const linkedUserId = employee?.linkedUserId;
+      if (linkedUserId) {
+        const profilePayload = {
+          userId: linkedUserId,
+          birthDate: form.birthDate || '',
+          childrenCount: Number(form.childrenCount) || 0,
+          contractHours,
+          vacationTakenThisYear: Number(form.vacationTakenThisYear) || 0,
+          vacationCarriedOver: Number(form.vacationCarriedOver) || 0,
+          updatedAt: serverTimestamp(),
+        };
+        const existingProfile = workerProfiles[linkedUserId];
+        if (existingProfile?.id) {
+          await updateDoc(doc(db, 'employeeProfiles', existingProfile.id), profilePayload);
+        } else {
+          const ref = await addDoc(collection(db, 'employeeProfiles'), { ...profilePayload, createdAt: serverTimestamp() });
+          profilePayload.id = ref.id;
+        }
+        setWorkerProfiles(prev => ({ ...prev, [linkedUserId]: { ...(prev[linkedUserId] || {}), ...profilePayload } }));
+      }
     } catch (err) {
       setStatusError('Mentés sikertelen: ' + err.message);
     } finally {
@@ -7979,31 +8024,97 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
                       {/* Expanded: preferences grouped by month */}
                       {isExpanded && (() => {
+                        const profile = workerProfiles[employee.linkedUserId] || {};
                         const ef = workerEditForms[employee.id] ?? {
                           phone: employee.phone || '',
                           address: employee.address || '',
                           notes: employee.notes || '',
-                          contractHours: String(employee.contractHours || ''),
+                          contractHours: String(employee.contractHours || profile.contractHours || '8'),
+                          birthDate: profile.birthDate || '',
+                          childrenCount: String(profile.childrenCount ?? '0'),
+                          vacationTakenThisYear: String(profile.vacationTakenThisYear ?? '0'),
+                          vacationCarriedOver: String(profile.vacationCarriedOver ?? '0'),
                         };
                         const isSavingEf = !!workerEditSaving[employee.id];
+
+                        // Calculate preview values
+                        const hasVacData = !!ef.birthDate;
+                        const totalVac = hasVacData ? calcAnnualVacationDays(ef.birthDate, ef.childrenCount, thisYear) : null;
+                        const carryOver = Number(ef.vacationCarriedOver) || 0;
+                        const taken = Number(ef.vacationTakenThisYear) || 0;
+                        const remaining = totalVac !== null ? totalVac + carryOver - taken : null;
+                        const reqHours = ef.contractHours ? calcMonthlyRequiredHours(ef.contractHours, year, month) : null;
+
                         return (
                         <div className={`px-4 pb-4 pt-1 border-t space-y-4 ${darkMode ? 'border-gray-700' : 'border-gray-100'}`}>
                           {/* Basic data section */}
                           <div className={`rounded-xl p-3 space-y-3 ${darkMode ? 'bg-gray-800' : 'bg-gray-50'}`}>
                             <p className={`text-xs font-bold uppercase tracking-widest ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Alapadatok</p>
                             <div className="grid grid-cols-2 gap-2">
+
+                              {/* contractHours */}
                               <div className="col-span-2 flex flex-col gap-1">
-                                <label className={`text-[11px] font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Heti szerz. óra</label>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  max="80"
+                                <label className={`text-[11px] font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Munkaszerződés típusa</label>
+                                <select
                                   value={ef.contractHours}
                                   onChange={e => setWorkerEditForms(prev => ({ ...prev, [employee.id]: { ...ef, contractHours: e.target.value } }))}
                                   className={`w-full rounded-lg border px-3 py-1.5 text-sm bg-transparent ${darkMode ? 'border-gray-600 text-gray-100' : 'border-gray-300 text-gray-800'}`}
-                                  placeholder="pl. 40"
+                                >
+                                  <option value="4">4 h/nap (részmunkaidő 50%)</option>
+                                  <option value="6">6 h/nap (részmunkaidő 75%)</option>
+                                  <option value="8">8 h/nap (teljes munkaidő)</option>
+                                  <option value="12">12 h/nap (műszakos)</option>
+                                </select>
+                              </div>
+
+                              {/* birthDate */}
+                              <div className="col-span-2 flex flex-col gap-1">
+                                <label className={`text-[11px] font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Születési dátum</label>
+                                <input
+                                  type="date"
+                                  value={ef.birthDate}
+                                  onChange={e => setWorkerEditForms(prev => ({ ...prev, [employee.id]: { ...ef, birthDate: e.target.value } }))}
+                                  className={`w-full rounded-lg border px-3 py-1.5 text-sm bg-transparent ${darkMode ? 'border-gray-600 text-gray-100' : 'border-gray-300 text-gray-800'}`}
                                 />
                               </div>
+
+                              {/* childrenCount */}
+                              <div className="col-span-2 flex flex-col gap-1">
+                                <label className={`text-[11px] font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Gyermekek száma</label>
+                                <select
+                                  value={ef.childrenCount}
+                                  onChange={e => setWorkerEditForms(prev => ({ ...prev, [employee.id]: { ...ef, childrenCount: e.target.value } }))}
+                                  className={`w-full rounded-lg border px-3 py-1.5 text-sm bg-transparent ${darkMode ? 'border-gray-600 text-gray-100' : 'border-gray-300 text-gray-800'}`}
+                                >
+                                  {['0','1','2','3','4','5+'].map(v => <option key={v} value={v}>{v} gyermek</option>)}
+                                </select>
+                              </div>
+
+                              {/* vacationTakenThisYear */}
+                              <div className="flex flex-col gap-1">
+                                <label className={`text-[11px] font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Felvett szab. idén</label>
+                                <select
+                                  value={ef.vacationTakenThisYear}
+                                  onChange={e => setWorkerEditForms(prev => ({ ...prev, [employee.id]: { ...ef, vacationTakenThisYear: e.target.value } }))}
+                                  className={`w-full rounded-lg border px-3 py-1.5 text-sm bg-transparent ${darkMode ? 'border-gray-600 text-gray-100' : 'border-gray-300 text-gray-800'}`}
+                                >
+                                  {Array.from({ length: 51 }, (_, i) => i).map(v => <option key={v} value={v}>{v} nap</option>)}
+                                </select>
+                              </div>
+
+                              {/* vacationCarriedOver */}
+                              <div className="flex flex-col gap-1">
+                                <label className={`text-[11px] font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Áthozott szab.</label>
+                                <select
+                                  value={ef.vacationCarriedOver}
+                                  onChange={e => setWorkerEditForms(prev => ({ ...prev, [employee.id]: { ...ef, vacationCarriedOver: e.target.value } }))}
+                                  className={`w-full rounded-lg border px-3 py-1.5 text-sm bg-transparent ${darkMode ? 'border-gray-600 text-gray-100' : 'border-gray-300 text-gray-800'}`}
+                                >
+                                  {Array.from({ length: 31 }, (_, i) => i).map(v => <option key={v} value={v}>{v} nap</option>)}
+                                </select>
+                              </div>
+
+                              {/* phone */}
                               <div className="col-span-2 flex flex-col gap-1">
                                 <label className={`text-[11px] font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Telefonszám</label>
                                 <input
@@ -8014,6 +8125,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                                   placeholder="+36 ..."
                                 />
                               </div>
+
+                              {/* address */}
                               <div className="col-span-2 flex flex-col gap-1">
                                 <label className={`text-[11px] font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Cím</label>
                                 <input
@@ -8024,6 +8137,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                                   placeholder="Utca, város..."
                                 />
                               </div>
+
+                              {/* notes */}
                               <div className="col-span-2 flex flex-col gap-1">
                                 <label className={`text-[11px] font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Megjegyzés</label>
                                 <input
@@ -8034,6 +8149,23 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                                 />
                               </div>
                             </div>
+
+                            {/* Calculated preview */}
+                            {(totalVac !== null || reqHours !== null) && (
+                              <div className={`rounded-lg border px-3 py-2 space-y-1 ${darkMode ? 'border-emerald-800 bg-emerald-950/30' : 'border-emerald-200 bg-emerald-50'}`}>
+                                <p className={`text-[10px] font-bold uppercase tracking-wide ${darkMode ? 'text-emerald-400' : 'text-emerald-700'}`}>Kiszámított értékek ({thisYear})</p>
+                                {totalVac !== null && (
+                                  <>
+                                    <p className={`text-xs ${darkMode ? 'text-emerald-200' : 'text-emerald-800'}`}>Járó szabadság: <strong>{totalVac} nap</strong></p>
+                                    <p className={`text-xs ${darkMode ? 'text-emerald-200' : 'text-emerald-800'}`}>Maradék: <strong>{remaining} nap</strong> ({totalVac}+{carryOver}−{taken})</p>
+                                  </>
+                                )}
+                                {reqHours !== null && (
+                                  <p className={`text-xs ${darkMode ? 'text-emerald-200' : 'text-emerald-800'}`}>{MONTHS_HU[month-1]} kötelező munkaóra: <strong>{reqHours} h</strong></p>
+                                )}
+                              </div>
+                            )}
+
                             <div className="flex justify-end">
                               <button
                                 type="button"
