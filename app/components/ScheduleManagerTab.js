@@ -1213,9 +1213,6 @@ function PharmacyScheduleCalendar({
               <button type="button" onClick={onExport} title="CSV export" className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 text-white">
                 <Download className="h-4 w-4" />
               </button>
-              <button type="button" onClick={handlePublishClick} disabled={saving} title="Publikálás" className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 text-white disabled:opacity-50">
-                <Send className="h-4 w-4" />
-              </button>
               <button type="button" onClick={() => setDeleteMonthConfirm(1)} disabled={saving} title="Havi beosztás törlése" className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-rose-500/70 hover:bg-rose-500/90 text-white disabled:opacity-50">
                 <Trash2 className="h-4 w-4" />
               </button>
@@ -1254,15 +1251,34 @@ function PharmacyScheduleCalendar({
             ? 'Már publikálva – Újra publikálható'
             : 'Kész a publikálásra';
         return (
-          <div className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 text-xs font-semibold border-b ${
+          <div className={`flex-shrink-0 border-b ${
             !canPublish
               ? (darkMode ? 'bg-rose-900/30 border-rose-800/60 text-rose-300' : 'bg-rose-50 border-rose-200 text-rose-600')
               : alreadyPublished
                 ? (darkMode ? 'bg-violet-900/30 border-violet-800/60 text-violet-300' : 'bg-violet-50 border-violet-200 text-violet-700')
                 : (darkMode ? 'bg-emerald-900/30 border-emerald-800/60 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700')
           }`}>
-            <span>{!canPublish ? '⛔' : alreadyPublished ? '✅' : '✅'}</span>
-            <span>{statusText}</span>
+            <div className="flex flex-col gap-2 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-w-0 items-center gap-2 text-xs font-semibold">
+                <span>{!canPublish ? '⛔' : alreadyPublished ? '✅' : '✅'}</span>
+                <span className="truncate">{statusText}</span>
+              </div>
+              <button
+                type="button"
+                onClick={handlePublishClick}
+                disabled={saving || !canPublish}
+                className={`inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg px-4 text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto ${
+                  canPublish
+                    ? alreadyPublished
+                      ? (darkMode ? 'bg-violet-500 text-white hover:bg-violet-400' : 'bg-violet-600 text-white hover:bg-violet-700')
+                      : (darkMode ? 'bg-emerald-500 text-white hover:bg-emerald-400' : 'bg-emerald-600 text-white hover:bg-emerald-700')
+                    : (darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-500')
+                }`}
+              >
+                <CheckCircle2 className="h-4 w-4" />
+                {saving ? 'Publikálás...' : alreadyPublished ? 'Újrapublikálás' : canPublish ? 'Beosztás publikálása' : 'Nincs mit publikálni'}
+              </button>
+            </div>
           </div>
         );
       })()}
