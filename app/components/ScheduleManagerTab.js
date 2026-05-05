@@ -735,7 +735,11 @@ function PharmacyScheduleCalendar({
   pendingSwapRequests, onOpenSwaps,
   onAutoGenerate,
   plannerLoading,
+  applyingPlanner: isApplying,
 }) {
+  const isGenerating = plannerLoading || isApplying;plyingPlanner: isApplying,
+}) {
+  const isGenerating = plannerLoading || isApplying;
   const [selectedDay, setSelectedDay] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [openFrom, setOpenFrom] = useState('08:00');
@@ -1372,9 +1376,57 @@ function PharmacyScheduleCalendar({
           </div>
         </div>
       )}
-
+relative flex-1 overflow-y-auto overscroll-contain">
+        {/* AI generation loading overlay */}
+        {isGenerating && (
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm">
+            <div className="flex flex-col items-center gap-4 px-8 text-center">
+              <div className="relative">
+                <div className="h-16 w-16 rounded-full border-4 border-violet-200 border-t-violet-600 animate-spin" />
+                <span className="absolute inset-0 flex items-center justify-center text-2xl">✨</span>
+              </div>
+              <div>
+                <p className="text-base font-bold text-violet-700">
+                  {isApplying ? 'Műszakok mentése...' : 'AI tervezés folyamatban...'}
+                </p>
+                <p className="text-sm text-gray-500 mt-1">
+                  {isApplying ? 'A javasolt beosztás rögzítése történik' : 'Preferenciák és szabályok alapján tervezünk'}
+                </p>
+              </div>
+              <div className="flex gap-1 mt-2">
+                {[0,1,2].map(i => (
+                  <div key={i} className="h-2 w-2 rounded-full bg-violet-500 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       {/* Day list — full width, vertically scrollable */}
-      <div className="flex-1 overflow-y-auto overscroll-contain">
+      <div className="relative flex-1 overflow-y-auto overscroll-contain">
+        {/* AI generation loading overlay */}
+        {isGenerating && (
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm">
+            <div className="flex flex-col items-center gap-4 px-8 text-center">
+              <div className="relative">
+                <div className="h-16 w-16 rounded-full border-4 border-violet-200 border-t-violet-600 animate-spin" />
+                <span className="absolute inset-0 flex items-center justify-center text-2xl">✨</span>
+              </div>
+              <div>
+                <p className="text-base font-bold text-violet-700">
+                  {isApplying ? 'Műszakok mentése...' : 'AI tervezés folyamatban...'}
+                </p>
+                <p className="text-sm text-gray-500 mt-1">
+                  {isApplying ? 'A javasolt beosztás rögzítése történik' : 'Preferenciák és szabályok alapján tervezünk'}
+                </p>
+              </div>
+              <div className="flex gap-1 mt-2">
+                {[0,1,2].map(i => (
+                  <div key={i} className="h-2 w-2 rounded-full bg-violet-500 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
         {/* readOnly + Saját nézet: iOS-style month grid */}
         {readOnly && ownView && (
           <div className="px-3 pt-3 pb-2">
@@ -8392,6 +8444,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                     } else {
                       const next = month === 12 ? { year: year + 1, month: 1 } : { year, month: month + 1 };
                       setYear(next.year); setMonth(next.month);
+                  applyingPlanner={applyingPlanner}
                     }
                   }}
                   onClose={() => setCalendarOpen(false)}
@@ -8418,6 +8471,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   config={normalizePlanningConfig(plannerConfigForm)}
                   onAutoGenerate={handleAutoGenerateAndApply}
                   plannerLoading={plannerLoading}
+                  applyingPlanner={applyingPlanner}
                 />
               )}
             </div>
