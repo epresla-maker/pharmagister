@@ -7862,10 +7862,14 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             ) : (
               <div className="flex flex-col gap-2">
                 {activeEmployees.map(employee => {
+                  // Only show preferences the employee has published (not drafts)
                   const empPrefs = allPreferences.filter(p =>
-                    p.employeeId === employee.id ||
-                    (p.linkedUserId && p.linkedUserId === employee.linkedUserId) ||
-                    (p.employeeEmail && employee.email && p.employeeEmail.toLowerCase() === employee.email.toLowerCase())
+                    p.publishedAt &&
+                    (
+                      p.employeeId === employee.id ||
+                      (p.linkedUserId && p.linkedUserId === employee.linkedUserId) ||
+                      (p.employeeEmail && employee.email && p.employeeEmail.toLowerCase() === employee.email.toLowerCase())
+                    )
                   );
                   // Group by year-month
                   const byMonth = {};
@@ -7895,7 +7899,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                         <div className="flex items-center gap-2 flex-shrink-0">
                           {empPrefs.length > 0 && (
                             <span className={`text-[11px] font-semibold rounded-full px-2 py-0.5 ${darkMode ? 'bg-emerald-900/50 text-emerald-300' : 'bg-emerald-100 text-emerald-700'}`}>
-                              {empPrefs.length} preferencia
+                              {empPrefs.length} beküldött tervezet
                             </span>
                           )}
                           {workerTab === 'remove' && (
@@ -7916,14 +7920,17 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                       {isExpanded && (
                         <div className={`px-4 pb-4 pt-1 border-t space-y-3 ${darkMode ? 'border-gray-700' : 'border-gray-100'}`}>
                           {monthKeys.length === 0 ? (
-                            <p className={`text-sm italic ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Még nincs mentett preferencia.</p>
+                            <p className={`text-sm italic ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Még nem küldött be tervezetet.</p>
                           ) : monthKeys.map(mk => {
                             const { year: y, month: m, entries } = byMonth[mk];
                             const label = `${MONTHS_HU[m - 1]} ${y}`;
                             const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
                             return (
                               <div key={mk}>
-                                <p className={`text-xs font-bold uppercase tracking-wider mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{label}</p>
+                                <div className="flex items-center gap-2 mb-2">
+                                  <p className={`text-xs font-bold uppercase tracking-wider ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{label}</p>
+                                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${darkMode ? 'bg-emerald-900/60 text-emerald-300' : 'bg-emerald-100 text-emerald-700'}`}>✓ Beküldve</span>
+                                </div>
                                 <div className="flex flex-col gap-1">
                                   {sorted.map(p => {
                                     const st = getShiftType(p.shiftType || 'N');
