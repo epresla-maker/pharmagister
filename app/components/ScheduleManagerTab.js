@@ -2699,6 +2699,18 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   const [statusMessage, setStatusMessage] = useState('');
   const [statusError, setStatusError] = useState('');
 
+  useEffect(() => {
+    if (!statusMessage) return undefined;
+    const timeoutId = setTimeout(() => setStatusMessage(''), 4500);
+    return () => clearTimeout(timeoutId);
+  }, [statusMessage]);
+
+  const handleMainTabChange = useCallback((nextTab) => {
+    setMainTab(nextTab);
+    setStatusMessage('');
+    setStatusError('');
+  }, []);
+
   const [employees, setEmployees] = useState([]);
   const [schedules, setSchedules] = useState([]);
   const [allYearSchedules, setAllYearSchedules] = useState([]);
@@ -7918,7 +7930,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         </p>
       </div>
 
-      <SegmentedTabs tabs={topTabs} active={mainTab} onChange={setMainTab} />
+      <SegmentedTabs tabs={topTabs} active={mainTab} onChange={handleMainTabChange} />
 
       {statusMessage ? (
         <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
