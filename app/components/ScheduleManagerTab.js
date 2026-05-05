@@ -2284,6 +2284,7 @@ function EmployeePreferenceCalendar({
   onSaveDayPreferences, saving,
   employeeProfile,      // { contractHours, birthDate, childrenCount, vacationTakenThisYear, vacationCarriedOver }
   initialDay,           // optional: auto-open this day's modal on mount
+  onPublish,            // () => void — publish this month's drafts
 }) {
   const [selectedDay, setSelectedDay] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -2414,6 +2415,39 @@ function EmployeePreferenceCalendar({
         <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-full bg-emerald-500"/> Saját tervem</span>
         <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-full bg-gray-400"/> Kollégák tervei</span>
       </div>
+
+      {/* Unpublished banner */}
+      {(() => {
+        const unpublished = ownPrefs.filter(p => !p.publishedAt).length;
+        if (unpublished === 0) return null;
+        return (
+          <div className={`flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b ${
+            darkMode ? 'bg-amber-900/30 border-amber-700/50' : 'bg-amber-50 border-amber-200'
+          }`}>
+            <span className="text-xl flex-shrink-0">📢</span>
+            <div className="flex-1 min-w-0">
+              <p className={`text-sm font-bold ${darkMode ? 'text-amber-300' : 'text-amber-800'}`}>
+                {unpublished} nap mentve, de még nincs elküldve
+              </p>
+              <p className={`text-xs mt-0.5 ${darkMode ? 'text-amber-400/80' : 'text-amber-700/80'}`}>
+                A gyógyszertár csak publikálás után látja a tervezetedet
+              </p>
+            </div>
+            {onPublish && (
+              <button
+                type="button"
+                onClick={onPublish}
+                disabled={saving}
+                className={`flex-shrink-0 rounded-xl px-3 py-1.5 text-sm font-bold transition-colors disabled:opacity-60 ${
+                  darkMode ? 'bg-amber-500 hover:bg-amber-400 text-black' : 'bg-amber-500 hover:bg-amber-600 text-white'
+                }`}
+              >
+                {saving ? '...' : 'Publikálás'}
+              </button>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Day list */}
       <div className="flex-1 overflow-y-auto overscroll-contain">
@@ -3219,18 +3253,6 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       } else {
         await addDoc(collection(db, 'schedulePreferences'), { ...payload, createdAt: serverTimestamp() });
       }
-
-      // Értesítés a gyógyszertárnak
-      await createNotificationWithPush({
-        userId: pharmacyId,
-        type: 'schedule_preference_saved',
-        title: 'Új beosztás tervezet',
-        message: `${payload.employeeName} beosztás tervezetet mentett: ${dateKey}.`,
-        data: { employeeId: ownRec?.id || '', date: dateKey },
-        url: '/pharmagister?tab=schedule-manager',
-        dedupeWindowSeconds: 60,
-        dedupeByDataKeys: ['employeeId', 'date'],
-      });
 
       await loadData();
     } catch (err) {
@@ -9329,6 +9351,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                       saving={saving}
                       employeeProfile={employeeProfile}
                       initialDay={preferenceInitialDay}
+                      onPublish={() => handlePublishPreferenceDraftMonth(year, month)}
                     />
                   )}
                 </div>
