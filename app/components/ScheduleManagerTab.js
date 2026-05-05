@@ -8403,7 +8403,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                             <span className={`font-bold text-sm whitespace-nowrap ${textClass}`}>{label}</span>
                             {hasPublished && (
                               <span className={`mt-1 text-[10px] font-semibold rounded-full px-2 py-0.5 ${badgeClass}`}>
-                                Publik\u00e1lva
+                                Publikálva
                               </span>
                             )}
                           </button>
