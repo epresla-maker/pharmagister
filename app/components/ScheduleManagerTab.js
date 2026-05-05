@@ -779,25 +779,6 @@ function PharmacyScheduleCalendar({
       .finally(() => setSummaryProfilesLoading(false));
   }, [showSummary]);
 
-  // ── Load employee profiles for pharmacy workers tab ───────────────────
-  useEffect(() => {
-    if (!isPharmacy || mainTab !== 'workers') return;
-    const linkedIds = employees.map(e => e.linkedUserId).filter(Boolean);
-    if (linkedIds.length === 0) return;
-    const chunks = [];
-    for (let i = 0; i < linkedIds.length; i += 10) chunks.push(linkedIds.slice(i, i + 10));
-    Promise.all(
-      chunks.map(chunk =>
-        getDocs(query(collection(db, 'employeeProfiles'), where('userId', 'in', chunk)))
-      )
-    ).then(snapshots => {
-      const profiles = snapshots.flatMap(s => s.docs.map(d => ({ id: d.id, ...d.data() })));
-      const map = {};
-      profiles.forEach(p => { map[p.userId] = p; });
-      setWorkerProfiles(map);
-    }).catch(err => console.error('workerProfiles load error', err));
-  }, [isPharmacy, mainTab, employees]);
-
   // ── Staffing warnings: detect under-staffed templates when rows change ────
   const staffingWarnings = useMemo(() => {
     if (!showModal || !selectedDay || !config?.shiftTemplates?.length) return [];
@@ -2892,6 +2873,25 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       setMainTab('swaps');
     }
   }, [isPharmacy]);
+
+  // ── Load employee profiles for pharmacy workers tab ───────────────────
+  useEffect(() => {
+    if (!isPharmacy || mainTab !== 'workers') return;
+    const linkedIds = employees.map(e => e.linkedUserId).filter(Boolean);
+    if (linkedIds.length === 0) return;
+    const chunks = [];
+    for (let i = 0; i < linkedIds.length; i += 10) chunks.push(linkedIds.slice(i, i + 10));
+    Promise.all(
+      chunks.map(chunk =>
+        getDocs(query(collection(db, 'employeeProfiles'), where('userId', 'in', chunk)))
+      )
+    ).then(snapshots => {
+      const profiles = snapshots.flatMap(s => s.docs.map(d => ({ id: d.id, ...d.data() })));
+      const map = {};
+      profiles.forEach(p => { map[p.userId] = p; });
+      setWorkerProfiles(map);
+    }).catch(err => console.error('workerProfiles load error', err));
+  }, [isPharmacy, mainTab, employees]);
 
   const ownScheduleIds = useMemo(() => {
     const employeeIds = new Set(ownEmployeeRecords.map(item => item.id));
