@@ -1477,11 +1477,7 @@ function PharmacyScheduleCalendar({
                     {dowLabel}{isHoliday && !isWeekend ? ' 🔴' : ''}
                   </span>
                 </div>
-                {dayPrefs.length > 0 && (
-                  <span className={`flex-shrink-0 ml-1.5 text-xs font-semibold rounded-full px-2 py-0.5 ${darkMode ? 'bg-emerald-900/50 text-emerald-300' : 'bg-emerald-100 text-emerald-700'}`}>
-                    {dayPrefs.length} preferencia
-                  </span>
-                )}
+
               </div>
               {/* Employee chips */}
               {dayScheds.length > 0 ? (
