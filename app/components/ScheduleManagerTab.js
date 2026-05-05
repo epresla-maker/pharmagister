@@ -8147,7 +8147,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                 const filledDays = new Set(activeMonthSchedules.filter(s => s.year === year && s.month === month).map(s => s.date)).size;
                 const pendingPrefs = schedulePreferences.filter(p => p.year === year && p.month === month && p.status !== 'deleted' && p.publishedAt).length;
                 const ignoredPrefs = schedulePreferences.filter(p => {
-                  if (p.year !== year || p.month !== month || p.status === 'deleted') return false;
+                  if (p.year !== year || p.month !== month || p.status === 'deleted' || !p.publishedAt) return false;
                   return !activeMonthSchedules.some(s => s.date === p.date && (s.employeeId === p.employeeId || s.linkedUserId === p.linkedUserId));
                 }).length;
                 const isPublished = publishedScheduleCount > 0;
@@ -8245,7 +8245,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                 const daysLeft = getDaysInMonth(year, month) - new Date().getDate();
                 const filledDays = new Set(activeMonthSchedules.filter(s => s.year === year && s.month === month).map(s => s.date)).size;
                 const ignoredPrefs = schedulePreferences.filter(p => {
-                  if (p.year !== year || p.month !== month || p.status === 'deleted') return false;
+                  if (p.year !== year || p.month !== month || p.status === 'deleted' || !p.publishedAt) return false;
                   return !activeMonthSchedules.some(s => s.date === p.date && (s.employeeId === p.employeeId || s.linkedUserId === p.linkedUserId));
                 }).length;
                 if (activeEmployees.length > 0 && filledDays === 0)
