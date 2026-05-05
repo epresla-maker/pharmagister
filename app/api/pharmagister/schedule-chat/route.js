@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/apiAuth';
+import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
+import { getScheduleManagerAccess } from '@/lib/scheduleAccess';
 import { parseBettiIntent } from '@/lib/intentParserV6';
 import { normalizeHungarianChatInput } from '@/lib/huDictionary';
 import { explainAssignmentDecision } from '@/lib/explanationEngine';
@@ -2574,6 +2576,13 @@ export async function POST(request) {
     const authUser = await verifyAuth(request);
     if (!authUser) {
       return NextResponse.json({ error: 'Nincs jogosultsag' }, { status: 401 });
+    }
+
+    const admin = getFirebaseAdmin();
+    const db = admin.firestore();
+    const access = await getScheduleManagerAccess(authUser, db);
+    if (!access.canAccess) {
+      return NextResponse.json({ error: 'Nincs jogosultsag a beosztaskezelohoz' }, { status: 403 });
     }
 
     const body = await request.json();

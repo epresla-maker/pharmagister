@@ -1,6 +1,7 @@
 import webpush from 'web-push';
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 import { verifyAuth } from '@/lib/apiAuth';
+import { canSendNotificationToUser } from '@/lib/scheduleAccess';
 
 // Configure webpush on each request to ensure fresh keys
 function configureWebpush() {
@@ -27,6 +28,10 @@ function isLikelyApnsToken(token) {
   return typeof token === 'string' && /^[0-9a-fA-F]{64}$/.test(token);
 }
 
+function isPlainObject(value) {
+  return value && typeof value === 'object' && !Array.isArray(value);
+}
+
 export async function POST(request) {
   try {
     // Verify authenticated user
@@ -36,12 +41,105 @@ export async function POST(request) {
     }
 
     console.log('📨 Push notification API called by:', authUser.email);
+
+    const admin = getFirebaseAdmin();
+    const db = admin.firestore();
     
+    const {
+      userId,
+      title,
+      body,
+      url,
+      tag,
+      type,
+      createInAppNotification = true,
+      notificationData,
+      dedupeWindowSeconds = 0,
+      dedupeByDataKeys = [],
+    } = await request.json();
+
+    if (!userId) {
+      return Response.json({ error: 'userId is required' }, { status: 400 });
+    }
+
+    const normalizedTitle = title || 'Pharmagister';
+    const normalizedBody = body || 'Új értesítésed érkezett!';
+    const normalizedUrl = url || '/notifications';
+    const normalizedTag = tag || 'pharmagister-notification';
+    const normalizedType = type || (String(normalizedTag).startsWith('chat-') ? 'new_message' : 'system');
+    const extraData = isPlainObject(notificationData) ? notificationData : {};
+
+    console.log('📋 Request data:', { userId, title: normalizedTitle, hasBody: !!body, url: normalizedUrl, tag: normalizedTag, type: normalizedType });
+
+    const canSend = await canSendNotificationToUser({
+      authUser,
+      db,
+      targetUserId: userId,
+      type: normalizedType,
+      tag: normalizedTag,
+      url: normalizedUrl,
+      notificationData: extraData,
+    });
+
+    if (!canSend) {
+      return Response.json({ error: 'Nincs jogosultság az értesítés címzettjéhez.' }, { status: 403 });
+    }
+
+    let notificationId = null;
+
+    if (createInAppNotification) {
+      if (dedupeWindowSeconds > 0) {
+        const recentSnapshot = await db.collection('notifications')
+          .where('userId', '==', userId)
+          .orderBy('createdAt', 'desc')
+          .limit(30)
+          .get();
+
+        const nowMs = Date.now();
+        const duplicate = recentSnapshot.docs.find((docItem) => {
+          const existing = docItem.data();
+          if (existing.type !== normalizedType) return false;
+          if (existing.title !== normalizedTitle) return false;
+          if (existing.message !== normalizedBody) return false;
+
+          const allDataKeysMatch = (Array.isArray(dedupeByDataKeys) ? dedupeByDataKeys : []).every((key) => {
+            if (key === 'type') return existing.type === normalizedType;
+            return existing[key] === extraData[key];
+          });
+          if (!allDataKeysMatch) return false;
+
+          const createdAtMs = existing.createdAt?.toDate?.()?.getTime?.();
+          if (!createdAtMs) return false;
+          return nowMs - createdAtMs <= Number(dedupeWindowSeconds) * 1000;
+        });
+
+        if (duplicate) {
+          console.log('⏭️ Duplicate notification skipped:', duplicate.id);
+          return Response.json({ success: true, deduped: true, notificationId: duplicate.id, sent: 0, total: 0, cleaned: 0 });
+        }
+      }
+
+      const notificationRef = await db.collection('notifications').add({
+        userId,
+        type: normalizedType,
+        title: normalizedTitle,
+        message: normalizedBody,
+        read: false,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        ...extraData,
+        url: normalizedUrl,
+        data: {
+          ...extraData,
+          url: normalizedUrl,
+        },
+      });
+      notificationId = notificationRef.id;
+    }
+
     // Environment variables check
     let VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
     let VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
     
-    // Clean up VAPID keys - remove any padding and ensure URL-safe Base64
     if (VAPID_PUBLIC_KEY) {
       VAPID_PUBLIC_KEY = VAPID_PUBLIC_KEY.trim().replace(/=+$/, '');
     }
@@ -57,26 +155,6 @@ export async function POST(request) {
     });
     
     configureWebpush();
-    
-    const admin = getFirebaseAdmin();
-    const db = admin.firestore();
-    
-    const {
-      userId,
-      title,
-      body,
-      url,
-      tag,
-      type,
-      createInAppNotification = true,
-      notificationData,
-    } = await request.json();
-    
-    console.log('📋 Request data:', { userId, title, hasBody: !!body, url, tag });
-
-    if (!userId) {
-      return Response.json({ error: 'userId is required' }, { status: 400 });
-    }
 
     // Get user's push subscriptions from Firestore
     const subscriptionsSnapshot = await db.collection('pushSubscriptions')
@@ -87,28 +165,7 @@ export async function POST(request) {
 
     if (subscriptionsSnapshot.empty) {
       console.log(`No push subscriptions found for user: ${userId}`);
-      return Response.json({ success: true, sent: 0, message: 'No subscriptions found' });
-    }
-
-    const normalizedTitle = title || 'Pharmagister';
-    const normalizedBody = body || 'Új értesítésed érkezett!';
-    const normalizedUrl = url || '/notifications';
-    const normalizedTag = tag || 'pharmagister-notification';
-    const normalizedType = type || (String(normalizedTag).startsWith('chat-') ? 'new_message' : 'system');
-
-    if (createInAppNotification) {
-      await db.collection('notifications').add({
-        userId,
-        type: normalizedType,
-        title: normalizedTitle,
-        message: normalizedBody,
-        read: false,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        data: {
-          url: normalizedUrl,
-          ...(notificationData && typeof notificationData === 'object' ? notificationData : {}),
-        },
-      });
+      return Response.json({ success: true, sent: 0, notificationId, message: 'No subscriptions found' });
     }
 
     const unreadSnapshot = await db.collection('notifications')
@@ -207,7 +264,8 @@ export async function POST(request) {
       success: true, 
       sent: successCount, 
       total: results.length,
-      cleaned: expiredSubscriptions.length 
+      cleaned: expiredSubscriptions.length,
+      notificationId,
     });
 
   } catch (error) {

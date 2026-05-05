@@ -1,4 +1,6 @@
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
+import { verifyAuth } from '@/lib/apiAuth';
+import { isAdminEmail } from '@/lib/scheduleAccess';
 
 function isLikelyApnsToken(token) {
   return typeof token === 'string' && /^[0-9a-fA-F]{64}$/.test(token);
@@ -6,6 +8,11 @@ function isLikelyApnsToken(token) {
 
 export async function GET(request) {
   try {
+    const authUser = await verifyAuth(request);
+    if (!authUser) {
+      return Response.json({ error: 'Nincs jogosultság' }, { status: 401 });
+    }
+
     const admin = getFirebaseAdmin();
     const db = admin.firestore();
     
@@ -14,6 +21,10 @@ export async function GET(request) {
 
     if (!userId) {
       return Response.json({ error: 'userId is required' }, { status: 400 });
+    }
+
+    if (userId !== authUser.uid && !isAdminEmail(authUser.email)) {
+      return Response.json({ error: 'Nincs jogosultság ehhez a feliratkozáshoz' }, { status: 403 });
     }
 
     const snapshot = await db.collection('pushSubscriptions')
@@ -40,6 +51,11 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
+    const authUser = await verifyAuth(request);
+    if (!authUser) {
+      return Response.json({ error: 'Nincs jogosultság' }, { status: 401 });
+    }
+
     const admin = getFirebaseAdmin();
     const db = admin.firestore();
     
@@ -47,6 +63,10 @@ export async function POST(request) {
 
     if (!userId || !subscription) {
       return Response.json({ error: 'userId and subscription are required' }, { status: 400 });
+    }
+
+    if (userId !== authUser.uid && !isAdminEmail(authUser.email)) {
+      return Response.json({ error: 'Nincs jogosultság ehhez a feliratkozáshoz' }, { status: 403 });
     }
 
     // Check if subscription already exists
@@ -112,6 +132,11 @@ export async function POST(request) {
 
 export async function DELETE(request) {
   try {
+    const authUser = await verifyAuth(request);
+    if (!authUser) {
+      return Response.json({ error: 'Nincs jogosultság' }, { status: 401 });
+    }
+
     const admin = getFirebaseAdmin();
     const db = admin.firestore();
     
@@ -119,6 +144,10 @@ export async function DELETE(request) {
 
     if (!userId) {
       return Response.json({ error: 'userId is required' }, { status: 400 });
+    }
+
+    if (userId !== authUser.uid && !isAdminEmail(authUser.email)) {
+      return Response.json({ error: 'Nincs jogosultság ehhez a feliratkozáshoz' }, { status: 403 });
     }
 
     let query = db.collection('pushSubscriptions').where('userId', '==', userId);

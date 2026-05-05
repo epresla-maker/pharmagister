@@ -74,6 +74,13 @@ export default function NotificationsSettingsPage() {
   const [newZipCode, setNewZipCode] = useState('');
   const [zipCodeError, setZipCodeError] = useState('');
 
+  const getAuthHeaders = async () => {
+    const idToken = user ? await user.getIdToken() : null;
+    return idToken
+      ? { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` }
+      : { 'Content-Type': 'application/json' };
+  };
+
   // Capacitor modulok betöltése
   useEffect(() => {
     const loadCapacitor = async () => {
@@ -143,7 +150,9 @@ export default function NotificationsSettingsPage() {
         
         // Kérdezd le a szervertől hogy van-e aktív subscription
         console.log('🔔 [CHECK] Querying server for userId:', user.uid);
-        const response = await fetch(`/api/push-subscription?userId=${user.uid}`);
+        const response = await fetch(`/api/push-subscription?userId=${user.uid}`, {
+          headers: await getAuthHeaders(),
+        });
         console.log('🔔 [CHECK] Server response status:', response.status);
         
         if (response.ok) {
@@ -214,7 +223,7 @@ export default function NotificationsSettingsPage() {
                 console.log('🔔 [NATIVE] FCM token from FirebaseMessaging:', fcmToken.substring(0, 12));
                 const fcmResponse = await fetch('/api/push-subscription', {
                   method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
+                  headers: await getAuthHeaders(),
                   body: JSON.stringify({
                     userId: user.uid,
                     subscription: {
@@ -262,7 +271,7 @@ export default function NotificationsSettingsPage() {
           try {
             const response = await fetch('/api/push-subscription', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: await getAuthHeaders(),
               body: JSON.stringify({
                 userId: user.uid,
                 subscription: {
@@ -341,7 +350,7 @@ export default function NotificationsSettingsPage() {
         console.log('🔔 [WEB] Saving subscription to server...');
         const response = await fetch('/api/push-subscription', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: await getAuthHeaders(),
           body: JSON.stringify({
             userId: user.uid,
             subscription: subscription.toJSON()
@@ -376,7 +385,7 @@ export default function NotificationsSettingsPage() {
         // Remove from server (user specifikus endpoint-tal)
         const response = await fetch('/api/push-subscription', {
           method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
+          headers: await getAuthHeaders(),
           body: JSON.stringify({
             userId: user.uid,
             platform: 'native'
@@ -407,7 +416,7 @@ export default function NotificationsSettingsPage() {
           // Remove from server
           const response = await fetch('/api/push-subscription', {
             method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
+            headers: await getAuthHeaders(),
             body: JSON.stringify({
               userId: user.uid,
               endpoint: subscription.endpoint

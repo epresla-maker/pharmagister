@@ -245,6 +245,7 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
         type: 'approval_rejected',
         title: 'Jelentkezés elutasítva ❌',
         message: `${userData.pharmacyName || userData.displayName} elutasította a jelentkezésedet. Indok: ${reason}`,
+        data: { demandId: appData.demandId, pharmacyId: user.uid },
         url: '/pharmagister?tab=dashboard'
       });
 

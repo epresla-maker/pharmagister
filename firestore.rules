@@ -10,6 +10,70 @@ service cloud.firestore {
     function isAuthenticated() {
       return request.auth != null;
     }
+
+    function scheduleManagerAdminEmail() {
+      return isAuthenticated() && request.auth.token.email == 'epresla@icloud.com';
+    }
+
+    function scheduleManagerTestEmail() {
+      return isAuthenticated() && request.auth.token.email in [
+        'tesztpatika@pharmagister.hu',
+        'kovacs.anna@pharmagister.hu',
+        'nagy.peter@pharmagister.hu',
+        'szabo.katalin@pharmagister.hu',
+        'toth.eszter@pharmagister.hu',
+        'varga.monika@pharmagister.hu',
+        'kiss.reka@pharmagister.hu',
+        'bteszt@pharmagister.hu',
+        'bteszt2@pharmagister.hu',
+        'etinatina22@gmail.com'
+      ];
+    }
+
+    function currentUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.pharmagisterRole;
+    }
+
+    function canAccessScheduleManager() {
+      return isAuthenticated() && (
+        (scheduleManagerAdminEmail() && currentUserRole() == 'pharmacy') ||
+        (scheduleManagerTestEmail() && currentUserRole() in ['pharmacy', 'pharmacist', 'assistant', 'employee'])
+      );
+    }
+
+    function isSchedulePharmacyOwner(data) {
+      return canAccessScheduleManager() && currentUserRole() == 'pharmacy' && data.pharmacyId == request.auth.uid;
+    }
+
+    function isScheduleLinkedUser(data) {
+      return canAccessScheduleManager() && (
+        data.linkedUserId == request.auth.uid ||
+        data.userId == request.auth.uid ||
+        data.requesterUserId == request.auth.uid ||
+        data.targetUserId == request.auth.uid ||
+        data.email == request.auth.token.email ||
+        data.employeeEmail == request.auth.token.email
+      );
+    }
+
+    function isSchedulePublished(data) {
+      return canAccessScheduleManager() && data.publishedAt != null;
+    }
+
+    function employeePreferenceFieldsOnly() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'avoidWeekdays',
+        'preferWeekdays',
+        'preferredShiftType',
+        'preferredWeekend',
+        'preferredNight',
+        'canWorkWeekends',
+        'canWorkNight',
+        'targetWeeklyHours',
+        'schedulingNotes',
+        'updatedAt'
+      ]);
+    }
     
     // Users collection
     match /users/{userId} {
@@ -40,7 +104,9 @@ service cloud.firestore {
     }
     
     match /notifications/{notificationId} {
-      allow read, write: if isAdmin() || isAuthenticated();
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow create: if isAdmin() || (isAuthenticated() && request.resource.data.userId == request.auth.uid);
+      allow update, delete: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
     }
     
     match /chats/{chatId} {
@@ -115,7 +181,7 @@ service cloud.firestore {
     // Push subscriptions - user can manage their own
     match /pushSubscriptions/{subId} {
       allow read: if isAdmin();
-      allow create: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
       allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
     }
     
@@ -140,27 +206,47 @@ service cloud.firestore {
 
     // Pharmagister schedule manager collections
     match /pharmacyEmployees/{employeeId} {
-      allow read, write: if isAdmin() || isAuthenticated();
+      allow read: if isAdmin() || isSchedulePharmacyOwner(resource.data) || isScheduleLinkedUser(resource.data);
+      allow create: if isAdmin() || isSchedulePharmacyOwner(request.resource.data);
+      allow update: if isAdmin() ||
+        (isSchedulePharmacyOwner(resource.data) && request.resource.data.pharmacyId == resource.data.pharmacyId) ||
+        (isScheduleLinkedUser(resource.data) && employeePreferenceFieldsOnly());
+      allow delete: if isAdmin() || isSchedulePharmacyOwner(resource.data);
     }
 
     match /pharmacySchedules/{scheduleId} {
-      allow read, write: if isAdmin() || isAuthenticated();
+      allow read: if isAdmin() || isSchedulePharmacyOwner(resource.data) || isScheduleLinkedUser(resource.data) || isSchedulePublished(resource.data);
+      allow create: if isAdmin() || isSchedulePharmacyOwner(request.resource.data);
+      allow update, delete: if isAdmin() || isSchedulePharmacyOwner(resource.data);
     }
 
     match /scheduleSwapRequests/{requestId} {
-      allow read, write: if isAdmin() || isAuthenticated();
+      allow read: if isAdmin() || isSchedulePharmacyOwner(resource.data) || isScheduleLinkedUser(resource.data);
+      allow create: if isAdmin() || isSchedulePharmacyOwner(request.resource.data) ||
+        (canAccessScheduleManager() && request.resource.data.requesterUserId == request.auth.uid);
+      allow update: if isAdmin() || isSchedulePharmacyOwner(resource.data) || isScheduleLinkedUser(resource.data);
+      allow delete: if isAdmin() || isSchedulePharmacyOwner(resource.data);
     }
 
     match /scheduleVacationRequests/{requestId} {
-      allow read, write: if isAdmin() || isAuthenticated();
+      allow read: if isAdmin() || isSchedulePharmacyOwner(resource.data) || isScheduleLinkedUser(resource.data);
+      allow create: if isAdmin() || (canAccessScheduleManager() && request.resource.data.userId == request.auth.uid);
+      allow update: if isAdmin() || isSchedulePharmacyOwner(resource.data) || isScheduleLinkedUser(resource.data);
+      allow delete: if isAdmin() || isSchedulePharmacyOwner(resource.data) || isScheduleLinkedUser(resource.data);
     }
 
     match /schedulePreferences/{prefId} {
-      allow read: if isAdmin() || isAuthenticated();
-      allow write: if isAdmin() || (isAuthenticated() && (
-        resource == null ||
+      allow read: if isAdmin() || isScheduleLinkedUser(resource.data) || isSchedulePublished(resource.data) ||
+        (isSchedulePharmacyOwner(resource.data) && resource.data.publishedAt != null);
+      allow create: if isAdmin() || (canAccessScheduleManager() && (
+        request.resource.data.linkedUserId == request.auth.uid ||
+        request.resource.data.employeeEmail == request.auth.token.email
+      ));
+      allow update, delete: if isAdmin() || (canAccessScheduleManager() && (
         resource.data.linkedUserId == request.auth.uid ||
-        request.resource.data.linkedUserId == request.auth.uid
+        request.resource.data.linkedUserId == request.auth.uid ||
+        resource.data.employeeEmail == request.auth.token.email ||
+        request.resource.data.employeeEmail == request.auth.token.email
       ));
     }
     

@@ -42,6 +42,13 @@ export default function PushNotificationSetup() {
     return null;
   };
 
+  const getAuthHeaders = async () => {
+    const idToken = user ? await user.getIdToken() : null;
+    return idToken
+      ? { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` }
+      : { 'Content-Type': 'application/json' };
+  };
+
   const syncNativeFcmToken = async () => {
     if (!user) return;
 
@@ -75,7 +82,7 @@ export default function PushNotificationSetup() {
 
       const response = await fetch('/api/push-subscription', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await getAuthHeaders(),
         body: JSON.stringify({
           userId: user.uid,
           subscription: {
@@ -213,7 +220,7 @@ export default function PushNotificationSetup() {
       // Save subscription to server
       const response = await fetch('/api/push-subscription', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await getAuthHeaders(),
         body: JSON.stringify({
           userId: user.uid,
           subscription: subscription.toJSON()
@@ -247,7 +254,7 @@ export default function PushNotificationSetup() {
         // Remove from server
         await fetch('/api/push-subscription', {
           method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
+          headers: await getAuthHeaders(),
           body: JSON.stringify({
             userId: user.uid,
             endpoint: subscription.endpoint

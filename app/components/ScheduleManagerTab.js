@@ -763,21 +763,18 @@ function PharmacyScheduleCalendar({
   // ── Load employee profiles when summary modal opens ───────────────────
   useEffect(() => {
     if (!showSummary) return;
-    const linkedIds = employees.map(e => e.linkedUserId).filter(Boolean);
-    if (linkedIds.length === 0) return;
-    setSummaryProfilesLoading(true);
-    const chunks = [];
-    for (let i = 0; i < linkedIds.length; i += 10) chunks.push(linkedIds.slice(i, i + 10));
-    Promise.all(
-      chunks.map(chunk =>
-        getDocs(query(collection(db, 'employeeProfiles'), where('userId', 'in', chunk)))
-      )
-    ).then(snapshots => {
-      const profiles = snapshots.flatMap(s => s.docs.map(d => ({ id: d.id, ...d.data() })));
-      setSummaryProfiles(profiles);
-    }).catch(err => console.error('summaryProfiles load error', err))
-      .finally(() => setSummaryProfilesLoading(false));
-  }, [showSummary]);
+    setSummaryProfilesLoading(false);
+    setSummaryProfiles(employees
+      .filter(e => e.linkedUserId)
+      .map(e => ({
+        userId: e.linkedUserId,
+        birthDate: e.birthDate || '',
+        childrenCount: e.childrenCount || 0,
+        contractHours: e.contractHours || 8,
+        vacationTakenThisYear: e.vacationTakenThisYear || 0,
+        vacationCarriedOver: e.vacationCarriedOver || 0,
+      })));
+  }, [showSummary, employees]);
 
   // ── Staffing warnings: detect under-staffed templates when rows change ────
   const staffingWarnings = useMemo(() => {
@@ -1027,7 +1024,7 @@ function PharmacyScheduleCalendar({
           title: 'Beosztás csere igény',
           message: `${requesterSchedule.employeeName} csereigényt küldött a beosztásodra (${requesterSchedule.date} ${requesterSchedule.startTime}–${requesterSchedule.endTime}).`,
           data: { requesterScheduleId: requesterSchedule.id, targetScheduleId: targetSchedule.id },
-          url: '/pharmagister?tab=schedule-manager',
+          url: '/pharmagister?tab=schedule-manager&subtab=swaps',
         });
       }
       if (requesterSchedule.pharmacyId) {
@@ -1037,7 +1034,7 @@ function PharmacyScheduleCalendar({
           title: 'Új beosztás csere igény',
           message: `${requesterSchedule.employeeName} cserét kért ${targetSchedule.employeeName} beosztásával.`,
           data: { requesterScheduleId: requesterSchedule.id, targetScheduleId: targetSchedule.id },
-          url: '/pharmagister?tab=schedule-manager',
+          url: '/pharmagister?tab=schedule-manager&subtab=swaps',
         });
       }
       setReadOnlySwapDone(`Csereigény elküldve ${targetSchedule.employeeName} felé!`);
@@ -2865,32 +2862,35 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     }
   }, [aiModeAllowed]);
 
-  // Deep-link: subtab=swaps URL param → nyissa meg a Cserék tabot
+  // Deep-link: subtab URL param → nyissa meg a megfelelő beosztás alfület
   useEffect(() => {
-    if (isPharmacy || typeof window === 'undefined') return;
+    if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
-    if (params.get('subtab') === 'swaps') {
-      setMainTab('swaps');
+    const subtab = params.get('subtab');
+    const allowedTabs = isPharmacy
+      ? new Set(['schedule', 'workers', 'history'])
+      : new Set(['mine', 'planner', 'swaps', 'vacations', 'preferences']);
+    if (allowedTabs.has(subtab)) {
+      setMainTab(subtab);
     }
   }, [isPharmacy]);
 
-  // ── Load employee profiles for pharmacy workers tab ───────────────────
+  // ── Build pharmacy worker profile map from pharmacyEmployees ───────────
   useEffect(() => {
     if (!isPharmacy || mainTab !== 'workers') return;
-    const linkedIds = employees.map(e => e.linkedUserId).filter(Boolean);
-    if (linkedIds.length === 0) return;
-    const chunks = [];
-    for (let i = 0; i < linkedIds.length; i += 10) chunks.push(linkedIds.slice(i, i + 10));
-    Promise.all(
-      chunks.map(chunk =>
-        getDocs(query(collection(db, 'employeeProfiles'), where('userId', 'in', chunk)))
-      )
-    ).then(snapshots => {
-      const profiles = snapshots.flatMap(s => s.docs.map(d => ({ id: d.id, ...d.data() })));
-      const map = {};
-      profiles.forEach(p => { map[p.userId] = p; });
-      setWorkerProfiles(map);
-    }).catch(err => console.error('workerProfiles load error', err));
+    const map = {};
+    employees.forEach((employee) => {
+      if (!employee.linkedUserId) return;
+      map[employee.linkedUserId] = {
+        userId: employee.linkedUserId,
+        birthDate: employee.birthDate || '',
+        childrenCount: employee.childrenCount || 0,
+        contractHours: employee.contractHours || 8,
+        vacationTakenThisYear: employee.vacationTakenThisYear || 0,
+        vacationCarriedOver: employee.vacationCarriedOver || 0,
+      };
+    });
+    setWorkerProfiles(map);
   }, [isPharmacy, mainTab, employees]);
 
   const ownScheduleIds = useMemo(() => {
@@ -3129,8 +3129,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       getDocs(query(collection(db, 'pharmacySchedules'), where('pharmacyId', '==', user.uid), where('year', '==', thisYear))),
       getDocs(query(collection(db, 'scheduleSwapRequests'), where('pharmacyId', '==', user.uid))),
       getDocs(query(collection(db, 'scheduleVacationRequests'), where('pharmacyId', '==', user.uid))),
-      getDocs(query(collection(db, 'schedulePreferences'), where('pharmacyId', '==', user.uid), where('year', '==', year), where('month', '==', month))),
-      getDocs(query(collection(db, 'schedulePreferences'), where('pharmacyId', '==', user.uid))),
+      getDocs(query(collection(db, 'schedulePreferences'), where('pharmacyId', '==', user.uid), where('year', '==', year), where('month', '==', month), where('publishedAt', '!=', null))),
+      getDocs(query(collection(db, 'schedulePreferences'), where('pharmacyId', '==', user.uid), where('publishedAt', '!=', null))),
     ]);
 
     setEmployees(employeesSnapshot.docs.map(item => ({ id: item.id, ...item.data() })));
@@ -3162,36 +3162,35 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     const collectedSchedules = [];
     const collectedSwapRequests = [];
     const collectedVacationRequests = [];
+    const collectedPreferences = [];
 
     for (const pharmacyId of pharmacyIds) {
-      const [scheduleSnapshot, requesterSwapsSnapshot, targetSwapsSnapshot, vacationSnapshot] = await Promise.all([
-        getDocs(query(collection(db, 'pharmacySchedules'), where('pharmacyId', '==', pharmacyId), where('year', '==', year), where('month', '==', month))),
+      const [scheduleSnapshot, requesterSwapsSnapshot, targetSwapsSnapshot, vacationSnapshot, publishedPrefsSnapshot, ownPrefsSnapshot] = await Promise.all([
+        getDocs(query(collection(db, 'pharmacySchedules'), where('pharmacyId', '==', pharmacyId), where('year', '==', year), where('month', '==', month), where('publishedAt', '!=', null))),
         getDocs(query(collection(db, 'scheduleSwapRequests'), where('requesterUserId', '==', user.uid))),
         getDocs(query(collection(db, 'scheduleSwapRequests'), where('targetUserId', '==', user.uid))),
         getDocs(query(collection(db, 'scheduleVacationRequests'), where('userId', '==', user.uid))),
+        getDocs(query(collection(db, 'schedulePreferences'), where('pharmacyId', '==', pharmacyId), where('year', '==', year), where('month', '==', month), where('publishedAt', '!=', null))),
+        getDocs(query(collection(db, 'schedulePreferences'), where('linkedUserId', '==', user.uid), where('year', '==', year), where('month', '==', month))),
       ]);
 
       collectedSchedules.push(...scheduleSnapshot.docs.map(item => ({ id: item.id, ...item.data() })));
       collectedSwapRequests.push(...requesterSwapsSnapshot.docs.map(item => ({ id: item.id, ...item.data() })));
       collectedSwapRequests.push(...targetSwapsSnapshot.docs.map(item => ({ id: item.id, ...item.data() })));
       collectedVacationRequests.push(...vacationSnapshot.docs.map(item => ({ id: item.id, ...item.data() })));
-
-      // Load all preferences for this pharmacy+year+month so employees can see each other's drafts
-      const prefsSnapshot = await getDocs(query(
-        collection(db, 'schedulePreferences'),
-        where('pharmacyId', '==', pharmacyId),
-        where('year', '==', year),
-        where('month', '==', month)
-      ));
-      setSchedulePreferences(prefsSnapshot.docs.map(item => ({ id: item.id, ...item.data() })));
+      collectedPreferences.push(...publishedPrefsSnapshot.docs.map(item => ({ id: item.id, ...item.data() })));
+      collectedPreferences.push(...ownPrefsSnapshot.docs.map(item => ({ id: item.id, ...item.data() })));
     }
 
     const uniqueSwapMap = new Map();
     collectedSwapRequests.forEach(item => uniqueSwapMap.set(item.id, item));
+    const uniquePreferenceMap = new Map();
+    collectedPreferences.forEach(item => uniquePreferenceMap.set(item.id, item));
 
     setSchedules(sortByDateAndTime(collectedSchedules));
     setSwapRequests([...uniqueSwapMap.values()]);
     setVacationRequests(collectedVacationRequests);
+    setSchedulePreferences([...uniquePreferenceMap.values()]);
 
     // Load employee profile
     const profileDocs = await getDocs(query(
@@ -3330,7 +3329,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         title: 'Dolgozoi tervezet publikalva',
         message: `${ownRec?.name || userData?.name || user.email} publikalta a ${MONTHS_HU[targetMonth - 1]} ${targetYear} havi tervezetet.`,
         data: { employeeId: ownRec?.id || '', year: targetYear, month: targetMonth },
-        url: '/pharmagister?tab=schedule-manager',
+        url: '/pharmagister?tab=schedule-manager&subtab=workers',
         dedupeWindowSeconds: 120,
         dedupeByDataKeys: ['employeeId', 'year', 'month'],
       });
@@ -3447,7 +3446,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         title: 'Új gyógyszertári kapcsolat',
         message: `${pharmacyName} felvett a Pharmagisterben a dolgozói közé.`,
         data: { pharmacyId: user.uid, pharmacyName },
-        url: '/pharmagister?tab=schedule-manager',
+        url: '/pharmagister?tab=schedule-manager&subtab=mine',
         dedupeWindowSeconds: 120,
         dedupeByDataKeys: ['pharmacyId'],
       });
@@ -3476,31 +3475,16 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         address: (form.address || '').trim(),
         notes: (form.notes || '').trim(),
         contractHours,
+        birthDate: form.birthDate || '',
+        childrenCount: Number(form.childrenCount) || 0,
+        vacationTakenThisYear: Number(form.vacationTakenThisYear) || 0,
+        vacationCarriedOver: Number(form.vacationCarriedOver) || 0,
         updatedAt: serverTimestamp(),
       };
       await updateDoc(doc(db, 'pharmacyEmployees', employeeId), empPayload);
       setEmployees(prev => prev.map(e => e.id === employeeId ? { ...e, ...empPayload } : e));
-
-      // Save to employeeProfiles (if employee has a linkedUserId)
-      const linkedUserId = employee?.linkedUserId;
-      if (linkedUserId) {
-        const profilePayload = {
-          userId: linkedUserId,
-          birthDate: form.birthDate || '',
-          childrenCount: Number(form.childrenCount) || 0,
-          contractHours,
-          vacationTakenThisYear: Number(form.vacationTakenThisYear) || 0,
-          vacationCarriedOver: Number(form.vacationCarriedOver) || 0,
-          updatedAt: serverTimestamp(),
-        };
-        const existingProfile = workerProfiles[linkedUserId];
-        if (existingProfile?.id) {
-          await updateDoc(doc(db, 'employeeProfiles', existingProfile.id), profilePayload);
-        } else {
-          const ref = await addDoc(collection(db, 'employeeProfiles'), { ...profilePayload, createdAt: serverTimestamp() });
-          profilePayload.id = ref.id;
-        }
-        setWorkerProfiles(prev => ({ ...prev, [linkedUserId]: { ...(prev[linkedUserId] || {}), ...profilePayload } }));
+      if (employee?.linkedUserId) {
+        setWorkerProfiles(prev => ({ ...prev, [employee.linkedUserId]: { ...(prev[employee.linkedUserId] || {}), ...empPayload, userId: employee.linkedUserId } }));
       }
     } catch (err) {
       setStatusError('Mentés sikertelen: ' + err.message);
@@ -3549,7 +3533,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           title: 'Gyógyszertári kapcsolat törölve',
           message: `${pharmacyName} eltávolított a dolgozói listájából.`,
           data: { pharmacyId: user.uid, pharmacyName, employeeId },
-          url: '/pharmagister?tab=schedule-manager',
+          url: '/pharmagister?tab=schedule-manager&subtab=mine',
           dedupeWindowSeconds: 120,
           dedupeByDataKeys: ['pharmacyId', 'employeeId'],
         });
@@ -3727,7 +3711,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             ? `${pharmacyName} visszavonta a beosztásodat: ${scheduleItem.date} (${scheduleItem.startTime}-${scheduleItem.endTime}).`
             : `${pharmacyName} törölte a beosztásodat: ${scheduleItem.date} (${scheduleItem.startTime}-${scheduleItem.endTime}).`,
           data: { pharmacyId: user.uid, scheduleId, date: scheduleItem.date },
-          url: '/pharmagister?tab=schedule-manager',
+          url: '/pharmagister?tab=schedule-manager&subtab=mine',
           dedupeWindowSeconds: 120,
           dedupeByDataKeys: ['scheduleId'],
         });
@@ -3813,7 +3797,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           title: 'Beosztás csere igény',
           message: `${requesterSchedule.employeeName} csereigényt küldött a beosztásodra (${requesterSchedule.date} ${requesterSchedule.startTime}–${requesterSchedule.endTime}).`,
           data: { requesterScheduleId: requesterSchedule.id, targetScheduleId: targetSchedule.id },
-          url: '/pharmagister?tab=schedule-manager',
+          url: '/pharmagister?tab=schedule-manager&subtab=swaps',
         });
       }
 
@@ -3823,7 +3807,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         title: 'Új beosztás csere igény indult',
         message: `${requesterSchedule.employeeName} cserét kezdeményezett ${targetSchedule.employeeName} beosztásával.`,
         data: { requesterScheduleId: requesterSchedule.id, targetScheduleId: targetSchedule.id },
-        url: '/pharmagister?tab=schedule-manager',
+        url: '/pharmagister?tab=schedule-manager&subtab=swaps',
       });
 
       setSwapForm({ requesterScheduleId: '', targetScheduleId: '', message: '' });
@@ -3881,7 +3865,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           title: 'Beosztás csere igény',
           message: `${requesterSchedule.employeeName} cserét kér a ${requesterSchedule.date} ${requesterSchedule.startTime}–${requesterSchedule.endTime} műszakodra.`,
           data: { requesterScheduleId: requesterSchedule.id, targetScheduleId: targetSchedule.id },
-          url: '/pharmagister?tab=schedule-manager',
+          url: '/pharmagister?tab=schedule-manager&subtab=swaps',
         });
       }
 
@@ -3891,7 +3875,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         title: 'Új beosztás csere igény indult',
         message: `${requesterSchedule.employeeName} csereigényt nyújtott be ${targetSchedule.employeeName} beosztásával. Az elfogadáshoz a kollégája döntése után még jóváhagyásra van szükség.`,
         data: { requesterScheduleId: requesterSchedule.id, targetScheduleId: targetSchedule.id },
-        url: '/pharmagister?tab=schedule-manager',
+        url: '/pharmagister?tab=schedule-manager&subtab=swaps',
         dedupeWindowSeconds: 60,
         dedupeByDataKeys: ['requesterScheduleId', 'targetScheduleId'],
       });
@@ -3934,7 +3918,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             title: 'Csere elfogadva – gyógyszertár jóváhagyása szükséges',
             message: `${requestItem.targetName} elfogadta a csereigényt. A csere végrehajtásához még a gyógyszertár jóváhagyása szükséges.`,
             data: { requestId },
-            url: '/pharmagister?tab=schedule-manager',
+            url: '/pharmagister?tab=schedule-manager&subtab=swaps',
           });
         }
 
@@ -3945,7 +3929,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           title: 'Csere jóváhagyása szükséges',
           message: `${requestItem.requesterName} és ${requestItem.targetName} beosztáscseréje elfogadásra vár. Kérjük, erősítse meg vagy utasítsa el.`,
           data: { requestId },
-          url: '/pharmagister?tab=schedule-manager',
+          url: '/pharmagister?tab=schedule-manager&subtab=swaps',
           dedupeWindowSeconds: 120,
           dedupeByDataKeys: ['requestId'],
         });
@@ -3966,7 +3950,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             title: 'Csereigény elutasítva',
             message: `${requestItem.targetName} elutasította a csereigényt.`,
             data: { requestId },
-            url: '/pharmagister?tab=schedule-manager',
+            url: '/pharmagister?tab=schedule-manager&subtab=swaps',
           });
         }
 
@@ -3976,7 +3960,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           title: 'Csere elutasítva',
           message: `${requestItem.targetName} nem fogadta el a csereigényt (${requestItem.requesterName} kezdeményezte).`,
           data: { requestId },
-          url: '/pharmagister?tab=schedule-manager',
+          url: '/pharmagister?tab=schedule-manager&subtab=swaps',
         });
 
         setStatusMessage('A csereigényt elutasítottad.');
@@ -4021,6 +4005,18 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             status: 'cancelled_schedule_deleted',
             updatedAt: serverTimestamp(),
           });
+          for (const linkedUserId of [requestItem.requesterUserId, requestItem.targetUserId].filter(Boolean)) {
+            await createNotificationWithPush({
+              userId: linkedUserId,
+              type: 'schedule_swap_cancelled',
+              title: 'Csereigény megszakítva',
+              message: 'A csereigény megszakadt, mert az egyik érintett beosztás már nem található.',
+              data: { requestId, pharmacyId: requestItem.pharmacyId },
+              url: '/pharmagister?tab=schedule-manager&subtab=swaps',
+              dedupeWindowSeconds: 120,
+              dedupeByDataKeys: ['requestId', 'type'],
+            });
+          }
           await loadData();
           setStatusError('A csere egyik beosztása már nem található, a csereigényt visszavontuk.');
           return;
@@ -4067,7 +4063,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             title: 'Csere jóváhagyva – beosztás frissítve',
             message: `A gyógyszertár jóváhagyta a cserét ${requestItem.targetName} dolgozóval. Az új beosztás automatikusan publikálva.`,
             data: { requestId },
-            url: '/pharmagister?tab=schedule-manager',
+            url: '/pharmagister?tab=schedule-manager&subtab=swaps',
           });
         }
         if (requestItem.targetUserId) {
@@ -4077,7 +4073,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             title: 'Csere jóváhagyva – beosztás frissítve',
             message: `A gyógyszertár jóváhagyta a cserét ${requestItem.requesterName} dolgozóval. Az új beosztás automatikusan publikálva.`,
             data: { requestId },
-            url: '/pharmagister?tab=schedule-manager',
+            url: '/pharmagister?tab=schedule-manager&subtab=swaps',
           });
         }
 
@@ -4097,7 +4093,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             title: 'Csere elutasítva a gyógyszertár által',
             message: `A gyógyszertár nem hagyta jóvá a cserét ${requestItem.targetName} dolgozóval.`,
             data: { requestId },
-            url: '/pharmagister?tab=schedule-manager',
+            url: '/pharmagister?tab=schedule-manager&subtab=swaps',
           });
         }
         if (requestItem.targetUserId) {
@@ -4107,7 +4103,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             title: 'Csere elutasítva a gyógyszertár által',
             message: `A gyógyszertár nem hagyta jóvá a cserét ${requestItem.requesterName} dolgozóval.`,
             data: { requestId },
-            url: '/pharmagister?tab=schedule-manager',
+            url: '/pharmagister?tab=schedule-manager&subtab=swaps',
           });
         }
 
@@ -4181,7 +4177,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         title: 'Új szabadságigény',
         message: `${employeeRecord.name} szabadságigényt küldött be.`,
         data: { employeeId: employeeRecord.id },
-        url: '/pharmagister?tab=schedule-manager',
+        url: '/pharmagister?tab=schedule-manager&subtab=schedule',
       });
 
       setVacationForm(prev => ({ ...prev, reason: '' }));
@@ -4219,7 +4215,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             ? `${requestItem.startDate} - ${requestItem.endDate} közötti szabadságigényed jóvá lett hagyva.`
             : `${requestItem.startDate} - ${requestItem.endDate} közötti szabadságigényed el lett utasítva.`,
           data: { requestId, pharmacyId: requestItem.pharmacyId },
-          url: '/pharmagister?tab=schedule-manager',
+          url: '/pharmagister?tab=schedule-manager&subtab=vacations',
         });
       }
 
@@ -4264,6 +4260,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           employees: activeEmployees,
           schedules: activeMonthSchedules,
           vacationRequests,
+          schedulePreferences: schedulePreferences.filter(p => p.status !== 'deleted' && p.publishedAt),
           year,
           month,
           config: normalizePlanningConfig(plannerConfigForm),
@@ -4313,7 +4310,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           title: 'Uj beosztas publikalva',
           message: `${MONTHS_HU[month - 1]} ${year} havi beosztasod publikalva lett.`,
           data: { pharmacyId: user.uid, year, month },
-          url: '/pharmagister?tab=schedule-manager',
+          url: '/pharmagister?tab=schedule-manager&subtab=mine',
           dedupeWindowSeconds: 120,
           dedupeByDataKeys: ['pharmacyId', 'year', 'month'],
         });
@@ -4357,21 +4354,20 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           updatedAt: serverTimestamp(),
         })
       ));
-      // Notify ALL pharmacy employees with linked accounts
-      const allLinkedUsers = employees.map(e => e.linkedUserId).filter(Boolean);
-      for (const userId of allLinkedUsers) {
+      const changedLinkedUsers = [...new Set(toPublish.map(s => s.linkedUserId).filter(Boolean))];
+      for (const userId of changedLinkedUsers) {
         await createNotificationWithPush({
           userId,
           type: 'schedule_updated',
           title: 'Beosztas valtozas',
           message: `${MONTHS_HU[month - 1]} ${year} havi beosztasban csere tortent.`,
           data: { pharmacyId: user.uid, year, month },
-          url: '/pharmagister?tab=schedule-manager',
+          url: '/pharmagister?tab=schedule-manager&subtab=mine',
           dedupeWindowSeconds: 60,
           dedupeByDataKeys: ['pharmacyId', 'year', 'month', 'type'],
         });
       }
-      setStatusMessage(`Változtatások publikálva. Értesítés elküldve ${allLinkedUsers.length} dolgozónak.`);
+      setStatusMessage(`Változtatások publikálva. Értesítés elküldve ${changedLinkedUsers.length} érintett dolgozónak.`);
       await loadData();
     } catch (err) {
       console.error('handlePublishSwapChanges error', err);
@@ -4406,6 +4402,45 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           updatedAt: serverTimestamp(),
         })
       ));
+
+      const publishedTargets = new Map();
+      toDelete.forEach((schedule) => {
+        if (schedule.linkedUserId && isPublishedSchedule(schedule)) {
+          publishedTargets.set(schedule.linkedUserId, schedule.employeeName || 'Dolgozó');
+        }
+      });
+
+      for (const [linkedUserId] of publishedTargets) {
+        await createNotificationWithPush({
+          userId: linkedUserId,
+          type: 'schedule_month_deleted',
+          title: 'Havi beosztás törölve',
+          message: `${MONTHS_HU[month - 1]} ${year} havi beosztásodat a gyógyszertár törölte.`,
+          data: { pharmacyId: user.uid, year, month },
+          url: '/pharmagister?tab=schedule-manager&subtab=mine',
+          dedupeWindowSeconds: 120,
+          dedupeByDataKeys: ['pharmacyId', 'year', 'month', 'type'],
+        });
+      }
+
+      const cancelledSwapTargets = new Map();
+      relatedSwaps.forEach((swap) => {
+        if (swap.requesterUserId) cancelledSwapTargets.set(swap.requesterUserId, swap.id);
+        if (swap.targetUserId) cancelledSwapTargets.set(swap.targetUserId, swap.id);
+      });
+
+      for (const [linkedUserId, requestId] of cancelledSwapTargets) {
+        await createNotificationWithPush({
+          userId: linkedUserId,
+          type: 'schedule_swap_cancelled',
+          title: 'Csereigény megszakítva',
+          message: 'Egy csereigény megszakadt, mert az érintett beosztást törölték.',
+          data: { requestId, pharmacyId: user.uid, year, month },
+          url: '/pharmagister?tab=schedule-manager&subtab=swaps',
+          dedupeWindowSeconds: 120,
+          dedupeByDataKeys: ['requestId', 'type'],
+        });
+      }
       setStatusMessage(`${toDelete.length} beosztás törölve (${MONTHS_HU[month - 1]} ${year}).`);
       await loadData();
     } catch (err) {
@@ -4704,6 +4739,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       ]
     : [
         { key: 'mine', label: 'Beosztásom' },
+        { key: 'planner', label: 'Tervező' },
         { key: 'swaps', label: 'Cserék', badge: pendingIncomingSwaps.length },
         { key: 'vacations', label: 'Szabadságolások' },
         { key: 'preferences', label: 'Preferenciák' },
@@ -4924,6 +4960,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           employees: activeEmployees,
           schedules,
           vacationRequests,
+          schedulePreferences: schedulePreferences.filter(p => p.status !== 'deleted' && p.publishedAt),
           year,
           month,
           config: normalizePlanningConfig(plannerConfigForm),
@@ -5920,6 +5957,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           type: 'approval_rejected',
           title: 'Jelentkezes elutasitva ❌',
           message: `${userData?.pharmacyName || userData?.displayName || 'Gyogyszertar'} elutasitotta a jelentkezesedet. Indok: ${rejectReason}`,
+          data: { demandId, pharmacyId: user.uid },
           url: '/pharmagister?tab=dashboard',
         });
 
@@ -6945,6 +6983,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           employees: activeEmployees,
           schedules,
           vacationRequests,
+          schedulePreferences: schedulePreferences.filter(p => p.status !== 'deleted' && p.publishedAt),
           year,
           month,
           config: normalizePlanningConfig(plannerConfigForm),
@@ -8030,10 +8069,10 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                           address: employee.address || '',
                           notes: employee.notes || '',
                           contractHours: String(employee.contractHours || profile.contractHours || '8'),
-                          birthDate: profile.birthDate || '',
-                          childrenCount: String(profile.childrenCount ?? '0'),
-                          vacationTakenThisYear: String(profile.vacationTakenThisYear ?? '0'),
-                          vacationCarriedOver: String(profile.vacationCarriedOver ?? '0'),
+                          birthDate: employee.birthDate || profile.birthDate || '',
+                          childrenCount: String(employee.childrenCount ?? profile.childrenCount ?? '0'),
+                          vacationTakenThisYear: String(employee.vacationTakenThisYear ?? profile.vacationTakenThisYear ?? '0'),
+                          vacationCarriedOver: String(employee.vacationCarriedOver ?? profile.vacationCarriedOver ?? '0'),
                         };
                         const isSavingEf = !!workerEditSaving[employee.id];
 
@@ -8334,7 +8373,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                 });
               }
               // Új beosztás publikálva az aktuális hónapra
-              const myPublished = schedules.filter(s => s.status === 'published' && s.year === year && s.month === month && (s.linkedUserId === user?.uid || s.userId === user?.uid));
+              const myPublished = schedules.filter(s => s.status !== 'deleted' && Boolean(s.publishedAt) && s.year === year && s.month === month && (s.linkedUserId === user?.uid || s.userId === user?.uid));
               if (myPublished.length > 0) {
                 alerts.push({
                   key: 'published',

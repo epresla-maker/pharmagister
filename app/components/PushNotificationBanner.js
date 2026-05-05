@@ -67,6 +67,13 @@ export default function PushNotificationBanner() {
     }
   }, [user]);
 
+  const getAuthHeaders = async () => {
+    const idToken = user ? await user.getIdToken() : null;
+    return idToken
+      ? { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` }
+      : { 'Content-Type': 'application/json' };
+  };
+
   // For PWA: Check if subscription exists AND is saved on server
   const checkAndResubscribeIfNeeded = async () => {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
@@ -87,7 +94,7 @@ export default function PushNotificationBanner() {
       // Check if this subscription is saved on server
       const response = await fetch('/api/push-subscription/check', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await getAuthHeaders(),
         body: JSON.stringify({
           userId: user.uid,
           endpoint: subscription.endpoint
@@ -114,7 +121,7 @@ export default function PushNotificationBanner() {
   const saveSubscription = async (subscription) => {
     const response = await fetch('/api/push-subscription', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await getAuthHeaders(),
       body: JSON.stringify({
         userId: user.uid,
         subscription: subscription.toJSON()
@@ -177,7 +184,7 @@ export default function PushNotificationBanner() {
       // Save to server
       const response = await fetch('/api/push-subscription', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await getAuthHeaders(),
         body: JSON.stringify({
           userId: user.uid,
           subscription: subscription.toJSON()

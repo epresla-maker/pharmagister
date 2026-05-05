@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/apiAuth';
+import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
+import { requireSchedulePharmacyAccess } from '@/lib/scheduleAccess';
 import {
   buildPlannerSuggestions,
   computePlannerStats,
@@ -19,10 +21,15 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Nincs jogosultság' }, { status: 401 });
     }
 
+    const admin = getFirebaseAdmin();
+    const db = admin.firestore();
+    await requireSchedulePharmacyAccess(authUser, db);
+
     const {
       employees = [],
       schedules = [],
       vacationRequests = [],
+      schedulePreferences = [],
       year,
       month,
       config,
@@ -47,6 +54,7 @@ export async function POST(request) {
         employees,
         schedules,
         vacationRequests,
+        schedulePreferences,
         year,
         month,
         config,
@@ -58,6 +66,7 @@ export async function POST(request) {
         employees,
         schedules,
         vacationRequests,
+        schedulePreferences,
         year,
         month,
         config,
@@ -70,6 +79,7 @@ export async function POST(request) {
         employees,
         schedules: mergedSchedules,
         vacationRequests,
+        schedulePreferences,
         year,
         month,
         config,
@@ -82,6 +92,7 @@ export async function POST(request) {
       employees,
       schedules: mergedSchedules,
       vacationRequests,
+      schedulePreferences,
       conflicts,
     });
     const humanSummary = buildHumanPlanSummary({ stats, conflicts });
@@ -104,6 +115,6 @@ export async function POST(request) {
     });
   } catch (error) {
     console.error('Schedule planner API error:', error);
-    return NextResponse.json({ error: error.message || 'Tervezési hiba történt' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Tervezési hiba történt' }, { status: error.status || 500 });
   }
 }

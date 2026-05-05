@@ -7,6 +7,38 @@ import { collection, query, where, getDocs, doc, updateDoc, orderBy, deleteDoc, 
 import { db } from "@/lib/firebase";
 import RouteGuard from "@/app/components/RouteGuard";
 
+const SCHEDULE_SWAP_NOTIFICATION_TYPES = new Set([
+  'schedule_swap_request',
+  'schedule_swap_request_for_pharmacy',
+  'schedule_swap_employee_accepted',
+  'schedule_swap_awaiting_pharmacy',
+  'schedule_swap_result',
+  'schedule_swap_result_for_pharmacy',
+  'schedule_swap_cancelled',
+]);
+
+const SCHEDULE_MINE_NOTIFICATION_TYPES = new Set([
+  'employee_added_to_pharmacy',
+  'employee_removed_from_pharmacy',
+  'schedule_published',
+  'schedule_updated',
+  'schedule_revoked',
+  'schedule_removed_from_employee',
+  'schedule_month_deleted',
+]);
+
+const SCHEDULE_VACATION_NOTIFICATION_TYPES = new Set([
+  'vacation_request_created',
+  'vacation_request_result',
+]);
+
+const SCHEDULE_NOTIFICATION_TYPES = new Set([
+  ...SCHEDULE_SWAP_NOTIFICATION_TYPES,
+  ...SCHEDULE_MINE_NOTIFICATION_TYPES,
+  ...SCHEDULE_VACATION_NOTIFICATION_TYPES,
+  'schedule_preference_published',
+]);
+
 export default function NotificationsPage() {
   const { user } = useAuth();
   const { refreshBadges } = useBadges();
@@ -99,7 +131,17 @@ export default function NotificationsPage() {
         return '🚩';
       case 'rating_request':
         return '⭐';
+      case 'schedule_preference_published':
+        return '📅';
+      case 'vacation_request_created':
+      case 'vacation_request_result':
+        return '🌴';
+      case 'employee_added_to_pharmacy':
+      case 'employee_removed_from_pharmacy':
+        return '👤';
       default:
+        if (SCHEDULE_SWAP_NOTIFICATION_TYPES.has(type)) return '🔄';
+        if (SCHEDULE_MINE_NOTIFICATION_TYPES.has(type)) return '📆';
         return '📢';
     }
   };
@@ -123,7 +165,14 @@ export default function NotificationsPage() {
         return 'bg-red-50 border-red-200';
       case 'rating_request':
         return 'bg-amber-50 border-amber-200';
+      case 'schedule_preference_published':
+        return 'bg-emerald-50 border-emerald-200';
+      case 'vacation_request_created':
+      case 'vacation_request_result':
+        return 'bg-orange-50 border-orange-200';
       default:
+        if (SCHEDULE_SWAP_NOTIFICATION_TYPES.has(type)) return 'bg-sky-50 border-sky-200';
+        if (SCHEDULE_MINE_NOTIFICATION_TYPES.has(type)) return 'bg-violet-50 border-violet-200';
         return 'bg-blue-50 border-blue-200';
     }
   };
@@ -157,19 +206,25 @@ export default function NotificationsPage() {
     else if (notification.type === 'rating_request' && notification.data?.demandId) {
       router.push(`/ertekeles/${notification.data.demandId}`);
     }
-    // Beosztás csereigény értesítések - csereigény kezelő megnyitása
-    else if ([
-      'schedule_swap_request',
-      'schedule_swap_employee_accepted',
-      'schedule_swap_awaiting_pharmacy',
-      'schedule_swap_result',
-      'schedule_swap_result_for_pharmacy',
-    ].includes(notification.type)) {
-      router.push('/pharmagister?tab=schedule-manager&subtab=swaps');
-    }
     // Ha van url a notification data-ban
     else if (notification.url) {
       router.push(notification.url);
+    }
+    else if (notification.data?.url) {
+      router.push(notification.data.url);
+    }
+    // Beosztás értesítések régi, url nélküli dokumentumokhoz
+    else if (SCHEDULE_SWAP_NOTIFICATION_TYPES.has(notification.type)) {
+      router.push('/pharmagister?tab=schedule-manager&subtab=swaps');
+    }
+    else if (notification.type === 'schedule_preference_published') {
+      router.push('/pharmagister?tab=schedule-manager&subtab=workers');
+    }
+    else if (SCHEDULE_VACATION_NOTIFICATION_TYPES.has(notification.type)) {
+      router.push('/pharmagister?tab=schedule-manager&subtab=vacations');
+    }
+    else if (SCHEDULE_MINE_NOTIFICATION_TYPES.has(notification.type)) {
+      router.push('/pharmagister?tab=schedule-manager&subtab=mine');
     }
     // Egyéb értesítések esetén alapértelmezett viselkedés (nincs navigáció)
   };
@@ -215,7 +270,7 @@ export default function NotificationsPage() {
                   key={notification.id}
                   onClick={() => handleNotificationClick(notification)}
                   className={`rounded-xl shadow-lg p-6 border-2 ${getNotificationColor(notification.type)} ${
-                    notification.type === 'pharma_application' || notification.type === 'admin_approval_request' || notification.type === 'new_message' || notification.type === 'new_demand' || notification.type === 'rating_request' || notification.chatId || notification.url || notification.data?.demandId
+                    notification.type === 'pharma_application' || notification.type === 'admin_approval_request' || notification.type === 'new_message' || notification.type === 'new_demand' || notification.type === 'rating_request' || SCHEDULE_NOTIFICATION_TYPES.has(notification.type) || notification.chatId || notification.url || notification.data?.url || notification.data?.demandId
                       ? 'cursor-pointer hover:shadow-xl transition-shadow'
                       : ''
                   } ${!notification.read ? 'ring-2 ring-purple-500 ring-offset-2' : ''}`}

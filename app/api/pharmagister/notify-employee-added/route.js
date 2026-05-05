@@ -1,6 +1,8 @@
 import { Resend } from 'resend';
 import { NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/apiAuth';
+import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
+import { requireSchedulePharmacyAccess } from '@/lib/scheduleAccess';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -59,6 +61,10 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Nincs jogosultsag' }, { status: 401 });
     }
 
+    const admin = getFirebaseAdmin();
+    const db = admin.firestore();
+    await requireSchedulePharmacyAccess(authUser, db);
+
     const { employeeEmail, employeeName, pharmacyName, pharmacyEmail } = await request.json();
 
     if (!employeeEmail) {
@@ -86,7 +92,7 @@ export async function POST(request) {
     console.error('Employee added notification email error:', error);
     return NextResponse.json(
       { error: 'Hiba történt az email küldés során: ' + error.message },
-      { status: 500 }
+      { status: error.status || 500 }
     );
   }
 }
