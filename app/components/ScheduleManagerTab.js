@@ -8414,26 +8414,6 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                 );
               })()}
 
-              {/* ── Javasolt beosztás gyors-gomb ─────────────────────── */}
-              {activeEmployees.length > 0 && (
-                <div className={`rounded-2xl border p-4 flex items-center justify-between gap-4 ${darkMode ? 'border-emerald-800 bg-emerald-900/20' : 'border-emerald-200 bg-emerald-50'}`}>
-                  <div>
-                    <p className={`font-bold text-sm ${darkMode ? 'text-emerald-300' : 'text-emerald-800'}`}>🤖 Javasolt beosztás</p>
-                    <p className={`text-xs mt-0.5 ${darkMode ? 'text-emerald-400/70' : 'text-emerald-700/70'}`}>
-                      Automatikus előzetes beosztás az előző hónap + dolgozói preferenciák alapján — {MONTHS_HU[month - 1]} {year}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    disabled={plannerLoading}
-                    onClick={generateAndApplySchedule}
-                    className="flex-shrink-0 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 px-4 py-2 text-sm font-bold text-white shadow disabled:opacity-60"
-                  >
-                    {plannerLoading ? 'Generálás...' : 'Generálás'}
-                  </button>
-                </div>
-              )}
-
               {/* Pending vacation + swap panels */}
               {pendingVacationRequests.length > 0 ? (
                 <div className={`rounded-2xl border p-5 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
