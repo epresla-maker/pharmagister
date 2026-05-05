@@ -8274,64 +8274,6 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                 );
               })()}
 
-              {/* ── Hónap státusz összesítő ──────────────────────────── */}
-              {(() => {
-                const allMonths = [...availableYears, ...pastYears].flatMap(y => {
-                  const startMonth = y === thisYear ? thisMonth : 1;
-                  return Array.from({ length: 13 - startMonth }, (_, i) => ({ y, m: startMonth + i }));
-                });
-                const publishedMonths = allMonths.filter(({ y, m }) =>
-                  schedules.some(s => s.status !== 'deleted' && s.year === y && s.month === m && s.publishedAt)
-                );
-                const plannedMonths = allMonths.filter(({ y, m }) =>
-                  schedules.some(s => s.status !== 'deleted' && s.year === y && s.month === m) &&
-                  !schedules.some(s => s.status !== 'deleted' && s.year === y && s.month === m && s.publishedAt)
-                );
-                const emptyMonths = allMonths.filter(({ y, m }) =>
-                  !schedules.some(s => s.status !== 'deleted' && s.year === y && s.month === m)
-                );
-                return (
-                  <div className="grid grid-cols-3 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setDraftStatusTab(draftStatusTab === 'planned' ? null : 'planned')}
-                      className={`rounded-xl px-3 py-2.5 text-center border transition-colors ${
-                        draftStatusTab === 'planned'
-                          ? (darkMode ? 'bg-amber-900/60 border-amber-700' : 'bg-amber-100 border-amber-300')
-                          : (darkMode ? 'bg-amber-900/20 border-amber-800' : 'bg-white border-amber-200')
-                      }`}
-                    >
-                      <div className={`text-lg font-black ${darkMode ? 'text-amber-300' : 'text-amber-700'}`}>{plannedMonths.length}</div>
-                      <div className={`text-[11px] font-semibold ${darkMode ? 'text-amber-400' : 'text-amber-600'}`}>Tervezett</div>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDraftStatusTab(draftStatusTab === 'published' ? null : 'published')}
-                      className={`rounded-xl px-3 py-2.5 text-center border transition-colors ${
-                        draftStatusTab === 'published'
-                          ? (darkMode ? 'bg-emerald-900/60 border-emerald-700' : 'bg-emerald-100 border-emerald-300')
-                          : (darkMode ? 'bg-emerald-900/20 border-emerald-800' : 'bg-white border-emerald-200')
-                      }`}
-                    >
-                      <div className={`text-lg font-black ${darkMode ? 'text-emerald-300' : 'text-emerald-700'}`}>{publishedMonths.length}</div>
-                      <div className={`text-[11px] font-semibold ${darkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>Publikált</div>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDraftStatusTab(draftStatusTab === 'none' ? null : 'none')}
-                      className={`rounded-xl px-3 py-2.5 text-center border transition-colors ${
-                        draftStatusTab === 'none'
-                          ? (darkMode ? 'bg-rose-900/60 border-rose-700' : 'bg-rose-100 border-rose-300')
-                          : (darkMode ? 'bg-rose-900/20 border-rose-800' : 'bg-white border-rose-200')
-                      }`}
-                    >
-                      <div className={`text-lg font-black ${darkMode ? 'text-rose-300' : 'text-rose-700'}`}>{emptyMonths.length}</div>
-                      <div className={`text-[11px] font-semibold ${darkMode ? 'text-rose-400' : 'text-rose-600'}`}>Üres</div>
-                    </button>
-                  </div>
-                );
-              })()}
-
               {/* ── Month picker ─────────────────────────────────────── */}
               {(() => {
                 return (
