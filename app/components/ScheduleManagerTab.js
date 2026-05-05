@@ -8371,16 +8371,17 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                             type="button"
                             onClick={() => { setYear(thisYear); setMonth(m); setCalendarOpen(true); }}
                             className={[
-                              'flex flex-col items-center rounded-2xl px-2 py-3 transition-all',
+                              'flex flex-col items-center justify-center rounded-2xl px-2 transition-all',
+                              'h-16',
                               isCurrentMonth ? 'border-[3px] border-blue-500 shadow-md shadow-blue-100' : 'border-2',
                               bgClass,
                               isActive && !isCurrentMonth ? 'ring-2 ring-offset-1 ring-violet-400' : '',
                             ].join(' ')}
                           >
                             <span className={`font-bold text-sm whitespace-nowrap ${textClass}`}>{label}</span>
-                            {monthScheds.length > 0 && (
+                            {hasPublished && (
                               <span className={`mt-1 text-[10px] font-semibold rounded-full px-2 py-0.5 ${badgeClass}`}>
-                                {monthScheds.length} műszak
+                                Publik\u00e1lva
                               </span>
                             )}
                           </button>
