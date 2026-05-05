@@ -2797,7 +2797,15 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   const [expandedWorker, setExpandedWorker] = useState(null);
   const [workerEditForms, setWorkerEditForms] = useState({}); // { [employeeId]: { phone, address, notes, contractHours, birthDate, childrenCount, vacationTakenThisYear, vacationCarriedOver } }
   const [workerEditSaving, setWorkerEditSaving] = useState({}); // { [employeeId]: bool }
+  const [workerEditSavedAt, setWorkerEditSavedAt] = useState({}); // { [employeeId]: Date }
+  const workerEditSavedTimersRef = useRef({});
   const [workerProfiles, setWorkerProfiles] = useState({}); // { [linkedUserId]: { id, ...profileData } }
+
+  useEffect(() => {
+    return () => {
+      Object.values(workerEditSavedTimersRef.current).forEach(clearTimeout);
+    };
+  }, []);
 
   // Quick swap: which own schedule is currently open for partner selection
   const [quickSwapScheduleId, setQuickSwapScheduleId] = useState(null);
@@ -3502,6 +3510,20 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       if (employee?.linkedUserId) {
         setWorkerProfiles(prev => ({ ...prev, [employee.linkedUserId]: { ...(prev[employee.linkedUserId] || {}), ...empPayload, userId: employee.linkedUserId } }));
       }
+      setStatusError('');
+      setStatusMessage('Dolgozói alapadatok mentve.');
+      setWorkerEditSavedAt(prev => ({ ...prev, [employeeId]: new Date() }));
+      if (workerEditSavedTimersRef.current[employeeId]) {
+        clearTimeout(workerEditSavedTimersRef.current[employeeId]);
+      }
+      workerEditSavedTimersRef.current[employeeId] = setTimeout(() => {
+        setWorkerEditSavedAt(prev => {
+          const next = { ...prev };
+          delete next[employeeId];
+          return next;
+        });
+        delete workerEditSavedTimersRef.current[employeeId];
+      }, 3500);
     } catch (err) {
       setStatusError('Mentés sikertelen: ' + err.message);
     } finally {
@@ -8091,6 +8113,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                           vacationCarriedOver: String(employee.vacationCarriedOver ?? profile.vacationCarriedOver ?? '0'),
                         };
                         const isSavingEf = !!workerEditSaving[employee.id];
+                        const savedAtEf = workerEditSavedAt[employee.id];
 
                         // Calculate preview values
                         const hasVacData = !!ef.birthDate;
@@ -8221,7 +8244,12 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                               </div>
                             )}
 
-                            <div className="flex justify-end">
+                            <div className="flex items-center justify-end gap-3">
+                              {savedAtEf && (
+                                <span className={`text-xs font-semibold ${darkMode ? 'text-emerald-300' : 'text-emerald-700'}`}>
+                                  Mentve {savedAtEf.toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              )}
                               <button
                                 type="button"
                                 disabled={isSavingEf}
