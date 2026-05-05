@@ -2719,6 +2719,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
   const [plannerLoading, setPlannerLoading] = useState(false);
   const [applyingPlanner, setApplyingPlanner] = useState(false);
+  const [showIgnoredPrefsPanel, setShowIgnoredPrefsPanel] = useState(false);
+  const [lockingPrefId, setLockingPrefId] = useState(null);
   const [plannerConfigSaving, setPlannerConfigSaving] = useState(false);
   const [plannerResult, setPlannerResult] = useState(null);
   const [plannerConfigForm, setPlannerConfigForm] = useState(getDefaultPlanningConfig());
@@ -7029,6 +7031,45 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     }
   }
 
+  async function handleLockPreference(pref) {
+    if (!pref || !pref.date || !pref.employeeId) return;
+    setLockingPrefId(pref.id);
+    try {
+      const employee = activeEmployees.find(e => e.id === pref.employeeId) || {};
+      const pharmacyName = userData?.pharmacyName || userData?.name || user.email;
+      const [ly, lm, ld] = pref.date.split('-').map(Number);
+      await addDoc(collection(db, 'pharmacySchedules'), {
+        pharmacyId: user.uid,
+        pharmacyName,
+        date: pref.date,
+        year: ly, month: lm, day: ld,
+        employeeId: pref.employeeId,
+        employeeName: pref.employeeName || employee?.name || 'Ismeretlen dolgozó',
+        employeeEmail: pref.employeeEmail || employee?.email || '',
+        linkedUserId: pref.linkedUserId || employee?.linkedUserId || null,
+        role: pref.role || employee?.role || 'other',
+        startTime: pref.startTime,
+        endTime: pref.endTime,
+        shiftType: pref.shiftType || 'N',
+        onCall: false,
+        notes: 'Dolgozói kérés alapján rögzítve',
+        locked: true,
+        status: 'active',
+        createdBy: user.uid,
+        planningSource: 'preference-lock',
+        preferenceId: pref.id || null,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+      await loadData();
+    } catch (err) {
+      console.error('handleLockPreference error:', err);
+      setStatusError('Nem sikerült rögzíteni a kérést.');
+    } finally {
+      setLockingPrefId(null);
+    }
+  }
+
   function getConflictStyles(severity) {
     if (severity === 'error') return 'border-red-200 bg-red-50 text-red-800';
     if (severity === 'warning') return 'border-orange-200 bg-orange-50 text-orange-800';
@@ -8148,6 +8189,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                 const pendingPrefs = schedulePreferences.filter(p => p.year === year && p.month === month && p.status !== 'deleted' && p.publishedAt).length;
                 const ignoredPrefs = schedulePreferences.filter(p => {
                   if (p.year !== year || p.month !== month || p.status === 'deleted' || !p.publishedAt) return false;
+                  if (isOffShift(p.shiftType)) return false;
                   return !activeMonthSchedules.some(s => s.date === p.date && (s.employeeId === p.employeeId || s.linkedUserId === p.linkedUserId));
                 }).length;
                 const isPublished = publishedScheduleCount > 0;
@@ -8244,14 +8286,14 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                 const hints = [];
                 const daysLeft = getDaysInMonth(year, month) - new Date().getDate();
                 const filledDays = new Set(activeMonthSchedules.filter(s => s.year === year && s.month === month).map(s => s.date)).size;
-                const ignoredPrefs = schedulePreferences.filter(p => {
+                const ignoredPrefsArray = schedulePreferences.filter(p => {
                   if (p.year !== year || p.month !== month || p.status === 'deleted' || !p.publishedAt) return false;
+                  if (isOffShift(p.shiftType)) return false;
                   return !activeMonthSchedules.some(s => s.date === p.date && (s.employeeId === p.employeeId || s.linkedUserId === p.linkedUserId));
-                }).length;
+                });
+                const ignoredPrefs = ignoredPrefsArray.length;
                 if (activeEmployees.length > 0 && filledDays === 0)
                   hints.push('💡 Kattints a hónap nevére a beosztás elkezdéséhez');
-                if (ignoredPrefs > 0)
-                  hints.push(`💬 ${ignoredPrefs} dolgozói kérés van, amit még nem vettél figyelembe`);
                 if (currentMonthDraftPublishSummary.missingCount > 0) {
                   const names = currentMonthDraftPublishSummary.missingEmployees
                     .slice(0, 3)
@@ -8264,12 +8306,52 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                 }
                 if (year === thisYear && month === thisMonth && daysLeft < 5 && publishedScheduleCount === 0 && activeMonthSchedules.length > 0)
                   hints.push('⏰ Hamarosan véget ér a hónap — ne feledd publikálni a beosztást!');
-                if (hints.length === 0) return null;
+                const hasHints = hints.length > 0 || ignoredPrefs > 0;
+                if (!hasHints) return null;
                 return (
                   <div className="space-y-2">
                     {hints.map((hint, i) => (
                       <div key={i} className={`rounded-xl px-4 py-2.5 text-sm ${darkMode ? 'bg-blue-900/30 text-blue-300' : 'bg-blue-50 text-blue-700'}`}>{hint}</div>
                     ))}
+                    {ignoredPrefs > 0 && (
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() => setShowIgnoredPrefsPanel(v => !v)}
+                          className={`w-full text-left rounded-xl px-4 py-2.5 text-sm font-medium flex items-center justify-between transition-all ${darkMode ? 'bg-amber-900/30 text-amber-300 hover:bg-amber-900/50' : 'bg-amber-50 text-amber-700 hover:bg-amber-100'}`}
+                        >
+                          <span>💬 {ignoredPrefs} dolgozói kérés van, amit még nem vettél figyelembe</span>
+                          <span className="ml-2 opacity-70 text-xs">{showIgnoredPrefsPanel ? '▲ Bezár' : '▼ Mutat'}</span>
+                        </button>
+                        {showIgnoredPrefsPanel && (
+                          <div className={`mt-1 rounded-xl border overflow-hidden ${darkMode ? 'border-amber-800 bg-amber-950/30' : 'border-amber-200 bg-amber-50'}`}>
+                            {ignoredPrefsArray.map((p, i) => {
+                              const empName = p.employeeName || activeEmployees.find(e => e.id === p.employeeId)?.name || 'Ismeretlen';
+                              const dt = new Date(`${p.date}T00:00:00`);
+                              const dateLabel = dt.toLocaleDateString('hu-HU', { month: 'long', day: 'numeric', weekday: 'short' });
+                              const shiftLabel = p.startTime && p.endTime ? `${p.startTime}–${p.endTime}` : (p.shiftType || 'N');
+                              const isLocking = lockingPrefId === p.id;
+                              return (
+                                <div key={p.id || i} className={`flex items-center justify-between gap-3 px-4 py-3 ${i > 0 ? (darkMode ? 'border-t border-amber-800' : 'border-t border-amber-200') : ''}`}>
+                                  <div className="flex-1 min-w-0">
+                                    <p className={`text-sm font-semibold truncate ${darkMode ? 'text-amber-200' : 'text-amber-800'}`}>{empName}</p>
+                                    <p className={`text-xs ${darkMode ? 'text-amber-400' : 'text-amber-600'}`}>{dateLabel} · {shiftLabel}</p>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    disabled={isLocking}
+                                    onClick={() => handleLockPreference(p)}
+                                    className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${darkMode ? 'bg-amber-700 text-amber-100 hover:bg-amber-600 disabled:opacity-50' : 'bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-50'}`}
+                                  >
+                                    {isLocking ? '...' : '📌 Rögzítés'}
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })()}
