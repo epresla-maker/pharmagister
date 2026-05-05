@@ -733,6 +733,7 @@ function PharmacyScheduleCalendar({
   readOnly, ownScheduleIds,
   config,
   pendingSwapRequests, onOpenSwaps,
+  onAutoGenerate,
 }) {
   const [selectedDay, setSelectedDay] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -1265,6 +1266,27 @@ function PharmacyScheduleCalendar({
           </div>
         );
       })()}
+
+      {/* AI Schedule generation button */}
+      {!readOnly && (
+        <button
+          type="button"
+          onClick={onAutoGenerate}
+          disabled={saving}
+          className={`flex-shrink-0 w-full flex items-center gap-3 px-4 py-3 text-sm font-bold border-b transition-colors disabled:opacity-50 ${
+            darkMode
+              ? 'bg-violet-900/40 border-violet-700/60 text-violet-200 hover:bg-violet-900/60'
+              : 'bg-violet-50 border-violet-200 text-violet-700 hover:bg-violet-100'
+          }`}
+        >
+          <span className="text-lg">✨</span>
+          <div className="flex flex-col items-start">
+            <span>AI Beosztás-generálás</span>
+            <span className={`text-[11px] font-normal ${darkMode ? 'text-violet-300/70' : 'text-violet-500/80'}`}>Automatikus havi beosztás tervezése preferenciák alapján</span>
+          </div>
+          <ChevronRight className="h-4 w-4 ml-auto flex-shrink-0" />
+        </button>
+      )}
 
       {/* Swap changes banner */}
       {swapLog.length > 0 && !readOnly && (
@@ -8373,6 +8395,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   activeMonthSchedules={activeMonthSchedules}
                   publishedScheduleCount={publishedScheduleCount}
                   config={normalizePlanningConfig(plannerConfigForm)}
+                  onAutoGenerate={() => runAutoPlanner({ action: 'plan' })}
                 />
               )}
             </div>
