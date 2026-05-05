@@ -8150,7 +8150,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
               {(() => {
                 const totalDays = getDaysInMonth(year, month);
                 const filledDays = new Set(activeMonthSchedules.filter(s => s.year === year && s.month === month).map(s => s.date)).size;
-                const pendingPrefs = schedulePreferences.filter(p => p.year === year && p.month === month && p.status !== 'deleted').length;
+                const pendingPrefs = schedulePreferences.filter(p => p.year === year && p.month === month && p.status !== 'deleted' && p.publishedAt).length;
                 const ignoredPrefs = schedulePreferences.filter(p => {
                   if (p.year !== year || p.month !== month || p.status === 'deleted') return false;
                   return !activeMonthSchedules.some(s => s.date === p.date && (s.employeeId === p.employeeId || s.linkedUserId === p.linkedUserId));
@@ -8183,10 +8183,14 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                         </div>
                       )}
                       {pendingPrefs > 0 && ignoredPrefs === 0 && (
-                        <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setMainTab('workers')}
+                          className="flex items-center gap-2 text-left"
+                        >
                           <span className="text-lg">💬</span>
-                          <span className={`text-sm font-semibold ${darkMode ? 'text-emerald-300' : 'text-emerald-700'}`}>{pendingPrefs} dolgozói kérés</span>
-                        </div>
+                          <span className={`text-sm font-semibold underline underline-offset-2 ${darkMode ? 'text-emerald-300' : 'text-emerald-700'}`}>{pendingPrefs} dolgozói kérés →</span>
+                        </button>
                       )}
                       {currentMonthDraftPublishSummary.missingCount > 0 && (
                         <div className="flex items-center gap-2">
