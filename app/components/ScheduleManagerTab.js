@@ -7441,9 +7441,9 @@ export default function ScheduleManagerTab({ pharmaRole }) {
               {/* Betti záró üzenet – utolsó lépésnél */}
               {safeWizardStepIndex === wizardTotal - 1 && (
                 <div className={`rounded-2xl rounded-tl-sm px-5 py-4 ${darkMode ? 'bg-emerald-900/40' : 'bg-emerald-50'}`}>
-                  <p className={`font-bold text-base mb-1 ${darkMode ? 'text-emerald-100' : 'text-emerald-900'}`}>Szuper, minden megvan! 🎉</p>
+                  <p className={`font-bold text-base mb-1 ${darkMode ? 'text-emerald-100' : 'text-emerald-900'}`}>Szuper, minden megvan!</p>
                   <p className={`text-sm leading-relaxed ${darkMode ? 'text-emerald-200/80' : 'text-emerald-800/80'}`}>
-                    Nézd át az összefoglalót, és kattints a <strong>Jóváhagyom</strong> gombra – ezek alapján készítem a beosztást. 💊
+                    Nézd át az összefoglalót, és kattints a <strong>Jóváhagyom</strong> gombra – ezek alapján készítem a beosztást.
                   </p>
                 </div>
               )}
@@ -7498,7 +7498,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           {/* Összefoglaló kártya */}
           <div className={`rounded-3xl border overflow-hidden shadow-sm ${darkMode ? 'border-emerald-800 bg-gray-900' : 'border-emerald-100 bg-white'}`}>
             <div className={`px-5 py-4 ${darkMode ? 'bg-emerald-900/30' : 'bg-emerald-50'}`}>
-              <p className={`font-bold text-base ${darkMode ? 'text-emerald-100' : 'text-emerald-900'}`}>📋 Betti összefoglalója</p>
+              <p className={`font-bold text-base ${darkMode ? 'text-emerald-100' : 'text-emerald-900'}`}>Betti összefoglalója</p>
               <p className={`text-xs mt-0.5 ${darkMode ? 'text-emerald-300/70' : 'text-emerald-700/70'}`}>Ezt fogja használni a beosztás generálásnál</p>
             </div>
             <div className="px-5 py-4 space-y-2">
