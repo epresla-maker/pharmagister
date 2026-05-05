@@ -3836,11 +3836,10 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         if (!requesterSchedule || !targetSchedule) {
           throw new Error('A csere egyik beosztása már nem található.');
         }
-        if (isPublishedSchedule(requesterSchedule) || isPublishedSchedule(targetSchedule)) {
-          throw new Error('Publikált műszak nem cserélhető közvetlenül. Készíts új tervet és publikáld újra.');
-        }
 
-        // Execute actual swap
+        const publishedAtIso = new Date().toISOString();
+
+        // Execute actual swap (and re-publish both schedules automatically)
         await updateDoc(doc(db, 'pharmacySchedules', requesterSchedule.id), {
           employeeId: targetSchedule.employeeId,
           employeeName: targetSchedule.employeeName,
@@ -3849,6 +3848,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           role: targetSchedule.role,
           swappedAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
+          publishedAt: publishedAtIso,
+          publishedBy: user.uid,
         });
 
         await updateDoc(doc(db, 'pharmacySchedules', targetSchedule.id), {
@@ -3859,6 +3860,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           role: requesterSchedule.role,
           swappedAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
+          publishedAt: publishedAtIso,
+          publishedBy: user.uid,
         });
 
         await updateDoc(doc(db, 'scheduleSwapRequests', requestId), {
@@ -3872,8 +3875,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           await createNotificationWithPush({
             userId: requestItem.requesterUserId,
             type: 'schedule_swap_result',
-            title: 'Csere jóváhagyva és végrehajtva',
-            message: `A gyógyszertár jóváhagyta a cserét ${requestItem.targetName} dolgozóval. A beosztás frissítve.`,
+            title: 'Csere jóváhagyva – beosztás frissítve',
+            message: `A gyógyszertár jóváhagyta a cserét ${requestItem.targetName} dolgozóval. Az új beosztás automatikusan publikálva.`,
             data: { requestId },
             url: '/pharmagister?tab=schedule-manager',
           });
@@ -3882,14 +3885,14 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           await createNotificationWithPush({
             userId: requestItem.targetUserId,
             type: 'schedule_swap_result',
-            title: 'Csere jóváhagyva és végrehajtva',
-            message: `A gyógyszertár jóváhagyta a cserét ${requestItem.requesterName} dolgozóval. A beosztás frissítve.`,
+            title: 'Csere jóváhagyva – beosztás frissítve',
+            message: `A gyógyszertár jóváhagyta a cserét ${requestItem.requesterName} dolgozóval. Az új beosztás automatikusan publikálva.`,
             data: { requestId },
             url: '/pharmagister?tab=schedule-manager',
           });
         }
 
-        setStatusMessage('Csere jóváhagyva és végrehajtva.');
+        setStatusMessage('Csere jóváhagyva, beosztások automatikusan újrapublikálva.');
       } else {
         // Pharmacy rejects
         await updateDoc(doc(db, 'scheduleSwapRequests', requestId), {
