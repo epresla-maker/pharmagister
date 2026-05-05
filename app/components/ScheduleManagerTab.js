@@ -734,6 +734,7 @@ function PharmacyScheduleCalendar({
   config,
   pendingSwapRequests, onOpenSwaps,
   onAutoGenerate,
+  plannerLoading,
 }) {
   const [selectedDay, setSelectedDay] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -1272,19 +1273,24 @@ function PharmacyScheduleCalendar({
         <button
           type="button"
           onClick={onAutoGenerate}
-          disabled={saving}
+          disabled={saving || plannerLoading}
           className={`flex-shrink-0 w-full flex items-center gap-3 px-4 py-3 text-sm font-bold border-b transition-colors disabled:opacity-50 ${
             darkMode
               ? 'bg-violet-900/40 border-violet-700/60 text-violet-200 hover:bg-violet-900/60'
               : 'bg-violet-50 border-violet-200 text-violet-700 hover:bg-violet-100'
           }`}
         >
-          <span className="text-lg">✨</span>
+          {plannerLoading
+            ? <span className="animate-spin text-lg">⏳</span>
+            : <span className="text-lg">✨</span>
+          }
           <div className="flex flex-col items-start">
-            <span>AI Beosztás-generálás</span>
-            <span className={`text-[11px] font-normal ${darkMode ? 'text-violet-300/70' : 'text-violet-500/80'}`}>Automatikus havi beosztás tervezése preferenciák alapján</span>
+            <span>{plannerLoading ? 'AI tervezés folyamatban...' : 'AI Beosztás-generálás'}</span>
+            <span className={`text-[11px] font-normal ${darkMode ? 'text-violet-300/70' : 'text-violet-500/80'}`}>
+              {plannerLoading ? 'Ez eltarthat néhány másodpercig' : 'Automatikus havi beosztás tervezése és azonnali mentése'}
+            </span>
           </div>
-          <ChevronRight className="h-4 w-4 ml-auto flex-shrink-0" />
+          {!plannerLoading && <ChevronRight className="h-4 w-4 ml-auto flex-shrink-0" />}
         </button>
       )}
 
@@ -6854,6 +6860,14 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       setStatusError('Nincs alkalmazható javasolt műszak.');
       return;
     }
+    await applyProposedShifts(plannerResult.proposedShifts);
+  }
+
+  async function applyProposedShifts(proposedShifts) {
+    if (!proposedShifts?.length) {
+      setStatusError('Nincs alkalmazható javasolt műszak.');
+      return;
+    }
 
     setApplyingPlanner(true);
     setStatusError('');
@@ -6870,7 +6884,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       const pharmacyName = userData?.pharmacyName || userData?.name || user.email;
 
       let created = 0;
-      for (const item of plannerResult.proposedShifts) {
+      for (const item of proposedShifts) {
         const dedupeKey = `${item.date}|${item.startTime}|${item.endTime}|${item.employeeId}`;
         if (existingSet.has(dedupeKey)) continue;
 
@@ -6911,6 +6925,13 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       setStatusError('Nem sikerült alkalmazni az automatikus tervet.');
     } finally {
       setApplyingPlanner(false);
+    }
+  }
+
+  async function handleAutoGenerateAndApply() {
+    const { success, result } = await runAutoPlanner({ action: 'plan' });
+    if (success && result?.proposedShifts?.length) {
+      await applyProposedShifts(result.proposedShifts);
     }
   }
 
@@ -8395,7 +8416,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   activeMonthSchedules={activeMonthSchedules}
                   publishedScheduleCount={publishedScheduleCount}
                   config={normalizePlanningConfig(plannerConfigForm)}
-                  onAutoGenerate={() => runAutoPlanner({ action: 'plan' })}
+                  onAutoGenerate={handleAutoGenerateAndApply}
+                  plannerLoading={plannerLoading}
                 />
               )}
             </div>
