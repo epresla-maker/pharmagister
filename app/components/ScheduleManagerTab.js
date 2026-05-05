@@ -2842,50 +2842,6 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     };
   }, [ownEmployeeRecords, user]);
 
-  const aiModeAllowed = useMemo(() => {
-    const globalFlag = process.env.NEXT_PUBLIC_PHARMAGISTER_AI_MODE === '1';
-    const email = String(user?.email || '').trim().toLowerCase();
-    if (!email) return false;
-
-    // Developer override: allow owner accounts even without env flag.
-    if (!globalFlag && email.includes('epres')) {
-      return true;
-    }
-
-    if (!globalFlag) return false;
-
-    const allowlist = String(process.env.NEXT_PUBLIC_PHARMAGISTER_AI_MODE_ALLOWLIST || '')
-      .split(',')
-      .map((x) => x.trim().toLowerCase())
-      .filter(Boolean);
-
-    if (allowlist.length === 0) {
-      return email.includes('epres');
-    }
-    return allowlist.includes(email);
-  }, [user?.email]);
-
-  useEffect(() => {
-    if (!aiModeAllowed && aiViewEnabled) setAiViewEnabled(false);
-  }, [aiModeAllowed, aiViewEnabled]);
-
-  useEffect(() => {
-    if (!aiModeAllowed) return;
-    if (process.env.NEXT_PUBLIC_PHARMAGISTER_AI_MODE_DEFAULT === '1') {
-      setAiViewEnabled(true);
-      setBettiChatOpen(true);
-    }
-  }, [aiModeAllowed]);
-
-  useEffect(() => {
-    if (!aiModeAllowed || typeof window === 'undefined') return;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('ai') === '1') {
-      setAiViewEnabled(true);
-      setBettiChatOpen(true);
-    }
-  }, [aiModeAllowed]);
-
   // Deep-link: subtab URL param → nyissa meg a megfelelő beosztás alfület
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -10276,19 +10232,6 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       ) : null}
 
       {renderBettiChatPanel()}
-
-      {aiModeAllowed && !aiViewEnabled && (
-        <button
-          type="button"
-          onClick={() => {
-            setAiViewEnabled(true);
-            setBettiChatOpen(true);
-          }}
-          className={`fixed z-[75] right-4 bottom-6 rounded-full px-4 py-2 text-xs font-bold shadow-lg border ${darkMode ? 'bg-violet-900/90 border-violet-700 text-violet-200' : 'bg-white border-violet-200 text-violet-700'}`}
-        >
-          AI nezet bekapcsolasa
-        </button>
-      )}
     </div>
   );
 }

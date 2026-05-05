@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback, useRef, useMemo, Suspense } from 'react';
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -29,25 +29,6 @@ function PharmagisterContent() {
   const pharmaRole = userData?.pharmagisterRole || null;
   const showPharmaNavbar = pharmaRole && activeTab !== 'schedule-manager';
   const profileComplete = userData?.pharmaProfileComplete || false;
-
-  const aiModeAllowed = useMemo(() => {
-    const email = String(user?.email || '').trim().toLowerCase();
-    if (!email) return false;
-
-    const internalAiModeEmails = ['epresla@icloud.com'];
-    if (internalAiModeEmails.includes(email)) return true;
-
-    const globalFlag = process.env.NEXT_PUBLIC_PHARMAGISTER_AI_MODE === '1';
-    if (!globalFlag) return false;
-
-    const allowlist = String(process.env.NEXT_PUBLIC_PHARMAGISTER_AI_MODE_ALLOWLIST || '')
-      .split(',')
-      .map((x) => x.trim().toLowerCase())
-      .filter(Boolean);
-
-    if (allowlist.length === 0) return false;
-    return allowlist.includes(email);
-  }, [user?.email]);
 
   // Detect standalone mode once on mount
   useEffect(() => {
@@ -302,16 +283,6 @@ function PharmagisterContent() {
         </div>
       </div>
 
-      {pharmaRole && aiModeAllowed && activeTab !== 'schedule-manager' && (
-        <button
-          type="button"
-          onClick={() => router.push('/pharmagister?tab=schedule-manager&ai=1')}
-          className="fixed right-4 bottom-28 z-[70] rounded-full border border-violet-200 bg-white px-4 py-2 text-xs font-bold text-violet-700 shadow-lg"
-        >
-          AI nezet
-        </button>
-      )}
-      
       {/* Pharma Navbar - csak ha van szerepkör */}
       {showPharmaNavbar && <PharmaNavbar isVisible={showNavbar} />}
     </RouteGuard>
