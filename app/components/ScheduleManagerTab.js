@@ -6733,7 +6733,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                 )}
 
                 <p className={`text-[10px] px-1 ${darkMode ? 'text-gray-500' : 'text-gray-400'} ${isUser ? 'text-right' : 'text-left'}`}>
-                  {isUser ? 'Te' : 'Asszisztens'}{msg.ts ? ` · ${formatTime(msg.ts)}` : ''}
+                  {isUser ? 'Te' : 'Betti'}{msg.ts ? ` · ${formatTime(msg.ts)}` : ''}
                 </p>
 
                 {!isUser && Array.isArray(msg.uiCommands) && msg.uiCommands.length > 0 && (
@@ -6799,9 +6799,9 @@ export default function ScheduleManagerTab({ pharmaRole }) {
               👩‍⚕️
             </div>
             <div className="flex-1 min-w-0">
-              <p className={`font-bold text-base leading-tight ${darkMode ? 'text-white' : 'text-gray-900'}`}>Asszisztens</p>
+              <p className={`font-bold text-base leading-tight ${darkMode ? 'text-white' : 'text-gray-900'}`}>Betti</p>
               <p className={`text-xs ${bettiChatLoading ? 'text-sky-500' : (darkMode ? 'text-gray-400' : 'text-gray-500')}`}>
-                {bettiChatLoading ? 'Gépel...' : 'Pharmagister AI asszisztens'}
+                {bettiChatLoading ? 'Gépel...' : 'Pharmagister asszisztens'}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -7279,7 +7279,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                 <div className={`h-12 w-12 rounded-2xl flex items-center justify-center text-2xl shadow-sm shrink-0 ${darkMode ? 'bg-violet-800' : 'bg-violet-600'}`}>
                 </div>
                 <div>
-                  <p className={`font-bold text-base ${darkMode ? 'text-white' : 'text-gray-900'}`}>Asszisztens</p>
+                  <p className={`font-bold text-base ${darkMode ? 'text-white' : 'text-gray-900'}`}>Betti</p>
                   <p className={`text-xs ${darkMode ? 'text-violet-300' : 'text-violet-600'}`}>Beosztástervező asszisztens</p>
                 </div>
                 <div className="ml-auto text-right">
@@ -7302,9 +7302,9 @@ export default function ScheduleManagerTab({ pharmaRole }) {
               {/* Bemutatkozás csak első lépésnél */}
               {safeWizardStepIndex === 0 && (
                 <div className={`rounded-2xl rounded-tl-sm px-5 py-4 ${darkMode ? 'bg-violet-900/50' : 'bg-violet-50'}`}>
-                  <p className={`font-bold text-base mb-1 ${darkMode ? 'text-violet-100' : 'text-violet-900'}`}>Szia! Én vagyok az asszisztens</p>
+                  <p className={`font-bold text-base mb-1 ${darkMode ? 'text-violet-100' : 'text-violet-900'}`}>Szia! Én vagyok Betti</p>
                   <p className={`text-sm leading-relaxed ${darkMode ? 'text-violet-200/80' : 'text-violet-800/80'}`}>
-                    Néhány kérdéssel beállítom a gyógyszertárad kritériumait, hogy az automatikus beosztás pontosan illeszkedjen hozzátok. Minden válasz azonnal mentődik!
+                    A beosztástervező asszisztensed vagyok. Néhány kérdéssel beállítom a gyógyszertárad kritériumait, hogy az automatikus beosztás pontosan illeszkedjen hozzátok. Minden válasz azonnal mentődik!
                   </p>
                 </div>
               )}
