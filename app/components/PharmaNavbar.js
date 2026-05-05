@@ -5,6 +5,25 @@ import { useAuth } from '@/context/AuthContext';
 import { canAccessScheduleManager } from '@/lib/pharmagisterFeatures';
 import { Calendar, BarChart3, Star, HelpCircle } from 'lucide-react';
 
+function ScheduleGridIcon({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} xmlns="http://www.w3.org/2000/svg">
+      <rect x="2" y="3" width="20" height="18" rx="2.5" stroke="currentColor" strokeWidth="1.5"/>
+      <rect x="2" y="3" width="20" height="5.5" rx="2.5" fill="currentColor" fillOpacity="0.15"/>
+      <line x1="2" y1="8.5" x2="22" y2="8.5" stroke="currentColor" strokeWidth="1"/>
+      <line x1="8.5" y1="8.5" x2="8.5" y2="21" stroke="currentColor" strokeWidth="0.75" strokeOpacity="0.4"/>
+      <line x1="15.5" y1="8.5" x2="15.5" y2="21" stroke="currentColor" strokeWidth="0.75" strokeOpacity="0.4"/>
+      <line x1="2" y1="14" x2="22" y2="14" stroke="currentColor" strokeWidth="0.75" strokeOpacity="0.4"/>
+      <rect x="3" y="9.5" width="4.5" height="3.5" rx="1" fill="#8B5CF6"/>
+      <rect x="9.5" y="9.5" width="5" height="3.5" rx="1" fill="#10B981"/>
+      <rect x="16.5" y="9.5" width="4.5" height="3.5" rx="1" fill="#F59E0B"/>
+      <rect x="3" y="15" width="4.5" height="3.5" rx="1" fill="#10B981"/>
+      <rect x="9.5" y="15" width="5" height="3.5" rx="1" fill="#8B5CF6"/>
+      <rect x="16.5" y="15" width="4.5" height="3.5" rx="1" fill="#6EE7B7" fillOpacity="0.7"/>
+    </svg>
+  );
+}
+
 export default function PharmaNavbar({ isVisible = true }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -42,7 +61,7 @@ export default function PharmaNavbar({ isVisible = true }) {
       isLink: true
     },
     {
-      icon: BarChart3,
+      icon: ScheduleGridIcon,
       label: 'Beosztások kezelése',
       tab: 'schedule-manager',
       adminOnly: true
