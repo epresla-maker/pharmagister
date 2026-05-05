@@ -3620,10 +3620,6 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       setStatusError('A kiválasztott beosztás nem található.');
       return;
     }
-    if (isPublishedSchedule(scheduleItem)) {
-      setStatusError('A publikált műszak zárolt, előbb új tervet készíts és publikáld újra.');
-      return;
-    }
     if (scheduleItem.locked === true) {
       setStatusError('Ez a műszak kézzel zárolt (locked), előbb oldd fel a zárolást.');
       return;
@@ -3653,11 +3649,14 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
       if (scheduleItem.linkedUserId) {
         const pharmacyName = scheduleItem.pharmacyName || userData?.pharmacyName || userData?.name || user?.displayName || user?.email || 'Gyógyszertár';
+        const wasPublished = isPublishedSchedule(scheduleItem);
         await createNotificationWithPush({
           userId: scheduleItem.linkedUserId,
-          type: 'schedule_removed_from_employee',
-          title: 'Beosztás törölve',
-          message: `${pharmacyName} törölte a beosztásodat: ${scheduleItem.date} (${scheduleItem.startTime}-${scheduleItem.endTime}).`,
+          type: wasPublished ? 'schedule_revoked' : 'schedule_removed_from_employee',
+          title: wasPublished ? 'Beosztás visszavonása' : 'Beosztás törölve',
+          message: wasPublished
+            ? `${pharmacyName} visszavonta a beosztásodat: ${scheduleItem.date} (${scheduleItem.startTime}-${scheduleItem.endTime}).`
+            : `${pharmacyName} törölte a beosztásodat: ${scheduleItem.date} (${scheduleItem.startTime}-${scheduleItem.endTime}).`,
           data: { pharmacyId: user.uid, scheduleId, date: scheduleItem.date },
           url: '/pharmagister?tab=schedule-manager',
           dedupeWindowSeconds: 120,
@@ -8973,9 +8972,9 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                       <p className="text-sm text-gray-500">{prettyRole(item.role)}</p>
                       {item.notes ? <p className="mt-1 text-sm">{item.notes}</p> : null}
                     </div>
-                    <button type="button" onClick={() => handleDeleteSchedule(item.id)} disabled={isPublishedSchedule(item)} className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-3 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50">
+                    <button type="button" onClick={() => handleDeleteSchedule(item.id)} className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700">
                       <Trash2 className="h-4 w-4" />
-                      {isPublishedSchedule(item) ? 'Zárolt' : 'Törlés'}
+                      {isPublishedSchedule(item) ? 'Visszavonás' : 'Törlés'}
                     </button>
                   </div>
                 ))}
