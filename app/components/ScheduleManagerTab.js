@@ -737,8 +737,6 @@ function PharmacyScheduleCalendar({
   plannerLoading,
   applyingPlanner: isApplying,
 }) {
-  const isGenerating = plannerLoading || isApplying;plyingPlanner: isApplying,
-}) {
   const isGenerating = plannerLoading || isApplying;
   const [selectedDay, setSelectedDay] = useState(null);
   const [showModal, setShowModal] = useState(false);
