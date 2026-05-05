@@ -465,13 +465,14 @@ function MonthCalendar({ year, month, selectedDate, schedules, ownScheduleIds, o
   const cells = getCalendarCells(year, month);
   const today = getTodayKey();
   const DOW_SHORT = ['H', 'K', 'Sz', 'Cs', 'P', 'Sz', 'V']; // Mon–Sun
+  const holidays = getHungarianHolidays(year);
 
   return (
     <div className={`overflow-hidden rounded-2xl border ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
       {/* Weekday headers */}
       <div className={`grid grid-cols-7 border-b ${darkMode ? 'border-gray-700' : 'border-[#E5E7EB]'}`}>
         {DOW_SHORT.map((d, i) => (
-          <div key={i} className={`py-2 text-center text-[11px] font-medium ${i >= 5 ? darkMode ? 'text-gray-500' : 'text-gray-400' : darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{d}</div>
+          <div key={i} className={`py-2 text-center text-[11px] font-semibold ${i >= 5 ? 'text-red-500' : darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{d}</div>
         ))}
       </div>
       {/* Calendar grid */}
@@ -487,6 +488,8 @@ function MonthCalendar({ year, month, selectedDate, schedules, ownScheduleIds, o
           const isSelected = dateKey === selectedDate;
           const colIdx = index % 7; // 0=Mon…6=Sun
           const isWeekend = colIdx >= 5;
+          const mmdd = day ? `${String(month + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}` : null;
+          const isHoliday = mmdd ? holidays.has(mmdd) : false;
           const isLastInRow = colIdx === 6;
           const isInLastRow = index >= cells.length - 7;
           // Pending swap requests targeting this day's own schedule
@@ -516,14 +519,16 @@ function MonthCalendar({ year, month, selectedDate, schedules, ownScheduleIds, o
               {day && (
                 <>
                   {/* Day number */}
-                  <span className={`flex h-7 w-7 items-center justify-center rounded-full text-sm font-semibold
+                  <span className={`flex h-7 w-7 items-center justify-center rounded-full text-sm
                     ${isToday
-                      ? 'bg-violet-600 text-white'
+                      ? 'bg-violet-600 text-white font-semibold'
                       : isSelected
-                        ? darkMode ? 'bg-gray-600 text-white' : 'bg-gray-200 text-gray-900'
-                        : isWeekend
-                          ? darkMode ? 'text-gray-500' : 'text-gray-400'
-                          : darkMode ? 'text-gray-100' : 'text-gray-900'
+                        ? darkMode ? 'bg-gray-600 text-white font-semibold' : 'bg-gray-200 text-gray-900 font-semibold'
+                        : isHoliday
+                          ? darkMode ? 'text-rose-400 font-bold' : 'text-rose-500 font-bold'
+                          : isWeekend
+                            ? darkMode ? 'text-gray-500 font-normal' : 'text-gray-400 font-normal'
+                            : darkMode ? 'text-gray-100 font-semibold' : 'text-gray-900 font-semibold'
                     }
                   `}>{day}</span>
                   {/* Shift indicator */}
