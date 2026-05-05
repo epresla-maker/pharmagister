@@ -2873,7 +2873,9 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     if (params.get('subtab') === 'swaps') {
       setMainTab('swaps');
     }
-  }, [isPharmacy]);(used in workers tab + planner enrichment) ───────────────────
+  }, [isPharmacy]);
+
+  // ── Load employee profiles for pharmacy (used in workers tab + planner enrichment) ───────────────────
   useEffect(() => {
     if (!isPharmacy) return;
     const linkedIds = employees.map(e => e.linkedUserId).filter(Boolean);
@@ -2889,8 +2891,6 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       const map = {};
       profiles.forEach(p => { map[p.userId] = p; });
       setWorkerProfiles(map);
-    }).catch(err => console.error('workerProfiles load error', err));
-  }, [isPharmacyap);
     }).catch(err => console.error('workerProfiles load error', err));
   }, [isPharmacy, employees]);
 
