@@ -4284,8 +4284,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       const blockingErrors = (result.conflicts || []).filter(item => item.severity === 'error');
       if (blockingErrors.length > 0) {
         setPlannerResult(result);
-        setSwasAlreadyPartiallyPublished = activeMonthSchedules.some(s => s.publishedAt);
-      const tatusError(`A publikálás blokkolva: ${blockingErrors.length} piros hiba maradt a beosztásban.`);
+        setStatusError(`A publikálás blokkolva: ${blockingErrors.length} piros hiba maradt a beosztásban.`);
         return { success: false, blockingErrors };
       }
 
