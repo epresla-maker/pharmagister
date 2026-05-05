@@ -7866,6 +7866,166 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             </div>
           )}
 
+          {/* ── Értesítési / figyelmeztető blokk ─────────────────────────── */}
+          {((isPharmacy && mainTab === 'schedule') || (!isPharmacy && mainTab === 'mine')) && (() => {
+            const alerts = [];
+
+            if (isPharmacy) {
+              // Jóváhagyásra váró cserék (employee_accepted)
+              const swapsToApprove = swapRequests.filter(r => r.status === 'employee_accepted');
+              if (swapsToApprove.length > 0) {
+                alerts.push({
+                  key: 'swap_approve',
+                  icon: '🔄',
+                  color: 'amber',
+                  label: `${swapsToApprove.length} csereigény jóváhagyásra vár`,
+                  sub: swapsToApprove.map(r => `${r.requesterName?.split(' ').pop()} ↔ ${r.targetName?.split(' ').pop()}`).join(', '),
+                  onClick: () => setMainTab('swaps'),
+                });
+              }
+              // Folyamatban lévő cserék (pending)
+              const pendingSwaps = swapRequests.filter(r => r.status === 'pending');
+              if (pendingSwaps.length > 0) {
+                alerts.push({
+                  key: 'swap_pending',
+                  icon: '⏳',
+                  color: 'blue',
+                  label: `${pendingSwaps.length} csereigény folyamatban`,
+                  sub: 'Várakozik a másik dolgozó válaszára',
+                  onClick: () => setMainTab('swaps'),
+                });
+              }
+              // Jóváhagyásra váró szabadságkérelmek
+              const pendingVac = vacationRequests.filter(r => r.status === 'pending');
+              if (pendingVac.length > 0) {
+                alerts.push({
+                  key: 'vacation',
+                  icon: '🏖️',
+                  color: 'sky',
+                  label: `${pendingVac.length} szabadságkérelem vár jóváhagyásra`,
+                  sub: pendingVac.map(r => r.employeeName?.split(' ').pop()).filter(Boolean).join(', '),
+                  onClick: () => setMainTab('vacations'),
+                });
+              }
+              // Új dolgozói preferenciák az aktuális hónapra
+              const newPrefs = schedulePreferences.filter(p => p.year === year && p.month === month && p.status !== 'deleted');
+              if (newPrefs.length > 0) {
+                alerts.push({
+                  key: 'prefs',
+                  icon: '💬',
+                  color: 'violet',
+                  label: `${newPrefs.length} dolgozói preferencia erre a hónapra`,
+                  sub: [...new Set(newPrefs.map(p => p.employeeName?.split(' ').pop()).filter(Boolean))].join(', '),
+                  onClick: () => setCalendarOpen(true),
+                });
+              }
+              // Nem publikált beosztás
+              if (publishedScheduleCount === 0 && activeMonthSchedules.filter(s => s.year === year && s.month === month).length > 0) {
+                alerts.push({
+                  key: 'unpublished',
+                  icon: '🔒',
+                  color: 'rose',
+                  label: 'A hónap beosztása még nincs publikálva',
+                  sub: `${MONTHS_HU[month-1]} ${year}`,
+                  onClick: () => setCalendarOpen(true),
+                });
+              }
+            } else {
+              // ALKALMAZOTTI nézet
+              // Beérkező csereigények
+              const incomingSwaps = swapRequests.filter(r => r.targetUserId === user?.uid && r.status === 'pending');
+              if (incomingSwaps.length > 0) {
+                alerts.push({
+                  key: 'incoming_swap',
+                  icon: '🔄',
+                  color: 'amber',
+                  label: `${incomingSwaps.length} beérkező csereigény vár válaszra`,
+                  sub: incomingSwaps.map(r => `${r.requesterName?.split(' ').pop()} kért cserét`).join(', '),
+                  onClick: () => setMainTab('swaps'),
+                });
+              }
+              // Elfogadott csere, amit a gyógyszertár még nem hagyott jóvá
+              const awaitingPharmacy = swapRequests.filter(r => (r.requesterUserId === user?.uid || r.targetUserId === user?.uid) && r.status === 'employee_accepted');
+              if (awaitingPharmacy.length > 0) {
+                alerts.push({
+                  key: 'awaiting_pharmacy',
+                  icon: '⏳',
+                  color: 'blue',
+                  label: `${awaitingPharmacy.length} csere gyógyszertári jóváhagyásra vár`,
+                  sub: 'Mindkét fél elfogadta, folyamatban',
+                  onClick: () => setMainTab('swaps'),
+                });
+              }
+              // Új beosztás publikálva az aktuális hónapra
+              const myPublished = schedules.filter(s => s.status === 'published' && s.year === year && s.month === month && (s.linkedUserId === user?.uid || s.userId === user?.uid));
+              if (myPublished.length > 0) {
+                alerts.push({
+                  key: 'published',
+                  icon: '✅',
+                  color: 'emerald',
+                  label: `Új beosztás elkészült — ${MONTHS_HU[month-1]} ${year}`,
+                  sub: `${myPublished.length} műszak publikálva`,
+                  onClick: () => {},
+                });
+              }
+              // Jóváhagyott / elutasított szabadságkérelem
+              const respondedVac = vacationRequests.filter(r => r.userId === user?.uid && (r.status === 'accepted' || r.status === 'rejected'));
+              if (respondedVac.length > 0) {
+                const accepted = respondedVac.filter(r => r.status === 'accepted').length;
+                const rejected = respondedVac.filter(r => r.status === 'rejected').length;
+                alerts.push({
+                  key: 'vacation_result',
+                  icon: accepted > 0 ? '✅' : '❌',
+                  color: accepted > 0 ? 'emerald' : 'rose',
+                  label: accepted > 0 ? `${accepted} szabadságkérelem jóváhagyva` : `${rejected} szabadságkérelem elutasítva`,
+                  sub: '',
+                  onClick: () => setMainTab('vacations'),
+                });
+              }
+            }
+
+            const colorMap = {
+              amber:   { border: darkMode ? 'border-amber-800'   : 'border-amber-200',   bg: darkMode ? 'bg-amber-950/30'  : 'bg-amber-50',   dot: 'bg-amber-500',   text: darkMode ? 'text-amber-300' : 'text-amber-700',   sub: darkMode ? 'text-amber-400/80' : 'text-amber-600/80' },
+              blue:    { border: darkMode ? 'border-blue-900'    : 'border-blue-200',    bg: darkMode ? 'bg-blue-950/20'   : 'bg-blue-50',    dot: 'bg-blue-400',    text: darkMode ? 'text-blue-300'  : 'text-blue-700',    sub: darkMode ? 'text-blue-400/80'  : 'text-blue-600/80' },
+              sky:     { border: darkMode ? 'border-sky-800'     : 'border-sky-200',     bg: darkMode ? 'bg-sky-950/20'    : 'bg-sky-50',     dot: 'bg-sky-400',     text: darkMode ? 'text-sky-300'   : 'text-sky-700',     sub: darkMode ? 'text-sky-400/80'   : 'text-sky-600/80' },
+              violet:  { border: darkMode ? 'border-violet-800'  : 'border-violet-200',  bg: darkMode ? 'bg-violet-950/20' : 'bg-violet-50',  dot: 'bg-violet-500',  text: darkMode ? 'text-violet-300': 'text-violet-700',  sub: darkMode ? 'text-violet-400/80': 'text-violet-600/80' },
+              rose:    { border: darkMode ? 'border-rose-900'    : 'border-rose-200',    bg: darkMode ? 'bg-rose-950/20'   : 'bg-rose-50',    dot: 'bg-rose-500',    text: darkMode ? 'text-rose-300'  : 'text-rose-700',    sub: darkMode ? 'text-rose-400/80'  : 'text-rose-600/80' },
+              emerald: { border: darkMode ? 'border-emerald-900' : 'border-emerald-200', bg: darkMode ? 'bg-emerald-950/20': 'bg-emerald-50', dot: 'bg-emerald-500', text: darkMode ? 'text-emerald-300': 'text-emerald-700', sub: darkMode ? 'text-emerald-400/80': 'text-emerald-600/80' },
+            };
+
+            return (
+              <div className={`rounded-2xl border overflow-hidden ${darkMode ? 'border-gray-700 bg-gray-900/40' : 'border-gray-200 bg-white'}`}>
+                {alerts.length === 0 ? (
+                  <div className="px-4 py-3 text-center">
+                    <span className={`text-[11px] ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>Üdvözöl a Pharmagister</span>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                    {alerts.map(alert => {
+                      const c = colorMap[alert.color] || colorMap.blue;
+                      return (
+                        <button
+                          key={alert.key}
+                          type="button"
+                          onClick={alert.onClick}
+                          className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-gray-50/60 dark:hover:bg-gray-800/40 ${c.bg}`}
+                        >
+                          <span className={`flex-shrink-0 h-2 w-2 rounded-full ${c.dot}`} />
+                          <span className="text-lg leading-none flex-shrink-0">{alert.icon}</span>
+                          <div className="min-w-0 flex-1">
+                            <p className={`text-sm font-semibold leading-tight ${c.text}`}>{alert.label}</p>
+                            {alert.sub && <p className={`text-xs mt-0.5 truncate ${c.sub}`}>{alert.sub}</p>}
+                          </div>
+                          <span className={`text-base flex-shrink-0 ${c.text}`}>›</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
           {/* ── Full-screen pharmacy schedule calendar ─────────────────── */}
           {isPharmacy && mainTab === 'schedule' ? (
             <div className="space-y-4">
