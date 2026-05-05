@@ -7164,7 +7164,6 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             <div className={`px-5 pt-5 pb-4 ${darkMode ? 'bg-violet-900/30' : 'bg-violet-50'}`}>
               <div className="flex items-center gap-3 mb-3">
                 <div className={`h-12 w-12 rounded-2xl flex items-center justify-center text-2xl shadow-sm shrink-0 ${darkMode ? 'bg-violet-800' : 'bg-violet-600'}`}>
-                  👩‍⚕️
                 </div>
                 <div>
                   <p className={`font-bold text-base ${darkMode ? 'text-white' : 'text-gray-900'}`}>Asszisztens</p>
@@ -7190,9 +7189,9 @@ export default function ScheduleManagerTab({ pharmaRole }) {
               {/* Bemutatkozás csak első lépésnél */}
               {safeWizardStepIndex === 0 && (
                 <div className={`rounded-2xl rounded-tl-sm px-5 py-4 ${darkMode ? 'bg-violet-900/50' : 'bg-violet-50'}`}>
-                  <p className={`font-bold text-base mb-1 ${darkMode ? 'text-violet-100' : 'text-violet-900'}`}>Szia! Én vagyok az asszisztens 👋</p>
+                  <p className={`font-bold text-base mb-1 ${darkMode ? 'text-violet-100' : 'text-violet-900'}`}>Szia! Én vagyok az asszisztens</p>
                   <p className={`text-sm leading-relaxed ${darkMode ? 'text-violet-200/80' : 'text-violet-800/80'}`}>
-                    Néhány kérdéssel beállítom a gyógyszertárad kritériumait, hogy az automatikus beosztás pontosan illeszkedjen hozzátok. Minden válasz azonnal mentődik! 🚀
+                    Néhány kérdéssel beállítom a gyógyszertárad kritériumait, hogy az automatikus beosztás pontosan illeszkedjen hozzátok. Minden válasz azonnal mentődik!
                   </p>
                 </div>
               )}
