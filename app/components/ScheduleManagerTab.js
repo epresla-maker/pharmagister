@@ -2782,6 +2782,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   const [schedulePreferences, setSchedulePreferences] = useState([]);
   const [allPreferences, setAllPreferences] = useState([]);
   const [expandedWorker, setExpandedWorker] = useState(null);
+  const [workerEditForms, setWorkerEditForms] = useState({}); // { [employeeId]: { phone, address, notes, contractHours } }
+  const [workerEditSaving, setWorkerEditSaving] = useState({}); // { [employeeId]: bool }
 
   // Quick swap: which own schedule is currently open for partner selection
   const [quickSwapScheduleId, setQuickSwapScheduleId] = useState(null);
@@ -3438,6 +3440,27 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       setStatusError('Nem sikerült a dolgozó hozzáadása.');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleSaveWorkerBasicData(employeeId) {
+    const form = workerEditForms[employeeId];
+    if (!form) return;
+    setWorkerEditSaving(prev => ({ ...prev, [employeeId]: true }));
+    try {
+      const payload = {
+        phone: (form.phone || '').trim(),
+        address: (form.address || '').trim(),
+        notes: (form.notes || '').trim(),
+        contractHours: Number(form.contractHours) || 0,
+        updatedAt: serverTimestamp(),
+      };
+      await updateDoc(doc(db, 'pharmacyEmployees', employeeId), payload);
+      setEmployees(prev => prev.map(e => e.id === employeeId ? { ...e, ...payload } : e));
+    } catch (err) {
+      setStatusError('Mentés sikertelen: ' + err.message);
+    } finally {
+      setWorkerEditSaving(prev => ({ ...prev, [employeeId]: false }));
     }
   }
 
@@ -7955,8 +7978,75 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                       </button>
 
                       {/* Expanded: preferences grouped by month */}
-                      {isExpanded && (
-                        <div className={`px-4 pb-4 pt-1 border-t space-y-3 ${darkMode ? 'border-gray-700' : 'border-gray-100'}`}>
+                      {isExpanded && (() => {
+                        const ef = workerEditForms[employee.id] ?? {
+                          phone: employee.phone || '',
+                          address: employee.address || '',
+                          notes: employee.notes || '',
+                          contractHours: String(employee.contractHours || ''),
+                        };
+                        const isSavingEf = !!workerEditSaving[employee.id];
+                        return (
+                        <div className={`px-4 pb-4 pt-1 border-t space-y-4 ${darkMode ? 'border-gray-700' : 'border-gray-100'}`}>
+                          {/* Basic data section */}
+                          <div className={`rounded-xl p-3 space-y-3 ${darkMode ? 'bg-gray-800' : 'bg-gray-50'}`}>
+                            <p className={`text-xs font-bold uppercase tracking-widest ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Alapadatok</p>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="col-span-2 flex flex-col gap-1">
+                                <label className={`text-[11px] font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Heti szerz. óra</label>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="80"
+                                  value={ef.contractHours}
+                                  onChange={e => setWorkerEditForms(prev => ({ ...prev, [employee.id]: { ...ef, contractHours: e.target.value } }))}
+                                  className={`w-full rounded-lg border px-3 py-1.5 text-sm bg-transparent ${darkMode ? 'border-gray-600 text-gray-100' : 'border-gray-300 text-gray-800'}`}
+                                  placeholder="pl. 40"
+                                />
+                              </div>
+                              <div className="col-span-2 flex flex-col gap-1">
+                                <label className={`text-[11px] font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Telefonszám</label>
+                                <input
+                                  type="text"
+                                  value={ef.phone}
+                                  onChange={e => setWorkerEditForms(prev => ({ ...prev, [employee.id]: { ...ef, phone: e.target.value } }))}
+                                  className={`w-full rounded-lg border px-3 py-1.5 text-sm bg-transparent ${darkMode ? 'border-gray-600 text-gray-100' : 'border-gray-300 text-gray-800'}`}
+                                  placeholder="+36 ..."
+                                />
+                              </div>
+                              <div className="col-span-2 flex flex-col gap-1">
+                                <label className={`text-[11px] font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Cím</label>
+                                <input
+                                  type="text"
+                                  value={ef.address}
+                                  onChange={e => setWorkerEditForms(prev => ({ ...prev, [employee.id]: { ...ef, address: e.target.value } }))}
+                                  className={`w-full rounded-lg border px-3 py-1.5 text-sm bg-transparent ${darkMode ? 'border-gray-600 text-gray-100' : 'border-gray-300 text-gray-800'}`}
+                                  placeholder="Utca, város..."
+                                />
+                              </div>
+                              <div className="col-span-2 flex flex-col gap-1">
+                                <label className={`text-[11px] font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Megjegyzés</label>
+                                <input
+                                  type="text"
+                                  value={ef.notes}
+                                  onChange={e => setWorkerEditForms(prev => ({ ...prev, [employee.id]: { ...ef, notes: e.target.value } }))}
+                                  className={`w-full rounded-lg border px-3 py-1.5 text-sm bg-transparent ${darkMode ? 'border-gray-600 text-gray-100' : 'border-gray-300 text-gray-800'}`}
+                                />
+                              </div>
+                            </div>
+                            <div className="flex justify-end">
+                              <button
+                                type="button"
+                                disabled={isSavingEf}
+                                onClick={() => handleSaveWorkerBasicData(employee.id)}
+                                className="inline-flex items-center gap-1.5 rounded-xl bg-violet-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-60"
+                              >
+                                {isSavingEf ? 'Mentés...' : 'Mentés'}
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Preferences section */}
                           {monthKeys.length === 0 ? (
                             <p className={`text-sm italic ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Még nem küldött be tervezetet.</p>
                           ) : monthKeys.map(mk => {
@@ -7993,7 +8083,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                             );
                           })}
                         </div>
-                      )}
+                        );
+                      })()}
                     </div>
                   );
                 })}
