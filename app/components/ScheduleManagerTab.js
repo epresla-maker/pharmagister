@@ -141,10 +141,9 @@ function countWorkdaysInMonth(year, month) {
 function calcMonthlyRequiredHours(contractHours, year, month) {
   const h = Number(contractHours);
   if (!h) return 0;
-  const workdays = countWorkdaysInMonth(year, month);
-  // 12h-s műszakos dolgozóknál ugyanannyi a havi munkaidő-keret mint 8h-s teljes állásban
-  if (h === 12) return workdays * 8;
-  return h * workdays;
+  // 12h-s műszak esetén havonta kb. munkaidő-keret: (contractHours/8)*munkanapok*8
+  // De a törvényes keret alapján inkább: napi h × munkanapok
+  return h * countWorkdaysInMonth(year, month);
 }
 
 function getDateRangeKeys(startDate, endDate) {
@@ -2875,9 +2874,9 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     }
   }, [isPharmacy]);
 
-  // ── Load employee profiles for pharmacy (used in workers tab + planner enrichment) ───────────────────
+  // ── Load employee profiles for pharmacy workers tab ───────────────────
   useEffect(() => {
-    if (!isPharmacy) return;
+    if (!isPharmacy || mainTab !== 'workers') return;
     const linkedIds = employees.map(e => e.linkedUserId).filter(Boolean);
     if (linkedIds.length === 0) return;
     const chunks = [];
@@ -2892,7 +2891,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       profiles.forEach(p => { map[p.userId] = p; });
       setWorkerProfiles(map);
     }).catch(err => console.error('workerProfiles load error', err));
-  }, [isPharmacy, employees]);
+  }, [isPharmacy, mainTab, employees]);
 
   const ownScheduleIds = useMemo(() => {
     const employeeIds = new Set(ownEmployeeRecords.map(item => item.id));
@@ -3976,12 +3975,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           type: 'schedule_swap_result_for_pharmacy',
           title: 'Csere elutasítva',
           message: `${requestItem.targetName} nem fogadta el a csereigényt (${requestItem.requesterName} kezdeményezte).`,
-          dedupeWindowSeconds: 60,
-          dedupeByDataKeys: ['requestId'],
           data: { requestId },
           url: '/pharmagister?tab=schedule-manager',
-          dedupeWindowSeconds: 60,
-          dedupeByDataKeys: ['requestId'],
         });
 
         setStatusMessage('A csereigényt elutasítottad.');
@@ -4262,11 +4257,11 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       const response = await fetch('/api/pharmagister/schedule-planner', {
         method: 'POST',
         headers: {
-          'Content-Type': 'applicati.map(e => { const p = workerProfiles[e.linkedUserId]; return p ? { ...e, birthDate: p.birthDate || e.birthDate, childrenCount: p.childrenCount ?? e.childrenCount, contractHours: p.contractHours || e.contractHours } : e; })on/json',
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          employees: activeEmployees.map(e => { const p = workerProfiles[e.linkedUserId]; return p ? { ...e, birthDate: p.birthDate || e.birthDate, childrenCount: p.childrenCount ?? e.childrenCount, contractHours: p.contractHours || e.contractHours } : e; }),
+          employees: activeEmployees,
           schedules: activeMonthSchedules,
           vacationRequests,
           year,
@@ -4288,7 +4283,6 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         return { success: false, blockingErrors };
       }
 
-      const wasAlreadyPartiallyPublished = activeMonthSchedules.some(s => s.publishedAt);
       const publishedAtIso = new Date().toISOString();
       for (const item of activeMonthSchedules) {
         await updateDoc(doc(db, 'pharmacySchedules', item.id), {
@@ -4310,18 +4304,14 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         } else {
           missingLinkedUsers.add(item.employeeName || item.employeeEmail || item.employeeId || 'ismeretlen dolgozo');
         }
-      }wasAlreadyPartiallyPublished ? 'schedule_updated' : 'schedule_published',
-          title: wasAlreadyPartiallyPublished ? 'Beosztas frissitve' : 'Uj beosztas publikalva',
-          message: wasAlreadyPartiallyPublished
-            ? `${MONTHS_HU[month - 1]} ${year} havi beosztasodban valtozas tortent, ellenorizd az aktualis beosztasodat.`
-            userId of notifyTargets) {
+      }
+
+      for (const userId of notifyTargets) {
         await createNotificationWithPush({
           userId,
-          type: wasAlreadyPartiallyPublished ? 'schedule_updated' : 'schedule_published',
-          title: wasAlreadyPartiallyPublished ? 'Beosztas frissitve' : 'Uj beosztas publikalva',
-          message: wasAlreadyPartiallyPublished
-            ? `${MONTHS_HU[month - 1]} ${year} havi beosztasodban valtozas tortent, ellenorizd az aktualis beosztasodat.`
-            : `${MONTHS_HU[month - 1]} ${year} havi beosztasod publikalva lett.`,
+          type: 'schedule_published',
+          title: 'Uj beosztas publikalva',
+          message: `${MONTHS_HU[month - 1]} ${year} havi beosztasod publikalva lett.`,
           data: { pharmacyId: user.uid, year, month },
           url: '/pharmagister?tab=schedule-manager',
           dedupeWindowSeconds: 120,
@@ -4621,13 +4611,12 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           where('pharmacyId', '==', user.uid),
           where('year', '==', previousYear),
           where('month', '==', previousMonth)
-      // Jóváhagyott szabadságos napok az aktuális hónapban — ezeket nem másoljuk be
-      const vacBlockedDates = new Set();
-      for (const vac of vacationRequests) {
-        if (!['accepted', 'approved'].includes(vac.status)) continue;
-        const vacDates = getDateRangeKeys(vac.startDate, vac.endDate || vac.startDate);
-        vacDates.forEach(d => vacBlockedDates.add(`${vac.employeeId}|${d}`));
-      }
+        )
+      );
+
+      const currentSet = new Set(activeMonthSchedules.map(item => `${item.day}|${item.startTime}|${item.endTime}|${item.employeeId}`));
+      const targetMonthDays = getDaysInMonth(year, month);
+      let created = 0;
 
       for (const docItem of previousSnapshot.docs) {
         const item = docItem.data();
@@ -4637,27 +4626,6 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
         const dedupeKey = `${targetDay}|${item.startTime}|${item.endTime}|${item.employeeId}`;
         if (currentSet.has(dedupeKey)) continue;
-
-        const targetDateKey = formatDateKey(year, month, targetDay);
-        if (vacBlockedDates.has(`${item.employeeId}|${targetDateKey}`ok az aktuális hónapban — ezeket nem másoljuk be
-      const vacBlockedDates = new Set();
-      for (const vac of vacationRequests) {
-        if (!['accepted', 'approved'].includes(vac.status)) continue;
-        const vacDates = getDateRangeKeys(vac.startDate, vac.endDate || vac.startDate);
-        vacDates.forEach(d => vacBlockedDates.add(`${vac.employeeId}|${d}`));
-      }
-
-      for (const docItem of previousSnapshot.docs) {
-        const item = docItem.data();
-        if (item.status === 'deleted') continue;
-        const targetDay = Number(item.day || String(item.date || '').split('-')[2]);
-        if (!targetDay || targetDay > targetMonthDays) continue;
-
-        const dedupeKey = `${targetDay}|${item.startTime}|${item.endTime}|${item.employeeId}`;
-        if (currentSet.has(dedupeKey)) continue;
-
-        const targetDateKey = formatDateKey(year, month, targetDay);
-        if (vacBlockedDates.has(`${item.employeeId}|${targetDateKey}`)) continue;
 
         await addDoc(collection(db, 'pharmacySchedules'), {
           pharmacyId: user.uid,
@@ -4935,7 +4903,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       return false;
     } finally {
       setPlannerConfigSaving(false);
-    }.map(e => { const p = workerProfiles[e.linkedUserId]; return p ? { ...e, birthDate: p.birthDate || e.birthDate, childrenCount: p.childrenCount ?? e.childrenCount, contractHours: p.contractHours || e.contractHours } : e; })
+    }
   }
 
   async function runAutoPlanner({ action = 'plan', sickEmployeeId = null, affectedDates = [] } = {}) {
@@ -4953,7 +4921,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          employees: activeEmployees.map(e => { const p = workerProfiles[e.linkedUserId]; return p ? { ...e, birthDate: p.birthDate || e.birthDate, childrenCount: p.childrenCount ?? e.childrenCount, contractHours: p.contractHours || e.contractHours } : e; }),
+          employees: activeEmployees,
           schedules,
           vacationRequests,
           year,
@@ -6956,7 +6924,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       'Mikor vagyok szabadnapos?',
       'Beosztast szeretnek irni',
     ];
-  }.map(e => { const p = workerProfiles[e.linkedUserId]; return p ? { ...e, birthDate: p.birthDate || e.birthDate, childrenCount: p.childrenCount ?? e.childrenCount, contractHours: p.contractHours || e.contractHours } : e; })
+  }
 
   // Intelligens generálás + azonnali mentés egylépésben (a dashboard "Generálás" gomb)
   async function generateAndApplySchedule() {
@@ -6974,7 +6942,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          employees: activeEmployees.map(e => { const p = workerProfiles[e.linkedUserId]; return p ? { ...e, birthDate: p.birthDate || e.birthDate, childrenCount: p.childrenCount ?? e.childrenCount, contractHours: p.contractHours || e.contractHours } : e; }),
+          employees: activeEmployees,
           schedules,
           vacationRequests,
           year,
@@ -7041,17 +7009,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       setStatusMessage(
         `✅ Intelligens beosztás generálva: ${created} műszak mentve` +
         (errorCount ? `, ${errorCount} piros figyelmeztetés` : '') +
-    const savedConflicts = plannerResult.conflicts || [];
-    await applyProposedShifts(plannerResult.proposedShifts);
-    // Preferencia-sértések összesítője
-    const prefIssues = savedConflicts.filter(c =>
-      ['weekend_distribution', 'consecutive_days', 'shift_type_permission'].includes(c.code)
-    );
-    if (prefIssues.length > 0) {
-      setStatusMessage(prev =>
-        `${prev} ⚠ ${prefIssues.length} dolgozói preferencia nem volt teljes mértékben teljesíthető (létszámkorlát miatt).`
-      );
-    }tetés` : '') +
+        (warningCount ? `, ${warningCount} narancs figyelmeztetés` : '') +
         '.'
       );
       setPlannerResult(result);
@@ -7069,17 +7027,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       setStatusError('Nincs alkalmazható javasolt műszak.');
       return;
     }
-    const savedConflicts = plannerResult.conflicts || [];
     await applyProposedShifts(plannerResult.proposedShifts);
-    // Preferencia-sértések összesítője
-    const prefIssues = savedConflicts.filter(c =>
-      ['weekend_distribution', 'consecutive_days', 'shift_type_permission'].includes(c.code)
-    );
-    if (prefIssues.length > 0) {
-      setStatusMessage(prev =>
-        `${prev} ⚠ ${prefIssues.length} dolgozói preferencia nem volt teljes mértékben teljesíthető (létszámkorlát miatt).`
-      );
-    }
   }
 
   async function applyProposedShifts(proposedShifts) {
