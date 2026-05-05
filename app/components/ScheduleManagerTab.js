@@ -8001,7 +8001,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   color: 'amber',
                   label: `${swapsToApprove.length} csereigény jóváhagyásra vár`,
                   sub: swapsToApprove.map(r => `${r.requesterName?.split(' ').pop()} ↔ ${r.targetName?.split(' ').pop()}`).join(', '),
-                  onClick: () => setMainTab('swaps'),
+                  onClick: () => document.getElementById('pharmacy-swaps-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
                 });
               }
               // Folyamatban lévő cserék (pending)
@@ -8013,7 +8013,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   color: 'blue',
                   label: `${pendingSwaps.length} csereigény folyamatban`,
                   sub: 'Várakozik a másik dolgozó válaszára',
-                  onClick: () => setMainTab('swaps'),
+                  onClick: () => document.getElementById('pharmacy-swaps-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
                 });
               }
               // Jóváhagyásra váró szabadságkérelmek
@@ -8439,7 +8439,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                 </div>
               ) : null}
               {swapRequests.filter(r => r.status === 'pending').length > 0 && (
-                <div className={`rounded-2xl border p-5 space-y-3 ${darkMode ? 'border-blue-900 bg-blue-950/20' : 'border-blue-100 bg-blue-50'}`}>
+                <div id="pharmacy-swaps-panel" className={`rounded-2xl border p-5 space-y-3 ${darkMode ? 'border-blue-900 bg-blue-950/20' : 'border-blue-100 bg-blue-50'}`}>
                   <div className="flex items-center gap-2">
                     <ArrowLeftRight className="h-5 w-5 text-blue-500" />
                     <h3 className={`text-base font-semibold ${darkMode ? 'text-blue-300' : 'text-blue-700'}`}>Folyamatban lévő csereigények</h3>
