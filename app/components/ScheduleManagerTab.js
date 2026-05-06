@@ -488,7 +488,7 @@ function MonthCalendar({ year, month, selectedDate, schedules, ownScheduleIds, o
           const isSelected = dateKey === selectedDate;
           const colIdx = index % 7; // 0=Mon…6=Sun
           const isWeekend = colIdx >= 5;
-          const mmdd = day ? `${String(month + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}` : null;
+          const mmdd = day ? `${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}` : null;
           const isHoliday = mmdd ? holidays.has(mmdd) : false;
           const isLastInRow = colIdx === 6;
           const isInLastRow = index >= cells.length - 7;
@@ -537,7 +537,9 @@ function MonthCalendar({ year, month, selectedDate, schedules, ownScheduleIds, o
                     daySchedules.length > 0 && (() => {
                       const s = daySchedules[0];
                       const st = getShiftType(s.shiftType);
-                      const timeLabel = (s.from && s.to) ? `${s.from.replace(':00','')}-${s.to.replace(':00','')}` : st.label;
+                      const start = s.startTime || s.from;
+                      const end = s.endTime || s.to;
+                      const timeLabel = (start && end) ? `${start.replace(':00','')}-${end.replace(':00','')}` : st.label;
                       // inline bg color map
                       const bgMap = { N: '#10b981', 'É': '#6366f1', 'Ü': '#8b5cf6', B: '#f43f5e', Sz: '#fb923c', P: '#38bdf8' };
                       const bg = bgMap[s.shiftType] || '#8b5cf6';
@@ -730,7 +732,7 @@ function PharmacyScheduleCalendar({
   onCopyPrev, onExport, onPublish, onAutoFix, onDeleteMonth, onPublishChanges,
   swapLog, setSwapLog, showSwapLog, setShowSwapLog,
   activeMonthSchedules, publishedScheduleCount,
-  readOnly, ownScheduleIds,
+  readOnly, ownScheduleIds, initialOwnView = true,
   config,
   pendingSwapRequests, onOpenSwaps,
   onAutoGenerate,
@@ -756,7 +758,7 @@ function PharmacyScheduleCalendar({
   const [swapIgnoreRole, setSwapIgnoreRole] = useState(false);
   const [readOnlySwapSaving, setReadOnlySwapSaving] = useState(false);
   const [readOnlySwapDone, setReadOnlySwapDone] = useState(null); // success message
-  const [ownView, setOwnView] = useState(true); // readOnly: default to own-only view
+  const [ownView, setOwnView] = useState(initialOwnView); // readOnly: default to own-only view
   const [publishChangesLoading, setPublishChangesLoading] = useState(false);
   const [deleteMonthConfirm, setDeleteMonthConfirm] = useState(0); // 0=off 1=first 2=second
 
@@ -1186,7 +1188,7 @@ function PharmacyScheduleCalendar({
           </button>
           <div className="flex-1" />
           {/* Own/All toggle — only in readOnly mode */}
-          {readOnly && ownScheduleIds && ownScheduleIds.size > 0 && (
+          {readOnly && ownScheduleIds && (
             <div className={`flex rounded-xl overflow-hidden border ${darkMode ? 'border-white/20' : 'border-white/30'}`}>
               <button
                 type="button"
@@ -2822,6 +2824,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   // Quick swap: which own schedule is currently open for partner selection
   const [quickSwapScheduleId, setQuickSwapScheduleId] = useState(null);
   const [quickSwapMessage, setQuickSwapMessage] = useState('');
+  const [employeeCalendarView, setEmployeeCalendarView] = useState('own');
 
   const selectedDate = formatDateKey(year, month, day);
   const today = getTodayKey();
@@ -2900,6 +2903,19 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     () => sortByDateAndTime(schedules.filter(item => item.date === selectedDate && item.status !== 'deleted')),
     [schedules, selectedDate]
   );
+
+  const publishedEmployeeSchedules = useMemo(
+    () => sortByDateAndTime(schedules.filter(item => item.status !== 'deleted' && isPublishedSchedule(item))),
+    [schedules]
+  );
+
+  const selectedEmployeeDateSchedules = useMemo(() => {
+    const publishedItems = selectedDateSchedules.filter(isPublishedSchedule);
+    if (employeeCalendarView === 'own') {
+      return publishedItems.filter(item => ownScheduleIds.has(item.id));
+    }
+    return publishedItems;
+  }, [employeeCalendarView, ownScheduleIds, selectedDateSchedules]);
 
   const ownSchedules = useMemo(
     () => sortByDateAndTime(schedules.filter(item => ownScheduleIds.has(item.id) && item.status !== 'deleted')),
@@ -9489,6 +9505,159 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                 </div>
               )}
 
+              <div className="grid grid-cols-1 xl:grid-cols-[1.05fr,0.95fr] gap-4">
+                <div className={`rounded-2xl border p-4 space-y-3 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <h3 className={`text-base font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Saját beosztás kiemelve</h3>
+                      <p className={`text-xs mt-0.5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{MONTHS_HU[month - 1]} {year}</p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className={`inline-flex rounded-xl border p-0.5 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-100'}`}>
+                        <button
+                          type="button"
+                          onClick={() => setEmployeeCalendarView('own')}
+                          className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${employeeCalendarView === 'own' ? 'bg-[#6B46C1] text-white' : darkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-600 hover:bg-white'}`}
+                        >Saját</button>
+                        <button
+                          type="button"
+                          onClick={() => setEmployeeCalendarView('all')}
+                          className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${employeeCalendarView === 'all' ? 'bg-[#6B46C1] text-white' : darkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-600 hover:bg-white'}`}
+                        >Összes</button>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setCalendarOpen(true)}
+                        className={`rounded-xl border px-3 py-2 text-xs font-semibold ${darkMode ? 'border-gray-600 text-gray-200 hover:bg-gray-800' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}
+                      >Teljes nézet</button>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const prev = getPreviousMonth(year, month);
+                        setYear(prev.year);
+                        setMonth(prev.month);
+                      }}
+                      className={`h-9 w-9 rounded-xl text-lg font-bold ${darkMode ? 'bg-gray-800 text-gray-200 hover:bg-gray-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                    >‹</button>
+                    <div className={`text-sm font-bold ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>{MONTHS_HU[month - 1]} {year}</div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = month === 12 ? { year: year + 1, month: 1 } : { year, month: month + 1 };
+                        setYear(next.year);
+                        setMonth(next.month);
+                      }}
+                      className={`h-9 w-9 rounded-xl text-lg font-bold ${darkMode ? 'bg-gray-800 text-gray-200 hover:bg-gray-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                    >›</button>
+                  </div>
+                  <MonthCalendar
+                    year={year}
+                    month={month}
+                    selectedDate={selectedDate}
+                    schedules={publishedEmployeeSchedules}
+                    ownScheduleIds={ownScheduleIds}
+                    onSelectDate={(dateKey) => {
+                      const [, nextMonth, nextDay] = dateKey.split('-').map(Number);
+                      setMonth(nextMonth);
+                      setDay(nextDay);
+                    }}
+                    darkMode={darkMode}
+                    filterOwn={employeeCalendarView === 'own'}
+                    pendingSwapRequests={swapRequests.filter(r => r.targetUserId === user?.uid && r.status === 'pending')}
+                    onOpenSwaps={() => setMainTab('swaps')}
+                  />
+                </div>
+
+                <div className={`rounded-2xl border p-4 space-y-3 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className={`text-base font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Kiválasztott nap</h3>
+                    <span className={`text-xs font-semibold ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{selectedDate}</span>
+                  </div>
+                  {selectedEmployeeDateSchedules.length === 0 ? (
+                    <p className={`text-sm py-6 text-center ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Erre a napra nincs publikált beosztás.</p>
+                  ) : selectedEmployeeDateSchedules.map(item => {
+                    const isOwn = ownScheduleIds.has(item.id);
+                    const isSwapOpen = quickSwapScheduleId === item.id;
+                    const swapCandidates = isOwn && isSwapOpen ? getSwapCandidatesForSchedule(item.id) : [];
+                    const hasOpenSwap = swapRequests.some(r =>
+                      (r.requesterScheduleId === item.id || r.targetScheduleId === item.id) &&
+                      (r.status === 'pending' || r.status === 'employee_accepted')
+                    );
+                    return (
+                      <div key={item.id} className={`rounded-xl border p-4 space-y-3 ${isOwn ? 'border-green-300 bg-green-50 dark:border-green-700 dark:bg-green-900/20' : darkMode ? 'border-gray-700 bg-gray-800' : 'border-[#E5E7EB] bg-[#F9FAFB]'}`}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="font-semibold">{item.employeeName}</p>
+                            <p className="text-sm text-gray-500">{item.startTime} - {item.endTime}</p>
+                            {item.notes ? <p className="text-sm text-gray-500 mt-0.5">{item.notes}</p> : null}
+                          </div>
+                          <div className="flex items-center gap-2 flex-wrap justify-end">
+                            {isOwn ? <span className="rounded-full bg-green-600 px-2 py-1 text-xs font-semibold text-white">Saját</span> : null}
+                            {isOwn && !hasOpenSwap && item.date >= today ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (isSwapOpen) { setQuickSwapScheduleId(null); setQuickSwapMessage(''); }
+                                  else { setQuickSwapScheduleId(item.id); setQuickSwapMessage(''); }
+                                }}
+                                className="inline-flex items-center gap-1 rounded-xl border border-[#6B46C1] px-2 py-1 text-xs font-semibold text-[#6B46C1] hover:bg-[#6B46C1]/10"
+                              >
+                                <ArrowLeftRight className="h-3 w-3" />
+                                {isSwapOpen ? 'Mégse' : 'Csere kérése'}
+                              </button>
+                            ) : null}
+                            {isOwn && hasOpenSwap ? (
+                              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">Csere folyamatban</span>
+                            ) : null}
+                          </div>
+                        </div>
+
+                        {isOwn && isSwapOpen ? (
+                          <div className={`rounded-xl border p-3 space-y-3 ${darkMode ? 'border-gray-600 bg-gray-900' : 'border-gray-200 bg-white'}`}>
+                            <p className="text-sm font-semibold">Kivel cserélnél?</p>
+                            {swapCandidates.length === 0 ? (
+                              <p className="text-sm text-gray-500">Ezen a napon nincs más beosztott dolgozó, akivel cserét kezdeményezhetnél.</p>
+                            ) : (
+                              <div className="space-y-2">
+                                {swapCandidates.map(candidate => (
+                                  <div key={candidate.id} className={`flex items-center justify-between rounded-lg border px-3 py-2 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-gray-50'}`}>
+                                    <div>
+                                      <p className="text-sm font-medium">{candidate.employeeName}</p>
+                                      <p className="text-xs text-gray-500">{candidate.startTime}–{candidate.endTime}</p>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      disabled={saving}
+                                      onClick={() => handleQuickSwapRequest(item.id, candidate.id, quickSwapMessage)}
+                                      className="rounded-xl bg-[#6B46C1] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+                                    >
+                                      Csere kérése
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            <div>
+                              <p className="mb-1 text-xs font-medium text-gray-500">Üzenet (opcionális)</p>
+                              <textarea
+                                value={quickSwapMessage}
+                                onChange={e => setQuickSwapMessage(e.target.value)}
+                                rows={2}
+                                className="w-full rounded-xl border px-3 py-2 text-sm bg-transparent"
+                                placeholder="Pl. Nekem erre a napra egyéb kötelezettségem van."
+                              />
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
               {availableYears.map(y => {
                 const startM = 1;
                 const endM = 12;
@@ -9496,7 +9665,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                 const publishedMonths = months.filter(({ m }) =>
                   schedules.some(s => s.status !== 'deleted' && s.year === y && s.month === m && Boolean(s.publishedAt))
                 );
-                if (publishedMonths.length === 0 && y !== thisYear) return null;
+                if (publishedMonths.length === 0) return null;
                 return (
                   <div key={y}>
                     <p className={`text-xs font-bold uppercase tracking-widest mb-2 px-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{y}</p>
@@ -9533,9 +9702,6 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   </div>
                 );
               })}
-              {schedules.filter(s => s.status !== 'deleted' && Boolean(s.publishedAt)).length === 0 && (
-                <p className={`text-sm text-center py-8 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Még nincs publikált beosztás.</p>
-              )}
               {/* Full-screen calendar overlay */}
               {calendarOpen && (
                 <PharmacyScheduleCalendar
@@ -9565,6 +9731,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   activeMonthSchedules={schedules.filter(s => s.status !== 'deleted' && Boolean(s.publishedAt) && s.year === year && s.month === month).length}
                   publishedScheduleCount={0}
                   readOnly={true}
+                  initialOwnView={employeeCalendarView === 'own'}
                   ownScheduleIds={ownScheduleIds}
                   pendingSwapRequests={swapRequests.filter(r => r.targetUserId === user?.uid && r.status === 'pending')}
                   onOpenSwaps={() => setMainTab('swaps')}
