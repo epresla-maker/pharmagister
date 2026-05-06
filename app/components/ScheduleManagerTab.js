@@ -420,13 +420,13 @@ function Field({ label, required = false, hint, children }) {
 
 function SegmentedTabs({ tabs, active, onChange }) {
   return (
-    <div className="flex gap-2">
+    <div className="flex w-full min-w-0 max-w-full gap-2 overflow-x-auto overscroll-x-contain no-scrollbar px-0.5 py-1">
       {tabs.map(tab => (
         <button
           key={tab.key}
           type="button"
           onClick={() => onChange(tab.key)}
-          className={`relative flex-1 rounded-xl px-3 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
+          className={`relative flex-none rounded-xl px-3 py-2 text-sm font-medium transition-colors whitespace-nowrap sm:flex-1 ${
             active === tab.key
               ? 'bg-[#6B46C1] text-white'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-700'
