@@ -7,6 +7,8 @@ import RouteGuard from '@/app/components/RouteGuard';
 import PharmaNavbar from '@/app/components/PharmaNavbar';
 import { useBadges } from '@/context/BadgesContext';
 import { canAccessScheduleManager } from '@/lib/pharmagisterFeatures';
+import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 function PharmagisterContent() {
   const { user, userData } = useAuth();
@@ -16,6 +18,9 @@ function PharmagisterContent() {
   const [isStandalone, setIsStandalone] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallButton, setShowInstallButton] = useState(false);
+  const [showScheduleDisclaimer, setShowScheduleDisclaimer] = useState(false);
+  const [acceptingScheduleDisclaimer, setAcceptingScheduleDisclaimer] = useState(false);
+  const [scheduleDisclaimerAcceptedLocal, setScheduleDisclaimerAcceptedLocal] = useState(false);
   
   // ✅ Használjuk a közös badges hook-ot a duplikált listener helyett
   const { badges } = useBadges();
@@ -24,6 +29,9 @@ function PharmagisterContent() {
   // Az aktív tab a query paraméterből jön (alapértelmezett: 'calendar')
   const activeTab = searchParams.get('tab') || 'calendar';
   const showScheduleManager = canAccessScheduleManager(user, userData);
+  const hasAcceptedScheduleDisclaimer = Boolean(
+    userData?.scheduleManagerDisclaimerAcceptedAt || scheduleDisclaimerAcceptedLocal
+  );
   
   // Pharmagister szerepkör: 'pharmacy' (Gyógyszertár), 'pharmacist' (Gyógyszerész), 'assistant' (Szakasszisztens)
   const pharmaRole = userData?.pharmagisterRole || null;
@@ -88,6 +96,34 @@ function PharmagisterContent() {
       router.replace('/pharmagister?tab=calendar');
     }
   }, [activeTab, showScheduleManager, router]);
+
+  useEffect(() => {
+    const mustAccept = activeTab === 'schedule-manager' && showScheduleManager && !hasAcceptedScheduleDisclaimer;
+    setShowScheduleDisclaimer(mustAccept);
+  }, [activeTab, showScheduleManager, hasAcceptedScheduleDisclaimer]);
+
+  const handleAcceptScheduleDisclaimer = useCallback(async () => {
+    if (!user?.uid) return;
+    setAcceptingScheduleDisclaimer(true);
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        scheduleManagerDisclaimerAcceptedAt: serverTimestamp(),
+        scheduleManagerDisclaimerVersion: '2026-05-07-v1',
+      });
+      setScheduleDisclaimerAcceptedLocal(true);
+      setShowScheduleDisclaimer(false);
+    } catch (error) {
+      console.error('Error accepting schedule disclaimer:', error);
+      alert('Nem sikerült menteni az elfogadást. Kérlek próbáld újra.');
+    } finally {
+      setAcceptingScheduleDisclaimer(false);
+    }
+  }, [user?.uid]);
+
+  const handleDeclineScheduleDisclaimer = useCallback(() => {
+    setShowScheduleDisclaimer(false);
+    router.replace('/pharmagister?tab=calendar');
+  }, [router]);
 
   // ✅ TÖRÖLVE: Duplikált notification listener - most már useDashboardBadges-ből jön
 
@@ -273,7 +309,7 @@ function PharmagisterContent() {
                   <RatingsTab />
                 </div>
               )}
-              {activeTab === 'schedule-manager' && showScheduleManager && (
+              {activeTab === 'schedule-manager' && showScheduleManager && hasAcceptedScheduleDisclaimer && (
                 <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-[#E5E7EB]'} border rounded-xl p-6`}>
                   <ScheduleManagerTab pharmaRole={pharmaRole} />
                 </div>
@@ -282,6 +318,53 @@ function PharmagisterContent() {
           )}
         </div>
       </div>
+
+      {showScheduleDisclaimer && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-3 sm:p-6">
+          <div className={`w-full max-w-2xl rounded-2xl border p-4 sm:p-6 shadow-2xl ${darkMode ? 'bg-gray-900 border-gray-700 text-gray-100' : 'bg-white border-gray-200 text-gray-900'}`}>
+            <h2 className="text-lg sm:text-xl font-bold mb-3">Beosztáskezelő használati nyilatkozat</h2>
+            <div className={`text-xs sm:text-sm space-y-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+              <p>
+                A Beosztáskezelő funkció tervezést támogató informatikai eszköz. A megjelenített javaslatok és számítások
+                nem minősülnek jogi, munkaügyi, adózási vagy szakhatósági tanácsadásnak.
+              </p>
+              <p>
+                A felhasználó (gyógyszertár/foglalkoztató) teljes felelőssége a rögzített adatok pontossága, valamint az,
+                hogy a végleges beosztás megfeleljen a hatályos jogszabályoknak és szakmai előírásoknak.
+              </p>
+              <p>
+                A Pharmagister a jogszabályok által megengedett keretek között kizárja felelősségét a funkció használatából
+                eredő közvetlen vagy közvetett károkért, különösen a hibás adatrögzítésből, téves publikálásból vagy
+                belső szervezési döntésekből származó következményekért. A Pharmagister továbbá nem vállal felelősséget
+                az oldal vagy szolgáltatás átmeneti vagy tartós elérhetetlenségéből, üzemzavarából, adatkommunikációs
+                hibáiból, illetve egyéb technikai hibáiból eredő károkért sem.
+              </p>
+              <p>
+                A továbblépéssel kijelented, hogy a nyilatkozatot megismerted, megértetted, és elfogadod.
+              </p>
+            </div>
+
+            <div className="mt-5 flex flex-col sm:flex-row gap-2 sm:justify-end">
+              <button
+                type="button"
+                onClick={handleDeclineScheduleDisclaimer}
+                disabled={acceptingScheduleDisclaimer}
+                className={`px-4 py-2 rounded-lg border text-sm ${darkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-800' : 'border-gray-300 text-gray-700 hover:bg-gray-50'} disabled:opacity-60`}
+              >
+                Nem fogadom el
+              </button>
+              <button
+                type="button"
+                onClick={handleAcceptScheduleDisclaimer}
+                disabled={acceptingScheduleDisclaimer}
+                className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700 disabled:opacity-60"
+              >
+                {acceptingScheduleDisclaimer ? 'Mentés...' : 'Elfogadom és folytatom'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Pharma Navbar - csak ha van szerepkör */}
       {showPharmaNavbar && <PharmaNavbar isVisible={showNavbar} />}
