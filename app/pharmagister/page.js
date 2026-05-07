@@ -320,10 +320,12 @@ function PharmagisterContent() {
       </div>
 
       {showScheduleDisclaimer && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-3 sm:p-6">
-          <div className={`w-full max-w-2xl rounded-2xl border p-4 sm:p-6 shadow-2xl ${darkMode ? 'bg-gray-900 border-gray-700 text-gray-100' : 'bg-white border-gray-200 text-gray-900'}`}>
-            <h2 className="text-lg sm:text-xl font-bold mb-3">Beosztáskezelő használati nyilatkozat</h2>
-            <div className={`text-xs sm:text-sm space-y-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 p-3 sm:p-6 pb-[calc(96px+env(safe-area-inset-bottom,0px))] sm:pb-6">
+          <div className={`w-full max-w-2xl rounded-2xl border shadow-2xl overflow-hidden ${darkMode ? 'bg-gray-900 border-gray-700 text-gray-100' : 'bg-white border-gray-200 text-gray-900'} max-h-[78vh] sm:max-h-[85vh] flex flex-col`}>
+            <div className="p-4 sm:p-6 pb-3 sm:pb-4 border-b border-black/10">
+              <h2 className="text-lg sm:text-xl font-bold">Beosztáskezelő használati nyilatkozat</h2>
+            </div>
+            <div className={`px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm space-y-2 overflow-y-auto ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
               <p>
                 A Beosztáskezelő funkció tervezést támogató informatikai eszköz. A megjelenített javaslatok és számítások
                 nem minősülnek jogi, munkaügyi, adózási vagy szakhatósági tanácsadásnak.
@@ -344,7 +346,7 @@ function PharmagisterContent() {
               </p>
             </div>
 
-            <div className="mt-5 flex flex-col sm:flex-row gap-2 sm:justify-end">
+            <div className="p-4 sm:p-6 pt-3 sm:pt-4 border-t border-black/10 flex flex-col sm:flex-row gap-2 sm:justify-end bg-inherit">
               <button
                 type="button"
                 onClick={handleDeclineScheduleDisclaimer}
