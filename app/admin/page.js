@@ -16,6 +16,11 @@ export default function AdminPage() {
   const [users, setUsers] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [roleStats, setRoleStats] = useState({ gyogyszeresz: 0, gyogyszertar: 0, szakasszisztens: 0 });
+  const [scheduleManagerStats, setScheduleManagerStats] = useState({
+    pharmaciesWithEmployees: 0,
+    pharmaciesWithPublishedMonths: 0,
+    publishedMonthCount: 0,
+  });
 
   const isAdmin = user && ADMIN_EMAILS.includes(user.email);
   const isAdminka = user && ADMINKA_EMAILS.includes(user.email);
@@ -37,12 +42,44 @@ export default function AdminPage() {
   const loadUsers = async () => {
     setLoadingUsers(true);
     try {
-      const usersSnapshot = await getDocs(collection(db, 'users'));
+      const [usersSnapshot, employeesSnapshot, schedulesSnapshot] = await Promise.all([
+        getDocs(collection(db, 'users')),
+        getDocs(collection(db, 'pharmacyEmployees')),
+        getDocs(collection(db, 'pharmacySchedules')),
+      ]);
       const usersData = usersSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
       setUsers(usersData);
+
+      const employeeRows = employeesSnapshot.docs.map(doc => doc.data());
+      const scheduleRows = schedulesSnapshot.docs.map(doc => doc.data());
+
+      const pharmaciesWithEmployees = new Set();
+      employeeRows.forEach((row) => {
+        const pharmacyId = row.pharmacyId;
+        if (!pharmacyId) return;
+        if (row.status === 'deleted') return;
+        pharmaciesWithEmployees.add(pharmacyId);
+      });
+
+      const pharmaciesWithPublishedMonths = new Set();
+      const publishedMonthKeys = new Set();
+      scheduleRows.forEach((row) => {
+        if (!row?.pharmacyId) return;
+        if (row.status === 'deleted') return;
+        if (!row.publishedAt) return;
+        const monthKey = `${row.pharmacyId}-${row.year}-${row.month}`;
+        pharmaciesWithPublishedMonths.add(row.pharmacyId);
+        publishedMonthKeys.add(monthKey);
+      });
+
+      setScheduleManagerStats({
+        pharmaciesWithEmployees: pharmaciesWithEmployees.size,
+        pharmaciesWithPublishedMonths: pharmaciesWithPublishedMonths.size,
+        publishedMonthCount: publishedMonthKeys.size,
+      });
       
       // Calculate role stats - only count ACTIVE users (email + password verified)
       let gyogyszeresz = 0, gyogyszertar = 0, szakasszisztens = 0;
@@ -198,6 +235,29 @@ export default function AdminPage() {
               <p className="text-xs text-gray-600">Szakasszisztens</p>
             </div>
           </div>
+
+          {isAdmin && (
+            <>
+              <p className="text-xs text-gray-500 mt-4 mb-2">📅 Beosztáskezelő használat:</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4">
+                <div className="bg-indigo-50 rounded-lg p-3 text-center border border-indigo-200">
+                  <Building2 className="mx-auto text-indigo-500 mb-1" size={24} />
+                  <p className="text-xl sm:text-2xl font-bold text-indigo-600">{scheduleManagerStats.pharmaciesWithEmployees}</p>
+                  <p className="text-xs text-gray-600">Gyógyszertár hozzáadott alkalmazottal</p>
+                </div>
+                <div className="bg-cyan-50 rounded-lg p-3 text-center border border-cyan-200">
+                  <Building2 className="mx-auto text-cyan-500 mb-1" size={24} />
+                  <p className="text-xl sm:text-2xl font-bold text-cyan-600">{scheduleManagerStats.pharmaciesWithPublishedMonths}</p>
+                  <p className="text-xs text-gray-600">Gyógyszertár publikált hónappal</p>
+                </div>
+                <div className="bg-emerald-50 rounded-lg p-3 text-center border border-emerald-200">
+                  <Users className="mx-auto text-emerald-500 mb-1" size={24} />
+                  <p className="text-xl sm:text-2xl font-bold text-emerald-600">{scheduleManagerStats.publishedMonthCount}</p>
+                  <p className="text-xs text-gray-600">Publikált havi beosztások</p>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="bg-white rounded-lg shadow-lg p-3 sm:p-6">
