@@ -116,7 +116,7 @@ export default function PharmaNavbar({ isVisible = true }) {
               <div className="relative">
                 <Icon className="w-6 h-6" />
                 {item.tab === 'schedule-manager' && (
-                  <span className="absolute -top-1.5 -right-2 text-[8px] font-black tracking-wider leading-none px-0.5 py-px rounded bg-violet-500 text-white" style={{fontSize:'7px'}}>PRO</span>
+                  <span className="absolute -top-1.5 -right-2 text-[8px] font-black tracking-wider leading-none px-0.5 py-px rounded bg-violet-500 text-white" style={{fontSize:'7px'}}>Új</span>
                 )}
               </div>
               <span className="mt-1 text-xs font-medium">{item.label}</span>
