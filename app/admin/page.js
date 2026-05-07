@@ -20,6 +20,7 @@ export default function AdminPage() {
     pharmaciesWithEmployees: 0,
     pharmaciesWithPublishedMonths: 0,
     publishedMonthCount: 0,
+    usingPharmacies: [],
   });
 
   const isAdmin = user && ADMIN_EMAILS.includes(user.email);
@@ -66,6 +67,9 @@ export default function AdminPage() {
 
       const pharmaciesWithPublishedMonths = new Set();
       const publishedMonthKeys = new Set();
+      const employeeCountByPharmacy = new Map();
+      const publishedMonthSetByPharmacy = new Map();
+
       scheduleRows.forEach((row) => {
         if (!row?.pharmacyId) return;
         if (row.status === 'deleted') return;
@@ -73,12 +77,50 @@ export default function AdminPage() {
         const monthKey = `${row.pharmacyId}-${row.year}-${row.month}`;
         pharmaciesWithPublishedMonths.add(row.pharmacyId);
         publishedMonthKeys.add(monthKey);
+
+        if (!publishedMonthSetByPharmacy.has(row.pharmacyId)) {
+          publishedMonthSetByPharmacy.set(row.pharmacyId, new Set());
+        }
+        publishedMonthSetByPharmacy.get(row.pharmacyId).add(`${row.year}-${row.month}`);
+      });
+
+      employeeRows.forEach((row) => {
+        const pharmacyId = row?.pharmacyId;
+        if (!pharmacyId) return;
+        if (row.status === 'deleted') return;
+        employeeCountByPharmacy.set(pharmacyId, (employeeCountByPharmacy.get(pharmacyId) || 0) + 1);
+      });
+
+      const userMap = new Map(usersData.map((u) => [u.id, u]));
+      const usingPharmacyIds = new Set([
+        ...pharmaciesWithEmployees,
+        ...pharmaciesWithPublishedMonths,
+      ]);
+
+      const usingPharmacies = Array.from(usingPharmacyIds).map((pharmacyId) => {
+        const u = userMap.get(pharmacyId);
+        return {
+          id: pharmacyId,
+          name: u?.pharmacyName || u?.displayName || u?.email || 'Ismeretlen gyógyszertár',
+          city: u?.pharmacyCity || '',
+          employeeCount: employeeCountByPharmacy.get(pharmacyId) || 0,
+          publishedMonthCount: publishedMonthSetByPharmacy.get(pharmacyId)?.size || 0,
+        };
+      }).sort((a, b) => {
+        if (b.publishedMonthCount !== a.publishedMonthCount) {
+          return b.publishedMonthCount - a.publishedMonthCount;
+        }
+        if (b.employeeCount !== a.employeeCount) {
+          return b.employeeCount - a.employeeCount;
+        }
+        return a.name.localeCompare(b.name, 'hu');
       });
 
       setScheduleManagerStats({
         pharmaciesWithEmployees: pharmaciesWithEmployees.size,
         pharmaciesWithPublishedMonths: pharmaciesWithPublishedMonths.size,
         publishedMonthCount: publishedMonthKeys.size,
+        usingPharmacies,
       });
       
       // Calculate role stats - only count ACTIVE users (email + password verified)
@@ -255,6 +297,28 @@ export default function AdminPage() {
                   <p className="text-xl sm:text-2xl font-bold text-emerald-600">{scheduleManagerStats.publishedMonthCount}</p>
                   <p className="text-xs text-gray-600">Publikált havi beosztások</p>
                 </div>
+              </div>
+
+              <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <p className="text-xs font-semibold text-gray-700 mb-2">Használó gyógyszertárak:</p>
+                {scheduleManagerStats.usingPharmacies.length === 0 ? (
+                  <p className="text-xs text-gray-500">Még nincs aktív használó.</p>
+                ) : (
+                  <div className="max-h-44 overflow-y-auto space-y-1">
+                    {scheduleManagerStats.usingPharmacies.map((pharmacy) => (
+                      <div key={pharmacy.id} className="flex items-center justify-between rounded bg-white border border-gray-200 px-2 py-1.5">
+                        <div className="min-w-0 pr-2">
+                          <p className="text-xs font-medium text-gray-800 truncate">{pharmacy.name}</p>
+                          <p className="text-[11px] text-gray-500 truncate">{pharmacy.city || 'Település nincs megadva'}</p>
+                        </div>
+                        <div className="text-right text-[11px] text-gray-600 whitespace-nowrap">
+                          <p>Alkalmazott: <span className="font-semibold">{pharmacy.employeeCount}</span></p>
+                          <p>Publikált hónap: <span className="font-semibold">{pharmacy.publishedMonthCount}</span></p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </>
           )}
