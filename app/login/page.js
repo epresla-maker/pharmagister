@@ -44,7 +44,7 @@ export default function LoginPage() {
       />
       <div className="absolute inset-0 bg-white/10" />
       <div className="relative min-h-[100dvh] overflow-y-auto px-4 py-8">
-        <div className="flex min-h-[calc(100dvh-4rem)] items-end justify-center sm:items-center">
+        <div className="flex min-h-[calc(100dvh-4rem)] items-start justify-center">
           <div className="w-full max-w-md rounded-lg border border-white/70 bg-white/90 p-6 shadow-xl shadow-emerald-950/10 backdrop-blur-md sm:p-8">
         <h1 className="text-3xl font-bold text-center mb-2 text-emerald-950">Bejelentkezés</h1>
         <p className="text-emerald-800 text-center mb-6">Pharmagister</p>
