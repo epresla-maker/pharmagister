@@ -37,11 +37,17 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-gradient-to-br from-purple-100 to-pink-100">
-      <div className="h-full overflow-y-auto p-4 py-8">
-        <div className="bg-white p-6 sm:p-8 rounded-xl shadow-lg max-w-md w-full mx-auto">
-        <h1 className="text-3xl font-bold text-center mb-2">Bejelentkezés</h1>
-        <p className="text-gray-600 text-center mb-6">Pharmagister</p>
+    <div className="relative min-h-[100dvh] overflow-hidden bg-emerald-50">
+      <div
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: "url('/auth-background.png')" }}
+      />
+      <div className="absolute inset-0 bg-white/10" />
+      <div className="relative min-h-[100dvh] overflow-y-auto px-4 py-8">
+        <div className="flex min-h-[calc(100dvh-4rem)] items-end justify-center sm:items-center">
+          <div className="w-full max-w-md rounded-lg border border-white/70 bg-white/90 p-6 shadow-xl shadow-emerald-950/10 backdrop-blur-md sm:p-8">
+        <h1 className="text-3xl font-bold text-center mb-2 text-emerald-950">Bejelentkezés</h1>
+        <p className="text-emerald-800 text-center mb-6">Pharmagister</p>
 
         {error && (
           <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm">
@@ -56,7 +62,7 @@ export default function LoginPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
               required
             />
           </div>
@@ -68,7 +74,7 @@ export default function LoginPage() {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none pr-12"
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none pr-12"
                 required
               />
               <button
@@ -84,7 +90,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50"
+            className="w-full bg-emerald-700 text-white py-2 rounded-lg hover:bg-emerald-800 disabled:opacity-50"
           >
             {loading ? 'Betöltés...' : 'Belépés'}
           </button>
@@ -93,7 +99,7 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => router.push('/forgot-password')}
-              className="text-sm text-purple-600 hover:underline"
+              className="text-sm text-emerald-700 hover:underline"
             >
               Elfelejtett jelszó?
             </button>
@@ -104,11 +110,12 @@ export default function LoginPage() {
           Nincs még fiókod?{' '}
           <button
             onClick={() => router.push('/register')}
-            className="text-purple-600 hover:underline"
+            className="text-emerald-700 hover:underline"
           >
             Regisztrálj
           </button>
         </p>
+          </div>
         </div>
       </div>
     </div>
