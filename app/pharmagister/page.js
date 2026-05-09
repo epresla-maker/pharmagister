@@ -7,6 +7,7 @@ import RouteGuard from '@/app/components/RouteGuard';
 import PharmaNavbar from '@/app/components/PharmaNavbar';
 import { useBadges } from '@/context/BadgesContext';
 import { canAccessScheduleManager } from '@/lib/pharmagisterFeatures';
+import { getEffectivePharmagisterRole, hasPharmagisterProfileData, normalizePharmagisterRole } from '@/lib/pharmagisterProfile';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
@@ -34,9 +35,24 @@ function PharmagisterContent() {
   );
   
   // Pharmagister szerepkör: 'pharmacy' (Gyógyszertár), 'pharmacist' (Gyógyszerész), 'assistant' (Szakasszisztens)
-  const pharmaRole = userData?.pharmagisterRole || null;
+  const pharmaRole = getEffectivePharmagisterRole(userData);
   const showPharmaNavbar = pharmaRole && activeTab !== 'schedule-manager';
-  const profileComplete = userData?.pharmaProfileComplete || false;
+  const profileComplete = Boolean(userData?.pharmaProfileComplete || hasPharmagisterProfileData(userData));
+
+  useEffect(() => {
+    if (!user?.uid || !userData || !pharmaRole) return;
+    if (normalizePharmagisterRole(userData.pharmagisterRole) === pharmaRole && userData.pharmaProfileComplete) return;
+
+    const recoveryPayload = {
+      pharmagisterRole: pharmaRole,
+      pharmaProfileComplete: profileComplete,
+      pharmagisterRoleRecoveredAt: serverTimestamp(),
+    };
+
+    updateDoc(doc(db, 'users', user.uid), recoveryPayload).catch((error) => {
+      console.error('Error recovering Pharmagister role:', error);
+    });
+  }, [user?.uid, userData, pharmaRole, profileComplete]);
 
   // Detect standalone mode once on mount
   useEffect(() => {

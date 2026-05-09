@@ -6,6 +6,7 @@ import { doc, updateDoc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import RouteGuard from '@/app/components/RouteGuard';
 import { Loader2, Camera, ArrowLeft, Building2, User, Users } from 'lucide-react';
+import { getEffectivePharmagisterRole } from '@/lib/pharmagisterProfile';
 
 function PharmagisterSetupContent() {
   const { user, userData } = useAuth();
@@ -53,14 +54,16 @@ function PharmagisterSetupContent() {
 
   // Ha van már szerepkör és nem edit módban vagyunk, irányítsuk vissza
   useEffect(() => {
-    if (userData?.pharmagisterRole && !editMode) {
+    const effectiveRole = getEffectivePharmagisterRole(userData);
+
+    if (effectiveRole && !editMode) {
       router.push('/pharmagister');
       return;
     }
 
     // Edit módban töltsd be az adatokat
     if (editMode && userData) {
-      setSelectedRole(userData.pharmagisterRole || '');
+      setSelectedRole(effectiveRole || '');
       setStep(2);
       setFormData({
         displayName: userData.displayName || '',
