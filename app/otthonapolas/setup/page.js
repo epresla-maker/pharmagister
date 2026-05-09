@@ -2,30 +2,11 @@
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import HomeCareRouteGuard from '@/app/components/HomeCareRouteGuard';
-
-const ALLOWED_HOMECARE_EMAILS = new Set(['epresla@icloud.com']);
-
-const ROLE_OPTIONS = [
-  {
-    key: 'agency',
-    title: 'Szolgáltató szervezet',
-    description: 'Otthonápolási szolgáltatás nyújtása intézményi háttérrel.',
-  },
-  {
-    key: 'caregiver',
-    title: 'Ápoló / gondozó szakember',
-    description: 'Személyes ellátási szolgáltatás biztosítása.',
-  },
-  {
-    key: 'client',
-    title: 'Ellátást igénylő / hozzátartozó',
-    description: 'Otthonápolási segítség igénylése.',
-  },
-];
+import { HOME_CARE_ROLE_OPTIONS, canAccessHomeCare } from '@/lib/homeCare';
 
 function validateForm(role, form) {
   if (!role) return 'Válassz szerepkört.';
@@ -59,8 +40,7 @@ function OtthonapolasSetupContent() {
 
   const roleFromQuery = searchParams.get('role');
   const editMode = searchParams.get('edit') === 'true';
-  const userEmail = String(user?.email || '').trim().toLowerCase();
-  const isAllowed = ALLOWED_HOMECARE_EMAILS.has(userEmail);
+  const isAllowed = canAccessHomeCare(user);
 
   const [selectedRole, setSelectedRole] = useState(roleFromQuery || '');
   const [loading, setLoading] = useState(false);
@@ -104,7 +84,7 @@ function OtthonapolasSetupContent() {
   }, [editMode, roleFromQuery, router, userData]);
 
   const selectedRoleMeta = useMemo(
-    () => ROLE_OPTIONS.find((item) => item.key === selectedRole),
+    () => HOME_CARE_ROLE_OPTIONS.find((item) => item.key === selectedRole),
     [selectedRole]
   );
 
@@ -134,7 +114,7 @@ function OtthonapolasSetupContent() {
 
     setLoading(true);
     try {
-      const payload = {
+      const homeCareUserPayload = {
         homeCareRole: selectedRole,
         homeCareProfileComplete: true,
         homeCareCompanyName: form.companyName.trim(),
@@ -151,7 +131,31 @@ function OtthonapolasSetupContent() {
         homeCareUpdatedAt: new Date().toISOString(),
       };
 
-      await updateDoc(doc(db, 'users', user.uid), payload);
+      const profilePayload = {
+        userId: user.uid,
+        email: user.email || '',
+        role: selectedRole,
+        profileComplete: true,
+        companyName: form.companyName.trim(),
+        contactName: form.contactName.trim(),
+        serviceArea: form.serviceArea.trim(),
+        displayName: form.displayName.trim(),
+        qualification: form.qualification.trim(),
+        experienceYears: form.experienceYears ? Number(form.experienceYears) : null,
+        clientName: form.clientName.trim(),
+        careNeed: form.careNeed.trim(),
+        city: form.city.trim(),
+        phone: form.phone.trim(),
+        notes: form.notes.trim(),
+        status: 'beta_active',
+        profileVersion: 1,
+        updatedAt: serverTimestamp(),
+      };
+
+      await Promise.all([
+        setDoc(doc(db, 'users', user.uid), homeCareUserPayload, { merge: true }),
+        setDoc(doc(db, 'homeCareProfiles', user.uid), profilePayload, { merge: true }),
+      ]);
       router.push('/otthonapolas');
     } catch (submitError) {
       setError('Hiba történt a mentés során. Próbáld újra.');
@@ -184,7 +188,7 @@ function OtthonapolasSetupContent() {
 
           {!editMode && (
             <div className="mt-6 grid gap-3 sm:grid-cols-3">
-              {ROLE_OPTIONS.map((option) => (
+              {HOME_CARE_ROLE_OPTIONS.map((option) => (
                 <button
                   key={option.key}
                   type="button"
