@@ -1322,8 +1322,6 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonCli
     return counts;
   };
 
-  const totalReactions = post.reactions ? Object.keys(post.reactions).filter(k => post.reactions[k]).length : 0;
-
   const handleReaction = async (type) => {
     if (!user) return;
     setShowReactions(false);
@@ -1599,17 +1597,24 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonCli
 
       {/* Reactions summary */}
       {!hideReactions && reactionSummary && (
-        <div className={`px-3 sm:px-4 pb-1.5 flex items-center gap-1 text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-          <div className="flex -space-x-1">
-            {Object.entries(reactionSummary)
-              .sort((a, b) => b[1] - a[1])
-              .slice(0, 3)
-              .map(([type]) => {
-                const r = REACTIONS.find(r => r.type === type);
-                return <span key={type} className="text-sm">{r?.emoji}</span>;
-              })}
-          </div>
-          <span className="text-xs ml-1">{totalReactions}</span>
+        <div className={`px-3 sm:px-4 pb-1.5 flex flex-wrap items-center gap-3 text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+          {Object.entries(reactionSummary)
+            .sort((a, b) => b[1] - a[1])
+            .map(([type, count]) => {
+              const reaction = REACTIONS.find(r => r.type === type);
+
+              return (
+                <span
+                  key={type}
+                  className="inline-flex items-center gap-1"
+                  title={reaction?.label}
+                  aria-label={`${reaction?.label || type}: ${count}`}
+                >
+                  <span className="text-lg leading-none">{reaction?.emoji}</span>
+                  <span className="text-sm font-medium tabular-nums">{count}</span>
+                </span>
+              );
+            })}
         </div>
       )}
 
