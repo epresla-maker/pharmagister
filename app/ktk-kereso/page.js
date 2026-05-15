@@ -217,6 +217,7 @@ function KtkCard({ item, darkMode }) {
 const ADMIN_EMAILS = ['epresla@icloud.com'];
 const ADMINKA_EMAILS = ['etinatina22@gmail.com'];
 const ALL_ADMIN_EMAILS = [...ADMIN_EMAILS, ...ADMINKA_EMAILS];
+const KTK_SEARCH_ENABLED = false;
 
 export default function KtkKeresoPage() {
   const router = useRouter();
@@ -238,6 +239,12 @@ export default function KtkKeresoPage() {
   const visitTracked = useRef(false);
   const lastScrollY = useRef(0);
   const scrollContainerRef = useRef(null);
+
+  useEffect(() => {
+    if (!KTK_SEARCH_ENABLED) {
+      router.replace('/kozosseg');
+    }
+  }, [router]);
 
   // Scroll direction detection - wheel event alapú
   useEffect(() => {
@@ -374,6 +381,16 @@ export default function KtkKeresoPage() {
   }, [data, debouncedTerm, statusFilter, sortOrder]);
 
   // Loading state
+  if (!KTK_SEARCH_ENABLED) {
+    return (
+      <RouteGuard>
+        <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+        </div>
+      </RouteGuard>
+    );
+  }
+
   if (authLoading) {
     return (
       <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center">

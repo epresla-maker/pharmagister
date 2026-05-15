@@ -54,8 +54,7 @@ import {
   Pencil,
   Newspaper,
   Search,
-  ImagePlus,
-  GraduationCap
+  ImagePlus
 } from 'lucide-react';
 import ReportModal from '@/app/components/ReportModal';
 
@@ -1912,13 +1911,6 @@ export default function KozossegPage() {
             >
               <Search className="w-4 h-4 flex-shrink-0" />
               <span>Állást keres</span>
-            </button>
-            <button
-              onClick={() => router.push('/ktk-kereso')}
-              className="col-span-2 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors bg-white/75 backdrop-blur-sm text-gray-700 hover:bg-white/90 shadow-sm"
-            >
-              <GraduationCap className="w-4 h-4 flex-shrink-0" />
-              <span>Kötelező továbbképzés kereső</span>
             </button>
           </div>
         </div>
