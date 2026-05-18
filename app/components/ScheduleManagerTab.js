@@ -2700,6 +2700,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   const [saving, setSaving] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
   const [statusError, setStatusError] = useState('');
+  const [awaitingPharmacyAssignment, setAwaitingPharmacyAssignment] = useState(false);
 
   useEffect(() => {
     if (!statusMessage) return undefined;
@@ -3116,6 +3117,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     setLoading(true);
     setSchedules([]);
     setStatusError('');
+    setAwaitingPharmacyAssignment(false);
     try {
       if (isPharmacy) {
         await loadPharmacyData();
@@ -3124,7 +3126,19 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       }
     } catch (error) {
       console.error('Schedule manager load error:', error);
-      setStatusError('Hiba történt az adatok betöltésekor.');
+      const code = String(error?.code || '').toLowerCase();
+      const message = String(error?.message || '').toLowerCase();
+      const isPermissionDenied =
+        code === 'permission-denied' ||
+        code.endsWith('/permission-denied') ||
+        (message.includes('permission') && message.includes('denied'));
+
+      if (!isPharmacy && isPermissionDenied) {
+        setStatusError('');
+        setAwaitingPharmacyAssignment(true);
+      } else {
+        setStatusError('Hiba történt az adatok betöltésekor.');
+      }
     } finally {
       setLoading(false);
     }
@@ -8008,6 +8022,17 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         </div>
       ) : null}
 
+      {!loading && !isPharmacy && awaitingPharmacyAssignment ? (
+        <div className={`rounded-2xl border px-4 py-4 ${darkMode ? 'border-amber-700 bg-amber-900/20' : 'border-amber-300 bg-amber-50'}`}>
+          <p className={`text-sm font-semibold ${darkMode ? 'text-amber-300' : 'text-amber-900'}`}>
+            A beosztásod még nem aktív.
+          </p>
+          <p className={`mt-1 text-sm ${darkMode ? 'text-amber-200/90' : 'text-amber-800'}`}>
+            Akkor fogsz itt adatokat látni, ha egy gyógyszertár felvesz a dolgozói közé.
+          </p>
+        </div>
+      ) : null}
+
       {!loading && isPharmacy && mainTab === 'workers' ? (
         <div className="space-y-6">
           <SegmentedTabs
@@ -8319,7 +8344,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         </div>
       ) : null}
 
-      {!loading && ((isPharmacy && mainTab === 'schedule') || !isPharmacy) ? (
+      {!loading && ((isPharmacy && mainTab === 'schedule') || (!isPharmacy && !awaitingPharmacyAssignment)) ? (
         <div className="space-y-6">
 
           {/* ── Értesítési / figyelmeztető blokk ─────────────────────────── */}
