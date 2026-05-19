@@ -11,36 +11,12 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function scheduleManagerAdminEmail() {
-      return isAuthenticated() && request.auth.token.email == 'epresla@icloud.com';
-    }
-
-    function scheduleManagerTestEmail() {
-      return isAuthenticated() && request.auth.token.email in [
-        'tesztpatika@pharmagister.hu',
-        'kovacs.anna@pharmagister.hu',
-        'nagy.peter@pharmagister.hu',
-        'szabo.katalin@pharmagister.hu',
-        'toth.eszter@pharmagister.hu',
-        'varga.monika@pharmagister.hu',
-        'kiss.reka@pharmagister.hu',
-        'bteszt@pharmagister.hu',
-        'bteszt2@pharmagister.hu',
-        'teszt.asszisztens@pharmagister.hu',
-        'etinatina22@gmail.com',
-        'szendrei.gyula66@gmail.com'
-      ];
-    }
-
     function currentUserRole() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.pharmagisterRole;
     }
 
     function canAccessScheduleManager() {
-      return isAuthenticated() && (
-        (scheduleManagerAdminEmail() && currentUserRole() == 'pharmacy') ||
-        (scheduleManagerTestEmail() && currentUserRole() in ['pharmacy', 'pharmacist', 'assistant', 'employee'])
-      );
+      return isAuthenticated() && currentUserRole() in ['pharmacy', 'pharmacist', 'assistant', 'employee'];
     }
 
     function isSchedulePharmacyOwner(data) {
