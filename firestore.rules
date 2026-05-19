@@ -26,6 +26,7 @@ service cloud.firestore {
         'kiss.reka@pharmagister.hu',
         'bteszt@pharmagister.hu',
         'bteszt2@pharmagister.hu',
+        'teszt.asszisztens@pharmagister.hu',
         'etinatina22@gmail.com',
         'szendrei.gyula66@gmail.com'
       ];
