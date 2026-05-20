@@ -801,6 +801,38 @@ function CommentThread({ postId, postText, postUserId, postIsAnonymous, darkMode
       if (savedReplyTo) {
         const parentRef = doc(db, 'communityPosts', postId, 'comments', savedReplyTo);
         await updateDoc(parentRef, { replyCount: increment(1) });
+
+        try {
+          const parentSnap = await getDoc(parentRef);
+          const parentComment = parentSnap.exists() ? parentSnap.data() : null;
+          const parentCommentUserId = parentComment?.userId || null;
+
+          if (parentCommentUserId && parentCommentUserId !== user.uid) {
+            const commenterName = isAnonComment
+              ? 'Anonim felhasználó'
+              : (userData?.displayName || user.displayName || 'Felhasználó');
+
+            await createNotificationWithPush({
+              userId: parentCommentUserId,
+              type: 'community_comment_reply',
+              title: 'Új válasz érkezett',
+              message: `${commenterName} válaszolt a hozzászólásodra.`,
+              data: {
+                postId,
+                parentCommentId: savedReplyTo,
+                commenterUserId: user.uid,
+                commenterName,
+                isAnonymousComment: isAnonComment,
+              },
+              url: `/post/${postId}?collection=communityPosts`,
+              dedupeWindowSeconds: 90,
+              dedupeByDataKeys: ['postId', 'parentCommentId', 'commenterUserId', 'isAnonymousComment'],
+            });
+          }
+        } catch (replyNotificationError) {
+          console.error('Reply notification error:', replyNotificationError);
+        }
+
         await loadReplies(savedReplyTo);
       } else {
         await loadRootComments();
