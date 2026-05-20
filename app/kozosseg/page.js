@@ -583,7 +583,7 @@ function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
 // ============================================
 const COMMENTS_PER_PAGE = 10;
 
-function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, onUpdate, onClose, autoFocus }) {
+function CommentThread({ postId, postText, postUserId, postIsAnonymous, darkMode, user, userData, isAdmin, onUpdate, onClose, autoFocus }) {
   const [rootComments, setRootComments] = useState([]);
   const [repliesMap, setRepliesMap] = useState({}); // { commentId: [replies] }
   const [expandedReplies, setExpandedReplies] = useState({});
@@ -771,6 +771,32 @@ function CommentThread({ postId, postText, darkMode, user, userData, isAdmin, on
 
       const postRef = doc(db, 'communityPosts', postId);
       await updateDoc(postRef, { commentCount: increment(1) });
+
+      if (postUserId && postUserId !== user.uid) {
+        const commenterName = isAnonComment
+          ? 'Anonim felhasználó'
+          : (userData?.displayName || user.displayName || 'Felhasználó');
+        const postOwnerLabel = postIsAnonymous ? 'anonim posztodhoz' : 'posztodhoz';
+        try {
+          await createNotificationWithPush({
+            userId: postUserId,
+            type: 'community_post_comment',
+            title: 'Új hozzászólás érkezett',
+            message: `${commenterName} hozzászólt a ${postOwnerLabel}.`,
+            data: {
+              postId,
+              commenterUserId: user.uid,
+              commenterName,
+              isAnonymousComment: isAnonComment,
+            },
+            url: `/post/${postId}?collection=communityPosts`,
+            dedupeWindowSeconds: 90,
+            dedupeByDataKeys: ['postId', 'commenterUserId', 'isAnonymousComment'],
+          });
+        } catch (notificationError) {
+          console.error('Comment notification error:', notificationError);
+        }
+      }
 
       if (savedReplyTo) {
         const parentRef = doc(db, 'communityPosts', postId, 'comments', savedReplyTo);
@@ -1338,6 +1364,29 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonCli
         await updateDoc(postRef, { reactions: newReactions });
       } else {
         await updateDoc(postRef, { [`reactions.${user.uid}`]: type });
+
+        if (post.userId && post.userId !== user.uid) {
+          const reactionLabel = REACTIONS.find(r => r.type === type)?.label || 'reakciót';
+          const reactorName = userData?.displayName || user.displayName || 'Valaki';
+          try {
+            await createNotificationWithPush({
+              userId: post.userId,
+              type: 'community_post_reaction',
+              title: 'Új reakció érkezett',
+              message: `${reactorName} ${reactionLabel} küldött a posztodra.`,
+              data: {
+                postId: post.id,
+                reactorUserId: user.uid,
+                reactionType: type,
+              },
+              url: `/post/${post.id}?collection=communityPosts`,
+              dedupeWindowSeconds: 90,
+              dedupeByDataKeys: ['postId', 'reactorUserId', 'reactionType'],
+            });
+          } catch (notificationError) {
+            console.error('Reaction notification error:', notificationError);
+          }
+        }
       }
       onUpdate();
     } catch (error) {
@@ -1690,6 +1739,8 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonCli
         <CommentThread
           postId={post.id}
           postText={post.text}
+          postUserId={post.userId}
+          postIsAnonymous={post.isAnonymous}
           darkMode={darkMode}
           user={user}
           userData={userData}
