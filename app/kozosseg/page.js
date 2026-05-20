@@ -57,6 +57,7 @@ import {
   ImagePlus
 } from 'lucide-react';
 import ReportModal from '@/app/components/ReportModal';
+import { getEffectivePharmagisterRole } from '@/lib/pharmagisterProfile';
 
 // ============================================
 // CONSTANTS
@@ -1763,6 +1764,7 @@ export default function KozossegPage() {
   const router = useRouter();
   const { user, userData, loading: authLoading } = useAuth();
   const { darkMode } = useTheme();
+  const pharmaRole = getEffectivePharmagisterRole(userData);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -1812,6 +1814,21 @@ export default function KozossegPage() {
       } catch (e) { console.error('Error saving anon pref:', e); }
     }
   };
+
+  const openCreateModal = () => {
+    if (!pharmaRole) {
+      router.replace('/pharmagister');
+      return;
+    }
+    setShowCreateModal(true);
+  };
+
+  useEffect(() => {
+    if (authLoading || !user) return;
+    if (!pharmaRole) {
+      router.replace('/pharmagister');
+    }
+  }, [authLoading, user, pharmaRole, router]);
 
   // Fetch posts
   const fetchPosts = useCallback(async () => {
@@ -1873,6 +1890,14 @@ export default function KozossegPage() {
     );
   }
 
+  if (!pharmaRole) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
+      </div>
+    );
+  }
+
   return (
     <div className={`min-h-screen pb-24 ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
       {/* Header + Navigációs gombok + Írj valamit */}
@@ -1923,7 +1948,7 @@ export default function KozossegPage() {
         {/* Create post prompt */}
         <div className="mx-4 rounded-2xl p-4 bg-white/30 backdrop-blur-[2px] shadow-sm">
           <button
-            onClick={() => setShowCreateModal(true)}
+            onClick={openCreateModal}
             className="w-full flex items-center gap-3"
           >
             <div className="w-10 h-10 rounded-full flex items-center justify-center bg-white/40">
@@ -1954,7 +1979,7 @@ export default function KozossegPage() {
               Légy te az első, aki megosztja a gondolatait!
             </p>
             <button
-              onClick={() => setShowCreateModal(true)}
+              onClick={openCreateModal}
               className="px-5 py-2.5 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700"
             >
               <Plus className="w-4 h-4 inline mr-1" />
@@ -1981,7 +2006,7 @@ export default function KozossegPage() {
 
       {/* Floating create button */}
       <button
-        onClick={() => setShowCreateModal(true)}
+        onClick={openCreateModal}
         className="fixed bottom-24 right-4 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-105 z-20"
       >
         <Plus className="w-6 h-6" />

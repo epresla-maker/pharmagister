@@ -2,19 +2,22 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { getEffectivePharmagisterRole } from '@/lib/pharmagisterProfile';
 
 export default function HomePage() {
   const router = useRouter();
-  const { user, loading } = useAuth();
+  const { user, userData, loading } = useAuth();
+
+  const pharmaRole = getEffectivePharmagisterRole(userData);
 
   useEffect(() => {
     if (loading) return;
     if (user) {
-      router.replace('/kozosseg');
+      router.replace(pharmaRole ? '/kozosseg' : '/pharmagister');
     } else {
       router.replace('/login');
     }
-  }, [user, loading, router]);
+  }, [user, pharmaRole, loading, router]);
 
   if (loading) {
     return (

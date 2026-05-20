@@ -15,8 +15,12 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.pharmagisterRole;
     }
 
-    function canAccessScheduleManager() {
+    function hasPharmagisterRole() {
       return isAuthenticated() && currentUserRole() in ['pharmacy', 'pharmacist', 'assistant', 'employee'];
+    }
+
+    function canAccessScheduleManager() {
+      return hasPharmagisterRole();
     }
 
     function isSchedulePharmacyOwner(data) {
@@ -265,15 +269,15 @@ service cloud.firestore {
     // Community posts (Közösség - anonim posztok)
     match /communityPosts/{postId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update: if isAuthenticated();
+      allow create: if hasPharmagisterRole();
+      allow update: if hasPharmagisterRole();
       allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
 
       // Comments subcollection
       match /comments/{commentId} {
         allow read: if isAuthenticated();
-        allow create: if isAuthenticated();
-        allow update: if isAuthenticated();
+        allow create: if hasPharmagisterRole();
+        allow update: if hasPharmagisterRole();
         allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
       }
     }
