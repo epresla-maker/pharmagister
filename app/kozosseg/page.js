@@ -1373,7 +1373,7 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonCli
               userId: post.userId,
               type: 'community_post_reaction',
               title: 'Új reakció érkezett',
-              message: `${reactorName} ${reactionLabel} küldött a posztodra.`,
+              message: `${reactorName} reagált a posztodra.`,
               data: {
                 postId: post.id,
                 reactorUserId: user.uid,
