@@ -1380,8 +1380,6 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonCli
                 reactionType: type,
               },
               url: `/post/${post.id}?collection=communityPosts`,
-              dedupeWindowSeconds: 90,
-              dedupeByDataKeys: ['postId', 'reactorUserId', 'reactionType'],
             });
           } catch (notificationError) {
             console.error('Reaction notification error:', notificationError);
