@@ -7,18 +7,16 @@ import { MessageCircle, Bell, Settings, LayoutGrid, Home } from 'lucide-react';
 import { useBadges } from '@/context/BadgesContext';
 
 // Memoized NavItem to prevent re-renders when other badges change
-const NavItem = memo(function NavItem({ item, isActive, darkMode, onClick }) {
+const NavItem = memo(function NavItem({ item, isActive, onClick }) {
   const Icon = item.icon;
   
   return (
     <button
       onClick={onClick}
-      className={`relative flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-colors touch-manipulation ${
+      className={`relative flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-colors touch-manipulation drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] ${
         isActive
-          ? 'text-emerald-600'
-          : darkMode 
-            ? 'text-gray-400 active:bg-gray-800' 
-            : 'text-[#6B7280] active:bg-[#F3F4F6]'
+          ? 'text-emerald-300'
+          : 'text-white/90 active:bg-white/10'
       }`}
     >
       {item.badge > 0 && (
@@ -91,22 +89,27 @@ function BottomNavigation({ isVisible = true }) {
 
   return (
     <div 
-      className={`fixed bottom-0 left-0 right-0 border-t transition-transform duration-300 z-50 ${
-        darkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-[#E5E7EB]'
-      } ${isVisible ? 'translate-y-0' : 'translate-y-full'}`}
+      className={`fixed bottom-0 left-0 right-0 transition-transform duration-300 z-50 ${
+        isVisible ? 'translate-y-0' : 'translate-y-full'
+      }`}
       style={{
+        backgroundImage: "url('/auth-background.png')",
+        backgroundPosition: 'bottom center',
+        backgroundSize: 'cover',
+        backgroundRepeat: 'no-repeat',
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         willChange: 'transform',
         transform: 'translateZ(0)'
       }}
     >
-      <div className="grid grid-cols-5 gap-1 px-2 py-2">
+      {/* Semi-transparent overlay for icon/label readability */}
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" />
+      <div className="relative grid grid-cols-5 gap-1 px-2 py-2">
         {navItems.map((item) => (
           <NavItem
             key={item.path}
             item={item}
             isActive={pathname === item.path}
-            darkMode={darkMode}
             onClick={() => handleNavigation(item.path)}
           />
         ))}
