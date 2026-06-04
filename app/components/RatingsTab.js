@@ -6,11 +6,13 @@ import { useRouter } from 'next/navigation';
 import { collection, query, where, getDocs, orderBy, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Star, User, Calendar, MapPin, Clock, CheckCircle, Loader2 } from 'lucide-react';
+import { getClientMarket } from '@/lib/marketI18n';
 
 export default function RatingsTab() {
   const { user } = useAuth();
   const { darkMode } = useTheme();
   const router = useRouter();
+  const market = getClientMarket();
   
   const [demands, setDemands] = useState([]);
   const [ratings, setRatings] = useState({});
@@ -105,7 +107,7 @@ export default function RatingsTab() {
   const formatDate = (date) => {
     if (!date) return '-';
     const d = date instanceof Date ? date : new Date(date);
-    return d.toLocaleDateString('hu-HU', { 
+    return d.toLocaleDateString(market === 'de' ? 'de-DE' : 'hu-HU', { 
       year: 'numeric', 
       month: 'short', 
       day: 'numeric' 
@@ -132,10 +134,12 @@ export default function RatingsTab() {
       <div className="text-center py-12">
         <Star className={`w-12 h-12 mx-auto mb-4 ${darkMode ? 'text-gray-600' : 'text-gray-300'}`} />
         <h3 className={`text-lg font-semibold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-          Nincs értékelhető helyettesítés
+          {market === 'de' ? 'Keine bewertbare Vertretung' : 'Nincs értékelhető helyettesítés'}
         </h3>
         <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-          Amikor egy elfogadott helyettesítés lezárul, itt tudod majd értékelni a helyettesítőt.
+          {market === 'de'
+            ? 'Wenn eine angenommene Vertretung abgeschlossen ist, kannst du hier die Vertretungskraft bewerten.'
+            : 'Amikor egy elfogadott helyettesítés lezárul, itt tudod majd értékelni a helyettesítőt.'}
         </p>
       </div>
     );
@@ -145,10 +149,10 @@ export default function RatingsTab() {
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-2">
         <h2 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-          Értékelhető helyettesítések
+          {market === 'de' ? 'Bewertbare Vertretungen' : 'Értékelhető helyettesítések'}
         </h2>
         <span className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-          {demands.length} helyettesítés
+          {demands.length} {market === 'de' ? 'Vertretungen' : 'helyettesítés'}
         </span>
       </div>
 
@@ -180,10 +184,12 @@ export default function RatingsTab() {
               )}
               <div className="flex-1">
                 <h3 className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                  {substitute?.displayName || substitute?.name || 'Ismeretlen helyettesítő'}
+                  {substitute?.displayName || substitute?.name || (market === 'de' ? 'Unbekannte Vertretungskraft' : 'Ismeretlen helyettesítő')}
                 </h3>
                 <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {substitute?.pharmagisterRole === 'pharmacist' ? 'Gyógyszerész' : 'Szakasszisztens'}
+                  {substitute?.pharmagisterRole === 'pharmacist'
+                    ? (market === 'de' ? 'Apotheker/in' : 'Gyógyszerész')
+                    : (market === 'de' ? 'Assistent/in' : 'Szakasszisztens')}
                 </p>
               </div>
               {hasRating && (
@@ -217,13 +223,13 @@ export default function RatingsTab() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-green-600">
                   <CheckCircle className="w-4 h-4" />
-                  <span className="text-sm font-medium">Értékelve</span>
+                  <span className="text-sm font-medium">{market === 'de' ? 'Bewertet' : 'Értékelve'}</span>
                 </div>
                 <button
                   onClick={() => router.push(`/ertekeles/${demand.id}`)}
                   className={`text-sm font-medium ${darkMode ? 'text-purple-400' : 'text-purple-600'}`}
                 >
-                  Módosítás →
+                  {market === 'de' ? 'Bearbeiten →' : 'Módosítás →'}
                 </button>
               </div>
             ) : (
@@ -232,7 +238,7 @@ export default function RatingsTab() {
                 className="w-full py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2"
               >
                 <Star className="w-4 h-4" />
-                Értékelés
+                {market === 'de' ? 'Bewertung' : 'Értékelés'}
               </button>
             )}
           </div>
@@ -242,8 +248,9 @@ export default function RatingsTab() {
       {/* Info */}
       <div className={`mt-4 p-3 rounded-lg ${darkMode ? 'bg-blue-900/20' : 'bg-blue-50'} text-xs ${darkMode ? 'text-blue-300' : 'text-blue-700'}`}>
         <p>
-          💡 Az értékelések anonimak, a helyettesítő nem látja, melyik gyógyszertár adta.
-          Az összesített értékelés 4 db értékelés után jelenik meg a profilján.
+          {market === 'de'
+            ? '💡 Bewertungen sind anonym; die Vertretungskraft sieht nicht, welche Apotheke sie abgegeben hat. Die aggregierte Bewertung erscheint nach 4 Bewertungen im Profil.'
+            : '💡 Az értékelések anonimak, a helyettesítő nem látja, melyik gyógyszertár adta. Az összesített értékelés 4 db értékelés után jelenik meg a profilján.'}
         </p>
       </div>
     </div>
