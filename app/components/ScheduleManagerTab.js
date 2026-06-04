@@ -1475,8 +1475,8 @@ function PharmacyScheduleCalendar({
               onClick={() => setShowSwapLog(false)}
               className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold text-xl leading-none"
             >×</button>
-            <span className="text-white font-bold text-base flex-1">Rögzített változtatások</span>
-            <span className="text-white/70 text-xs">{swapLog.length} csere</span>
+            <span className="text-white font-bold text-base flex-1">{market === 'de' ? 'Gespeicherte Aenderungen' : 'Rögzített változtatások'}</span>
+            <span className="text-white/70 text-xs">{market === 'de' ? `${swapLog.length} Tausche` : `${swapLog.length} csere`}</span>
           </div>
           {/* List */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
@@ -2678,7 +2678,7 @@ function EmployeePreferenceCalendar({
               </div>
               <div className="flex flex-col gap-1">
                 {dayOwn.length === 0 && dayOthers.length === 0 && (
-                  <p className={`text-xs italic ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>Kattints a tervezéshez</p>
+                  <p className={`text-xs italic ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>{market === 'de' ? 'Klicke, um den Entwurf zu planen' : 'Kattints a tervezéshez'}</p>
                 )}
                 {dayOwn.map(p => {
                   const isSz = isOffShift(p.shiftType);
