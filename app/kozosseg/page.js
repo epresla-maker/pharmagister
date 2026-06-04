@@ -238,7 +238,7 @@ function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
       onClose();
     } catch (error) {
       console.error('Error creating community post:', error);
-      alert('Hiba történt a poszt létrehozásakor.');
+      alert(market === 'de' ? 'Beim Erstellen des Beitrags ist ein Fehler aufgetreten.' : 'Hiba történt a poszt létrehozásakor.');
     } finally {
       setSubmitting(false);
     }
@@ -275,7 +275,7 @@ function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
             darkMode ? 'border-gray-700' : 'border-gray-200'
           }`}>
           <h2 className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-            Új poszt létrehozása
+            {market === 'de' ? 'Neuen Beitrag erstellen' : 'Új poszt létrehozása'}
           </h2>
           <button onClick={onClose} className={`p-1.5 rounded-full ${
             darkMode ? 'hover:bg-gray-700 text-gray-400' : 'hover:bg-gray-100 text-gray-500'
@@ -294,7 +294,7 @@ function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
               className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
             />
             <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              Poszt küldése anonimként
+              {market === 'de' ? 'Beitrag anonym posten' : 'Poszt küldése anonimként'}
             </span>
           </label>
         </div>
@@ -346,7 +346,7 @@ function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
             }`}
           >
             <Palette className="w-4 h-4" />
-            <span>Stílus testreszabása</span>
+            <span>{market === 'de' ? 'Stil anpassen' : 'Stílus testreszabása'}</span>
             {showStylePanel ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
 
@@ -357,7 +357,7 @@ function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
               {/* Színsémák */}
               <div>
                 <p className={`text-xs font-semibold mb-2 uppercase tracking-wide ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  Színsémák
+                  {market === 'de' ? 'Farbschemata' : 'Színsémák'}
                 </p>
                 <div className="grid grid-cols-5 gap-1.5">
                   {COLOR_PRESETS.map((preset) => (
@@ -386,7 +386,7 @@ function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
               {/* Egyéni színek */}
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
-                  <label className={`text-xs font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Háttér</label>
+                  <label className={`text-xs font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{market === 'de' ? 'Hintergrund' : 'Háttér'}</label>
                   <input
                     type="color"
                     value={style.backgroundColor}
@@ -395,7 +395,7 @@ function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
                   />
                 </div>
                 <div className="flex items-center gap-2">
-                  <label className={`text-xs font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Szöveg</label>
+                  <label className={`text-xs font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{market === 'de' ? 'Text' : 'Szöveg'}</label>
                   <input
                     type="color"
                     value={style.textColor}
@@ -409,7 +409,7 @@ function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
               <div className="flex items-center gap-3">
                 <div className="flex-1">
                   <label className={`text-xs font-medium mb-1 block ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    <Type className="w-3 h-3 inline mr-1" />Betűtípus
+                    <Type className="w-3 h-3 inline mr-1" />{market === 'de' ? 'Schriftart' : 'Betűtípus'}
                   </label>
                   <select
                     value={style.fontFamily}
@@ -425,7 +425,7 @@ function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
                 </div>
                 <div className="flex-1">
                   <label className={`text-xs font-medium mb-1 block ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    Betűméret
+                    {market === 'de' ? 'Schriftgroesse' : 'Betűméret'}
                   </label>
                   <select
                     value={style.fontSize}
@@ -450,7 +450,7 @@ function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
                     darkMode ? 'text-gray-400 hover:bg-gray-600' : 'text-gray-500 hover:bg-gray-200'
                   }`}
                 >
-                  ↺ Alapértelmezés visszaállítása
+                  ↺ {market === 'de' ? 'Standard wiederherstellen' : 'Alapértelmezés visszaállítása'}
                 </button>
               )}
             </div>
@@ -464,7 +464,7 @@ function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
             value={text}
             onChange={(e) => setText(e.target.value)}
             onFocus={handleTextareaFocus}
-            placeholder="Írd meg a gondolataidat..."
+            placeholder={market === 'de' ? 'Schreibe deine Gedanken...' : 'Írd meg a gondolataidat...'}
             rows={4}
             style={{
               backgroundColor: style.backgroundColor,
@@ -475,7 +475,7 @@ function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
             className="w-full px-4 py-3 rounded-xl border resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
           <div className={`flex justify-end mt-1 text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-            {text.length} karakter
+            {text.length} {market === 'de' ? 'Zeichen' : 'karakter'}
           </div>
         </div>
 
@@ -492,7 +492,7 @@ function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
             <div className="relative inline-block">
               <img
                 src={imagePreview}
-                alt="Előnézet"
+                alt={market === 'de' ? 'Vorschau' : 'Előnézet'}
                 className="max-h-48 rounded-xl object-cover border"
               />
               <button
@@ -512,7 +512,7 @@ function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
               }`}
             >
               <ImagePlus className="w-4 h-4" />
-              <span>Kép hozzáadása</span>
+              <span>{market === 'de' ? 'Bild hinzufuegen' : 'Kép hozzáadása'}</span>
             </button>
           )}
         </div>
@@ -541,7 +541,7 @@ function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); }}}
-                  placeholder="Címke hozzáadása..."
+                  placeholder={market === 'de' ? 'Tag hinzufuegen...' : 'Címke hozzáadása...'}
                   className={`text-xs border-none outline-none bg-transparent w-32 ${
                     darkMode ? 'text-gray-300 placeholder-gray-600' : 'text-gray-700 placeholder-gray-400'
                   }`}
@@ -557,9 +557,9 @@ function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
         }`}>
           <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
             {isAnonymous ? (
-              <><EyeOff className="w-3 h-3 inline mr-1" />Anonim közzététel</>
+              <><EyeOff className="w-3 h-3 inline mr-1" />{market === 'de' ? 'Anonyme Veroeffentlichung' : 'Anonim közzététel'}</>
             ) : (
-              <><Eye className="w-3 h-3 inline mr-1" />Nyilvános közzététel</>
+              <><Eye className="w-3 h-3 inline mr-1" />{market === 'de' ? 'Oeffentliche Veroeffentlichung' : 'Nyilvános közzététel'}</>
             )}
           </p>
           <button
@@ -568,7 +568,7 @@ function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
             className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl font-medium text-sm transition-colors"
           >
             <Send className="w-4 h-4" />
-            {imageUploading ? 'Kép feltöltése...' : submitting ? 'Közzététel...' : 'Közzététel'}
+            {imageUploading ? (market === 'de' ? 'Bild wird hochgeladen...' : 'Kép feltöltése...') : submitting ? (market === 'de' ? 'Wird veroeffentlicht...' : 'Közzététel...') : (market === 'de' ? 'Veroeffentlichen' : 'Közzététel')}
           </button>
         </div>
         </div>{/* end modal card */}
@@ -586,6 +586,7 @@ function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
 const COMMENTS_PER_PAGE = 10;
 
 function CommentThread({ postId, postText, postUserId, postIsAnonymous, darkMode, user, userData, isAdmin, onUpdate, onClose, autoFocus }) {
+  const market = getClientMarket();
   const [rootComments, setRootComments] = useState([]);
   const [repliesMap, setRepliesMap] = useState({}); // { commentId: [replies] }
   const [expandedReplies, setExpandedReplies] = useState({});
@@ -1025,19 +1026,19 @@ function CommentThread({ postId, postText, postUserId, postIsAnonymous, darkMode
                     onClick={() => { setEditingId(null); setEditingText(''); }}
                     className="text-xs text-gray-500"
                   >
-                    Mégsem
+                    {market === 'de' ? 'Abbrechen' : 'Mégsem'}
                   </button>
                   <button
                     onClick={() => handleEditComment(item.id, editingText)}
                     className="text-xs font-semibold text-blue-600"
                   >
-                    Mentés
+                    {market === 'de' ? 'Speichern' : 'Mentés'}
                   </button>
                   <button
                     onClick={() => { setEditingId(null); setEditingText(''); handleDeleteComment(item); }}
                     className="text-xs font-semibold text-red-500"
                   >
-                    Törlés
+                    {market === 'de' ? 'Loeschen' : 'Törlés'}
                   </button>
                 </div>
               </div>
@@ -1071,14 +1072,14 @@ function CommentThread({ postId, postText, postUserId, postIsAnonymous, darkMode
                         : darkMode ? 'text-gray-400' : 'text-gray-600'
                     }`}
                   >
-                    Válasz
+                    {market === 'de' ? 'Antworten' : 'Válasz'}
                   </button>
                   {(isAdmin || item.userId === user?.uid) && (
                     <button
                       onClick={() => { setEditingId(item.id); setEditingText(item.text); }}
                       className={`text-[12px] font-bold ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}
                     >
-                      Szerkesztés
+                      {market === 'de' ? 'Bearbeiten' : 'Szerkesztés'}
                     </button>
                   )}
                 </div>
@@ -1094,14 +1095,14 @@ function CommentThread({ postId, postText, postUserId, postIsAnonymous, darkMode
                     className="flex items-center gap-1.5 text-[13px] font-semibold text-blue-600 dark:text-blue-400 ml-2 py-1"
                   >
                     <span>↳</span>
-                    <span>{isLoading ? 'Betöltés...' : `${replyCount} válasz`}</span>
+                    <span>{isLoading ? t('loading', market) : `${replyCount} ${market === 'de' ? 'Antworten' : 'válasz'}`}</span>
                   </button>
                 ) : (
                   <div>
                     {isLoading ? (
                       <div className="flex items-center gap-2 py-2 ml-2">
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" />
-                        <span className="text-xs text-gray-500">Betöltés...</span>
+                        <span className="text-xs text-gray-500">{t('loading', market)}</span>
                       </div>
                     ) : (
                       replies.map((reply) => renderComment(reply, depth + 1))
@@ -1112,7 +1113,7 @@ function CommentThread({ postId, postText, postUserId, postIsAnonymous, darkMode
                         onClick={() => toggleReplies(item.id)}
                         className="text-[12px] font-semibold text-gray-500 ml-2 py-0.5"
                       >
-                        Válaszok elrejtése
+                        {market === 'de' ? 'Antworten ausblenden' : 'Válaszok elrejtése'}
                       </button>
                     )}
                   </div>
@@ -1141,7 +1142,7 @@ function CommentThread({ postId, postText, postUserId, postIsAnonymous, darkMode
           <ArrowLeft className={`w-5 h-5 ${darkMode ? 'text-white' : 'text-gray-900'}`} />
         </button>
         <h2 className={`ml-2 text-base font-bold truncate flex-1 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-          Hozzászólások
+          {market === 'de' ? 'Kommentare' : 'Hozzászólások'}
         </h2>
       </div>
 
@@ -1166,7 +1167,7 @@ function CommentThread({ postId, postText, postUserId, postIsAnonymous, darkMode
           <div className="flex flex-col items-center justify-center py-20">
             <MessageCircle className={`w-14 h-14 mb-3 ${darkMode ? 'text-gray-700' : 'text-gray-200'}`} />
             <p className={`text-sm ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-              Légy az első hozzászóló!
+              {market === 'de' ? 'Sei der/die Erste mit einem Kommentar!' : 'Légy az első hozzászóló!'}
             </p>
           </div>
         ) : (
@@ -1183,9 +1184,9 @@ function CommentThread({ postId, postText, postUserId, postIsAnonymous, darkMode
                 {loadingMore ? (
                   <span className="flex items-center justify-center gap-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" />
-                    Betöltés...
+                    {t('loading', market)}
                   </span>
-                ) : 'Korábbi hozzászólások...'}
+                ) : (market === 'de' ? 'Fruehere Kommentare...' : 'Korábbi hozzászólások...')}
               </button>
             )}
           </div>
@@ -1210,13 +1211,13 @@ function CommentThread({ postId, postText, postUserId, postIsAnonymous, darkMode
             {replyTo && replyToComment && (
               <div className={`mb-2 pb-2 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                 <p className={`text-[13px] ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  Válasz <span className="font-semibold">{replyingToName}</span> számára
+                  {market === 'de' ? 'Antwort an' : 'Válasz'} <span className="font-semibold">{replyingToName}</span> {market === 'de' ? '' : 'számára'}
                   <span className="mx-1.5">·</span>
                   <button 
                     onClick={() => { setReplyTo(null); setReplyToComment(null); setCommentText(''); setShowInput(false); }} 
                     className="font-semibold text-blue-600"
                   >
-                    Mégsem
+                    {market === 'de' ? 'Abbrechen' : 'Mégsem'}
                   </button>
                 </p>
               </div>
@@ -1243,13 +1244,13 @@ function CommentThread({ postId, postText, postUserId, postIsAnonymous, darkMode
                   isAnonComment
                     ? darkMode ? 'text-purple-300 font-medium' : 'text-purple-600 font-medium'
                     : darkMode ? 'text-gray-400' : 'text-gray-500'
-                }`}>Anonim</span>
+                }`}>{market === 'de' ? 'Anonym' : 'Anonim'}</span>
               </button>
               <button 
                 onClick={() => { setShowInput(false); setCommentText(''); setReplyTo(null); setReplyToComment(null); }}
                 className={`ml-auto text-xs font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}
               >
-                ✕ Bezárás
+                ✕ {market === 'de' ? 'Schliessen' : 'Bezárás'}
               </button>
             </div>
 
@@ -1264,7 +1265,7 @@ function CommentThread({ postId, postText, postUserId, postIsAnonymous, darkMode
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') handleAddComment(); }}
-                  placeholder={replyTo ? '' : `Hozzászólás mint ${isAnonComment ? 'Anonim' : currentUserDisplayName}`}
+                  placeholder={replyTo ? '' : (market === 'de' ? `Kommentieren als ${isAnonComment ? 'Anonym' : currentUserDisplayName}` : `Hozzászólás mint ${isAnonComment ? 'Anonim' : currentUserDisplayName}`)}
                   className={`flex-1 pl-4 pr-1 py-2.5 rounded-full text-[15px] bg-transparent ${
                     darkMode ? 'text-white placeholder-gray-500' : 'text-gray-900 placeholder-gray-500'
                   } focus:outline-none min-w-0`}
@@ -1292,7 +1293,7 @@ function CommentThread({ postId, postText, postUserId, postIsAnonymous, darkMode
         onClose={() => { setShowReportModal(false); setReportComment(null); }}
         reportType="comment"
         reportedUserId={reportComment?.authorId || null}
-        reportedUserName={reportComment?.isAnonymous !== false ? 'Anonim' : (reportComment?.authorData?.displayName || 'Felhasználó')}
+        reportedUserName={reportComment?.isAnonymous !== false ? (market === 'de' ? 'Anonym' : 'Anonim') : (reportComment?.authorData?.displayName || (market === 'de' ? 'Benutzer/in' : 'Felhasználó'))}
         itemId={reportComment?.id}
         itemContent={reportComment?.text}
       />
@@ -1307,7 +1308,7 @@ function CommentThread({ postId, postText, postUserId, postIsAnonymous, darkMode
                 darkMode ? 'bg-gray-700 text-gray-300' : 'bg-[#f0f2f5] text-gray-500'
               }`}
             >
-              Hozzászólás írása...
+              {market === 'de' ? 'Kommentar schreiben...' : 'Hozzászólás írása...'}
             </button>
           </div>
           <div className="pb-[env(safe-area-inset-bottom)]" />

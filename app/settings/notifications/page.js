@@ -7,6 +7,7 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { ArrowLeft, Bell, MessageCircle, Calendar, CheckCircle, Loader2, Smartphone, MapPin, X, Plus } from 'lucide-react';
 import RouteGuard from '@/app/components/RouteGuard';
+import { getClientMarket, t } from '@/lib/marketI18n';
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 
@@ -73,6 +74,7 @@ export default function NotificationsSettingsPage() {
   
   const [newZipCode, setNewZipCode] = useState('');
   const [zipCodeError, setZipCodeError] = useState('');
+  const market = getClientMarket();
 
   const getAuthHeaders = async () => {
     const idToken = user ? await user.getIdToken() : null;
@@ -102,7 +104,7 @@ export default function NotificationsSettingsPage() {
         const isNative = CapacitorCore.Capacitor.isNativePlatform();
         setIsNativeApp(isNative);
         const platform = CapacitorCore.Capacitor.getPlatform();
-        setPlatformInfo(isNative ? `Natív ${platform}` : 'Web PWA');
+        setPlatformInfo(isNative ? `${market === 'de' ? 'Nativ' : 'Natív'} ${platform}` : 'Web PWA');
         
         console.log('🔔 Capacitor loaded:', { isNative, platform });
       } catch (error) {
@@ -203,7 +205,7 @@ export default function NotificationsSettingsPage() {
         }
         
         if (permStatus.receive !== 'granted') {
-          alert('Az értesítések engedélyezése szükséges a push értesítésekhez.');
+          alert(market === 'de' ? 'Benachrichtigungsberechtigung ist fuer Push-Benachrichtigungen erforderlich.' : 'Az értesítések engedélyezése szükséges a push értesítésekhez.');
           return;
         }
         
@@ -254,7 +256,7 @@ export default function NotificationsSettingsPage() {
           if (savedWithFcm) {
             console.log('🔔 [NATIVE] Registration token ignored, FCM token already saved.');
             await checkPushSubscription();
-            alert('✅ Push értesítések sikeresen bekapcsolva!');
+            alert(market === 'de' ? '✅ Push-Benachrichtigungen erfolgreich aktiviert!' : '✅ Push értesítések sikeresen bekapcsolva!');
             return;
           }
 
@@ -262,7 +264,9 @@ export default function NotificationsSettingsPage() {
           // A backend FCM-en keresztül küld, ezért ezt most nem mentjük "sikeres" állapotként.
           if (platform === 'ios' && isLikelyApnsToken(token.value)) {
             console.error('🔔 [NATIVE] APNS token érkezett (FCM helyett):', token.value.substring(0, 12));
-            alert('iOS push nincs teljesen bekötve ehhez a buildhez (APNS token érkezett FCM helyett). Készítünk javított iOS buildet Firebase Messaging integrációval.');
+            alert(market === 'de'
+              ? 'iOS Push ist in diesem Build noch nicht vollstaendig integriert (APNS-Token statt FCM). Wir liefern einen aktualisierten iOS-Build mit Firebase Messaging.'
+              : 'iOS push nincs teljesen bekötve ehhez a buildhez (APNS token érkezett FCM helyett). Készítünk javított iOS buildet Firebase Messaging integrációval.');
             setIsPushSubscribed(false);
             return;
           }
@@ -288,20 +292,20 @@ export default function NotificationsSettingsPage() {
             
             if (response.ok) {
               await checkPushSubscription(); // Újra lekérdezés
-              alert('✅ Push értesítések sikeresen bekapcsolva!');
+              alert(market === 'de' ? '✅ Push-Benachrichtigungen erfolgreich aktiviert!' : '✅ Push értesítések sikeresen bekapcsolva!');
             } else {
               throw new Error(result.error || 'Server error');
             }
           } catch (error) {
             console.error('🔔 [NATIVE] Error saving token:', error);
-            alert('Hiba történt a token mentésekor: ' + error.message);
+            alert((market === 'de' ? 'Fehler beim Speichern des Tokens: ' : 'Hiba történt a token mentésekor: ') + error.message);
           }
         });
         
         // Hiba kezelés
         await PushNotifications.addListener('registrationError', (error) => {
           console.error('🔔 [NATIVE] Registration error:', error);
-          alert('Hiba történt a regisztráció során: ' + error.error);
+          alert((market === 'de' ? 'Fehler bei der Registrierung: ' : 'Hiba történt a regisztráció során: ') + error.error);
         });
         
         // 4. Most regisztrálj (a listenerek már feliratkoztak)
@@ -309,7 +313,7 @@ export default function NotificationsSettingsPage() {
         
       } catch (error) {
         console.error('🔔 [NATIVE] Push subscription error:', error);
-        alert('Hiba történt a push értesítések bekapcsolásakor: ' + error.message);
+        alert((market === 'de' ? 'Fehler beim Aktivieren der Push-Benachrichtigungen: ' : 'Hiba történt a push értesítések bekapcsolásakor: ') + error.message);
       }
     } else {
       // ============= WEB APP =============
@@ -318,7 +322,7 @@ export default function NotificationsSettingsPage() {
         
         // 1. Check if supported
         if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-          alert('A böngésződ nem támogatja a push értesítéseket.');
+          alert(market === 'de' ? 'Dein Browser unterstuetzt keine Push-Benachrichtigungen.' : 'A böngésződ nem támogatja a push értesítéseket.');
           return;
         }
         
@@ -329,7 +333,7 @@ export default function NotificationsSettingsPage() {
         setPushPermission(permission);
         
         if (permission !== 'granted') {
-          alert('Az értesítések engedélyezése szükséges a push értesítésekhez.');
+          alert(market === 'de' ? 'Benachrichtigungsberechtigung ist fuer Push-Benachrichtigungen erforderlich.' : 'Az értesítések engedélyezése szükséges a push értesítésekhez.');
           return;
         }
         
@@ -362,13 +366,13 @@ export default function NotificationsSettingsPage() {
         
         if (response.ok) {
           await checkPushSubscription(); // Újra lekérdezés
-          alert('✅ Push értesítések sikeresen bekapcsolva!');
+          alert(market === 'de' ? '✅ Push-Benachrichtigungen erfolgreich aktiviert!' : '✅ Push értesítések sikeresen bekapcsolva!');
         } else {
           throw new Error(result.error || 'Server error');
         }
       } catch (error) {
         console.error('🔔 [WEB] Push subscription error:', error);
-        alert('Hiba történt a push értesítések bekapcsolásakor: ' + error.message);
+        alert((market === 'de' ? 'Fehler beim Aktivieren der Push-Benachrichtigungen: ' : 'Hiba történt a push értesítések bekapcsolásakor: ') + error.message);
       }
     }
   };
@@ -395,10 +399,10 @@ export default function NotificationsSettingsPage() {
         console.log('🔔 [NATIVE] Server delete response:', await response.json());
         
         await checkPushSubscription(); // Újra lekérdezés
-        alert('Push értesítések kikapcsolva.');
+        alert(market === 'de' ? 'Push-Benachrichtigungen deaktiviert.' : 'Push értesítések kikapcsolva.');
       } catch (error) {
         console.error('🔔 [NATIVE] Error disabling push:', error);
-        alert('Hiba történt: ' + error.message);
+        alert((market === 'de' ? 'Fehler: ' : 'Hiba történt: ') + error.message);
       }
     } else {
       // ============= WEB APP =============
@@ -427,10 +431,10 @@ export default function NotificationsSettingsPage() {
         }
         
         await checkPushSubscription(); // Újra lekérdezés
-        alert('Push értesítések kikapcsolva.');
+        alert(market === 'de' ? 'Push-Benachrichtigungen deaktiviert.' : 'Push értesítések kikapcsolva.');
       } catch (error) {
         console.error('🔔 [WEB] Error disabling push:', error);
-        alert('Hiba történt: ' + error.message);
+        alert((market === 'de' ? 'Fehler: ' : 'Hiba történt: ') + error.message);
       }
     }
   };
@@ -491,17 +495,17 @@ export default function NotificationsSettingsPage() {
     
     // Validáció
     if (!zip) {
-      setZipCodeError('Adj meg egy irányítószámot');
+      setZipCodeError(market === 'de' ? 'Bitte gib eine Postleitzahl ein' : 'Adj meg egy irányítószámot');
       return;
     }
     
     if (!/^\d{4}$/.test(zip)) {
-      setZipCodeError('Az irányítószám 4 számjegyű kell legyen');
+      setZipCodeError(market === 'de' ? 'Die Postleitzahl muss 4-stellig sein' : 'Az irányítószám 4 számjegyű kell legyen');
       return;
     }
     
     if (settings.demandZipCodes?.includes(zip)) {
-      setZipCodeError('Ez az irányítószám már szerepel a listában');
+      setZipCodeError(market === 'de' ? 'Diese Postleitzahl ist bereits in der Liste' : 'Ez az irányítószám már szerepel a listában');
       return;
     }
     
@@ -568,8 +572,8 @@ export default function NotificationsSettingsPage() {
     {
       key: 'newMessage',
       icon: MessageCircle,
-      title: 'Új üzenetek',
-      description: 'Értesítés új chat üzenetekről',
+      title: market === 'de' ? 'Neue Nachrichten' : 'Új üzenetek',
+      description: market === 'de' ? 'Benachrichtigung bei neuen Chat-Nachrichten' : 'Értesítés új chat üzenetekről',
       color: 'text-blue-600',
       bgColor: darkMode ? 'bg-blue-900/30' : 'bg-blue-100',
       showFor: ['pharmacy', 'pharmacist', 'assistant', null] // mindenki
@@ -577,8 +581,8 @@ export default function NotificationsSettingsPage() {
     {
       key: 'newApplication',
       icon: CheckCircle,
-      title: 'Új jelentkezések',
-      description: 'Értesítés, ha valaki jelentkezik az igényedre',
+      title: market === 'de' ? 'Neue Bewerbungen' : 'Új jelentkezések',
+      description: market === 'de' ? 'Benachrichtigung, wenn sich jemand auf deine Ausschreibung meldet' : 'Értesítés, ha valaki jelentkezik az igényedre',
       color: 'text-green-600',
       bgColor: darkMode ? 'bg-green-900/30' : 'bg-green-100',
       showFor: ['pharmacy'] // csak gyógyszertáraknak
@@ -586,8 +590,8 @@ export default function NotificationsSettingsPage() {
     {
       key: 'applicationStatus',
       icon: Bell,
-      title: 'Jelentkezés státusza',
-      description: 'Értesítés, ha elfogadták vagy elutasították a jelentkezésed',
+      title: market === 'de' ? 'Bewerbungsstatus' : 'Jelentkezés státusza',
+      description: market === 'de' ? 'Benachrichtigung bei Annahme oder Ablehnung deiner Bewerbung' : 'Értesítés, ha elfogadták vagy elutasították a jelentkezésed',
       color: 'text-orange-600',
       bgColor: darkMode ? 'bg-orange-900/30' : 'bg-orange-100',
       showFor: ['pharmacist', 'assistant'] // csak helyettesítőknek
@@ -595,8 +599,8 @@ export default function NotificationsSettingsPage() {
     {
       key: 'newDemand',
       icon: Calendar,
-      title: 'Új igények',
-      description: 'Értesítés új helyettesítési igényekről a környéken',
+      title: market === 'de' ? 'Neue Anfragen' : 'Új igények',
+      description: market === 'de' ? 'Benachrichtigung ueber neue Vertretungsanfragen in deiner Umgebung' : 'Értesítés új helyettesítési igényekről a környéken',
       color: 'text-purple-600',
       bgColor: darkMode ? 'bg-purple-900/30' : 'bg-purple-100',
       showFor: ['pharmacist', 'assistant'] // csak helyettesítőknek
@@ -604,8 +608,8 @@ export default function NotificationsSettingsPage() {
     {
       key: 'reminders',
       icon: Bell,
-      title: 'Emlékeztetők',
-      description: 'Közelgő helyettesítések emlékeztetői',
+      title: market === 'de' ? 'Erinnerungen' : 'Emlékeztetők',
+      description: market === 'de' ? 'Erinnerungen an bevorstehende Vertretungen' : 'Közelgő helyettesítések emlékeztetői',
       color: 'text-teal-600',
       bgColor: darkMode ? 'bg-teal-900/30' : 'bg-teal-100',
       showFor: ['pharmacy', 'pharmacist', 'assistant', null] // mindenki
@@ -624,7 +628,7 @@ export default function NotificationsSettingsPage() {
             >
               <ArrowLeft className={`w-5 h-5 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`} />
             </button>
-            <h1 className={`text-lg font-semibold ml-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Értesítések</h1>
+            <h1 className={`text-lg font-semibold ml-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('notificationsTitle', market)}</h1>
             {saving && <Loader2 className="w-4 h-4 animate-spin ml-auto text-[#6B46C1]" />}
           </div>
         </div>
@@ -634,7 +638,7 @@ export default function NotificationsSettingsPage() {
           <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-sm overflow-hidden`}>
             <div className={`px-4 py-2 ${darkMode ? 'bg-gray-700/50 border-gray-700' : 'bg-gray-50 border-gray-100'} border-b`}>
               <h3 className={`text-xs font-semibold ${darkMode ? 'text-gray-400' : 'text-gray-500'} uppercase tracking-wider`}>
-                Általános
+                {market === 'de' ? 'Allgemein' : 'Általános'}
               </h3>
             </div>
             <div className={`divide-y ${darkMode ? 'divide-gray-700' : 'divide-gray-100'}`}>
@@ -645,13 +649,13 @@ export default function NotificationsSettingsPage() {
                     <Smartphone className={`w-5 h-5 ${isPushSubscribed ? 'text-green-600' : (darkMode ? 'text-gray-400' : 'text-gray-500')}`} />
                   </div>
                   <div>
-                    <p className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>Push értesítések</p>
+                    <p className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>{market === 'de' ? 'Push-Benachrichtigungen' : 'Push értesítések'}</p>
                     <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                       {isPushSubscribed 
-                        ? `Bekapcsolva ✓ (${platformInfo})` 
+                        ? `${market === 'de' ? 'Aktiviert' : 'Bekapcsolva'} ✓ (${platformInfo})` 
                         : pushPermission === 'denied' 
-                          ? 'Letiltva a rendszerben' 
-                          : `Nincs bekapcsolva (${platformInfo})`
+                          ? (market === 'de' ? 'Vom System blockiert' : 'Letiltva a rendszerben') 
+                          : `${market === 'de' ? 'Nicht aktiviert' : 'Nincs bekapcsolva'} (${platformInfo})`
                       }
                     </p>
                   </div>
@@ -661,17 +665,17 @@ export default function NotificationsSettingsPage() {
                     onClick={handleEnablePush}
                     className="px-3 py-1.5 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors"
                   >
-                    Bekapcsolás
+                    {market === 'de' ? 'Aktivieren' : 'Bekapcsolás'}
                   </button>
                 ) : isPushSubscribed ? (
                   <button
                     onClick={handleDisablePush}
                     className="px-3 py-1.5 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 transition-colors"
                   >
-                    Kikapcsolás
+                    {market === 'de' ? 'Deaktivieren' : 'Kikapcsolás'}
                   </button>
                 ) : (
-                  <span className="text-red-500 text-xs">Rendszer tiltja</span>
+                  <span className="text-red-500 text-xs">{market === 'de' ? 'System blockiert' : 'Rendszer tiltja'}</span>
                 )}
               </div>
               <div className="flex items-center justify-between px-4 py-3">
@@ -680,8 +684,8 @@ export default function NotificationsSettingsPage() {
                     <Bell className="w-5 h-5 text-purple-600" />
                   </div>
                   <div>
-                    <p className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>App értesítések</p>
-                    <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Értesítések az alkalmazásban</p>
+                    <p className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>{market === 'de' ? 'App-Benachrichtigungen' : 'App értesítések'}</p>
+                    <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{market === 'de' ? 'Benachrichtigungen innerhalb der App' : 'Értesítések az alkalmazásban'}</p>
                   </div>
                 </div>
                 <Toggle enabled={settings.pushEnabled} onToggle={() => handleToggle('pushEnabled')} />
@@ -693,7 +697,7 @@ export default function NotificationsSettingsPage() {
           <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-sm overflow-hidden`}>
             <div className={`px-4 py-2 ${darkMode ? 'bg-gray-700/50 border-gray-700' : 'bg-gray-50 border-gray-100'} border-b`}>
               <h3 className={`text-xs font-semibold ${darkMode ? 'text-gray-400' : 'text-gray-500'} uppercase tracking-wider`}>
-                Értesítés típusok
+                {market === 'de' ? 'Benachrichtigungstypen' : 'Értesítés típusok'}
               </h3>
             </div>
             <div className={`divide-y ${darkMode ? 'divide-gray-700' : 'divide-gray-100'}`}>
@@ -719,7 +723,7 @@ export default function NotificationsSettingsPage() {
             <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-sm overflow-hidden`}>
               <div className={`px-4 py-2 ${darkMode ? 'bg-gray-700/50 border-gray-700' : 'bg-gray-50 border-gray-100'} border-b`}>
                 <h3 className={`text-xs font-semibold ${darkMode ? 'text-gray-400' : 'text-gray-500'} uppercase tracking-wider`}>
-                  Igény értesítés szűrők
+                  {market === 'de' ? 'Anfrage-Benachrichtigungsfilter' : 'Igény értesítés szűrők'}
                 </h3>
               </div>
               
@@ -727,10 +731,10 @@ export default function NotificationsSettingsPage() {
                 {/* Pozíció szűrő */}
                 <div>
                   <p className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'} mb-2`}>
-                    Milyen pozíciókról kapsz értesítést?
+                    {market === 'de' ? 'Zu welchen Positionen moechtest du Benachrichtigungen erhalten?' : 'Milyen pozíciókról kapsz értesítést?'}
                   </p>
                   <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'} mb-3`}>
-                    Válaszd ki, milyen típusú igényekről szeretnél értesítést kapni
+                    {market === 'de' ? 'Waehle aus, zu welchen Anfragearten du benachrichtigt werden moechtest' : 'Válaszd ki, milyen típusú igényekről szeretnél értesítést kapni'}
                   </p>
                   <div className="flex gap-2">
                     <button
@@ -743,7 +747,7 @@ export default function NotificationsSettingsPage() {
                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
                     >
-                      Gyógyszerész
+                      {market === 'de' ? 'Apotheker/in' : 'Gyógyszerész'}
                     </button>
                     <button
                       onClick={() => handlePositionToggle('assistant')}
@@ -755,7 +759,7 @@ export default function NotificationsSettingsPage() {
                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
                     >
-                      Szakasszisztens
+                      {market === 'de' ? 'Assistent/in' : 'Szakasszisztens'}
                     </button>
                   </div>
                 </div>
@@ -765,11 +769,11 @@ export default function NotificationsSettingsPage() {
                   <div className="flex items-center gap-2 mb-2">
                     <MapPin className={`w-4 h-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
                     <p className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                      Irányítószám szűrő
+                      {market === 'de' ? 'PLZ-Filter' : 'Irányítószám szűrő'}
                     </p>
                   </div>
                   <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'} mb-3`}>
-                    Add meg az irányítószámokat, amelyekről értesítést szeretnél kapni. Ha üres, minden területről kapsz értesítést.
+                    {market === 'de' ? 'Gib Postleitzahlen an, zu denen du Benachrichtigungen erhalten moechtest. Wenn leer, erhaeltst du Benachrichtigungen aus allen Gebieten.' : 'Add meg az irányítószámokat, amelyekről értesítést szeretnél kapni. Ha üres, minden területről kapsz értesítést.'}
                   </p>
                   
                   {/* Irányítószám hozzáadása */}
@@ -781,7 +785,7 @@ export default function NotificationsSettingsPage() {
                         setNewZipCode(e.target.value.replace(/\D/g, '').slice(0, 4));
                         setZipCodeError('');
                       }}
-                      placeholder="Pl. 1013"
+                      placeholder={market === 'de' ? 'z. B. 1013' : 'Pl. 1013'}
                       maxLength={4}
                       className={`flex-1 px-3 py-2 rounded-lg border text-sm ${
                         darkMode 
@@ -794,7 +798,7 @@ export default function NotificationsSettingsPage() {
                       className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-1"
                     >
                       <Plus className="w-4 h-4" />
-                      Hozzáad
+                      {market === 'de' ? 'Hinzufuegen' : 'Hozzáad'}
                     </button>
                   </div>
                   
@@ -826,7 +830,7 @@ export default function NotificationsSettingsPage() {
                     </div>
                   ) : (
                     <p className={`text-xs italic ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                      Nincs irányítószám megadva - minden területről kapsz értesítést
+                      {market === 'de' ? 'Keine PLZ angegeben - Benachrichtigungen aus allen Gebieten' : 'Nincs irányítószám megadva - minden területről kapsz értesítést'}
                     </p>
                   )}
                 </div>
@@ -838,8 +842,8 @@ export default function NotificationsSettingsPage() {
           <div className={`${darkMode ? 'bg-purple-900/30 border-purple-600' : 'bg-purple-50 border-purple-200'} border rounded-xl p-4`}>
             <p className={`text-sm ${darkMode ? 'text-purple-300' : 'text-purple-700'}`}>
               💡 {isNativeApp 
-                ? 'A push értesítések működéséhez engedélyezd az értesítéseket az eszköz beállításaiban is.' 
-                : 'A push értesítések működéséhez engedélyezd az értesítéseket a böngésző beállításaiban is.'
+                ? (market === 'de' ? 'Damit Push-Benachrichtigungen funktionieren, aktiviere Benachrichtigungen auch in den Geraete-Einstellungen.' : 'A push értesítések működéséhez engedélyezd az értesítéseket az eszköz beállításaiban is.') 
+                : (market === 'de' ? 'Damit Push-Benachrichtigungen funktionieren, aktiviere Benachrichtigungen auch in den Browser-Einstellungen.' : 'A push értesítések működéséhez engedélyezd az értesítéseket a böngésző beállításaiban is.')
               }
             </p>
           </div>

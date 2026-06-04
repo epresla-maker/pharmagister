@@ -7,6 +7,7 @@ import { db } from '@/lib/firebase';
 import RouteGuard from '@/app/components/RouteGuard';
 import { Loader2, Camera, ArrowLeft, Building2, User, Users } from 'lucide-react';
 import { getEffectivePharmagisterRole } from '@/lib/pharmagisterProfile';
+import { getClientMarket, t } from '@/lib/marketI18n';
 
 function PharmagisterSetupContent() {
   const { user, userData } = useAuth();
@@ -21,6 +22,7 @@ function PharmagisterSetupContent() {
   const [step, setStep] = useState(role ? 2 : 1); // 1: szerepkör választás, 2: adatok megadása
   const [selectedRole, setSelectedRole] = useState(role || '');
   const [photoPreview, setPhotoPreview] = useState(null);
+  const market = getClientMarket();
   
   const [formData, setFormData] = useState({
     // Közös mezők
@@ -49,7 +51,7 @@ function PharmagisterSetupContent() {
     'Quadro Byte',
     'Daxa',
     'Primula',
-    'Egyéb'
+    market === 'de' ? 'Andere' : 'Egyéb'
   ];
 
   // Ha van már szerepkör és nem edit módban vagyunk, irányítsuk vissza
@@ -103,12 +105,12 @@ function PharmagisterSetupContent() {
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      alert('A fájl mérete maximum 5MB lehet!');
+      alert(market === 'de' ? 'Die Dateigroesse darf maximal 5 MB sein.' : 'A fájl mérete maximum 5MB lehet!');
       return;
     }
 
     if (!file.type.startsWith('image/')) {
-      alert('Csak képfájlokat tölthetsz fel!');
+      alert(market === 'de' ? 'Es sind nur Bilddateien erlaubt.' : 'Csak képfájlokat tölthetsz fel!');
       return;
     }
 
@@ -136,7 +138,7 @@ function PharmagisterSetupContent() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error?.message || 'Feltöltés sikertelen');
+        throw new Error(data.error?.message || (market === 'de' ? 'Upload fehlgeschlagen' : 'Feltöltés sikertelen'));
       }
 
       const imageUrl = data.secure_url;
@@ -145,10 +147,10 @@ function PharmagisterSetupContent() {
       await setDoc(doc(db, 'users', user.uid), { photoURL: imageUrl }, { merge: true });
       
       setFormData(prev => ({ ...prev, photoURL: imageUrl }));
-      alert('✅ Profilkép mentve!');
+      alert(market === 'de' ? '✅ Profilbild gespeichert!' : '✅ Profilkép mentve!');
     } catch (error) {
       console.error('Error uploading photo:', error);
-      alert('Hiba történt a kép feltöltése során: ' + error.message);
+      alert((market === 'de' ? 'Fehler beim Hochladen des Bildes: ' : 'Hiba történt a kép feltöltése során: ') + error.message);
       setPhotoPreview(null);
     } finally {
       setUploadingPhoto(false);
@@ -171,7 +173,9 @@ function PharmagisterSetupContent() {
       if (selectedRole === 'pharmacy') {
         // Gyógyszertár validáció - TELJES CÍM KÖTELEZŐ
         if (!formData.pharmacyName || !formData.contactName || !formData.city || !formData.zipCode || !formData.street || !formData.houseNumber) {
-          alert('Kérlek töltsd ki az összes kötelező mezőt! A gyógyszertár teljes címe kötelező (város, irányítószám, utca, házszám).');
+          alert(market === 'de'
+            ? 'Bitte fuelle alle Pflichtfelder aus! Die vollstaendige Apothekenadresse ist erforderlich (Stadt, PLZ, Strasse, Hausnummer).'
+            : 'Kérlek töltsd ki az összes kötelező mezőt! A gyógyszertár teljes címe kötelező (város, irányítószám, utca, házszám).');
           setLoading(false);
           return;
         }
@@ -191,7 +195,7 @@ function PharmagisterSetupContent() {
       } else {
         // Helyettesítő validáció
         if (!formData.displayName || !formData.yearsOfExperience || formData.softwareKnowledge.length === 0) {
-          alert('Kérlek töltsd ki az összes kötelező mezőt!');
+          alert(market === 'de' ? 'Bitte fuelle alle Pflichtfelder aus!' : 'Kérlek töltsd ki az összes kötelező mezőt!');
           setLoading(false);
           return;
         }
@@ -210,16 +214,16 @@ function PharmagisterSetupContent() {
       await updateDoc(userRef, dataToUpdate);
       
       if (editMode) {
-        alert('✅ Profil sikeresen frissítve!');
+        alert(market === 'de' ? '✅ Profil erfolgreich aktualisiert!' : '✅ Profil sikeresen frissítve!');
       } else {
-        alert('✅ Profil sikeresen létrehozva!');
+        alert(market === 'de' ? '✅ Profil erfolgreich erstellt!' : '✅ Profil sikeresen létrehozva!');
       }
       
       router.push('/pharmagister');
       
     } catch (error) {
       console.error('Error updating profile:', error);
-      alert('Hiba történt a profil mentése során.');
+      alert(market === 'de' ? 'Beim Speichern des Profils ist ein Fehler aufgetreten.' : 'Hiba történt a profil mentése során.');
     } finally {
       setLoading(false);
     }
@@ -236,16 +240,16 @@ function PharmagisterSetupContent() {
               className="flex items-center text-purple-600 hover:text-purple-700 mb-4"
             >
               <ArrowLeft className="w-5 h-5 mr-1" />
-              {step === 2 && !editMode ? 'Vissza' : 'Pharmagister'}
+              {step === 2 && !editMode ? t('back', market) : 'Pharmagister'}
             </button>
             <h1 className="text-2xl font-bold text-gray-900">
-              {editMode ? 'Profil szerkesztése' : 'Pharmagister Regisztráció'}
+              {editMode ? (market === 'de' ? 'Profil bearbeiten' : 'Profil szerkesztése') : (market === 'de' ? 'Pharmagister Registrierung' : 'Pharmagister Regisztráció')}
             </h1>
             <p className="text-gray-600 mt-1">
-              {step === 1 ? 'Válaszd ki a szerepkörödet' : 
-               selectedRole === 'pharmacy' ? '🏢 Gyógyszertár adatok' :
-               selectedRole === 'pharmacist' ? 'Gyógyszerész adatok' :
-               'Szakasszisztens adatok'}
+              {step === 1 ? t('chooseRole', market) : 
+               selectedRole === 'pharmacy' ? (market === 'de' ? '🏢 Apothekendaten' : '🏢 Gyógyszertár adatok') :
+               selectedRole === 'pharmacist' ? (market === 'de' ? 'Apothekendaten (Vertreter)' : 'Gyógyszerész adatok') :
+               (market === 'de' ? 'Assistenten-Daten' : 'Szakasszisztens adatok')}
             </p>
           </div>
 
@@ -261,8 +265,8 @@ function PharmagisterSetupContent() {
                     <Building2 className="w-7 h-7 text-purple-600" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">Gyógyszertár</h3>
-                    <p className="text-sm text-gray-500">Helyettesítőt keresek a patikámba</p>
+                    <h3 className="text-lg font-semibold text-gray-900">{market === 'de' ? 'Apotheke' : 'Gyógyszertár'}</h3>
+                    <p className="text-sm text-gray-500">{market === 'de' ? 'Ich suche Vertretungspersonal fuer meine Apotheke' : 'Helyettesítőt keresek a patikámba'}</p>
                   </div>
                 </div>
               </button>
@@ -276,8 +280,8 @@ function PharmagisterSetupContent() {
                     <User className="w-7 h-7 text-blue-600" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">Gyógyszerész</h3>
-                    <p className="text-sm text-gray-500">Helyettesítést vállalok gyógyszerészként</p>
+                    <h3 className="text-lg font-semibold text-gray-900">{market === 'de' ? 'Apotheker/in' : 'Gyógyszerész'}</h3>
+                    <p className="text-sm text-gray-500">{market === 'de' ? 'Ich arbeite als Vertretung (Apotheker/in)' : 'Helyettesítést vállalok gyógyszerészként'}</p>
                   </div>
                 </div>
               </button>
@@ -291,8 +295,8 @@ function PharmagisterSetupContent() {
                     <Users className="w-7 h-7 text-green-600" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">Szakasszisztens</h3>
-                    <p className="text-sm text-gray-500">Helyettesítést vállalok asszisztensként</p>
+                    <h3 className="text-lg font-semibold text-gray-900">{market === 'de' ? 'PKA/PTA-Assistent/in' : 'Szakasszisztens'}</h3>
+                    <p className="text-sm text-gray-500">{market === 'de' ? 'Ich arbeite als Vertretung (Assistent/in)' : 'Helyettesítést vállalok asszisztensként'}</p>
                   </div>
                 </div>
               </button>
@@ -339,7 +343,7 @@ function PharmagisterSetupContent() {
                     className="hidden"
                   />
                 </div>
-                <p className="text-sm text-gray-500 mt-2">Profilkép feltöltése</p>
+                <p className="text-sm text-gray-500 mt-2">{market === 'de' ? 'Profilbild hochladen' : 'Profilkép feltöltése'}</p>
               </div>
 
               {selectedRole === 'pharmacy' ? (
@@ -347,35 +351,35 @@ function PharmagisterSetupContent() {
                 <>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Gyógyszertár neve <span className="text-red-500">*</span>
+                      {market === 'de' ? 'Name der Apotheke' : 'Gyógyszertár neve'} <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
                       value={formData.pharmacyName}
                       onChange={(e) => setFormData({ ...formData, pharmacyName: e.target.value })}
                       className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      placeholder="pl. Alma Gyógyszertár"
+                      placeholder={market === 'de' ? 'z. B. Alma Apotheke' : 'pl. Alma Gyógyszertár'}
                       required
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Kapcsolattartó neve <span className="text-red-500">*</span>
+                      {market === 'de' ? 'Name der Kontaktperson' : 'Kapcsolattartó neve'} <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
                       value={formData.contactName}
                       onChange={(e) => setFormData({ ...formData, contactName: e.target.value })}
                       className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      placeholder="pl. Kovács Péter"
+                      placeholder={market === 'de' ? 'z. B. Peter Kovacs' : 'pl. Kovács Péter'}
                       required
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Email cím
+                      {market === 'de' ? 'E-Mail-Adresse' : 'Email cím'}
                     </label>
                     <input
                       type="email"
@@ -383,12 +387,12 @@ function PharmagisterSetupContent() {
                       disabled
                       className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500"
                     />
-                    <p className="text-xs text-gray-400 mt-1">Automatikusan kitöltve a regisztrációból</p>
+                    <p className="text-xs text-gray-400 mt-1">{market === 'de' ? 'Automatisch aus der Registrierung ausgefuellt' : 'Automatikusan kitöltve a regisztrációból'}</p>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Telefonszám
+                      {market === 'de' ? 'Telefonnummer' : 'Telefonszám'}
                     </label>
                     <input
                       type="tel"
@@ -402,7 +406,7 @@ function PharmagisterSetupContent() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Város <span className="text-red-500">*</span>
+                        {market === 'de' ? 'Stadt' : 'Város'} <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -415,7 +419,7 @@ function PharmagisterSetupContent() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Irányítószám <span className="text-red-500">*</span>
+                        {market === 'de' ? 'PLZ' : 'Irányítószám'} <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -431,7 +435,7 @@ function PharmagisterSetupContent() {
                   <div className="grid grid-cols-3 gap-4">
                     <div className="col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Utca <span className="text-red-500">*</span>
+                        {market === 'de' ? 'Strasse' : 'Utca'} <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -444,7 +448,7 @@ function PharmagisterSetupContent() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Házszám <span className="text-red-500">*</span>
+                        {market === 'de' ? 'Hausnummer' : 'Házszám'} <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -462,7 +466,7 @@ function PharmagisterSetupContent() {
                 <>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Teljes név <span className="text-red-500">*</span>
+                      {market === 'de' ? 'Vollstaendiger Name' : 'Teljes név'} <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -476,7 +480,7 @@ function PharmagisterSetupContent() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Email cím
+                      {market === 'de' ? 'E-Mail-Adresse' : 'Email cím'}
                     </label>
                     <input
                       type="email"
@@ -484,12 +488,12 @@ function PharmagisterSetupContent() {
                       disabled
                       className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500"
                     />
-                    <p className="text-xs text-gray-400 mt-1">Automatikusan kitöltve a regisztrációból</p>
+                    <p className="text-xs text-gray-400 mt-1">{market === 'de' ? 'Automatisch aus der Registrierung ausgefuellt' : 'Automatikusan kitöltve a regisztrációból'}</p>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Telefonszám
+                      {market === 'de' ? 'Telefonnummer' : 'Telefonszám'}
                     </label>
                     <input
                       type="tel"
@@ -502,7 +506,7 @@ function PharmagisterSetupContent() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Tapasztalat <span className="text-red-500">*</span>
+                      {market === 'de' ? 'Erfahrung' : 'Tapasztalat'} <span className="text-red-500">*</span>
                     </label>
                     <select
                       value={formData.yearsOfExperience}
@@ -510,18 +514,18 @@ function PharmagisterSetupContent() {
                       className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                       required
                     >
-                      <option value="">Válassz...</option>
-                      <option value="0-1">0-1 év</option>
-                      <option value="1-3">1-3 év</option>
-                      <option value="3-5">3-5 év</option>
-                      <option value="5-10">5-10 év</option>
-                      <option value="10+">10+ év</option>
+                      <option value="">{market === 'de' ? 'Auswaehlen...' : 'Válassz...'}</option>
+                      <option value="0-1">{market === 'de' ? '0-1 Jahr' : '0-1 év'}</option>
+                      <option value="1-3">{market === 'de' ? '1-3 Jahre' : '1-3 év'}</option>
+                      <option value="3-5">{market === 'de' ? '3-5 Jahre' : '3-5 év'}</option>
+                      <option value="5-10">{market === 'de' ? '5-10 Jahre' : '5-10 év'}</option>
+                      <option value="10+">{market === 'de' ? '10+ Jahre' : '10+ év'}</option>
                     </select>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Szoftverismeret <span className="text-red-500">*</span>
+                      {market === 'de' ? 'Software-Kenntnisse' : 'Szoftverismeret'} <span className="text-red-500">*</span>
                     </label>
                     <div className="grid grid-cols-2 gap-2">
                       {softwareOptions.map(software => (
@@ -540,7 +544,7 @@ function PharmagisterSetupContent() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Órabér (Ft) <span className="text-gray-400 text-xs">(opcionális)</span>
+                      {market === 'de' ? 'Stundensatz (HUF)' : 'Órabér (Ft)'} <span className="text-gray-400 text-xs">{market === 'de' ? '(optional)' : '(opcionális)'}</span>
                     </label>
                     <input
                       type="number"
@@ -548,20 +552,20 @@ function PharmagisterSetupContent() {
                       onChange={(e) => setFormData({ ...formData, hourlyRate: e.target.value })}
                       className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                       min="0"
-                      placeholder="Hagyd üresen ha nem szeretnéd megadni"
+                      placeholder={market === 'de' ? 'Leer lassen, wenn du es nicht angeben moechtest' : 'Hagyd üresen ha nem szeretnéd megadni'}
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Bemutatkozás
+                      {market === 'de' ? 'Vorstellung' : 'Bemutatkozás'}
                     </label>
                     <textarea
                       value={formData.bio}
                       onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                       rows="4"
                       className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      placeholder="Írj néhány mondatot magadról, ami meggyőzi a gyógyszertárakat..."
+                      placeholder={market === 'de' ? 'Schreibe ein paar Saetze ueber dich, um Apotheken zu ueberzeugen...' : 'Írj néhány mondatot magadról, ami meggyőzi a gyógyszertárakat...'}
                     />
                   </div>
                 </>
@@ -576,10 +580,10 @@ function PharmagisterSetupContent() {
                 {loading ? (
                   <>
                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Mentés...
+                    {t('loadingSave', market)}
                   </>
                 ) : (
-                  editMode ? 'Profil mentése' : 'Regisztráció beküldése'
+                  editMode ? (market === 'de' ? 'Profil speichern' : 'Profil mentése') : (market === 'de' ? 'Registrierung absenden' : 'Regisztráció beküldése')
                 )}
               </button>
             </form>
@@ -596,7 +600,7 @@ export default function PharmagisterSetupPage() {
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p className="text-gray-500">Betöltés...</p>
+          <p className="text-gray-500">{t('loading', getClientMarket())}</p>
         </div>
       </div>
     }>
