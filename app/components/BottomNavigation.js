@@ -5,11 +5,10 @@ import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { MessageCircle, Bell, Settings, LayoutGrid, Home } from 'lucide-react';
 import { useBadges } from '@/context/BadgesContext';
+import { getClientMarket, t } from '@/lib/marketI18n';
 
 function readMarketCookie() {
-  if (typeof document === 'undefined') return 'hu';
-  const match = document.cookie.match(/(?:^|; )pm_market=([^;]+)/);
-  return decodeURIComponent(match?.[1] || 'hu') === 'de' ? 'de' : 'hu';
+  return getClientMarket();
 }
 
 // Memoized NavItem to prevent re-renders when other badges change
@@ -59,19 +58,19 @@ function BottomNavigation({ isVisible = true }) {
   const navItems = useMemo(() => [
     {
       icon: Home,
-      label: 'Főoldal',
+      label: t('navHome', market),
       path: '/kozosseg',
       badge: 0
     },
     {
       icon: MessageCircle,
-      label: 'Üzenetek',
+      label: t('navMessages', market),
       path: '/chat',
       badge: badges.messages
     },
     {
       icon: Bell,
-      label: 'Értesítések',
+      label: t('navNotifications', market),
       path: '/notifications',
       badge: badges.notifications
     },
@@ -84,11 +83,11 @@ function BottomNavigation({ isVisible = true }) {
     },
     {
       icon: Settings,
-      label: 'Beállítások',
+      label: t('navSettings', market),
       path: '/settings',
       badge: 0
     }
-  ], [badges.messages, badges.notifications]);
+  ], [badges.messages, badges.notifications, market]);
 
   // Memoize navigation handler
   const handleNavigation = useCallback((path) => {
@@ -115,7 +114,7 @@ function BottomNavigation({ isVisible = true }) {
         <div className={`flex items-center justify-between rounded-xl border px-3 py-2 text-xs ${
           darkMode ? 'border-gray-700 bg-gray-800 text-gray-200' : 'border-gray-200 bg-gray-50 text-gray-700'
         }`}>
-          <span className="font-medium">Aktív nyelv</span>
+          <span className="font-medium">{t('activeLanguage', market)}</span>
           <button
             onClick={() => router.push('/settings/market')}
             className={`inline-flex items-center rounded-full px-2.5 py-1 font-semibold ${
@@ -124,7 +123,7 @@ function BottomNavigation({ isVisible = true }) {
                 : 'bg-emerald-600 text-white'
             }`}
           >
-            {market === 'de' ? 'DE mód' : 'HU mód'}
+            {market === 'de' ? t('deMode', market) : t('huMode', market)}
           </button>
         </div>
       </div>

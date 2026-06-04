@@ -58,6 +58,7 @@ import {
 } from 'lucide-react';
 import ReportModal from '@/app/components/ReportModal';
 import { getEffectivePharmagisterRole } from '@/lib/pharmagisterProfile';
+import { getClientMarket, getCategoryLabel, getReactionLabel, t } from '@/lib/marketI18n';
 
 // ============================================
 // CONSTANTS
@@ -119,6 +120,7 @@ const getFontFamilyCSS = (family) => {
 // POST CREATION MODAL
 // ============================================
 function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
+  const market = getClientMarket();
   const [text, setText] = useState('');
   const [category, setCategory] = useState('altalanos');
   const [tags, setTags] = useState([]);
@@ -305,7 +307,7 @@ function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
             className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${selectedCategory.color}`}
           >
             <span>{selectedCategory.emoji}</span>
-            <span>{selectedCategory.label}</span>
+            <span>{getCategoryLabel(selectedCategory.id, market)}</span>
             <ChevronDown className="w-4 h-4 ml-1" />
           </button>
 
@@ -325,7 +327,7 @@ function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
                   }`}
                 >
                   <span>{cat.emoji}</span>
-                  <span>{cat.label}</span>
+                  <span>{getCategoryLabel(cat.id, market)}</span>
                 </button>
               ))}
             </div>
@@ -1319,6 +1321,7 @@ function CommentThread({ postId, postText, postUserId, postIsAnonymous, darkMode
 // SINGLE POST CARD
 // ============================================
 function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonClick, compactView, hideReactions }) {
+  const market = getClientMarket();
   const [showReactions, setShowReactions] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showCommentThread, setShowCommentThread] = useState(false);
@@ -1541,7 +1544,7 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonCli
                 </span>
               )}
               <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${categoryData.color}`}>
-                {categoryData.emoji} {categoryData.label}
+                {categoryData.emoji} {getCategoryLabel(categoryData.id, market)}
               </span>
 
             </div>
@@ -1687,8 +1690,8 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonCli
                 <span
                   key={type}
                   className="inline-flex items-center gap-1"
-                  title={reaction?.label}
-                  aria-label={`${reaction?.label || type}: ${count}`}
+                  title={getReactionLabel(type, market)}
+                  aria-label={`${getReactionLabel(type, market)}: ${count}`}
                 >
                   <span className="text-lg leading-none">{reaction?.emoji}</span>
                   <span className="text-sm font-medium tabular-nums">{count}</span>
@@ -1717,7 +1720,7 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonCli
             ) : (
               <Star className="w-4 h-4" />
             )}
-            <span>{userReaction ? REACTIONS.find(r => r.type === userReaction)?.label : 'Reakció'}</span>
+            <span>{userReaction ? getReactionLabel(userReaction, market) : t('reaction', market)}</span>
           </button>
 
           {/* Reaction picker */}
@@ -1730,7 +1733,7 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonCli
                   key={r.type}
                   onClick={() => handleReaction(r.type)}
                   className="text-2xl hover:scale-125 transition-transform p-1"
-                  title={r.label}
+                  title={getReactionLabel(r.type, market)}
                 >
                   {r.emoji}
                 </button>
@@ -1748,7 +1751,7 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonCli
             }`}
           >
             <MessageCircle className="w-4 h-4" />
-            <span>{commentCount} hozzászólás</span>
+            <span>{commentCount} {t('commentsSuffix', market)}</span>
           </button>
         )}
 
@@ -1760,7 +1763,7 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonCli
           }`}
         >
           <Send className="w-4 h-4" />
-          <span>Válasz</span>
+          <span>{t('reply', market)}</span>
         </button>
       </div>
 
@@ -1842,6 +1845,7 @@ function AnonSettingsModal({ isOpen, onClose, darkMode, hideAnon, onToggle }) {
 }
 
 export default function KozossegPage() {
+  const market = getClientMarket();
   const router = useRouter();
   const { user, userData, loading: authLoading } = useAuth();
   const { darkMode } = useTheme();
@@ -2000,28 +2004,28 @@ export default function KozossegPage() {
               className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors bg-white/75 backdrop-blur-sm text-gray-700 hover:bg-white/90 shadow-sm"
             >
               <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
-              <span>Hiánycikk kereső</span>
+              <span>{t('shortageSearch', market)}</span>
             </button>
             <button
               onClick={() => router.push('/pm-hirfolyam')}
               className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors bg-white/75 backdrop-blur-sm text-gray-700 hover:bg-white/90 shadow-sm"
             >
               <Newspaper className="w-4 h-4 flex-shrink-0" />
-              <span>PM hírfolyam</span>
+              <span>{t('pmFeed', market)}</span>
             </button>
             <button
               onClick={() => router.push('/hirek')}
               className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors bg-white/75 backdrop-blur-sm text-gray-700 hover:bg-white/90 shadow-sm"
             >
               <Newspaper className="w-4 h-4 flex-shrink-0" />
-              <span>Hírek</span>
+              <span>{t('news', market)}</span>
             </button>
             <button
               onClick={() => router.push('/pharmagister/allando-keres')}
               className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors bg-white/75 backdrop-blur-sm text-gray-700 hover:bg-white/90 shadow-sm"
             >
               <Search className="w-4 h-4 flex-shrink-0" />
-              <span>Állást keres</span>
+              <span>{t('jobSearch', market)}</span>
             </button>
           </div>
         </div>
@@ -2036,7 +2040,7 @@ export default function KozossegPage() {
               <Users className="w-5 h-5 text-gray-600" />
             </div>
             <div className="flex-1 text-left px-4 py-2.5 rounded-full bg-white/40 text-gray-600">
-              Írj valamit...
+              {t('writeSomething', market)}
             </div>
           </button>
         </div>
@@ -2054,10 +2058,10 @@ export default function KozossegPage() {
           }`}>
             <MessageCircle className={`w-12 h-12 mx-auto mb-4 ${darkMode ? 'text-gray-600' : 'text-gray-300'}`} />
             <h3 className={`text-lg font-semibold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              Még nincsenek posztok
+              {t('noPostsTitle', market)}
             </h3>
             <p className={`text-sm mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-              Légy te az első, aki megosztja a gondolatait!
+              {t('noPostsDesc', market)}
             </p>
             <button
               onClick={openCreateModal}
