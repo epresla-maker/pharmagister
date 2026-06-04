@@ -34,6 +34,7 @@ import {
   FileText,
   Users,
 } from "lucide-react";
+import { getClientMarket } from '@/lib/marketI18n';
 
 const ADMIN_EMAILS = ['epresla@icloud.com'];
 const ADMINKA_EMAILS = ['etinatina22@gmail.com'];
@@ -48,9 +49,10 @@ function parseDate(val) {
 }
 
 function formatDate(val) {
+  const market = getClientMarket();
   const d = parseDate(val);
   if (!d || isNaN(d.getTime())) return "-";
-  return d.toLocaleDateString("hu-HU", {
+  return d.toLocaleDateString(market === 'de' ? 'de-DE' : 'hu-HU', {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -60,6 +62,7 @@ function formatDate(val) {
 }
 
 function formatDayOnly(dateStr) {
+  const market = getClientMarket();
   if (!dateStr) return "-";
   // Handle Firestore Timestamp
   if (dateStr.toDate) {
@@ -69,7 +72,7 @@ function formatDayOnly(dateStr) {
   }
   const d = dateStr instanceof Date ? dateStr : new Date(dateStr);
   if (isNaN(d.getTime())) return "-";
-  return d.toLocaleDateString("hu-HU", {
+  return d.toLocaleDateString(market === 'de' ? 'de-DE' : 'hu-HU', {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -78,8 +81,9 @@ function formatDayOnly(dateStr) {
 }
 
 function getPositionLabel(pos) {
-  if (pos === "pharmacist") return "Gyógyszerész";
-  if (pos === "assistant") return "Szakasszisztens";
+  const market = getClientMarket();
+  if (pos === "pharmacist") return market === 'de' ? 'Apotheker/in' : 'Gyógyszerész';
+  if (pos === "assistant") return market === 'de' ? 'Assistent/in' : 'Szakasszisztens';
   return pos || "-";
 }
 
@@ -95,13 +99,14 @@ function getTodayStr() {
 
 // Demand állapot meghatározása
 function getDemandState(demand) {
+  const market = getClientMarket();
   const today = getTodayStr();
 
   if (demand.deletedAt) {
     return {
       key: "deleted",
-      label: "Törölve",
-      reason: demand.deletionReason || "Kézi törlés (ok nélkül)",
+      label: market === 'de' ? 'Geloescht' : 'Törölve',
+      reason: demand.deletionReason || (market === 'de' ? 'Manuelle Loeschung (ohne Grund)' : 'Kézi törlés (ok nélkül)'),
       color: "text-red-600 bg-red-50 border-red-200",
       icon: XCircle,
     };
@@ -109,8 +114,8 @@ function getDemandState(demand) {
   if (demand.status === "filled") {
     return {
       key: "filled",
-      label: "Betöltve",
-      reason: "Jelentkező elfogadva",
+      label: market === 'de' ? 'Besetzt' : 'Betöltve',
+      reason: market === 'de' ? 'Bewerber/in angenommen' : 'Jelentkező elfogadva',
       color: "text-green-600 bg-green-50 border-green-200",
       icon: CheckCircle2,
     };
@@ -125,15 +130,15 @@ function getDemandState(demand) {
   if (demandDateStr && demandDateStr < today) {
     return {
       key: "expired",
-      label: "Lejárt",
-      reason: `A dátum lejárt (${formatDayOnly(demand.date)})`,
+      label: market === 'de' ? 'Abgelaufen' : 'Lejárt',
+      reason: market === 'de' ? `Datum abgelaufen (${formatDayOnly(demand.date)})` : `A dátum lejárt (${formatDayOnly(demand.date)})`,
       color: "text-orange-600 bg-orange-50 border-orange-200",
       icon: Timer,
     };
   }
   return {
     key: "open",
-    label: "Aktív",
+    label: market === 'de' ? 'Aktiv' : 'Aktív',
     reason: null,
     color: "text-blue-600 bg-blue-50 border-blue-200",
     icon: CheckCircle2,
@@ -142,6 +147,7 @@ function getDemandState(demand) {
 
 // ─── Delete Confirm Modal ───
 function DeleteConfirmModal({ isOpen, onClose, onConfirm, demandName }) {
+  const market = getClientMarket();
   const [step, setStep] = useState(1);
 
   useEffect(() => {
@@ -165,28 +171,27 @@ function DeleteConfirmModal({ isOpen, onClose, onConfirm, demandName }) {
               <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
                 <AlertTriangle size={20} className="text-red-600" />
               </div>
-              <h3 className="text-lg font-bold text-gray-900">Igény törlése</h3>
+              <h3 className="text-lg font-bold text-gray-900">{market === 'de' ? 'Anfrage loeschen' : 'Igény törlése'}</h3>
             </div>
             <p className="text-sm text-gray-600 mb-1">
-              Biztosan törölni szeretnéd ezt az igényt?
+              {market === 'de' ? 'Moechtest du diese Anfrage wirklich loeschen?' : 'Biztosan törölni szeretnéd ezt az igényt?'}
             </p>
             <p className="text-sm font-semibold text-gray-800 mb-4">{demandName}</p>
             <p className="text-xs text-red-500 mb-4">
-              ⚠️ Ez a művelet visszavonhatatlan! Az igény és az összes hozzá tartozó
-              jelentkezés véglegesen törlődik.
+              {market === 'de' ? '⚠️ Dieser Vorgang ist unwiderruflich! Die Anfrage und alle zugehoerigen Bewerbungen werden dauerhaft geloescht.' : '⚠️ Ez a művelet visszavonhatatlan! Az igény és az összes hozzá tartozó jelentkezés véglegesen törlődik.'}
             </p>
             <div className="flex gap-2">
               <button
                 onClick={onClose}
                 className="flex-1 px-4 py-2 rounded-lg border border-gray-200 text-gray-600 text-sm hover:bg-gray-50"
               >
-                Mégse
+                {market === 'de' ? 'Abbrechen' : 'Mégse'}
               </button>
               <button
                 onClick={() => setStep(2)}
                 className="flex-1 px-4 py-2 rounded-lg bg-red-600 text-white text-sm hover:bg-red-700"
               >
-                Tovább a törléshez
+                {market === 'de' ? 'Weiter zum Loeschen' : 'Tovább a törléshez'}
               </button>
             </div>
           </>
@@ -196,24 +201,23 @@ function DeleteConfirmModal({ isOpen, onClose, onConfirm, demandName }) {
               <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
                 <Trash2 size={20} className="text-red-600" />
               </div>
-              <h3 className="text-lg font-bold text-red-700">Végső megerősítés</h3>
+              <h3 className="text-lg font-bold text-red-700">{market === 'de' ? 'Letzte Bestaetigung' : 'Végső megerősítés'}</h3>
             </div>
             <p className="text-sm text-gray-600 mb-4">
-              Ez a <strong>második és utolsó</strong> figyelmeztetés. Az igény és minden
-              kapcsolódó adat véglegesen törlődik.
+              {market === 'de' ? <>Dies ist die <strong>zweite und letzte</strong> Warnung. Die Anfrage und alle verbundenen Daten werden dauerhaft geloescht.</> : <>Ez a <strong>második és utolsó</strong> figyelmeztetés. Az igény és minden kapcsolódó adat véglegesen törlődik.</>}
             </p>
             <div className="flex gap-2">
               <button
                 onClick={onClose}
                 className="flex-1 px-4 py-2 rounded-lg border border-gray-200 text-gray-600 text-sm hover:bg-gray-50"
               >
-                Mégse
+                {market === 'de' ? 'Abbrechen' : 'Mégse'}
               </button>
               <button
                 onClick={onConfirm}
                 className="flex-1 px-4 py-2 rounded-lg bg-red-700 text-white text-sm hover:bg-red-800 font-bold"
               >
-                🗑️ Végleges törlés
+                {market === 'de' ? '🗑️ Endgueltig loeschen' : '🗑️ Végleges törlés'}
               </button>
             </div>
           </>
@@ -225,6 +229,7 @@ function DeleteConfirmModal({ isOpen, onClose, onConfirm, demandName }) {
 
 // ─── Demand Detail Card ───
 function DemandCard({ demand, applications, creatorData, onDelete }) {
+  const market = getClientMarket();
   const [expanded, setExpanded] = useState(false);
   const state = getDemandState(demand);
   const StateIcon = state.icon;
@@ -427,7 +432,7 @@ function DemandCard({ demand, applications, creatorData, onDelete }) {
                 className="flex items-center gap-2 text-xs text-red-600 hover:text-red-800 hover:bg-red-50 px-3 py-2 rounded-lg transition-colors"
               >
                 <Trash2 size={13} />
-                Igény törlése (Admin)
+                {market === 'de' ? 'Anfrage loeschen (Admin)' : 'Igény törlése (Admin)'}
               </button>
             </div>
           )}
@@ -453,6 +458,7 @@ function InfoRow({ icon: Icon, label, value }) {
 export default function AdminDemandsPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const market = getClientMarket();
 
   const isAdmin = user && ADMIN_EMAILS.includes(user.email);
 
@@ -550,7 +556,7 @@ export default function AdminDemandsPage() {
       setDeleteTarget(null);
     } catch (e) {
       console.error("Törlési hiba:", e);
-      alert("Hiba történt a törlés közben: " + e.message);
+      alert((market === 'de' ? 'Fehler beim Loeschen: ' : 'Hiba történt a törlés közben: ') + e.message);
     }
   };
 
@@ -600,11 +606,11 @@ export default function AdminDemandsPage() {
   }, [categorized, activeTab, searchQuery]);
 
   const tabs = [
-    { key: "all", label: "Összes", count: categorized.all.length, color: "bg-gray-600" },
-    { key: "open", label: "Aktív", count: categorized.open.length, color: "bg-blue-600" },
-    { key: "filled", label: "Betöltve", count: categorized.filled.length, color: "bg-green-600" },
-    { key: "expired", label: "Lejárt", count: categorized.expired.length, color: "bg-orange-600" },
-    { key: "deleted", label: "Törölve", count: categorized.deleted.length, color: "bg-red-600" },
+    { key: "all", label: market === 'de' ? 'Alle' : 'Összes', count: categorized.all.length, color: "bg-gray-600" },
+    { key: "open", label: market === 'de' ? 'Aktiv' : 'Aktív', count: categorized.open.length, color: "bg-blue-600" },
+    { key: "filled", label: market === 'de' ? 'Besetzt' : 'Betöltve', count: categorized.filled.length, color: "bg-green-600" },
+    { key: "expired", label: market === 'de' ? 'Abgelaufen' : 'Lejárt', count: categorized.expired.length, color: "bg-orange-600" },
+    { key: "deleted", label: market === 'de' ? 'Geloescht' : 'Törölve', count: categorized.deleted.length, color: "bg-red-600" },
   ];
 
   if (loading) {
@@ -626,10 +632,10 @@ export default function AdminDemandsPage() {
           <ArrowLeft size={20} className="text-gray-600" />
         </button>
         <Briefcase size={22} className="text-violet-600" />
-        <h1 className="text-lg font-bold text-gray-900">Igények kezelése</h1>
+        <h1 className="text-lg font-bold text-gray-900">{market === 'de' ? 'Anfragen verwalten' : 'Igények kezelése'}</h1>
         {!loadingData && (
           <span className="ml-auto text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full">
-            {demands.length} igény összesen
+            {market === 'de' ? `${demands.length} Anfragen gesamt` : `${demands.length} igény összesen`}
           </span>
         )}
       </div>
@@ -640,7 +646,7 @@ export default function AdminDemandsPage() {
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Keresés gyógyszertár, város, dátum, pozíció…"
+            placeholder={market === 'de' ? 'Suche nach Apotheke, Stadt, Datum, Position…' : 'Keresés gyógyszertár, város, dátum, pozíció…'}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-300 bg-white"
@@ -680,7 +686,9 @@ export default function AdminDemandsPage() {
           <div className="text-center py-16">
             <Briefcase size={48} className="mx-auto text-gray-200 mb-3" />
             <p className="text-sm text-gray-400">
-              {searchQuery ? "Nincs találat a keresésre" : "Nincsenek igények ebben a kategóriában"}
+              {searchQuery
+                ? (market === 'de' ? 'Keine Treffer fuer die Suche' : 'Nincs találat a keresésre')
+                : (market === 'de' ? 'Keine Anfragen in dieser Kategorie' : 'Nincsenek igények ebben a kategóriában')}
             </p>
           </div>
         ) : (
