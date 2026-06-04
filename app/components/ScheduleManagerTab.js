@@ -8741,7 +8741,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   key: 'swap_approve',
                   icon: '🔄',
                   color: 'amber',
-                  label: `${swapsToApprove.length} csereigény jóváhagyásra vár`,
+                  label: market === 'de' ? `${swapsToApprove.length} Tauschanfragen warten auf Freigabe` : `${swapsToApprove.length} csereigény jóváhagyásra vár`,
                   sub: swapsToApprove.map(r => `${r.requesterName?.split(' ').pop()} ↔ ${r.targetName?.split(' ').pop()}`).join(', '),
                   onClick: () => document.getElementById('pharmacy-swaps-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
                 });
@@ -8753,8 +8753,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   key: 'swap_pending',
                   icon: '⏳',
                   color: 'blue',
-                  label: `${pendingSwaps.length} csereigény folyamatban`,
-                  sub: 'Várakozik a másik dolgozó válaszára',
+                  label: market === 'de' ? `${pendingSwaps.length} Tauschanfragen in Bearbeitung` : `${pendingSwaps.length} csereigény folyamatban`,
+                  sub: market === 'de' ? 'Wartet auf die Antwort der anderen Person' : 'Várakozik a másik dolgozó válaszára',
                   onClick: () => document.getElementById('pharmacy-swaps-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
                 });
               }
@@ -8765,7 +8765,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   key: 'vacation',
                   icon: '🏖️',
                   color: 'sky',
-                  label: `${pendingVac.length} szabadságkérelem vár jóváhagyásra`,
+                  label: market === 'de' ? `${pendingVac.length} Urlaubsanfragen warten auf Freigabe` : `${pendingVac.length} szabadságkérelem vár jóváhagyásra`,
                   sub: pendingVac.map(r => r.employeeName?.split(' ').pop()).filter(Boolean).join(', '),
                   onClick: () => setMainTab('vacations'),
                 });
@@ -8776,8 +8776,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   key: 'unpublished',
                   icon: '🔒',
                   color: 'rose',
-                  label: 'A hónap beosztása még nincs publikálva',
-                  sub: `${MONTHS_HU[month-1]} ${year}`,
+                  label: market === 'de' ? 'Der Monatsdienstplan ist noch nicht veroeffentlicht' : 'A hónap beosztása még nincs publikálva',
+                  sub: `${(market === 'de' ? MONTHS_DE : MONTHS_HU)[month-1]} ${year}`,
                   onClick: () => setCalendarOpen(true),
                 });
               }
@@ -8790,8 +8790,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   key: 'incoming_swap',
                   icon: '🔄',
                   color: 'amber',
-                  label: `${incomingSwaps.length} beérkező csereigény vár válaszra`,
-                  sub: incomingSwaps.map(r => `${r.requesterName?.split(' ').pop()} kért cserét`).join(', '),
+                  label: market === 'de' ? `${incomingSwaps.length} eingehende Tauschanfragen warten auf Antwort` : `${incomingSwaps.length} beérkező csereigény vár válaszra`,
+                  sub: incomingSwaps.map(r => market === 'de' ? `${r.requesterName?.split(' ').pop()} hat einen Tausch angefragt` : `${r.requesterName?.split(' ').pop()} kért cserét`).join(', '),
                   onClick: () => setMainTab('swaps'),
                 });
               }
@@ -8802,8 +8802,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   key: 'awaiting_pharmacy',
                   icon: '⏳',
                   color: 'blue',
-                  label: `${awaitingPharmacy.length} csere gyógyszertári jóváhagyásra vár`,
-                  sub: 'Mindkét fél elfogadta, folyamatban',
+                  label: market === 'de' ? `${awaitingPharmacy.length} Tausche warten auf Apothekenfreigabe` : `${awaitingPharmacy.length} csere gyógyszertári jóváhagyásra vár`,
+                  sub: market === 'de' ? 'Beide Seiten haben zugestimmt, in Bearbeitung' : 'Mindkét fél elfogadta, folyamatban',
                   onClick: () => setMainTab('swaps'),
                 });
               }
@@ -8814,8 +8814,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   key: 'published',
                   icon: '✅',
                   color: 'emerald',
-                  label: `Új beosztás elkészült — ${MONTHS_HU[month-1]} ${year}`,
-                  sub: `${myPublished.length} műszak publikálva`,
+                  label: market === 'de' ? `Neuer Dienstplan ist verfuegbar — ${MONTHS_DE[month-1]} ${year}` : `Új beosztás elkészült — ${MONTHS_HU[month-1]} ${year}`,
+                  sub: market === 'de' ? `${myPublished.length} Dienste veroeffentlicht` : `${myPublished.length} műszak publikálva`,
                   onClick: () => {},
                 });
               }
@@ -8828,7 +8828,9 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   key: 'vacation_result',
                   icon: accepted > 0 ? '✅' : '❌',
                   color: accepted > 0 ? 'emerald' : 'rose',
-                  label: accepted > 0 ? `${accepted} szabadságkérelem jóváhagyva` : `${rejected} szabadságkérelem elutasítva`,
+                  label: accepted > 0
+                    ? (market === 'de' ? `${accepted} Urlaubsanfragen genehmigt` : `${accepted} szabadságkérelem jóváhagyva`)
+                    : (market === 'de' ? `${rejected} Urlaubsanfragen abgelehnt` : `${rejected} szabadságkérelem elutasítva`),
                   sub: '',
                   onClick: () => setMainTab('vacations'),
                 });
@@ -8932,14 +8934,16 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                         <div className="flex items-center gap-2">
                           <span className="text-lg">⚠️</span>
                           <span className="text-sm font-semibold text-amber-600">
-                            {currentMonthDraftPublishSummary.missingCount} dolgozó tervezete még nincs publikálva
+                            {market === 'de'
+                              ? `${currentMonthDraftPublishSummary.missingCount} Mitarbeitenden-Entwuerfe sind noch nicht veroeffentlicht`
+                              : `${currentMonthDraftPublishSummary.missingCount} dolgozó tervezete még nincs publikálva`}
                           </span>
                         </div>
                       )}
                       <div className="flex items-center gap-2">
                         {isPublished
-                          ? <><span className="text-lg">✅</span><span className={`text-sm font-semibold ${darkMode ? 'text-emerald-300' : 'text-emerald-700'}`}>Publikálva ({publishedScheduleCount})</span></>
-                          : <><span className="text-lg">🔒</span><span className="text-sm font-semibold text-rose-500">Még nem publikált</span></>
+                          ? <><span className="text-lg">✅</span><span className={`text-sm font-semibold ${darkMode ? 'text-emerald-300' : 'text-emerald-700'}`}>{market === 'de' ? `Veroeffentlicht (${publishedScheduleCount})` : `Publikálva (${publishedScheduleCount})`}</span></>
+                          : <><span className="text-lg">🔒</span><span className="text-sm font-semibold text-rose-500">{market === 'de' ? 'Noch nicht veroeffentlicht' : 'Még nem publikált'}</span></>
                         }
                       </div>
                     </div>
@@ -8951,7 +8955,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                         onClick={() => setShowCriteriaPage(true)}
                         className={`w-full flex items-center justify-between rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors ${darkMode ? 'bg-violet-900/40 hover:bg-violet-800/60 text-violet-200' : 'bg-violet-100 hover:bg-violet-200 text-violet-700'}`}
                       >
-                        <span>⚙️ Beosztási alapkritériumok</span>
+                        <span>{market === 'de' ? '⚙️ Basiskriterien fuer den Dienstplan' : '⚙️ Beosztási alapkritériumok'}</span>
                         <span className="text-base">›</span>
                       </button>
                     </div>
@@ -8962,12 +8966,12 @@ export default function ScheduleManagerTab({ pharmaRole }) {
               {/* ── Onboarding checklist (csak ha nincs dolgozó) ─────── */}
               {activeEmployees.length === 0 && (
                 <div className={`rounded-2xl border-2 border-dashed p-5 space-y-3 ${darkMode ? 'border-violet-700 bg-violet-900/10' : 'border-violet-300 bg-violet-50'}`}>
-                  <p className={`font-bold text-base ${darkMode ? 'text-violet-300' : 'text-violet-700'}`}>🚀 Kezdj el beosztást írni!</p>
+                  <p className={`font-bold text-base ${darkMode ? 'text-violet-300' : 'text-violet-700'}`}>{market === 'de' ? '🚀 Starte mit deinem Dienstplan!' : '🚀 Kezdj el beosztást írni!'}</p>
                   <div className="space-y-2">
                     {[
-                      { done: activeEmployees.length > 0, label: 'Adj hozzá legalább egy dolgozót' },
-                      { done: activeMonthSchedules.length > 0, label: 'Írj meg egy beosztást (kattints egy hónapra)' },
-                      { done: publishedScheduleCount > 0, label: 'Publikáld a beosztást (a dolgozók ekkor látják)' },
+                      { done: activeEmployees.length > 0, label: market === 'de' ? 'Fuege mindestens eine/n Mitarbeitende/n hinzu' : 'Adj hozzá legalább egy dolgozót' },
+                      { done: activeMonthSchedules.length > 0, label: market === 'de' ? 'Erstelle einen Dienstplan (klicke auf einen Monat)' : 'Írj meg egy beosztást (kattints egy hónapra)' },
+                      { done: publishedScheduleCount > 0, label: market === 'de' ? 'Veroeffentliche den Dienstplan (dann sehen ihn die Mitarbeitenden)' : 'Publikáld a beosztást (a dolgozók ekkor látják)' },
                     ].map((item, i) => (
                       <div key={i} className="flex items-center gap-3">
                         <span className={`flex-shrink-0 h-5 w-5 rounded-full flex items-center justify-center text-xs font-bold ${item.done ? 'bg-emerald-500 text-white' : darkMode ? 'bg-gray-700 text-gray-400 border border-gray-600' : 'bg-white text-gray-400 border border-gray-300'}`}>
@@ -8992,7 +8996,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                 });
                 const ignoredPrefs = ignoredPrefsArray.length;
                 if (activeEmployees.length > 0 && filledDays === 0)
-                  hints.push('💡 Kattints a hónap nevére a beosztás elkezdéséhez');
+                  hints.push(market === 'de' ? '💡 Klicke auf den Monatsnamen, um den Dienstplan zu starten' : '💡 Kattints a hónap nevére a beosztás elkezdéséhez');
                 if (currentMonthDraftPublishSummary.missingCount > 0) {
                   const names = currentMonthDraftPublishSummary.missingEmployees
                     .slice(0, 3)
@@ -9000,11 +9004,13 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                     .filter(Boolean)
                     .join(', ');
                   hints.push(
-                    `⚠️ Aktuális havi tervezet még nincs publikálva: ${names || 'tobb dolgozo'}${currentMonthDraftPublishSummary.missingCount > 3 ? ' stb.' : ''}`
+                    market === 'de'
+                      ? `⚠️ Aktueller Monatsentwurf ist noch nicht veroeffentlicht: ${names || 'mehrere Mitarbeitende'}${currentMonthDraftPublishSummary.missingCount > 3 ? ' usw.' : ''}`
+                      : `⚠️ Aktuális havi tervezet még nincs publikálva: ${names || 'tobb dolgozo'}${currentMonthDraftPublishSummary.missingCount > 3 ? ' stb.' : ''}`
                   );
                 }
                 if (year === thisYear && month === thisMonth && daysLeft < 5 && publishedScheduleCount === 0 && activeMonthSchedules.length > 0)
-                  hints.push('⏰ Hamarosan véget ér a hónap — ne feledd publikálni a beosztást!');
+                  hints.push(market === 'de' ? '⏰ Der Monat endet bald - vergiss nicht, den Dienstplan zu veroeffentlichen!' : '⏰ Hamarosan véget ér a hónap — ne feledd publikálni a beosztást!');
                 const hasHints = hints.length > 0 || ignoredPrefs > 0;
                 if (!hasHints) return null;
                 return (
@@ -10310,11 +10316,11 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             );
 
             const statusLabel = (s) => {
-              if (s === 'pending') return { text: 'Várakozik', color: 'text-amber-600' };
-              if (s === 'employee_accepted') return { text: 'Gyógyszertár jóváhagyása szükséges', color: 'text-blue-600' };
-              if (s === 'accepted') return { text: 'Elfogadva ✓', color: 'text-green-600' };
-              if (s === 'rejected') return { text: 'Elutasítva', color: 'text-rose-600' };
-              if (s === 'rejected_by_pharmacy') return { text: 'Gyógyszertár elutasította', color: 'text-rose-600' };
+              if (s === 'pending') return { text: market === 'de' ? 'Wartet' : 'Várakozik', color: 'text-amber-600' };
+              if (s === 'employee_accepted') return { text: market === 'de' ? 'Apothekenfreigabe erforderlich' : 'Gyógyszertár jóváhagyása szükséges', color: 'text-blue-600' };
+              if (s === 'accepted') return { text: market === 'de' ? 'Angenommen ✓' : 'Elfogadva ✓', color: 'text-green-600' };
+              if (s === 'rejected') return { text: market === 'de' ? 'Abgelehnt' : 'Elutasítva', color: 'text-rose-600' };
+              if (s === 'rejected_by_pharmacy') return { text: market === 'de' ? 'Von Apotheke abgelehnt' : 'Gyógyszertár elutasította', color: 'text-rose-600' };
               return { text: s, color: 'text-gray-500' };
             };
 
@@ -10568,12 +10574,12 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             <div className={`rounded-2xl border p-5 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
               <div className="flex items-center justify-between gap-2">
                 <div>
-                  <h3 className="text-base font-bold">👤 Alap adataim</h3>
-                  <p className="text-xs text-gray-500 mt-0.5">Szabadságnapok kiszámításához szükséges adatok</p>
+                  <h3 className="text-base font-bold">👤 {market === 'de' ? 'Meine Basisdaten' : 'Alap adataim'}</h3>
+                  <p className="text-xs text-gray-500 mt-0.5">{market === 'de' ? 'Erforderliche Angaben zur Berechnung der Urlaubstage' : 'Szabadságnapok kiszámításához szükséges adatok'}</p>
                 </div>
                 {!showProfileForm && (
                   <button type="button" onClick={() => setShowProfileForm(true)} className={`flex-shrink-0 rounded-xl border px-3 py-1.5 text-xs font-semibold ${darkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}>
-                    {employeeProfile?.birthDate ? 'Szerkesztés' : '+ Megadás'}
+                    {employeeProfile?.birthDate ? (market === 'de' ? 'Bearbeiten' : 'Szerkesztés') : (market === 'de' ? '+ Angeben' : '+ Megadás')}
                   </button>
                 )}
               </div>
@@ -10587,13 +10593,13 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                 return (
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     {[
-                      { label: 'Születési dátum', val: employeeProfile.birthDate },
-                      { label: 'Gyermekek száma', val: `${employeeProfile.childrenCount || 0} gyermek` },
-                      { label: 'Szerződés típus', val: `${employeeProfile.contractHours || 8} h/nap` },
-                      { label: `${thisYear}. évi szabadság`, val: `${totalVac} nap (Mt. alapján)` },
-                      { label: 'Áthozott szabadság', val: `${carryOver} nap` },
-                      { label: 'Felvett idén', val: `${taken} nap felvett` },
-                      { label: 'Maradék szabadság', val: `${remaining} nap`, highlight: remaining <= 5 ? 'rose' : 'emerald' },
+                      { label: market === 'de' ? 'Geburtsdatum' : 'Születési dátum', val: employeeProfile.birthDate },
+                      { label: market === 'de' ? 'Anzahl Kinder' : 'Gyermekek száma', val: market === 'de' ? `${employeeProfile.childrenCount || 0} Kind(er)` : `${employeeProfile.childrenCount || 0} gyermek` },
+                      { label: market === 'de' ? 'Vertragstyp' : 'Szerződés típus', val: market === 'de' ? `${employeeProfile.contractHours || 8} Std/Tag` : `${employeeProfile.contractHours || 8} h/nap` },
+                      { label: market === 'de' ? `Urlaub ${thisYear}` : `${thisYear}. évi szabadság`, val: market === 'de' ? `${totalVac} Tage (nach HU-Recht)` : `${totalVac} nap (Mt. alapján)` },
+                      { label: market === 'de' ? 'Uebertragener Urlaub' : 'Áthozott szabadság', val: market === 'de' ? `${carryOver} Tage` : `${carryOver} nap` },
+                      { label: market === 'de' ? 'Dieses Jahr genommen' : 'Felvett idén', val: market === 'de' ? `${taken} Tage genommen` : `${taken} nap felvett` },
+                      { label: market === 'de' ? 'Resturlaub' : 'Maradék szabadság', val: market === 'de' ? `${remaining} Tage` : `${remaining} nap`, highlight: remaining <= 5 ? 'rose' : 'emerald' },
                     ].map(({ label, val, highlight }) => (
                       <div key={label} className={`rounded-xl border px-3 py-2 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-gray-50'}`}>
                         <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">{label}</p>
@@ -10608,14 +10614,14 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                 );
               })()}
               {!showProfileForm && !employeeProfile?.birthDate && (
-                <p className={`text-sm ${darkMode ? 'text-amber-400' : 'text-amber-600'}`}>⚠️ Az adatok megadása szükséges a szabadságnapok kiszámításához.</p>
+                <p className={`text-sm ${darkMode ? 'text-amber-400' : 'text-amber-600'}`}>{market === 'de' ? '⚠️ Diese Angaben sind fuer die Berechnung der Urlaubstage erforderlich.' : '⚠️ Az adatok megadása szükséges a szabadságnapok kiszámításához.'}</p>
               )}
 
               {/* Form */}
               {showProfileForm && (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Születési dátum</label>
+                    <label className="block text-sm font-medium mb-1">{market === 'de' ? 'Geburtsdatum' : 'Születési dátum'}</label>
                     <input
                       type="date"
                       value={profileForm.birthDate}
@@ -10624,47 +10630,47 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Gyermekek száma</label>
+                    <label className="block text-sm font-medium mb-1">{market === 'de' ? 'Anzahl Kinder' : 'Gyermekek száma'}</label>
                     <select
                       value={profileForm.childrenCount}
                       onChange={e => setProfileForm(p => ({ ...p, childrenCount: e.target.value }))}
                       className={`w-full rounded-xl border px-3 py-2 text-sm bg-transparent ${darkMode ? 'border-gray-600' : 'border-gray-300'}`}
                     >
-                      {['0','1','2','3','4','5+'].map(v => <option key={v} value={v}>{v} gyermek</option>)}
+                      {['0','1','2','3','4','5+'].map(v => <option key={v} value={v}>{market === 'de' ? `${v} Kind(er)` : `${v} gyermek`}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Munkaszerződés típusa</label>
+                    <label className="block text-sm font-medium mb-1">{market === 'de' ? 'Arbeitsvertrags-Typ' : 'Munkaszerződés típusa'}</label>
                     <select
                       value={profileForm.contractHours}
                       onChange={e => setProfileForm(p => ({ ...p, contractHours: e.target.value }))}
                       className={`w-full rounded-xl border px-3 py-2 text-sm bg-transparent ${darkMode ? 'border-gray-600' : 'border-gray-300'}`}
                     >
-                      <option value="4">4 h/nap (részmunkaidő 50%)</option>
-                      <option value="6">6 h/nap (részmunkaidő 75%)</option>
-                      <option value="8">8 h/nap (teljes munkaidő)</option>
-                      <option value="12">12 h/nap (műszakos)</option>
+                      <option value="4">{market === 'de' ? '4 Std/Tag (Teilzeit 50%)' : '4 h/nap (részmunkaidő 50%)'}</option>
+                      <option value="6">{market === 'de' ? '6 Std/Tag (Teilzeit 75%)' : '6 h/nap (részmunkaidő 75%)'}</option>
+                      <option value="8">{market === 'de' ? '8 Std/Tag (Vollzeit)' : '8 h/nap (teljes munkaidő)'}</option>
+                      <option value="12">{market === 'de' ? '12 Std/Tag (Schichtdienst)' : '12 h/nap (műszakos)'}</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Eddig felvett szabadság idén</label>
+                    <label className="block text-sm font-medium mb-1">{market === 'de' ? 'Bisher genommener Urlaub dieses Jahr' : 'Eddig felvett szabadság idén'}</label>
                     <select
                       value={profileForm.vacationTakenThisYear}
                       onChange={e => setProfileForm(p => ({ ...p, vacationTakenThisYear: e.target.value }))}
                       className={`w-full rounded-xl border px-3 py-2 text-sm bg-transparent ${darkMode ? 'border-gray-600' : 'border-gray-300'}`}
                     >
-                      {Array.from({ length: 51 }, (_, i) => i).map(v => <option key={v} value={v}>{v} nap</option>)}
+                      {Array.from({ length: 51 }, (_, i) => i).map(v => <option key={v} value={v}>{market === 'de' ? `${v} Tage` : `${v} nap`}</option>)}
                     </select>
-                    <p className="text-xs text-gray-500 mt-1">Ha évközben regisztráltál, add meg az eddig felvett szabadságnapok számát.</p>
+                    <p className="text-xs text-gray-500 mt-1">{market === 'de' ? 'Wenn du unterjaehrig registriert hast, gib bitte die bisher genommenen Urlaubstage an.' : 'Ha évközben regisztráltál, add meg az eddig felvett szabadságnapok számát.'}</p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Előző évről áthozott szabadság</label>
+                    <label className="block text-sm font-medium mb-1">{market === 'de' ? 'Aus dem Vorjahr uebertragener Urlaub' : 'Előző évről áthozott szabadság'}</label>
                     <select
                       value={profileForm.vacationCarriedOver}
                       onChange={e => setProfileForm(p => ({ ...p, vacationCarriedOver: e.target.value }))}
                       className={`w-full rounded-xl border px-3 py-2 text-sm bg-transparent ${darkMode ? 'border-gray-600' : 'border-gray-300'}`}
                     >
-                      {Array.from({ length: 31 }, (_, i) => i).map(v => <option key={v} value={v}>{v} nap</option>)}
+                      {Array.from({ length: 31 }, (_, i) => i).map(v => <option key={v} value={v}>{market === 'de' ? `${v} Tage` : `${v} nap`}</option>)}
                     </select>
                   </div>
                   {/* Preview */}
@@ -10677,18 +10683,18 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                     const reqHours = calcMonthlyRequiredHours(profileForm.contractHours, year, month);
                     return (
                       <div className={`rounded-xl border px-4 py-3 space-y-1 ${darkMode ? 'border-emerald-800 bg-emerald-950/30' : 'border-emerald-200 bg-emerald-50'}`}>
-                        <p className={`text-xs font-bold uppercase tracking-wide ${darkMode ? 'text-emerald-400' : 'text-emerald-700'}`}>Kiszámított értékek ({thisYear})</p>
-                        <p className={`text-sm ${darkMode ? 'text-emerald-200' : 'text-emerald-800'}`}>Életkor: <strong>{age} év</strong></p>
-                        <p className={`text-sm ${darkMode ? 'text-emerald-200' : 'text-emerald-800'}`}>Járó szabadság: <strong>{totalVac} nap</strong> (alap 20 + kor + gyermek)</p>
-                        <p className={`text-sm ${darkMode ? 'text-emerald-200' : 'text-emerald-800'}`}>Maradék idén: <strong>{remaining} nap</strong> ({totalVac}+{carryOver}−{taken})</p>
-                        <p className={`text-sm ${darkMode ? 'text-emerald-200' : 'text-emerald-800'}`}>{MONTHS_HU[month-1]} kötelező munkaóra: <strong>{reqHours} óra</strong> ({countWorkdaysInMonth(year, month)} munkanap × {profileForm.contractHours} h)</p>
+                        <p className={`text-xs font-bold uppercase tracking-wide ${darkMode ? 'text-emerald-400' : 'text-emerald-700'}`}>{market === 'de' ? `Berechnete Werte (${thisYear})` : `Kiszámított értékek (${thisYear})`}</p>
+                        <p className={`text-sm ${darkMode ? 'text-emerald-200' : 'text-emerald-800'}`}>{market === 'de' ? 'Alter' : 'Életkor'}: <strong>{age} {market === 'de' ? 'Jahre' : 'év'}</strong></p>
+                        <p className={`text-sm ${darkMode ? 'text-emerald-200' : 'text-emerald-800'}`}>{market === 'de' ? 'Urlaubsanspruch' : 'Járó szabadság'}: <strong>{totalVac} {market === 'de' ? 'Tage' : 'nap'}</strong> {market === 'de' ? '(Basis 20 + Alter + Kinder)' : '(alap 20 + kor + gyermek)'}</p>
+                        <p className={`text-sm ${darkMode ? 'text-emerald-200' : 'text-emerald-800'}`}>{market === 'de' ? 'Rest dieses Jahr' : 'Maradék idén'}: <strong>{remaining} {market === 'de' ? 'Tage' : 'nap'}</strong> ({totalVac}+{carryOver}-{taken})</p>
+                        <p className={`text-sm ${darkMode ? 'text-emerald-200' : 'text-emerald-800'}`}>{(market === 'de' ? MONTHS_DE : MONTHS_HU)[month-1]} {market === 'de' ? 'Soll-Arbeitszeit' : 'kötelező munkaóra'}: <strong>{reqHours} {market === 'de' ? 'Stunden' : 'óra'}</strong> ({countWorkdaysInMonth(year, month)} {market === 'de' ? 'Arbeitstage' : 'munkanap'} × {profileForm.contractHours} {market === 'de' ? 'Std' : 'h'})</p>
                       </div>
                     );
                   })()}
                   <div className="flex gap-2 justify-end">
-                    <button type="button" onClick={() => setShowProfileForm(false)} className={`rounded-xl border px-4 py-2 text-sm font-medium ${darkMode ? 'border-gray-600 text-gray-300' : 'border-gray-300 text-gray-600'}`}>Mégse</button>
+                    <button type="button" onClick={() => setShowProfileForm(false)} className={`rounded-xl border px-4 py-2 text-sm font-medium ${darkMode ? 'border-gray-600 text-gray-300' : 'border-gray-300 text-gray-600'}`}>{market === 'de' ? 'Abbrechen' : 'Mégse'}</button>
                     <button type="button" onClick={handleSaveEmployeeProfile} disabled={profileSaving || !profileForm.birthDate} className="rounded-xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
-                      {profileSaving ? 'Mentés...' : 'Mentés'}
+                      {profileSaving ? (market === 'de' ? 'Speichern...' : 'Mentés...') : (market === 'de' ? 'Speichern' : 'Mentés')}
                     </button>
                   </div>
                 </div>
@@ -10697,17 +10703,21 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
             <div className={`rounded-2xl border p-5 space-y-6 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
               <div>
-                <h3 className="text-lg font-semibold">Egyéni beosztási preferenciák</h3>
+                <h3 className="text-lg font-semibold">{market === 'de' ? 'Individuelle Dienstplan-Praeferenzen' : 'Egyéni beosztási preferenciák'}</h3>
                 <p className="mt-1 text-sm text-gray-500">
-                  Az itt megadott beállításokat az automatikus tervező figyelembe veszi, de a gyógyszertár kézzel felülírhatja, ha arra szükség van.
+                  {market === 'de'
+                    ? 'Die hier gesetzten Einstellungen werden vom automatischen Planer beruecksichtigt, koennen aber bei Bedarf von der Apotheke manuell ueberschrieben werden.'
+                    : 'Az itt megadott beállításokat az automatikus tervező figyelembe veszi, de a gyógyszertár kézzel felülírhatja, ha arra szükség van.'}
                 </p>
               </div>
 
               {/* Weekday preferences */}
               <div className="space-y-2">
-                <p className="text-sm font-semibold">Heti napok preferenciái</p>
+                <p className="text-sm font-semibold">{market === 'de' ? 'Praeferenzen fuer Wochentage' : 'Heti napok preferenciái'}</p>
                 <p className="text-xs text-gray-500">
-                  Kattintás: semleges → <span className="text-green-600 font-medium">előnyben részesítve</span> → <span className="text-red-600 font-medium">kerülendő</span> → semleges
+                  {market === 'de'
+                    ? <>Klick-Reihenfolge: neutral → <span className="text-green-600 font-medium">bevorzugt</span> → <span className="text-red-600 font-medium">vermeiden</span> → neutral</>
+                    : <>Kattintás: semleges → <span className="text-green-600 font-medium">előnyben részesítve</span> → <span className="text-red-600 font-medium">kerülendő</span> → semleges</>}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {weekdayDisplay.map(({ label, fullLabel, day }) => {
@@ -10723,13 +10733,15 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                       <button
                         key={day}
                         type="button"
-                        title={`${fullLabel}: ${state === 'avoid' ? 'kerülendő' : state === 'prefer' ? 'előnyben részesítve' : 'semleges'} — kattints a váltáshoz`}
+                        title={market === 'de'
+                          ? `${fullLabel}: ${state === 'avoid' ? 'vermeiden' : state === 'prefer' ? 'bevorzugt' : 'neutral'} — klicken zum Wechseln`
+                          : `${fullLabel}: ${state === 'avoid' ? 'kerülendő' : state === 'prefer' ? 'előnyben részesítve' : 'semleges'} — kattints a váltáshoz`}
                         onClick={() => toggleWeekdayPreference(day)}
                         className={`min-w-[52px] rounded-xl border-2 px-2 py-3 text-center text-sm font-bold transition-colors ${cls}`}
                       >
                         <div>{label}</div>
                         <div className="mt-1 text-[10px] font-normal leading-tight">
-                          {state === 'avoid' ? 'kerülöm' : state === 'prefer' ? 'szívesen' : 'ok'}
+                          {state === 'avoid' ? (market === 'de' ? 'meiden' : 'kerülöm') : state === 'prefer' ? (market === 'de' ? 'gern' : 'szívesen') : 'ok'}
                         </div>
                       </button>
                     );
@@ -10739,20 +10751,20 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
               {/* Shift type preference */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Field label="Preferált műszaktípus">
+                <Field label={market === 'de' ? 'Bevorzugter Schichttyp' : 'Preferált műszaktípus'}>
                   <select
                     value={preferencesForm.preferredShiftType}
                     onChange={(e) => setPreferencesForm((prev) => ({ ...prev, preferredShiftType: e.target.value }))}
                     className="w-full rounded-xl border px-3 py-2 bg-transparent"
                   >
-                    <option value="any">Bármelyik (nincs preferencia)</option>
-                    <option value="day">Nappali (reggel–délután)</option>
-                    <option value="evening">Délutáni / esti</option>
-                    <option value="night">Éjszakai</option>
+                    <option value="any">{market === 'de' ? 'Beliebig (keine Praeferenz)' : 'Bármelyik (nincs preferencia)'}</option>
+                    <option value="day">{market === 'de' ? 'Tagdienst (morgens–nachmittags)' : 'Nappali (reggel–délután)'}</option>
+                    <option value="evening">{market === 'de' ? 'Spaet / Abend' : 'Délutáni / esti'}</option>
+                    <option value="night">{market === 'de' ? 'Nachtschicht' : 'Éjszakai'}</option>
                   </select>
                 </Field>
 
-                <Field label="Célzott heti munkaórák">
+                <Field label={market === 'de' ? 'Ziel-Arbeitsstunden pro Woche' : 'Célzott heti munkaórák'}>
                   <input
                     type="number"
                     min="4"
@@ -10766,26 +10778,26 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
               {/* Weekend / night / can work toggles */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Field label="Hétvégi műszak preferencia">
+                <Field label={market === 'de' ? 'Praeferenz fuer Wochenenddienste' : 'Hétvégi műszak preferencia'}>
                   <select
                     value={preferencesForm.preferredWeekend}
                     onChange={(e) => setPreferencesForm((prev) => ({ ...prev, preferredWeekend: e.target.value }))}
                     className="w-full rounded-xl border px-3 py-2 bg-transparent"
                   >
-                    <option value="prefer">Szívesen dolgozom hétvégén</option>
-                    <option value="neutral">Semleges</option>
-                    <option value="avoid">Lehetőleg kerülöm</option>
+                    <option value="prefer">{market === 'de' ? 'Ich arbeite gern am Wochenende' : 'Szívesen dolgozom hétvégén'}</option>
+                    <option value="neutral">{market === 'de' ? 'Neutral' : 'Semleges'}</option>
+                    <option value="avoid">{market === 'de' ? 'Moeglichst vermeiden' : 'Lehetőleg kerülöm'}</option>
                   </select>
                 </Field>
-                <Field label="Éjszakai műszak preferencia">
+                <Field label={market === 'de' ? 'Praeferenz fuer Nachtdienste' : 'Éjszakai műszak preferencia'}>
                   <select
                     value={preferencesForm.preferredNight}
                     onChange={(e) => setPreferencesForm((prev) => ({ ...prev, preferredNight: e.target.value }))}
                     className="w-full rounded-xl border px-3 py-2 bg-transparent"
                   >
-                    <option value="prefer">Szívesen dolgozom éjszaka</option>
-                    <option value="neutral">Semleges</option>
-                    <option value="avoid">Lehetőleg kerülöm</option>
+                    <option value="prefer">{market === 'de' ? 'Ich arbeite gern nachts' : 'Szívesen dolgozom éjszaka'}</option>
+                    <option value="neutral">{market === 'de' ? 'Neutral' : 'Semleges'}</option>
+                    <option value="avoid">{market === 'de' ? 'Moeglichst vermeiden' : 'Lehetőleg kerülöm'}</option>
                   </select>
                 </Field>
                 <label className="flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 select-none">
@@ -10795,7 +10807,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                     onChange={(e) => setPreferencesForm((prev) => ({ ...prev, canWorkWeekends: e.target.checked }))}
                     className="h-4 w-4"
                   />
-                  <span className="text-sm font-medium">Vállalok hétvégi műszakot</span>
+                  <span className="text-sm font-medium">{market === 'de' ? 'Ich uebernehme Wochenenddienste' : 'Vállalok hétvégi műszakot'}</span>
                 </label>
                 <label className="flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 select-none">
                   <input
@@ -10804,22 +10816,27 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                     onChange={(e) => setPreferencesForm((prev) => ({ ...prev, canWorkNight: e.target.checked }))}
                     className="h-4 w-4"
                   />
-                  <span className="text-sm font-medium">Vállalok éjszakai műszakot</span>
+                  <span className="text-sm font-medium">{market === 'de' ? 'Ich uebernehme Nachtdienste' : 'Vállalok éjszakai műszakot'}</span>
                 </label>
               </div>
 
               {/* Notes for pharmacy manager */}
-              <Field label="Megjegyzés a gyógyszertárnak" hint="Pl. rendszeres orvosi ellenőrzés hétfőnként, tanulmányok stb.">
+              <Field
+                label={market === 'de' ? 'Notiz fuer die Apotheke' : 'Megjegyzés a gyógyszertárnak'}
+                hint={market === 'de' ? 'z. B. regelmaessige Arztkontrolle montags, Studium usw.' : 'Pl. rendszeres orvosi ellenőrzés hétfőnként, tanulmányok stb.'}
+              >
                 <textarea
                   value={preferencesForm.schedulingNotes}
                   onChange={(e) => setPreferencesForm((prev) => ({ ...prev, schedulingNotes: e.target.value }))}
                   className="min-h-[90px] w-full rounded-xl border px-3 py-2 bg-transparent"
-                  placeholder="Pl. minden kedden 16:00 után nem érek rá, este tanulok"
+                  placeholder={market === 'de' ? 'z. B. dienstags bin ich nach 16:00 nicht verfuegbar, abends lerne ich' : 'Pl. minden kedden 16:00 után nem érek rá, este tanulok'}
                 />
               </Field>
 
               <div className={`rounded-xl border px-4 py-3 text-xs ${darkMode ? 'border-gray-700 bg-gray-800 text-gray-400' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
-                Ezek a beállítások lágy preferenciák: az automatikus tervező figyelembe veszi őket, de a gyógyszertár szükség esetén kézzel felülírhatja.
+                {market === 'de'
+                  ? 'Diese Einstellungen sind weiche Praeferenzen: der automatische Planer beruecksichtigt sie, die Apotheke kann sie bei Bedarf manuell ueberschreiben.'
+                  : 'Ezek a beállítások lágy preferenciák: az automatikus tervező figyelembe veszi őket, de a gyógyszertár szükség esetén kézzel felülírhatja.'}
               </div>
 
               <div className="flex justify-end">
@@ -10829,7 +10846,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   disabled={preferencesSaving || ownEmployeeRecords.length === 0}
                   className="inline-flex items-center gap-2 rounded-xl bg-[#6B46C1] px-5 py-2.5 font-medium text-white disabled:opacity-60"
                 >
-                  {preferencesSaving ? 'Mentés...' : 'Preferenciák mentése'}
+                  {preferencesSaving ? (market === 'de' ? 'Speichern...' : 'Mentés...') : (market === 'de' ? 'Praeferenzen speichern' : 'Preferenciák mentése')}
                 </button>
               </div>
             </div>
