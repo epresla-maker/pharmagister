@@ -55,7 +55,55 @@ const MONTHS_HU = [
   'Július', 'Augusztus', 'Szeptember', 'Október', 'November', 'December'
 ];
 
-const WEEKDAYS_HU = ['H', 'K', 'Sze', 'Cs', 'P', 'Szo', 'V'];
+const MONTHS_DE = [
+  'Januar', 'Februar', 'Maerz', 'April', 'Mai', 'Juni',
+  'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'
+];
+
+const DAYS_LONG_HU = ['Vasárnap', 'Hétfő', 'Kedd', 'Szerda', 'Csütörtök', 'Péntek', 'Szombat'];
+const DAYS_LONG_DE = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+
+function getWeekdayDisplay(market) {
+  if (market === 'de') {
+    return [
+      { label: 'Mo', fullLabel: 'Montag', day: 1 },
+      { label: 'Di', fullLabel: 'Dienstag', day: 2 },
+      { label: 'Mi', fullLabel: 'Mittwoch', day: 3 },
+      { label: 'Do', fullLabel: 'Donnerstag', day: 4 },
+      { label: 'Fr', fullLabel: 'Freitag', day: 5 },
+      { label: 'Sa', fullLabel: 'Samstag', day: 6 },
+      { label: 'So', fullLabel: 'Sonntag', day: 0 },
+    ];
+  }
+  return [
+    { label: 'H', fullLabel: 'Hétfő', day: 1 },
+    { label: 'K', fullLabel: 'Kedd', day: 2 },
+    { label: 'Sze', fullLabel: 'Szerda', day: 3 },
+    { label: 'Cs', fullLabel: 'Csütörtök', day: 4 },
+    { label: 'P', fullLabel: 'Péntek', day: 5 },
+    { label: 'Szo', fullLabel: 'Szombat', day: 6 },
+    { label: 'V', fullLabel: 'Vasárnap', day: 0 },
+  ];
+}
+
+function getCriteriaWizardSteps(market) {
+  if (market === 'de') {
+    return [
+      { key: 'open_sunday', title: 'Habt ihr sonntags geoeffnet?', hint: 'Das System nutzt dies fuer normale Sonntagsschichten.' },
+      { key: 'on_call_enabled', title: 'Gibt es regulaeren Bereitschaftsdienst?', hint: 'Wenn ja, verwalten wir ein separates Bereitschaftsfenster und Personalbedarf.' },
+      { key: 'on_call_days', title: 'An welchen Tagen soll Bereitschaftsdienst laufen?', hint: 'Markiere die Tage mit verpflichtender Bereitschaftsabdeckung.' },
+      { key: 'day_min_pharmacists', title: 'Wie viele Apotheker/innen braucht ihr tagsueber mindestens?', hint: 'Das beeinflusst die Pruefung aller normalen Tagesschichten.' },
+      { key: 'on_call_min_pharmacists', title: 'Wie viele Apotheker/innen braucht ihr in Bereitschaft mindestens?', hint: 'Das gilt getrennt fuer das Bereitschaftsfenster.' },
+    ];
+  }
+  return [
+    { key: 'open_sunday', title: 'Nyitva vagytok vasárnap?', hint: 'A rendszer ezt használja a vasárnapi normál műszakokhoz.' },
+    { key: 'on_call_enabled', title: 'Van rendszeres ügyelet?', hint: 'Ha igen, külön ügyeleti sávot és létszámot kezelünk.' },
+    { key: 'on_call_days', title: 'Mely napokon legyen ügyelet?', hint: 'Jelöld a napokat, amikor kötelező az ügyeleti lefedés.' },
+    { key: 'day_min_pharmacists', title: 'Nappali nyitvatartásban hány gyógyszerész kell minimum?', hint: 'Ez minden normál napi műszak ellenőrzésére kihat.' },
+    { key: 'on_call_min_pharmacists', title: 'Ügyeletben hány gyógyszerész kell minimum?', hint: 'Ez külön az ügyeleti sávra vonatkozik.' },
+  ];
+}
 
 const AI_COMMAND_POLICY = {
   navigate_url: { allowedRoles: ['pharmacy', 'employee'], riskLevel: 'read', requiresConfirm: false },
@@ -237,25 +285,6 @@ function getPreferenceOwnerKey(item) {
 
   return null;
 }
-
-// Hungarian weekday display order: Mon(1) … Sat(6), Sun(0)
-const WEEKDAY_DISPLAY = [
-  { label: 'H', fullLabel: 'Hétfő', day: 1 },
-  { label: 'K', fullLabel: 'Kedd', day: 2 },
-  { label: 'Sze', fullLabel: 'Szerda', day: 3 },
-  { label: 'Cs', fullLabel: 'Csütörtök', day: 4 },
-  { label: 'P', fullLabel: 'Péntek', day: 5 },
-  { label: 'Szo', fullLabel: 'Szombat', day: 6 },
-  { label: 'V', fullLabel: 'Vasárnap', day: 0 },
-];
-
-const CRITERIA_WIZARD_STEPS = [
-  { key: 'open_sunday', title: 'Nyitva vagytok vasárnap?', hint: 'A rendszer ezt használja a vasárnapi normál műszakokhoz.' },
-  { key: 'on_call_enabled', title: 'Van rendszeres ügyelet?', hint: 'Ha igen, külön ügyeleti sávot és létszámot kezelünk.' },
-  { key: 'on_call_days', title: 'Mely napokon legyen ügyelet?', hint: 'Jelöld a napokat, amikor kötelező az ügyeleti lefedés.' },
-  { key: 'day_min_pharmacists', title: 'Nappali nyitvatartásban hány gyógyszerész kell minimum?', hint: 'Ez minden normál napi műszak ellenőrzésére kihat.' },
-  { key: 'on_call_min_pharmacists', title: 'Ügyeletben hány gyógyszerész kell minimum?', hint: 'Ez külön az ügyeleti sávra vonatkozik.' },
-];
 
 const DEFAULT_PREFERENCES = {
   avoidWeekdays: [],
@@ -462,10 +491,10 @@ function getShiftChipClasses(item, isOwn, darkMode) {
     : 'bg-fuchsia-100 text-fuchsia-800 border border-fuchsia-200';
 }
 
-function MonthCalendar({ year, month, selectedDate, schedules, ownScheduleIds, onSelectDate, darkMode, filterOwn, pendingSwapRequests, onOpenSwaps }) {
+function MonthCalendar({ year, month, selectedDate, schedules, ownScheduleIds, onSelectDate, darkMode, filterOwn, pendingSwapRequests, onOpenSwaps, market = 'hu' }) {
   const cells = getCalendarCells(year, month);
   const today = getTodayKey();
-  const DOW_SHORT = ['H', 'K', 'Sz', 'Cs', 'P', 'Sz', 'V']; // Mon–Sun
+  const DOW_SHORT = market === 'de' ? ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'] : ['H', 'K', 'Sze', 'Cs', 'P', 'Szo', 'V'];
   const holidays = getHungarianHolidays(year);
 
   return (
@@ -600,7 +629,7 @@ function MonthCalendar({ year, month, selectedDate, schedules, ownScheduleIds, o
                           textTransform: 'uppercase',
                           textShadow: '0 0 4px rgba(255,255,255,0.95), 0 0 8px rgba(255,255,255,0.8)',
                           lineHeight: 1,
-                        }}>Csere</span>
+                        }}>{market === 'de' ? 'Tausch' : 'Csere'}</span>
                       </div>
                     </button>
                   )}
@@ -639,8 +668,6 @@ function calcHours(from, to) {
   const m = mins % 60;
   return m === 0 ? `${h}ó` : `${h}ó${m}p`;
 }
-
-const HU_DAYS_LONG = ['Vasárnap', 'Hétfő', 'Kedd', 'Szerda', 'Csütörtök', 'Péntek', 'Szombat'];
 
 function getErrorAdvice(code) {
   const map = {
@@ -728,6 +755,7 @@ function PharmacyScheduleCalendar({
   schedules, employees,
   preferences,
   user, userData, darkMode,
+  market = 'hu',
   onSaveDaySchedules, saving,
   // action handlers passed through for the overlay toolbar
   onCopyPrev, onExport, onPublish, onAutoFix, onDeleteMonth, onPublishChanges,
@@ -844,7 +872,9 @@ function PharmacyScheduleCalendar({
   }, []);
 
   const today = getTodayKey();
-  const monthLabel = MONTHS_HU[month - 1];
+  const monthNames = market === 'de' ? MONTHS_DE : MONTHS_HU;
+  const dayNamesLong = market === 'de' ? DAYS_LONG_DE : DAYS_LONG_HU;
+  const monthLabel = monthNames[month - 1];
 
   function openDay(day) {
     const dateKey = formatDateKey(year, month, day);
@@ -1064,10 +1094,10 @@ function PharmacyScheduleCalendar({
 
   const selectedDateKey = selectedDay ? formatDateKey(year, month, selectedDay) : null;
   const selectedDayName = selectedDay
-    ? HU_DAYS_LONG[new Date(year, month - 1, selectedDay).getDay()]
+    ? dayNamesLong[new Date(year, month - 1, selectedDay).getDay()]
     : '';
   const holidays = getHungarianHolidays(year);
-  const DOW_LABELS = ['Vasárnap','Hétfő','Kedd','Szerda','Csütörtök','Péntek','Szombat'];
+  const DOW_LABELS = dayNamesLong;
 
   // ── Calendar render — full-screen fixed overlay ───────────────────────────
   return (
@@ -1345,8 +1375,8 @@ function PharmacyScheduleCalendar({
               const [byear, bmonth, bday] = entry.dateB.split('-').map(Number);
               const dowA = new Date(ayear, amonth - 1, aday).getDay();
               const dowB = new Date(byear, bmonth - 1, bday).getDay();
-              const labelA = `${MONTHS_HU[amonth-1]} ${aday}. (${DOW_LABELS[dowA]})`;
-              const labelB = `${MONTHS_HU[bmonth-1]} ${bday}. (${DOW_LABELS[dowB]})`;
+              const labelA = `${monthNames[amonth-1]} ${aday}. (${DOW_LABELS[dowA]})`;
+              const labelB = `${monthNames[bmonth-1]} ${bday}. (${DOW_LABELS[dowB]})`;
               return (
                 <div key={idx} className={`rounded-xl border p-3 ${darkMode ? 'border-amber-700/60 bg-amber-900/20' : 'border-amber-200 bg-amber-50'}`}>
                   <div className={`flex items-center gap-2 text-sm font-bold mb-2 ${darkMode ? 'text-amber-200' : 'text-amber-900'}`}>
@@ -1434,6 +1464,7 @@ function PharmacyScheduleCalendar({
               filterOwn={ownView}
               pendingSwapRequests={pendingSwapRequests}
               onOpenSwaps={onOpenSwaps}
+              market={market}
             />
           </div>
         )}
@@ -2293,6 +2324,7 @@ function EmployeePreferenceCalendar({
   preferences,          // all schedulePreferences for this pharmacy+year+month
   ownEmployeeRecord,    // { id, name, email, linkedUserId, ... }
   user, darkMode,
+  market = 'hu',
   onSaveDayPreferences, saving,
   employeeProfile,      // { contractHours, birthDate, childrenCount, vacationTakenThisYear, vacationCarriedOver }
   initialDay,           // optional: auto-open this day's modal on mount
@@ -2313,9 +2345,11 @@ function EmployeePreferenceCalendar({
   }, []);
 
   const today = getTodayKey();
-  const monthLabel = MONTHS_HU[month - 1];
+  const monthNames = market === 'de' ? MONTHS_DE : MONTHS_HU;
+  const dayNamesLong = market === 'de' ? DAYS_LONG_DE : DAYS_LONG_HU;
+  const monthLabel = monthNames[month - 1];
   const holidays = getHungarianHolidays(year);
-  const DOW_LABELS = ['Vasárnap','Hétfő','Kedd','Szerda','Csütörtök','Péntek','Szombat'];
+  const DOW_LABELS = dayNamesLong;
 
   const ownPrefs = preferences.filter(p =>
     p.status !== 'deleted' &&
@@ -2395,7 +2429,7 @@ function EmployeePreferenceCalendar({
   }, []);
 
   const selectedDayName = selectedDay
-    ? HU_DAYS_LONG[new Date(year, month - 1, selectedDay).getDay()]
+    ? dayNamesLong[new Date(year, month - 1, selectedDay).getDay()]
     : '';
 
   return (
@@ -2691,6 +2725,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   const { darkMode } = useTheme();
   const market = getClientMarket();
   const locale = market === 'de' ? 'de-DE' : 'hu-HU';
+  const weekdayDisplay = useMemo(() => getWeekdayDisplay(market), [market]);
+  const criteriaWizardSteps = useMemo(() => getCriteriaWizardSteps(market), [market]);
   const isPharmacy = pharmaRole === 'pharmacy';
 
   const now = new Date();
@@ -7236,7 +7272,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   const onCallDaysSelected = Array.isArray(plannerConfigForm.operations?.onCall?.days)
     ? plannerConfigForm.operations.onCall.days
     : [];
-  const visibleWizardSteps = CRITERIA_WIZARD_STEPS.filter((step) => {
+  const visibleWizardSteps = criteriaWizardSteps.filter((step) => {
     if ((step.key === 'on_call_days' || step.key === 'on_call_min_pharmacists') && plannerConfigForm.operations?.onCall?.enabled !== true) {
       return false;
     }
@@ -7255,7 +7291,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   const wizardCompletedDisplay = Math.min(wizardCompleted, wizardTotal);
 
   const activePharmacists = activeEmployees.filter((e) => e.role === 'pharmacist').length;
-  const weekdayOpenDays = WEEKDAY_DISPLAY.filter(({ day }) => plannerConfigForm.operations?.openingHoursByWeekday?.[day]?.isOpen !== false).length;
+  const weekdayOpenDays = weekdayDisplay.filter(({ day }) => plannerConfigForm.operations?.openingHoursByWeekday?.[day]?.isOpen !== false).length;
   const estimatedDayPharmacistDemand = weekdayOpenDays * Number(plannerConfigForm.minPharmacistsPerShift || 0);
   const estimatedOnCallDemand = plannerConfigForm.operations?.onCall?.enabled
     ? onCallDaysSelected.length * Number(plannerConfigForm.operations?.onCall?.requiredPharmacists ?? 0)
@@ -7411,7 +7447,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
                 {wizardStep.key === 'on_call_days' && (
                   <div className="grid grid-cols-4 gap-2">
-                    {WEEKDAY_DISPLAY.map(({ day, fullLabel }) => {
+                    {weekdayDisplay.map(({ day, fullLabel }) => {
                       const active = onCallDaysSelected.includes(day);
                       return (
                         <button
@@ -7665,7 +7701,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             </div>
 
             <div className="space-y-2">
-              {WEEKDAY_DISPLAY.map(({ day, fullLabel, label }) => {
+              {weekdayDisplay.map(({ day, fullLabel, label }) => {
                 const dayCfg = plannerConfigForm.operations?.openingHoursByWeekday?.[day] || { isOpen: true, openTime: '08:00', closeTime: '20:00' };
                 return (
                   <div key={day} className={`rounded-xl border px-3 py-2 ${darkMode ? 'border-gray-600 bg-gray-900' : 'border-gray-200 bg-gray-50'}`}>
@@ -7800,7 +7836,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
               </div>
 
               <div className="flex flex-wrap gap-2">
-                {WEEKDAY_DISPLAY.map(({ day, label }) => {
+                {weekdayDisplay.map(({ day, label }) => {
                   const active = (plannerConfigForm.operations?.onCall?.days || []).includes(day);
                   return (
                     <button
@@ -8856,6 +8892,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   onAutoGenerate={handleAutoGenerateAndApply}
                   plannerLoading={plannerLoading}
                   applyingPlanner={applyingPlanner}
+                  market={market}
                 />
               )}
             </div>
@@ -8894,6 +8931,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                 setDay(nextDay);
               }}
               darkMode={darkMode}
+              market={market}
             />
           </div>
           ) : null}
@@ -9488,6 +9526,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   activeMonthSchedules={activeMonthSchedules}
                   publishedScheduleCount={publishedScheduleCount}
                   config={normalizePlanningConfig(plannerConfigForm)}
+                  market={market}
                 />
               )}
             </div>
@@ -9600,6 +9639,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                     filterOwn={employeeCalendarView === 'own'}
                     pendingSwapRequests={swapRequests.filter(r => r.targetUserId === user?.uid && r.status === 'pending')}
                     onOpenSwaps={() => setMainTab('swaps')}
+                    market={market}
                   />
                 </div>
 
@@ -9774,6 +9814,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   onPublishChanges={() => {}}
                   onAutoFix={() => {}}
                   onDeleteMonth={() => {}}
+                  market={market}
                 />
               )}
             </div>
@@ -9892,6 +9933,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                       employeeProfile={employeeProfile}
                       initialDay={preferenceInitialDay}
                       onPublish={() => handlePublishPreferenceDraftMonth(year, month)}
+                      market={market}
                     />
                   )}
                 </div>
@@ -10314,7 +10356,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   Kattintás: semleges → <span className="text-green-600 font-medium">előnyben részesítve</span> → <span className="text-red-600 font-medium">kerülendő</span> → semleges
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {WEEKDAY_DISPLAY.map(({ label, fullLabel, day }) => {
+                  {weekdayDisplay.map(({ label, fullLabel, day }) => {
                     const state = getWeekdayState(day);
                     const cls = state === 'avoid'
                       ? 'border-red-400 bg-red-100 text-red-800 dark:border-red-600 dark:bg-red-900/30 dark:text-red-300'
