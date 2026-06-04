@@ -1,10 +1,16 @@
 "use client";
-import { memo, useMemo, useCallback } from 'react';
+import { memo, useMemo, useCallback, useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { MessageCircle, Bell, Settings, LayoutGrid, Home } from 'lucide-react';
 import { useBadges } from '@/context/BadgesContext';
+
+function readMarketCookie() {
+  if (typeof document === 'undefined') return 'hu';
+  const match = document.cookie.match(/(?:^|; )pm_market=([^;]+)/);
+  return decodeURIComponent(match?.[1] || 'hu') === 'de' ? 'de' : 'hu';
+}
 
 // Memoized NavItem to prevent re-renders when other badges change
 const NavItem = memo(function NavItem({ item, isActive, darkMode, onClick }) {
@@ -43,6 +49,11 @@ function BottomNavigation({ isVisible = true }) {
   const { user, userData, loading } = useAuth();
   const { darkMode } = useTheme();
   const { badges } = useBadges();
+  const [market, setMarket] = useState('hu');
+
+  useEffect(() => {
+    setMarket(readMarketCookie());
+  }, [pathname]);
 
   // Memoize nav items to prevent recreation on every render
   const navItems = useMemo(() => [
@@ -100,6 +111,23 @@ function BottomNavigation({ isVisible = true }) {
         transform: 'translateZ(0)'
       }}
     >
+      <div className="px-3 pt-2">
+        <div className={`flex items-center justify-between rounded-xl border px-3 py-2 text-xs ${
+          darkMode ? 'border-gray-700 bg-gray-800 text-gray-200' : 'border-gray-200 bg-gray-50 text-gray-700'
+        }`}>
+          <span className="font-medium">Aktív nyelv</span>
+          <button
+            onClick={() => router.push('/settings/market')}
+            className={`inline-flex items-center rounded-full px-2.5 py-1 font-semibold ${
+              market === 'de'
+                ? 'bg-amber-500 text-white'
+                : 'bg-emerald-600 text-white'
+            }`}
+          >
+            {market === 'de' ? 'DE mód' : 'HU mód'}
+          </button>
+        </div>
+      </div>
       <div className="grid grid-cols-5 gap-1 px-2 py-2">
         {navItems.map((item) => (
           <NavItem
