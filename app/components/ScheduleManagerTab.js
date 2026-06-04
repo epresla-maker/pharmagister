@@ -2105,9 +2105,9 @@ function PharmacyScheduleCalendar({
                             ? (darkMode ? 'border-rose-500 bg-rose-700/50 text-rose-100' : 'border-rose-400 bg-rose-50 text-rose-700')
                             : (darkMode ? 'border-sky-600 bg-sky-900/40 text-sky-200' : 'border-sky-300 bg-sky-50 text-sky-700')
                         }`}
-                        title="Csere kérése egy kollégával"
+                        title={market === 'de' ? 'Tausch mit Kollegin/Kollege anfragen' : 'Csere kérése egy kollégával'}
                       >
-                        ⇄ Csere kérése
+                        {market === 'de' ? '⇄ Tausch anfragen' : '⇄ Csere kérése'}
                       </button>
                     )}
 
@@ -2257,21 +2257,21 @@ function PharmacyScheduleCalendar({
                                   type="button"
                                   onClick={() => setSwapTarget(null)}
                                   className={`flex-1 rounded-xl px-3 py-2 text-xs font-semibold ${darkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-200' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}
-                                >← Vissza</button>
+                                >{market === 'de' ? '← Zurueck' : '← Vissza'}</button>
                                 {readOnly ? (
                                   <button
                                     type="button"
                                     disabled={readOnlySwapSaving}
                                     onClick={() => executeReadOnlySwapRequest(idx)}
                                     className="flex-1 rounded-xl px-3 py-2 text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white disabled:opacity-50"
-                                  >{readOnlySwapSaving ? 'Küldés…' : '⇄ Csereigény küldése'}</button>
+                                  >{readOnlySwapSaving ? (market === 'de' ? 'Senden...' : 'Küldés…') : (market === 'de' ? '⇄ Tauschanfrage senden' : '⇄ Csereigény küldése')}</button>
                                 ) : (
                                   <button
                                     type="button"
                                     disabled={swapSaving}
                                     onClick={() => executeSwap(idx)}
                                     className="flex-1 rounded-xl px-3 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50"
-                                  >{swapSaving ? 'Mentés…' : '⇄ Csere elvégzése'}</button>
+                                  >{swapSaving ? (market === 'de' ? 'Speichern...' : 'Mentés…') : (market === 'de' ? '⇄ Tausch ausfuehren' : '⇄ Csere elvégzése')}</button>
                                 )}
                               </div>
                             </div>
@@ -2280,8 +2280,10 @@ function PharmacyScheduleCalendar({
                             candidateEmps.length === 0 ? (
                               <p className={`text-xs px-3 py-3 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
                                 {swapIgnoreRole
-                                  ? 'Nincs beosztott dolgozó ebben a hónapban.'
-                                  : `Nincs csereképes ${rowIsPharmacist ? 'gyógyszerész' : 'szakasszisztens'} ebben a hónapban.`}
+                                  ? (market === 'de' ? 'In diesem Monat gibt es keine eingeteilten Mitarbeitenden.' : 'Nincs beosztott dolgozó ebben a hónapban.')
+                                  : (market === 'de'
+                                    ? `Keine tauschfaehige ${rowIsPharmacist ? 'Apothekerin/kein Apotheker' : 'PTA/Assistentin/Assistent'} in diesem Monat.`
+                                    : `Nincs csereképes ${rowIsPharmacist ? 'gyógyszerész' : 'szakasszisztens'} ebben a hónapban.`)}
                               </p>
                             ) : (
                               <div className="overflow-y-auto" style={{ maxHeight: '260px' }}>
@@ -2420,7 +2422,7 @@ function PharmacyScheduleCalendar({
                 onClick={() => setShowModal(false)}
                 className={`rounded-xl px-5 py-2.5 text-sm font-semibold transition-colors ${darkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-200' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}
               >
-                Mégse
+                {market === 'de' ? 'Abbrechen' : 'Mégse'}
               </button>
               <button
                 type="button"
@@ -2428,7 +2430,7 @@ function PharmacyScheduleCalendar({
                 disabled={modalSaving}
                 className="rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 px-8 py-2.5 text-sm font-bold text-white shadow-lg shadow-violet-200 disabled:opacity-60 transition-all"
               >
-                {modalSaving ? 'Mentés...' : 'Mentés'}
+                {modalSaving ? (market === 'de' ? 'Speichern...' : 'Mentés...') : (market === 'de' ? 'Speichern' : 'Mentés')}
               </button>
             </div>
           </div>
@@ -4985,7 +4987,9 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           role: item.role || 'other',
           startTime: item.startTime,
           endTime: item.endTime,
-          notes: item.notes ? `${item.notes} | Másolva előző hónapból` : 'Másolva előző hónapból',
+          notes: item.notes
+            ? `${item.notes} | ${market === 'de' ? 'Aus Vormonat kopiert' : 'Másolva előző hónapból'}`
+            : (market === 'de' ? 'Aus Vormonat kopiert' : 'Másolva előző hónapból'),
           status: 'active',
           createdBy: user.uid,
           planningSource: 'copied-previous-month',
@@ -7839,9 +7843,11 @@ export default function ScheduleManagerTab({ pharmaRole }) {
               {/* Betti záró üzenet – utolsó lépésnél */}
               {safeWizardStepIndex === wizardTotal - 1 && (
                 <div className={`rounded-2xl rounded-tl-sm px-5 py-4 ${darkMode ? 'bg-emerald-900/40' : 'bg-emerald-50'}`}>
-                  <p className={`font-bold text-base mb-1 ${darkMode ? 'text-emerald-100' : 'text-emerald-900'}`}>Szuper, minden megvan!</p>
+                  <p className={`font-bold text-base mb-1 ${darkMode ? 'text-emerald-100' : 'text-emerald-900'}`}>{market === 'de' ? 'Super, alles ist bereit!' : 'Szuper, minden megvan!'}</p>
                   <p className={`text-sm leading-relaxed ${darkMode ? 'text-emerald-200/80' : 'text-emerald-800/80'}`}>
-                    Nézd át az összefoglalót, és kattints a <strong>Jóváhagyom</strong> gombra – ezek alapján készítem a beosztást.
+                    {market === 'de'
+                      ? <>Pruefe die Zusammenfassung und klicke auf <strong>Ich genehmige</strong> - danach erstelle ich den Dienstplan auf dieser Basis.</>
+                      : <>Nézd át az összefoglalót, és kattints a <strong>Jóváhagyom</strong> gombra – ezek alapján készítem a beosztást.</>}
                   </p>
                 </div>
               )}
@@ -7849,7 +7855,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
               {/* Contradiction warnings */}
               {contradictionWarnings.length > 0 && (
                 <div className={`rounded-2xl px-5 py-4 space-y-2 ${darkMode ? 'bg-amber-900/30' : 'bg-amber-50'}`}>
-                  <p className={`text-xs font-bold uppercase tracking-wide ${darkMode ? 'text-amber-300' : 'text-amber-700'}`}>⚠️ Betti észrevételei</p>
+                  <p className={`text-xs font-bold uppercase tracking-wide ${darkMode ? 'text-amber-300' : 'text-amber-700'}`}>{market === 'de' ? '⚠️ Bettis Hinweise' : '⚠️ Betti észrevételei'}</p>
                   {contradictionWarnings.map((w, i) => (
                     <p key={i} className={`text-sm ${darkMode ? 'text-amber-200' : 'text-amber-800'}`}>{w}</p>
                   ))}
@@ -7873,7 +7879,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   disabled={safeWizardStepIndex === 0}
                   className={`rounded-xl px-5 py-2.5 text-sm font-semibold transition-colors disabled:opacity-30 ${darkMode ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
                 >
-                  ← Előző
+                  {market === 'de' ? '← Zurueck' : '← Előző'}
                 </button>
                 {safeWizardStepIndex < wizardTotal - 1 ? (
                   <button
@@ -7881,7 +7887,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                     onClick={goWizardNext}
                     className="rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-violet-700 transition-colors"
                   >
-                    Következő →
+                    {market === 'de' ? 'Weiter →' : 'Következő →'}
                   </button>
                 ) : (
                   <button
@@ -7890,7 +7896,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                     disabled={plannerConfigSaving}
                     className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60 hover:bg-emerald-700 transition-colors"
                   >
-                    {plannerConfigSaving ? 'Mentés...' : 'Jóváhagyom ✓'}
+                    {plannerConfigSaving ? (market === 'de' ? 'Speichern...' : 'Mentés...') : (market === 'de' ? 'Ich genehmige ✓' : 'Jóváhagyom ✓')}
                   </button>
                 )}
               </div>
@@ -7900,8 +7906,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           {/* Összefoglaló kártya */}
           <div className={`rounded-3xl border overflow-hidden shadow-sm ${darkMode ? 'border-emerald-800 bg-gray-900' : 'border-emerald-100 bg-white'}`}>
             <div className={`px-5 py-4 ${darkMode ? 'bg-emerald-900/30' : 'bg-emerald-50'}`}>
-              <p className={`font-bold text-base ${darkMode ? 'text-emerald-100' : 'text-emerald-900'}`}>Betti összefoglalója</p>
-              <p className={`text-xs mt-0.5 ${darkMode ? 'text-emerald-300/70' : 'text-emerald-700/70'}`}>Ezt fogja használni a beosztás generálásnál</p>
+              <p className={`font-bold text-base ${darkMode ? 'text-emerald-100' : 'text-emerald-900'}`}>{market === 'de' ? 'Betti Zusammenfassung' : 'Betti összefoglalója'}</p>
+              <p className={`text-xs mt-0.5 ${darkMode ? 'text-emerald-300/70' : 'text-emerald-700/70'}`}>{market === 'de' ? 'Das wird fuer die Dienstplan-Generierung verwendet' : 'Ezt fogja használni a beosztás generálásnál'}</p>
             </div>
             <div className="px-5 py-4 space-y-2">
               {aiSummaryLines.map((line, index) => (
@@ -9291,21 +9297,21 @@ export default function ScheduleManagerTab({ pharmaRole }) {
               <div className={`rounded-2xl border p-5 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <h3 className="text-lg font-semibold">Beosztás írása - {selectedDate}</h3>
-                    <p className="text-sm text-gray-500">Egyszerű, napra kattintós beosztáskezelés.</p>
+                    <h3 className="text-lg font-semibold">{market === 'de' ? `Dienstplan bearbeiten - ${selectedDate}` : `Beosztás írása - ${selectedDate}`}</h3>
+                    <p className="text-sm text-gray-500">{market === 'de' ? 'Einfache, tagesbasierte Dienstplanverwaltung per Klick.' : 'Egyszerű, napra kattintós beosztáskezelés.'}</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <button type="button" onClick={handleCopyPreviousMonth} disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-slate-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60">
                       <Copy className="h-4 w-4" />
-                      Előző hónap másolása
+                      {market === 'de' ? 'Vormonat kopieren' : 'Előző hónap másolása'}
                     </button>
                     <button type="button" onClick={handleExportSchedules} className="inline-flex items-center gap-2 rounded-xl bg-sky-600 px-4 py-2 text-sm font-medium text-white">
                       <Download className="h-4 w-4" />
-                      CSV export
+                      {market === 'de' ? 'CSV-Export' : 'CSV export'}
                     </button>
                     <button type="button" onClick={handlePublishSchedules} disabled={saving || activeMonthSchedules.length === 0} className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60">
                       <Send className="h-4 w-4" />
-                      Publikálás
+                      {market === 'de' ? 'Veroeffentlichen' : 'Publikálás'}
                     </button>
                     {false && <button type="button" onClick={handleSuggestEmployee} className="inline-flex items-center gap-2 rounded-xl bg-[#6B46C1] px-4 py-2 text-sm font-medium text-white">
                       <Sparkles className="h-4 w-4" />
@@ -9324,7 +9330,9 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                 </div>
 
                 <div className={`rounded-xl border px-4 py-3 text-sm ${darkMode ? 'border-gray-700 bg-gray-800 text-gray-200' : 'border-gray-200 bg-gray-50 text-gray-700'}`}>
-                  Ebben a hónapban {activeMonthSchedules.length} aktív műszak van, ebből {publishedScheduleCount} publikált.
+                  {market === 'de'
+                    ? `In diesem Monat gibt es ${activeMonthSchedules.length} aktive Dienste, davon ${publishedScheduleCount} veroeffentlicht.`
+                    : `Ebben a hónapban ${activeMonthSchedules.length} aktív műszak van, ebből ${publishedScheduleCount} publikált.`}
                 </div>
 
                 {false && <div className={`rounded-xl border p-4 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'}`}>
@@ -10031,11 +10039,11 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                                 className="inline-flex items-center gap-1 rounded-xl border border-[#6B46C1] px-2 py-1 text-xs font-semibold text-[#6B46C1] hover:bg-[#6B46C1]/10"
                               >
                                 <ArrowLeftRight className="h-3 w-3" />
-                                {isSwapOpen ? 'Mégse' : 'Csere kérése'}
+                                {isSwapOpen ? (market === 'de' ? 'Abbrechen' : 'Mégse') : (market === 'de' ? 'Tausch anfragen' : 'Csere kérése')}
                               </button>
                             ) : null}
                             {isOwn && hasOpenSwap ? (
-                              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">Csere folyamatban</span>
+                              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">{market === 'de' ? 'Tausch in Bearbeitung' : 'Csere folyamatban'}</span>
                             ) : null}
                           </div>
                         </div>
@@ -10059,14 +10067,14 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                                       onClick={() => handleQuickSwapRequest(item.id, candidate.id, quickSwapMessage)}
                                       className="rounded-xl bg-[#6B46C1] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
                                     >
-                                      Csere kérése
+                                      {market === 'de' ? 'Tausch anfragen' : 'Csere kérése'}
                                     </button>
                                   </div>
                                 ))}
                               </div>
                             )}
                             <div>
-                              <p className="mb-1 text-xs font-medium text-gray-500">Üzenet (opcionális)</p>
+                              <p className="mb-1 text-xs font-medium text-gray-500">{market === 'de' ? 'Nachricht (optional)' : 'Üzenet (opcionális)'}</p>
                               <textarea
                                 value={quickSwapMessage}
                                 onChange={e => setQuickSwapMessage(e.target.value)}
