@@ -471,8 +471,8 @@ function SegmentedTabs({ tabs, active, onChange }) {
     </div>
   );
 }
-
-function getShiftChipClasses(item, isOwn, darkMode) {
+            <span className="text-white font-bold text-base flex-1">{market === 'de' ? 'Gespeicherte Aenderungen' : 'Rögzített változtatások'}</span>
+            <span className="text-white/70 text-xs">{market === 'de' ? `${swapLog.length} Tausche` : `${swapLog.length} csere`}</span>
   if (isOwn) {
     return 'bg-emerald-600 text-white border border-emerald-500';
   }
@@ -3489,7 +3489,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     const ownRec = ownEmployeeRecords[0];
     const pharmacyId = ownRec?.pharmacyId;
     if (!pharmacyId) {
-      setStatusError(market === 'de' ? 'Keine zugeordnete Apotheke fuer die Veroeffentlichung.' : 'Nincs hozzarendelt gyogyszertar a publikalahoz.');
+      setStatusError(market === 'de' ? 'Keine zugeordnete Apotheke fuer die Veroeffentlichung.' : 'Nincs hozzárendelt gyógyszertár a publikáláshoz.');
       return { success: false };
     }
 
@@ -3498,7 +3498,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     );
 
     if (ownMonthItems.length === 0) {
-      setStatusError(market === 'de' ? 'Nichts zu veroeffentlichen: kein gespeicherter Entwurf in diesem Monat.' : 'Nincs mit publikalni: nincs mentett tervezeted ebben a honapban.');
+      setStatusError(market === 'de' ? 'Nichts zu veroeffentlichen: kein gespeicherter Entwurf in diesem Monat.' : 'Nincs mit publikálni: nincs mentett tervezeted ebben a hónapban.');
       return { success: false };
     }
 
@@ -3524,10 +3524,10 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       await createNotificationWithPush({
         userId: pharmacyId,
         type: 'schedule_preference_published',
-        title: market === 'de' ? 'Mitarbeiter-Entwurf veroeffentlicht' : 'Dolgozoi tervezet publikalva',
+        title: market === 'de' ? 'Mitarbeiter-Entwurf veroeffentlicht' : 'Dolgozói tervezet publikálva',
         message: market === 'de'
           ? `${ownRec?.name || userData?.name || user.email} hat den Monatsentwurf ${monthNames[targetMonth - 1]} ${targetYear} veroeffentlicht.`
-          : `${ownRec?.name || userData?.name || user.email} publikalta a ${monthNames[targetMonth - 1]} ${targetYear} havi tervezetet.`,
+          : `${ownRec?.name || userData?.name || user.email} publikálta a ${monthNames[targetMonth - 1]} ${targetYear} havi tervezetet.`,
         data: { employeeId: ownRec?.id || '', year: targetYear, month: targetMonth },
         url: '/pharmagister?tab=schedule-manager&subtab=workers',
         dedupeWindowSeconds: 120,
@@ -3538,13 +3538,13 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         setStatusMessage(
           market === 'de'
             ? `Erfolgreich veroeffentlicht: ${updatedCount} geplante Tage (${monthNames[targetMonth - 1]} ${targetYear}).`
-            : `Sikeres publikalas: ${updatedCount} tervezett nap publikalva (${monthNames[targetMonth - 1]} ${targetYear}).`
+            : `Sikeres publikálás: ${updatedCount} tervezett nap publikálva (${monthNames[targetMonth - 1]} ${targetYear}).`
         );
       } else {
         setStatusMessage(
           market === 'de'
             ? `Der Entwurf fuer ${monthNames[targetMonth - 1]} ${targetYear} wurde bereits frueher veroeffentlicht.`
-            : `A ${monthNames[targetMonth - 1]} ${targetYear} havi tervezet mar korabban publikalva lett.`
+            : `A ${monthNames[targetMonth - 1]} ${targetYear} havi tervezet már korábban publikálva lett.`
         );
       }
 
@@ -3552,7 +3552,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       return { success: true, updatedCount };
     } catch (error) {
       console.error('Publish preference month error:', error);
-      setStatusError(error.message || (market === 'de' ? 'Monatsentwurf konnte nicht veroeffentlicht werden.' : 'Nem sikerult publikalni a havi tervezetet.'));
+      setStatusError(error.message || (market === 'de' ? 'Monatsentwurf konnte nicht veroeffentlicht werden.' : 'Nem sikerült publikálni a havi tervezetet.'));
       return { success: false };
     } finally {
       setSaving(false);
@@ -5658,7 +5658,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
     if (action === 'missing_drafts') {
       if (!isPharmacy) {
-        appendBettiMessage('Ez a funkcio csak a gyogyszertari nezet szamara erhelmes.');
+        appendBettiMessage(market === 'de' ? 'Diese Funktion ist nur in der Apothekenansicht verfuegbar.' : 'Ez a funkció csak a gyógyszertári nézet számára értelmes.');
         return;
       }
 
@@ -5671,22 +5671,28 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
       const missing = activeEmps.filter((e) => !uniqueDraftEmps.has(e.id) && !uniqueDraftEmps.has(e.linkedUserId));
       if (missing.length === 0) {
-        appendBettiMessage(`Az osszes alkalmazott elkeszitette a ${monthLabel} tervezetet!`);
+        appendBettiMessage(market === 'de' ? `Alle Mitarbeitenden haben den Entwurf fuer ${monthLabel} fertiggestellt!` : `Az összes alkalmazott elkészítette a ${monthLabel} tervezetet!`);
         return;
       }
 
       const missingList = missing.slice(0, 10).map((e) => e.name).join(', ');
-      const suffix = missing.length > 10 ? `, es meg ${missing.length - 10} ember` : '';
-      appendBettiMessage(`A kovetkezo ${missing.length} alkalmazott nem irta meg meg a ${monthLabel} tervezetet:\n${missingList}${suffix}`);
+      const suffix = missing.length > 10
+        ? (market === 'de' ? ` und noch ${missing.length - 10} weitere` : `, és még ${missing.length - 10} ember`)
+        : '';
+      appendBettiMessage(
+        market === 'de'
+          ? `Folgende ${missing.length} Mitarbeitende haben den Entwurf fuer ${monthLabel} noch nicht eingereicht:\n${missingList}${suffix}`
+          : `A következő ${missing.length} alkalmazott nem írta meg még a ${monthLabel} tervezetet:\n${missingList}${suffix}`
+      );
       return;
     }
 
     if (action === 'add_employee') {
       if (!isPharmacy) {
-        appendBettiMessage('Ez a funkcio csak a gyogyszertari nezet szamara erhelmes.');
+        appendBettiMessage(market === 'de' ? 'Diese Funktion ist nur in der Apothekenansicht verfuegbar.' : 'Ez a funkció csak a gyógyszertári nézet számára értelmes.');
         return;
       }
-      appendBettiMessage('Kerlek add meg az uj alkalmazott email cimet a "Dolgozok" fuelken.');
+      appendBettiMessage(market === 'de' ? 'Bitte gib die E-Mail-Adresse der neuen Person im Tab Mitarbeitende ein.' : 'Kérlek add meg az új alkalmazott email címét a "Dolgozók" fülön.');
       return;
     }
 
@@ -6508,7 +6514,9 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
       setBettiChatMessages((prev) => [...prev, {
         role: 'assistant',
-        text: `Elinditottam az automatikus tervezest a ${monthName.toLowerCase()}i honapra.`,
+        text: market === 'de'
+          ? `Ich habe die automatische Planung fuer ${monthName} gestartet.`
+          : `Elindítottam az automatikus tervezést a ${monthName.toLowerCase()}i hónapra.`,
         intent: 'local_auto_plan_started',
         ts: Date.now(),
       }]);
@@ -6518,19 +6526,21 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         const shifts = Number(plan?.result?.proposedShifts?.length || 0);
         setBettiChatMessages((prev) => [...prev, {
           role: 'assistant',
-          text: `Keszen vagyok: ${shifts} javasolt muszak keszult. Ez meg csak tervezet-javaslat, menteshez nyomd meg a Mentes tervezetkent gombot.`,
+          text: market === 'de'
+            ? `Fertig: ${shifts} vorgeschlagene Schichten wurden erstellt. Das ist noch ein Entwurfsvorschlag, zum Speichern bitte auf "Als Entwurf speichern" klicken.`
+            : `Készen vagyok: ${shifts} javasolt műszak készült. Ez még csak tervezet-javaslat, mentéshez nyomd meg a Mentés tervezetként gombot.`,
           intent: 'local_auto_plan_done',
           ts: Date.now(),
           uiCommands: [
             {
               id: `apply_planner_${Date.now()}`,
               type: 'local_apply_planner_result',
-              label: 'Mentes tervezetkent',
+              label: market === 'de' ? 'Als Entwurf speichern' : 'Mentés tervezetként',
             },
             {
               id: `open_schedule_${Date.now()}`,
               type: 'set_main_tab',
-              label: 'Beosztas ful megnyitasa',
+              label: market === 'de' ? 'Dienstplan-Tab oeffnen' : 'Beosztás fül megnyitása',
               tab: 'schedule',
             },
           ],
@@ -6538,7 +6548,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       } else {
         setBettiChatMessages((prev) => [...prev, {
           role: 'assistant',
-          text: plan?.error || 'Nem sikerult lefuttatni az automatikus tervezest.',
+          text: plan?.error || (market === 'de' ? 'Die automatische Planung konnte nicht gestartet werden.' : 'Nem sikerült lefuttatni az automatikus tervezést.'),
           intent: 'local_auto_plan_error',
           ts: Date.now(),
         }]);
@@ -6552,7 +6562,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       if (!plannerResult?.proposedShifts?.length) {
         setBettiChatMessages((prev) => [...prev, {
           role: 'assistant',
-          text: 'Nincs mentheto tervezet-javaslat. Elobb futtasd az automatikus tervezest.',
+          text: market === 'de' ? 'Es gibt keinen speicherbaren Entwurfsvorschlag. Starte zuerst die automatische Planung.' : 'Nincs menthető tervezet-javaslat. Előbb futtasd az automatikus tervezést.',
           intent: 'local_apply_planner_missing_result',
           ts: Date.now(),
         }]);
@@ -6563,14 +6573,16 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       await handleApplyPlannerResult();
       setBettiChatMessages((prev) => [...prev, {
         role: 'assistant',
-        text: `Elmentettem a tervezetet a beosztasba. Forras: automatikus javaslat (${beforeCount} elem).`,
+        text: market === 'de'
+          ? `Ich habe den Entwurf im Dienstplan gespeichert. Quelle: automatischer Vorschlag (${beforeCount} Elemente).`
+          : `Elmentettem a tervezetet a beosztásba. Forrás: automatikus javaslat (${beforeCount} elem).`,
         intent: 'local_apply_planner_saved',
         ts: Date.now(),
         uiCommands: [
           {
             id: `open_schedule_after_apply_${Date.now()}`,
             type: 'set_main_tab',
-            label: 'Beosztas ful megnyitasa',
+            label: market === 'de' ? 'Dienstplan-Tab oeffnen' : 'Beosztás fül megnyitása',
             tab: 'schedule',
           },
         ],
@@ -6621,11 +6633,15 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
       setBettiDemandDraft(next);
       const dateKey = resolveDemandDraftDate(next.dateOffset);
-      const posLabel = next.position === 'pharmacist' ? 'Gyogyszeresz' : 'Szakasszisztens';
+      const posLabel = next.position === 'pharmacist'
+        ? (market === 'de' ? 'Apotheker/in' : 'Gyógyszerész')
+        : (market === 'de' ? 'PTA/Assistent/in' : 'Szakasszisztens');
 
       setBettiChatMessages((prev) => [...prev, {
         role: 'assistant',
-        text: `Frissitettem a tervezetet.\nPozicio: ${posLabel}\nNap: ${formatHuDate(dateKey)}\nMunkaido: ${next.workHours}`,
+        text: market === 'de'
+          ? `Ich habe den Entwurf aktualisiert.\nPosition: ${posLabel}\nTag: ${formatHuDate(dateKey)}\nArbeitszeit: ${next.workHours}`
+          : `Frissítettem a tervezetet.\nPozíció: ${posLabel}\nNap: ${formatHuDate(dateKey)}\nMunkaidő: ${next.workHours}`,
         intent: 'local_demand_wizard_updated',
         ts: Date.now(),
         uiCommands: buildDemandWizardCommands(next),
