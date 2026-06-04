@@ -3691,11 +3691,11 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       });
 
       setScheduleForm(prev => ({ ...prev, notes: '' }));
-      setStatusMessage('Beosztás rögzítve.');
+      setStatusMessage(market === 'de' ? 'Dienst gespeichert.' : 'Beosztás rögzítve.');
       await loadData();
     } catch (error) {
       console.error('Create schedule error:', error);
-      setStatusError('Nem sikerült menteni a beosztást.');
+      setStatusError(market === 'de' ? 'Dienstplan konnte nicht gespeichert werden.' : 'Nem sikerült menteni a beosztást.');
     } finally {
       setSaving(false);
     }
@@ -3763,11 +3763,11 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           ));
         }
       }
-      setStatusMessage('Beosztás mentve.');
+      setStatusMessage(market === 'de' ? 'Dienstplan gespeichert.' : 'Beosztás mentve.');
       await loadData();
     } catch (err) {
       console.error('handleSaveDaySchedules error:', err);
-      setStatusError('Nem sikerült menteni a beosztást.');
+      setStatusError(market === 'de' ? 'Dienstplan konnte nicht gespeichert werden.' : 'Nem sikerült menteni a beosztást.');
     } finally {
       setSaving(false);
     }
@@ -3776,11 +3776,11 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   async function handleDeleteSchedule(scheduleId) {
     const scheduleItem = schedules.find(item => item.id === scheduleId);
     if (!scheduleItem) {
-      setStatusError('A kiválasztott beosztás nem található.');
+      setStatusError(market === 'de' ? 'Ausgewaehlter Dienst wurde nicht gefunden.' : 'A kiválasztott beosztás nem található.');
       return;
     }
     if (scheduleItem.locked === true) {
-      setStatusError('Ez a műszak kézzel zárolt (locked), előbb oldd fel a zárolást.');
+      setStatusError(market === 'de' ? 'Dieser Dienst ist manuell gesperrt (locked), bitte zuerst entsperren.' : 'Ez a műszak kézzel zárolt (locked), előbb oldd fel a zárolást.');
       return;
     }
 
@@ -3807,15 +3807,21 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       ));
 
       if (scheduleItem.linkedUserId) {
-        const pharmacyName = scheduleItem.pharmacyName || userData?.pharmacyName || userData?.name || user?.displayName || user?.email || 'Gyógyszertár';
+        const pharmacyName = scheduleItem.pharmacyName || userData?.pharmacyName || userData?.name || user?.displayName || user?.email || (market === 'de' ? 'Apotheke' : 'Gyógyszertár');
         const wasPublished = isPublishedSchedule(scheduleItem);
         await createNotificationWithPush({
           userId: scheduleItem.linkedUserId,
           type: wasPublished ? 'schedule_revoked' : 'schedule_removed_from_employee',
-          title: wasPublished ? 'Beosztás visszavonása' : 'Beosztás törölve',
+          title: wasPublished
+            ? (market === 'de' ? 'Dienstplan zurueckgezogen' : 'Beosztás visszavonása')
+            : (market === 'de' ? 'Dienst geloescht' : 'Beosztás törölve'),
           message: wasPublished
-            ? `${pharmacyName} visszavonta a beosztásodat: ${scheduleItem.date} (${scheduleItem.startTime}-${scheduleItem.endTime}).`
-            : `${pharmacyName} törölte a beosztásodat: ${scheduleItem.date} (${scheduleItem.startTime}-${scheduleItem.endTime}).`,
+            ? (market === 'de'
+              ? `${pharmacyName} hat deinen Dienst zurueckgezogen: ${scheduleItem.date} (${scheduleItem.startTime}-${scheduleItem.endTime}).`
+              : `${pharmacyName} visszavonta a beosztásodat: ${scheduleItem.date} (${scheduleItem.startTime}-${scheduleItem.endTime}).`)
+            : (market === 'de'
+              ? `${pharmacyName} hat deinen Dienst geloescht: ${scheduleItem.date} (${scheduleItem.startTime}-${scheduleItem.endTime}).`
+              : `${pharmacyName} törölte a beosztásodat: ${scheduleItem.date} (${scheduleItem.startTime}-${scheduleItem.endTime}).`),
           data: { pharmacyId: user.uid, scheduleId, date: scheduleItem.date },
           url: '/pharmagister?tab=schedule-manager&subtab=mine',
           dedupeWindowSeconds: 120,
@@ -3823,11 +3829,11 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         });
       }
 
-      setStatusMessage('Beosztás törölve.');
+      setStatusMessage(market === 'de' ? 'Dienst geloescht.' : 'Beosztás törölve.');
       await loadData();
     } catch (error) {
       console.error('Delete schedule error:', error);
-      setStatusError('Nem sikerült törölni a beosztást.');
+      setStatusError(market === 'de' ? 'Dienst konnte nicht geloescht werden.' : 'Nem sikerült törölni a beosztást.');
     } finally {
       setSaving(false);
     }
@@ -3839,7 +3845,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     const pool = freeCandidates.length > 0 ? freeCandidates : candidates;
 
     if (pool.length === 0) {
-      setStatusError('Nincs megfelelő dolgozó az AI javaslathoz.');
+      setStatusError(market === 'de' ? 'Kein passender Mitarbeiter fuer den KI-Vorschlag.' : 'Nincs megfelelő dolgozó az AI javaslathoz.');
       return;
     }
 
@@ -3850,7 +3856,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     })[0];
 
     setScheduleForm(prev => ({ ...prev, employeeId: suggested.id }));
-    setStatusMessage(`AI javaslat: ${suggested.name}`);
+    setStatusMessage(market === 'de' ? `KI-Vorschlag: ${suggested.name}` : `AI javaslat: ${suggested.name}`);
   }
 
   async function handleCreateSwapRequest() {
@@ -3858,7 +3864,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     setStatusMessage('');
 
     if (!swapForm.requesterScheduleId || !swapForm.targetScheduleId) {
-      setStatusError('Válassz saját és cél beosztást is.');
+      setStatusError(market === 'de' ? 'Bitte waehle sowohl einen eigenen als auch einen Ziel-Dienst aus.' : 'Válassz saját és cél beosztást is.');
       return;
     }
 
@@ -3866,7 +3872,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     const targetSchedule = schedules.find(item => item.id === swapForm.targetScheduleId);
 
     if (!requesterSchedule || !targetSchedule) {
-      setStatusError('A kiválasztott beosztás nem található.');
+      setStatusError(market === 'de' ? 'Ausgewaehlter Dienst wurde nicht gefunden.' : 'A kiválasztott beosztás nem található.');
       return;
     }
 
