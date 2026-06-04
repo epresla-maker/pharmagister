@@ -1066,13 +1066,19 @@ function PharmacyScheduleCalendar({
         await createNotificationWithPush({
           userId: requesterSchedule.pharmacyId,
           type: 'schedule_swap_request_for_pharmacy',
-          title: 'Új beosztás csere igény',
-          message: `${requesterSchedule.employeeName} cserét kért ${targetSchedule.employeeName} beosztásával.`,
+          title: market === 'de' ? 'Neue Diensttausch-Anfrage' : 'Új beosztás csere igény',
+          message: market === 'de'
+            ? `${requesterSchedule.employeeName} hat einen Tausch mit dem Dienst von ${targetSchedule.employeeName} angefragt.`
+            : `${requesterSchedule.employeeName} cserét kért ${targetSchedule.employeeName} beosztásával.`,
           data: { requesterScheduleId: requesterSchedule.id, targetScheduleId: targetSchedule.id },
           url: '/pharmagister?tab=schedule-manager&subtab=swaps',
         });
       }
-      setReadOnlySwapDone(`Csereigény elküldve ${targetSchedule.employeeName} felé!`);
+      setReadOnlySwapDone(
+        market === 'de'
+          ? `Tauschanfrage an ${targetSchedule.employeeName} gesendet!`
+          : `Csereigény elküldve ${targetSchedule.employeeName} felé!`
+      );
       setSwapTarget(null);
       setSwapPickerRowIdx(null);
       setSwapIgnoreRole(false);
@@ -1085,7 +1091,7 @@ function PharmacyScheduleCalendar({
 
   async function handlePublishClick() {
     if ((activeMonthSchedules?.length ?? 0) === 0) {
-      setPublishBlockModal([{ message: 'Nincs kitöltött beosztás ebben a hónapban.' }]);
+      setPublishBlockModal([{ message: market === 'de' ? 'In diesem Monat gibt es keinen ausgefuellten Dienstplan.' : 'Nincs kitöltött beosztás ebben a hónapban.' }]);
       return;
     }
     const result = await onPublish();
@@ -3908,8 +3914,10 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         await createNotificationWithPush({
           userId: targetSchedule.linkedUserId,
           type: 'schedule_swap_request',
-          title: 'Beosztás csere igény',
-          message: `${requesterSchedule.employeeName} csereigényt küldött a beosztásodra (${requesterSchedule.date} ${requesterSchedule.startTime}–${requesterSchedule.endTime}).`,
+          title: market === 'de' ? 'Diensttausch-Anfrage' : 'Beosztás csere igény',
+          message: market === 'de'
+            ? `${requesterSchedule.employeeName} hat eine Tauschanfrage fuer deinen Dienst gesendet (${requesterSchedule.date} ${requesterSchedule.startTime}-${requesterSchedule.endTime}).`
+            : `${requesterSchedule.employeeName} csereigényt küldött a beosztásodra (${requesterSchedule.date} ${requesterSchedule.startTime}–${requesterSchedule.endTime}).`,
           data: { requesterScheduleId: requesterSchedule.id, targetScheduleId: targetSchedule.id },
           url: '/pharmagister?tab=schedule-manager&subtab=swaps',
         });
@@ -5713,14 +5721,14 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           {
             id: `confirm_${cmdType}_${Date.now()}`,
             type: 'local_confirm_command',
-            label: 'Igen, vegrehajtom',
+            label: market === 'de' ? 'Ja, ausfuehren' : 'Igen, vegrehajtom',
             originalType: cmdType,
             originalCommand: { ...cmd, __confirmed: true },
           },
           {
             id: `cancel_${cmdType}_${Date.now()}`,
             type: 'local_cancel_command',
-            label: 'Megse',
+            label: market === 'de' ? 'Abbrechen' : 'Megse',
             originalType: cmdType,
           },
         ],
@@ -5972,15 +5980,17 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           date: demandDate,
           status: 'pending',
           createdAt: new Date().toISOString(),
-          message: `Jelentkezem a ${demandDate} napra.`,
+          message: market === 'de' ? `Ich bewerbe mich fuer den ${demandDate}.` : `Jelentkezem a ${demandDate} napra.`,
         });
 
         try {
           await createNotificationWithPush({
             userId: pharmacyId,
             type: 'pharma_application',
-            title: 'Uj jelentkezo! 📝',
-            message: `${userData.displayName || 'Valaki'} jelentkezett a ${formatHuDate(demandDate)} helyettesitesre.`,
+            title: market === 'de' ? 'Neue Bewerbung! 📝' : 'Uj jelentkezo! 📝',
+            message: market === 'de'
+              ? `${userData.displayName || 'Jemand'} hat sich fuer die Vertretung am ${formatHuDate(demandDate)} beworben.`
+              : `${userData.displayName || 'Valaki'} jelentkezett a ${formatHuDate(demandDate)} helyettesitesre.`,
             data: { demandId, applicantId: user.uid },
             url: `/pharmagister?tab=dashboard&expand=${demandId}`,
           });
@@ -6120,8 +6130,10 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           await createNotificationWithPush({
             userId: appData.applicantId,
             type: 'approval_accepted',
-            title: 'Jelentkezes elfogadva! ✅',
-            message: `${userData?.pharmacyName || userData?.displayName || 'Gyogyszertar'} elfogadta a jelentkezesedet.`,
+            title: market === 'de' ? 'Bewerbung angenommen! ✅' : 'Jelentkezes elfogadva! ✅',
+            message: market === 'de'
+              ? `${userData?.pharmacyName || userData?.displayName || 'Apotheke'} hat deine Bewerbung angenommen.`
+              : `${userData?.pharmacyName || userData?.displayName || 'Gyogyszertar'} elfogadta a jelentkezesedet.`,
             data: { demandId, pharmacyId: user.uid, demandDate: appData.date, position: appData.position },
             url: `/pharmagister/demand/${demandId}`,
           });
@@ -6145,8 +6157,10 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         await createNotificationWithPush({
           userId: appData.applicantId,
           type: 'approval_rejected',
-          title: 'Jelentkezes elutasitva ❌',
-          message: `${userData?.pharmacyName || userData?.displayName || 'Gyogyszertar'} elutasitotta a jelentkezesedet. Indok: ${rejectReason}`,
+          title: market === 'de' ? 'Bewerbung abgelehnt ❌' : 'Jelentkezes elutasitva ❌',
+          message: market === 'de'
+            ? `${userData?.pharmacyName || userData?.displayName || 'Apotheke'} hat deine Bewerbung abgelehnt. Grund: ${rejectReason}`
+            : `${userData?.pharmacyName || userData?.displayName || 'Gyogyszertar'} elutasitotta a jelentkezesedet. Indok: ${rejectReason}`,
           data: { demandId, pharmacyId: user.uid },
           url: '/pharmagister?tab=dashboard',
         });
@@ -6204,7 +6218,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           planCommand: {
             id: `planner_card_auto_${Date.now()}`,
             type: 'local_run_auto_planner',
-            label: 'Igen, beosztas-tervezetet kerek',
+            label: market === 'de' ? 'Ja, ich moechte einen Dienstplan-Entwurf' : 'Igen, beosztas-tervezetet kerek',
             monthNumber: targetMonth,
             monthOffset: null,
             monthLabel: monthName,
@@ -6212,7 +6226,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           cancelCommand: {
             id: `planner_card_cancel_${Date.now()}`,
             type: 'local_cancel_command',
-            label: 'Megse',
+            label: market === 'de' ? 'Abbrechen' : 'Megse',
             originalType: 'local_schedule_wizard_start',
           },
         },
@@ -6274,18 +6288,18 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
       setBettiChatMessages((prev) => [...prev, {
         role: 'assistant',
-        text: 'Valaszd ki, miben segitsek a beosztassal kapcsolatban.',
+        text: market === 'de' ? 'Waehle aus, wobei ich dir beim Dienstplan helfen soll.' : 'Valaszd ki, miben segitsek a beosztassal kapcsolatban.',
         intent: 'local_schedule_control_panel',
         ts: Date.now(),
         scheduleControlCard: {
-          title: 'Beosztas kezelo panel',
+          title: market === 'de' ? 'Dienstplan-Steuerung' : 'Beosztas kezelo panel',
           monthName,
           year: targetYear,
           commands,
           cancelCommand: {
             id: `schedule_panel_cancel_${Date.now()}`,
             type: 'local_cancel_command',
-            label: 'Megse',
+            label: market === 'de' ? 'Abbrechen' : 'Megse',
             originalType: 'local_schedule_control_panel',
           },
         },
@@ -6706,7 +6720,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             planCommand: {
               id: `planner_card_auto_${Date.now()}`,
               type: 'local_run_auto_planner',
-              label: 'Igen, beosztas-tervezetet kerek',
+              label: market === 'de' ? 'Ja, ich moechte einen Dienstplan-Entwurf' : 'Igen, beosztas-tervezetet kerek',
               monthNumber: targetMonth,
               monthOffset: null,
               monthLabel: monthName,
@@ -6714,7 +6728,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             cancelCommand: {
               id: `planner_card_cancel_${Date.now()}`,
               type: 'local_cancel_command',
-              label: 'Megse',
+              label: market === 'de' ? 'Abbrechen' : 'Megse',
               originalType: 'local_schedule_wizard_start',
             },
           },
@@ -6833,14 +6847,14 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                             : 'bg-emerald-500 text-white active:bg-emerald-600'
                         }`}
                       >
-                        {msg?.plannerCard?.planCommand?.label || 'Igen, beosztas-tervezetet kerek'}
+                        {msg?.plannerCard?.planCommand?.label || (market === 'de' ? 'Ja, ich moechte einen Dienstplan-Entwurf' : 'Igen, beosztas-tervezetet kerek')}
                       </button>
                       <button
                         type="button"
                         onClick={() => {
                           const cancelCmd = msg?.plannerCard?.cancelCommand || {
                             type: 'local_cancel_command',
-                            label: 'Megse',
+                            label: market === 'de' ? 'Abbrechen' : 'Megse',
                             originalType: 'local_schedule_wizard_start',
                           };
                           void executeBettiUiCommand(cancelCmd, msg);
@@ -6856,7 +6870,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                             : 'bg-white text-slate-700 border-slate-300 active:bg-slate-100'
                         }`}
                       >
-                        {msg?.plannerCard?.cancelCommand?.label || 'Megse'}
+                        {msg?.plannerCard?.cancelCommand?.label || (market === 'de' ? 'Abbrechen' : 'Megse')}
                       </button>
                     </div>
                   </div>
@@ -6867,7 +6881,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                     darkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-emerald-50 border-emerald-200 text-slate-800'
                   }`}>
                     <p className={`text-xs font-bold uppercase tracking-wide ${darkMode ? 'text-emerald-300' : 'text-emerald-700'}`}>
-                      {msg?.scheduleControlCard?.title || 'Beosztas kezelo panel'}
+                      {msg?.scheduleControlCard?.title || (market === 'de' ? 'Dienstplan-Steuerung' : 'Beosztas kezelo panel')}
                     </p>
                     <p className={`mt-1 text-sm font-semibold ${darkMode ? 'text-white' : 'text-slate-900'}`}>
                       {msg?.scheduleControlCard?.monthName || ''} {msg?.scheduleControlCard?.year || ''}
@@ -6895,7 +6909,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                       onClick={() => {
                         const cancelCmd = msg?.scheduleControlCard?.cancelCommand || {
                           type: 'local_cancel_command',
-                          label: 'Megse',
+                          label: market === 'de' ? 'Abbrechen' : 'Megse',
                           originalType: 'local_schedule_control_panel',
                         };
                         void executeBettiUiCommand(cancelCmd, msg);
@@ -6911,7 +6925,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                           : 'bg-white text-slate-700 border-slate-300 active:bg-slate-100'
                       }`}
                     >
-                      {msg?.scheduleControlCard?.cancelCommand?.label || 'Megse'}
+                      {msg?.scheduleControlCard?.cancelCommand?.label || (market === 'de' ? 'Abbrechen' : 'Megse')}
                     </button>
                   </div>
                 )}
