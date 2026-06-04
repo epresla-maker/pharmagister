@@ -1998,21 +1998,23 @@ function PharmacyScheduleCalendar({
               {/* Select all row */}
               <div className="flex items-center justify-between mb-3">
                 <span className={`text-sm font-semibold ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                  Dolgozók ({employeeRows.filter(r => r.checked).length}/{employeeRows.length} kiválasztva)
+                  {market === 'de'
+                    ? `Mitarbeitende (${employeeRows.filter(r => r.checked).length}/${employeeRows.length} ausgewaehlt)`
+                    : `Dolgozók (${employeeRows.filter(r => r.checked).length}/${employeeRows.length} kiválasztva)`}
                 </span>
                 <div className="flex gap-2">
                   <button type="button" onClick={() => toggleAll(true)} className={`text-xs px-3 py-1 rounded-lg font-medium ${darkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-200' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}>
-                    Mindenki
+                    {market === 'de' ? 'Alle' : 'Mindenki'}
                   </button>
                   <button type="button" onClick={() => toggleAll(false)} className={`text-xs px-3 py-1 rounded-lg font-medium ${darkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-200' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}>
-                    Senki
+                    {market === 'de' ? 'Keine' : 'Senki'}
                   </button>
                 </div>
               </div>
 
               {employeeRows.length === 0 && (
                 <p className={`text-sm text-center py-6 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  Nincs aktív dolgozó. Adj hozzá dolgozókat a Dolgozók fülön.
+                  {market === 'de' ? 'Keine aktiven Mitarbeitenden. Fuege Personen im Tab Mitarbeitende hinzu.' : 'Nincs aktív dolgozó. Adj hozzá dolgozókat a Dolgozók fülön.'}
                 </p>
               )}
 
@@ -2089,9 +2091,9 @@ function PharmacyScheduleCalendar({
                             ? (darkMode ? 'border-rose-500 bg-rose-700/50 text-rose-100' : 'border-rose-400 bg-rose-50 text-rose-700')
                             : (darkMode ? 'border-indigo-600 bg-indigo-900/40 text-indigo-200' : 'border-indigo-300 bg-indigo-50 text-indigo-700')
                         }`}
-                        title="Csere: helyettesítő kiválasztása"
+                        title={market === 'de' ? 'Tausch: Vertretung auswaehlen' : 'Csere: helyettesítő kiválasztása'}
                       >
-                        ⇄ Csere
+                        {market === 'de' ? '⇄ Tausch' : '⇄ Csere'}
                       </button>
                     )}
 
@@ -2210,7 +2212,9 @@ function PharmacyScheduleCalendar({
                           <div className={`px-3 py-2 border-b ${darkMode ? 'border-indigo-700/40' : 'border-indigo-200'}`}>
                             <div className="flex items-center justify-between gap-2">
                               <span className={`text-xs font-bold ${darkMode ? 'text-indigo-300' : 'text-indigo-700'}`}>
-                                {swapTarget ? '✅ Csere megerősítése' : `⇄ ${row.name} – melyik műszakkal cseréljük?`}
+                                {swapTarget
+                                  ? (market === 'de' ? '✅ Tausch bestaetigen' : '✅ Csere megerősítése')
+                                  : (market === 'de' ? `⇄ ${row.name} - mit welcher Schicht tauschen?` : `⇄ ${row.name} – melyik műszakkal cseréljük?`)}
                               </span>
                               <button
                                 type="button"
@@ -2227,7 +2231,7 @@ function PharmacyScheduleCalendar({
                                   className="w-3 h-3 rounded accent-amber-500"
                                 />
                                 <span className={`text-[11px] ${swapIgnoreRole ? 'text-amber-500 font-semibold' : darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                                  Létszámkényszer – bármely beosztottal
+                                  {market === 'de' ? 'Mindestbesetzung erzwingen - mit beliebiger eingeteilter Person' : 'Létszámkényszer – bármely beosztottal'}
                                 </span>
                               </label>
                             )}
@@ -2341,23 +2345,23 @@ function PharmacyScheduleCalendar({
                 <div className="flex items-center gap-2">
                   <span className="text-amber-500 text-base">⚠️</span>
                   <span className={`text-sm font-bold ${darkMode ? 'text-amber-300' : 'text-amber-700'}`}>
-                    Létszámhiány – javaslat a pótláshoz
+                    {market === 'de' ? 'Unterbesetzung - Vorschlaege zur Abdeckung' : 'Létszámhiány – javaslat a pótláshoz'}
                   </span>
                 </div>
                 {staffingWarnings.map((w, wi) => (
                   <div key={wi} className={`rounded-xl border px-4 py-3 space-y-2 ${darkMode ? 'border-amber-700/50 bg-amber-900/20' : 'border-amber-200 bg-white'}`}>
                     <div className={`text-xs font-semibold ${darkMode ? 'text-amber-300' : 'text-amber-700'}`}>
-                      {w.template.startTime}–{w.template.endTime} műszak:{' '}
-                      <span className="font-black">{w.workers}/{w.required} fő</span>
+                      {w.template.startTime}–{w.template.endTime} {market === 'de' ? 'Schicht' : 'műszak'}:{' '}
+                      <span className="font-black">{w.workers}/{w.required} {market === 'de' ? 'Personen' : 'fő'}</span>
                       {w.pharmacistShortage > 0 && (
                         <span className={`ml-2 ${darkMode ? 'text-rose-300' : 'text-rose-600'}`}>
-                          • {w.pharmacists}/{w.requiredPharmacists} gyógyszerész
+                          • {w.pharmacists}/{w.requiredPharmacists} {market === 'de' ? 'Apotheker/in' : 'gyógyszerész'}
                         </span>
                       )}
                     </div>
                     {w.suggestions.length > 0 ? (
                       <div className="space-y-1.5">
-                        <p className={`text-[11px] font-semibold uppercase tracking-wide ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Elérhető dolgozók:</p>
+                        <p className={`text-[11px] font-semibold uppercase tracking-wide ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{market === 'de' ? 'Verfuegbare Mitarbeitende:' : 'Elérhető dolgozók:'}</p>
                         <div className="flex flex-wrap gap-2">
                           {w.suggestions.map(s => {
                             const isPharm = (s.role || '').toLowerCase().includes('pharmacist') || (s.role || '').toLowerCase().includes('gyógyszerész') || (s.role || '').toLowerCase().includes('gyogyszeresz');
@@ -2376,17 +2380,17 @@ function PharmacyScheduleCalendar({
                                 }`}
                               >
                                 <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-black ${isPharm ? 'bg-violet-500 text-white' : 'bg-gray-300 text-gray-700'}`}>
-                                  {isPharm ? 'Gy' : 'A'}
+                                  {isPharm ? (market === 'de' ? 'Ap' : 'Gy') : 'A'}
                                 </span>
                                 {s.name}
-                                <span className="text-[10px] opacity-60">+ hozzáad</span>
+                                <span className="text-[10px] opacity-60">{market === 'de' ? '+ hinzufuegen' : '+ hozzáad'}</span>
                               </button>
                             );
                           })}
                         </div>
                       </div>
                     ) : (
-                      <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Nincs szabad dolgozó erre a napra.</p>
+                      <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{market === 'de' ? 'Keine verfuegbare Person fuer diesen Tag.' : 'Nincs szabad dolgozó erre a napra.'}</p>
                     )}
                   </div>
                 ))}
@@ -2401,7 +2405,7 @@ function PharmacyScheduleCalendar({
                 className={`flex-shrink-0 w-full flex items-center gap-2 px-6 py-2.5 text-xs font-semibold border-t transition-colors ${darkMode ? 'bg-amber-900/30 border-amber-700/60 text-amber-300 hover:bg-amber-900/50' : 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100'}`}
               >
                 <span>🔄</span>
-                <span>{swapLog.length} rögzített csere – Változtatások megtekintése</span>
+                <span>{market === 'de' ? `${swapLog.length} gespeicherte Tausche - Aenderungen anzeigen` : `${swapLog.length} rögzített csere – Változtatások megtekintése`}</span>
                 <ChevronRight className="h-3 w-3 ml-auto" />
               </button>
             )}
@@ -2599,10 +2603,10 @@ function EmployeePreferenceCalendar({
             <span className="text-xl flex-shrink-0">📢</span>
             <div className="flex-1 min-w-0">
               <p className={`text-sm font-bold ${darkMode ? 'text-amber-300' : 'text-amber-800'}`}>
-                {unpublished} nap mentve, de még nincs elküldve
+                {market === 'de' ? `${unpublished} Tage gespeichert, aber noch nicht gesendet` : `${unpublished} nap mentve, de még nincs elküldve`}
               </p>
               <p className={`text-xs mt-0.5 ${darkMode ? 'text-amber-400/80' : 'text-amber-700/80'}`}>
-                A gyógyszertár csak publikálás után látja a tervezetedet
+                {market === 'de' ? 'Die Apotheke sieht deinen Entwurf erst nach der Veroeffentlichung' : 'A gyógyszertár csak publikálás után látja a tervezetedet'}
               </p>
             </div>
             {onPublish && (
@@ -2614,7 +2618,7 @@ function EmployeePreferenceCalendar({
                   darkMode ? 'bg-amber-500 hover:bg-amber-400 text-black' : 'bg-amber-500 hover:bg-amber-600 text-white'
                 }`}
               >
-                {saving ? '...' : 'Publikálás'}
+                {saving ? '...' : (market === 'de' ? 'Veroeffentlichen' : 'Publikálás')}
               </button>
             )}
           </div>
@@ -4560,7 +4564,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         setStatusError(
           market === 'de'
             ? `Veroeffentlichung blockiert: ${blockingErrors.length} kritische Fehler sind noch im Dienstplan.`
-            : `A publikálás blokkolva: ${blockingErrors.length} piros hiba maradt a beosztásban.`
+            : `A publikálás blokkolva: ${blockingErrors.length} kritikus hiba maradt a beosztásban.`
         );
         return { success: false, blockingErrors };
       }
@@ -7032,8 +7036,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                         type="button"
                         onClick={() => {
                           const cancelCmd = msg?.plannerCard?.cancelCommand || {
-                            type: 'local_cancel_command',
-                            label: market === 'de' ? 'Abbrechen' : 'Megse',
+                      <span className="text-white font-bold text-base flex-1">{market === 'de' ? 'Gespeicherte Aenderungen' : 'Rögzített változtatások'}</span>
+                      <span className="text-white/70 text-xs">{market === 'de' ? `${swapLog.length} Tausche` : `${swapLog.length} csere`}</span>
                             originalType: 'local_schedule_wizard_start',
                           };
                           void executeBettiUiCommand(cancelCmd, msg);
@@ -10199,18 +10203,18 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
                         <p className={`text-sm font-semibold ${darkMode ? 'text-emerald-200' : 'text-emerald-800'}`}>
-                          {(market === 'de' ? MONTHS_DE[month - 1] : MONTHS_HU[month - 1])} {year} {market === 'de' ? '- Veroeffentlichung' : '- publikacio'}
+                          {(market === 'de' ? MONTHS_DE[month - 1] : MONTHS_HU[month - 1])} {year} {market === 'de' ? '- Veroeffentlichung' : '- publikáció'}
                         </p>
                         <p className={`text-xs mt-1 ${darkMode ? 'text-emerald-300/80' : 'text-emerald-700/80'}`}>
                           {ownSelectedMonthDraftSummary.total === 0
-                            ? (market === 'de' ? 'Es gibt noch keinen gespeicherten Entwurf fuer diesen Monat.' : 'Meg nincs mentett tervezet erre a honapra.')
+                            ? (market === 'de' ? 'Es gibt noch keinen gespeicherten Entwurf fuer diesen Monat.' : 'Még nincs mentett tervezet erre a hónapra.')
                             : ownSelectedMonthDraftSummary.fullyPublished
                               ? (market === 'de'
                                 ? `Veroeffentlicht (${ownSelectedMonthDraftSummary.published}/${ownSelectedMonthDraftSummary.total} Tage).`
-                                : `Publikalva (${ownSelectedMonthDraftSummary.published}/${ownSelectedMonthDraftSummary.total} nap).`)
+                                : `Publikálva (${ownSelectedMonthDraftSummary.published}/${ownSelectedMonthDraftSummary.total} nap).`)
                               : (market === 'de'
                                 ? `Noch nicht vollstaendig veroeffentlicht (${ownSelectedMonthDraftSummary.published}/${ownSelectedMonthDraftSummary.total} Tage).`
-                                : `Meg nincs teljesen publikalva (${ownSelectedMonthDraftSummary.published}/${ownSelectedMonthDraftSummary.total} nap).`)}
+                                : `Még nincs teljesen publikálva (${ownSelectedMonthDraftSummary.published}/${ownSelectedMonthDraftSummary.total} nap).`)}
                         </p>
                       </div>
                       <button
@@ -10223,7 +10227,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                             : 'bg-emerald-600 hover:bg-emerald-700 text-white'
                         }`}
                       >
-                        {saving ? (market === 'de' ? 'Veroeffentlichen...' : 'Publikalas...') : (market === 'de' ? 'Entwurf veroeffentlichen' : 'Tervezet publikálása')}
+                        {saving ? (market === 'de' ? 'Veroeffentlichen...' : 'Publikálás...') : (market === 'de' ? 'Entwurf veroeffentlichen' : 'Tervezet publikálása')}
                       </button>
                     </div>
                   </div>
