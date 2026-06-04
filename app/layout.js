@@ -1,7 +1,9 @@
 // app/layout.js
 import { Inter } from "next/font/google";
+import { headers } from 'next/headers';
 import "./globals.css";
 import ClientProviders from "@/app/components/ClientProviders";
+import { getMarketFromHost, marketToLang } from '@/lib/market';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -22,9 +24,13 @@ export const viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+  const headersList = await headers();
+  const host = headersList.get('host') || '';
+  const lang = marketToLang(getMarketFromHost(host));
+
   return (
-    <html lang="hu">
+    <html lang={lang}>
       <head>
         <meta name="application-name" content="Pharmagister" />
         <meta name="apple-mobile-web-app-capable" content="yes" />

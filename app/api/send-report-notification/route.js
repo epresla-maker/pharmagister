@@ -5,11 +5,13 @@ import webpush from 'web-push';
 import { verifyAuth } from '@/lib/apiAuth';
 import { escapeHtml } from '@/lib/sanitize';
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
+import { resolveMarketFromRequest, isDocInMarket } from '@/lib/market';
 
 const ADMIN_UID = 'AcBMMwkqMvWAjrodNPPBjFdjjhw2';
 
 export async function POST(request) {
   try {
+    const requestMarket = resolveMarketFromRequest(request);
     // Verify authenticated user
     const authUser = await verifyAuth(request);
     if (!authUser) {
@@ -25,6 +27,7 @@ export async function POST(request) {
       const notifMessage = `${reason} – ${reportedUserName || reportType}`;
       await db.collection('notifications').add({
         userId: ADMIN_UID,
+        market: requestMarket,
         type: 'content_report',
         title: 'Új bejelentés érkezett',
         message: notifMessage,
@@ -46,10 +49,12 @@ export async function POST(request) {
         .where('userId', '==', ADMIN_UID)
         .get();
 
+      const marketSubs = subsSnapshot.docs.filter((doc) => isDocInMarket(doc.data(), requestMarket));
+
       const notifMessage = `${reason} – ${reportedUserName || reportType}`;
       let sent = 0;
 
-      for (const subDoc of subsSnapshot.docs) {
+      for (const subDoc of marketSubs) {
         const sub = subDoc.data();
         
         // === FCM token alapú push (iOS/Android native) ===
@@ -128,7 +133,7 @@ export async function POST(request) {
           }
         }
       }
-      console.log(`[Report API] Push sent to ${sent}/${subsSnapshot.size} subscriptions`);
+      console.log(`[Report API] Push sent to ${sent}/${marketSubs.length} subscriptions in ${requestMarket}`);
     } catch (pushErr) {
       console.error('[Report API] Push notification failed:', pushErr);
     }

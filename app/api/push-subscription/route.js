@@ -1,6 +1,7 @@
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 import { verifyAuth } from '@/lib/apiAuth';
 import { isAdminEmail } from '@/lib/scheduleAccess';
+import { resolveMarketFromRequest, isDocInMarket, normalizeMarket } from '@/lib/market';
 
 function isLikelyApnsToken(token) {
   return typeof token === 'string' && /^[0-9a-fA-F]{64}$/.test(token);
@@ -8,6 +9,7 @@ function isLikelyApnsToken(token) {
 
 export async function GET(request) {
   try {
+    const requestMarket = resolveMarketFromRequest(request);
     const authUser = await verifyAuth(request);
     if (!authUser) {
       return Response.json({ error: 'Nincs jogosultság' }, { status: 401 });
@@ -31,11 +33,11 @@ export async function GET(request) {
       .where('userId', '==', userId)
       .get();
 
-    const hasSubscription = !snapshot.empty;
-    const subscriptions = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+    const subscriptions = snapshot.docs
+      .map(doc => ({ id: doc.id, ...doc.data() }))
+      .filter((doc) => isDocInMarket(doc, requestMarket));
+
+    const hasSubscription = subscriptions.length > 0;
 
     return Response.json({ 
       hasSubscription, 
@@ -51,6 +53,7 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
+    const requestMarket = resolveMarketFromRequest(request);
     const authUser = await verifyAuth(request);
     if (!authUser) {
       return Response.json({ error: 'Nincs jogosultság' }, { status: 401 });
@@ -75,11 +78,16 @@ export async function POST(request) {
       .where('subscription.endpoint', '==', subscription.endpoint)
       .get();
 
-    if (!existingQuery.empty) {
+    const existingInMarket = existingQuery.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }))
+      .find((doc) => isDocInMarket(doc, requestMarket));
+
+    if (existingInMarket) {
       // Update existing subscription
-      const docId = existingQuery.docs[0].id;
+      const docId = existingInMarket.id;
       await db.collection('pushSubscriptions').doc(docId).update({
         subscription,
+        market: requestMarket,
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       });
 
@@ -90,6 +98,8 @@ export async function POST(request) {
         userSubs.docs.forEach((doc) => {
           if (doc.id === docId) return;
           const sub = doc.data()?.subscription || {};
+          const docMarket = normalizeMarket(doc.data()?.market);
+          if (docMarket !== requestMarket) return;
           const isIosSub = sub.platform === 'ios' || sub.endpoint?.startsWith('native-ios-');
           const isApns = sub.tokenType === 'apns' || isLikelyApnsToken(sub.token);
           if (isIosSub && isApns) batch.delete(doc.ref);
@@ -103,6 +113,7 @@ export async function POST(request) {
     // Create new subscription
     const docRef = await db.collection('pushSubscriptions').add({
       userId,
+      market: requestMarket,
       subscription,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
@@ -115,6 +126,8 @@ export async function POST(request) {
       userSubs.docs.forEach((doc) => {
         if (doc.id === docRef.id) return;
         const sub = doc.data()?.subscription || {};
+        const docMarket = normalizeMarket(doc.data()?.market);
+        if (docMarket !== requestMarket) return;
         const isIosSub = sub.platform === 'ios' || sub.endpoint?.startsWith('native-ios-');
         const isApns = sub.tokenType === 'apns' || isLikelyApnsToken(sub.token);
         if (isIosSub && isApns) batch.delete(doc.ref);
@@ -132,6 +145,7 @@ export async function POST(request) {
 
 export async function DELETE(request) {
   try {
+    const requestMarket = resolveMarketFromRequest(request);
     const authUser = await verifyAuth(request);
     if (!authUser) {
       return Response.json({ error: 'Nincs jogosultság' }, { status: 401 });
@@ -160,11 +174,13 @@ export async function DELETE(request) {
     
     const batch = db.batch();
     snapshot.docs.forEach(doc => {
+      if (!isDocInMarket(doc.data(), requestMarket)) return;
       batch.delete(doc.ref);
     });
     await batch.commit();
 
-    return Response.json({ success: true, deleted: snapshot.size });
+    const deleted = snapshot.docs.filter((doc) => isDocInMarket(doc.data(), requestMarket)).length;
+    return Response.json({ success: true, deleted });
 
   } catch (error) {
     console.error('Delete subscription error:', error);

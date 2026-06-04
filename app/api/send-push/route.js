@@ -2,6 +2,7 @@ import webpush from 'web-push';
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 import { verifyAuth } from '@/lib/apiAuth';
 import { canSendNotificationToUser } from '@/lib/scheduleAccess';
+import { resolveMarketFromRequest, isDocInMarket } from '@/lib/market';
 
 // Configure webpush on each request to ensure fresh keys
 function configureWebpush() {
@@ -34,6 +35,7 @@ function isPlainObject(value) {
 
 export async function POST(request) {
   try {
+    const requestMarket = resolveMarketFromRequest(request);
     // Verify authenticated user
     const authUser = await verifyAuth(request);
     if (!authUser) {
@@ -121,6 +123,7 @@ export async function POST(request) {
 
       const notificationRef = await db.collection('notifications').add({
         userId,
+        market: requestMarket,
         type: normalizedType,
         title: normalizedTitle,
         message: normalizedBody,
@@ -160,10 +163,12 @@ export async function POST(request) {
     const subscriptionsSnapshot = await db.collection('pushSubscriptions')
       .where('userId', '==', userId)
       .get();
-    
-    console.log(`📱 Found ${subscriptionsSnapshot.size} subscriptions for user ${userId}`);
 
-    if (subscriptionsSnapshot.empty) {
+    const marketSubscriptions = subscriptionsSnapshot.docs.filter((doc) => isDocInMarket(doc.data(), requestMarket));
+    
+    console.log(`📱 Found ${marketSubscriptions.length} subscriptions in market ${requestMarket} for user ${userId}`);
+
+    if (marketSubscriptions.length === 0) {
       console.log(`No push subscriptions found for user: ${userId}`);
       return Response.json({ success: true, sent: 0, notificationId, message: 'No subscriptions found' });
     }
@@ -172,7 +177,10 @@ export async function POST(request) {
       .where('userId', '==', userId)
       .where('read', '==', false)
       .get();
-    const badgeCount = unreadSnapshot.docs.filter(d => d.data()?.type !== 'new_message').length;
+    const badgeCount = unreadSnapshot.docs
+      .filter((d) => isDocInMarket(d.data(), requestMarket))
+      .filter(d => d.data()?.type !== 'new_message')
+      .length;
 
     const payload = JSON.stringify({
       title: normalizedTitle,
@@ -186,7 +194,7 @@ export async function POST(request) {
     const results = [];
     const expiredSubscriptions = [];
 
-    for (const subDoc of subscriptionsSnapshot.docs) {
+    for (const subDoc of marketSubscriptions) {
       const subscription = subDoc.data().subscription;
       
       try {

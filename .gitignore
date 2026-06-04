@@ -45,6 +45,14 @@ MIGRATED_PASSWORDS.csv
 MIGRATED_PASSWORDS.json
 wpk2_*.csv
 email-send-results.json
+active-pharmacy-emails-*.csv
+active-pharmacy-emails-*.txt
+all-pharmacy-emails-*.csv
+all-pharmacy-emails-*.txt
+pharmacy-push-enabled-*.csv
+pharmacy-push-enabled-*.txt
+pharmacy-push-report-*.json
+email-send-report-pharmacies-*.json
 
 # Migration scripts with sensitive data
 migrate-wp-users.js

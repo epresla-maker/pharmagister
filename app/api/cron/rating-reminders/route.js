@@ -1,4 +1,5 @@
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
+import { resolveMarketFromRequest, normalizeMarket, isDocInMarket } from '@/lib/market';
 
 // Vercel Cron Job - naponta 19:00-kor CET
 // cron: 0 18 * * * (UTC, ami CET 19:00)
@@ -11,6 +12,9 @@ import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 
 export async function GET(request) {
   try {
+    const url = new URL(request.url);
+    const queryMarket = url.searchParams.get('market');
+    const requestMarket = queryMarket ? normalizeMarket(queryMarket) : resolveMarketFromRequest(request);
     // Verify cron secret (Vercel automatically adds this header)
     const authHeader = request.headers.get('authorization');
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -62,6 +66,7 @@ export async function GET(request) {
 
     for (const doc of demandsSnapshot.docs) {
       const demand = doc.data();
+      if (!isDocInMarket(demand, requestMarket)) continue;
       
       // Status szűrés memóriában
       if (!['accepted', 'completed'].includes(demand.status)) continue;
@@ -113,7 +118,9 @@ export async function GET(request) {
         .where('type', '==', 'rating_reminder')
         .select('relatedId')
         .get();
-      remindersSnap.docs.forEach(d => existingReminderIds.add(d.data().relatedId));
+      remindersSnap.docs
+        .filter((d) => isDocInMarket(d.data(), requestMarket))
+        .forEach(d => existingReminderIds.add(d.data().relatedId));
     }
 
     // Szűrjük ki ahol már van értékelés vagy emlékeztető
@@ -156,6 +163,7 @@ export async function GET(request) {
         .where('userId', 'in', chunk)
         .get();
       subsSnap.docs.forEach(doc => {
+        if (!isDocInMarket(doc.data(), requestMarket)) return;
         const data = doc.data();
         if (!pharmacySubscriptions[data.userId]) {
           pharmacySubscriptions[data.userId] = [];
@@ -178,6 +186,7 @@ export async function GET(request) {
       const notifRef = db.collection('notifications').doc();
       batch.set(notifRef, {
         userId: demand.pharmacyId,
+        market: requestMarket,
         type: 'rating_reminder',
         title: 'Értékeld a helyettesítőt!',
         body: `Hogy dolgoztatok együtt? Értékeld ${substituteName} munkáját!`,

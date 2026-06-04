@@ -1,6 +1,7 @@
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 import { verifyAuth } from '@/lib/apiAuth';
 import webpush from 'web-push';
+import { resolveMarketFromRequest, isDocInMarket, normalizeMarket } from '@/lib/market';
 
 function configureWebpush() {
   let VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
@@ -14,6 +15,7 @@ function configureWebpush() {
 
 export async function POST(request) {
   try {
+    const requestMarket = resolveMarketFromRequest(request);
     // Verify authenticated user
     const authUser = await verifyAuth(request);
     if (!authUser) {
@@ -50,6 +52,9 @@ export async function POST(request) {
     
     usersSnapshot.forEach(doc => {
       const userData = doc.data();
+      if (!isDocInMarket(userData, requestMarket)) {
+        return;
+      }
       const settings = userData.notificationSettings || {};
       
       if (doc.id === ADMIN_UID) {
@@ -113,6 +118,7 @@ export async function POST(request) {
         // App értesítés létrehozása
         await db.collection('notifications').add({
           userId: userInfo.id,
+          market: requestMarket,
           type: 'new_demand',
           title: 'Új helyettesítési igény!',
           message: `${pharmacyName || 'Egy gyógyszertár'} ${positionLabel} helyettest keres ${dateStr ? `(${dateStr})` : ''}.`,
@@ -130,8 +136,10 @@ export async function POST(request) {
           const subsSnapshot = await db.collection('pushSubscriptions')
             .where('userId', '==', userInfo.id)
             .get();
+
+          const marketSubs = subsSnapshot.docs.filter((doc) => isDocInMarket(doc.data(), requestMarket));
           
-          if (!subsSnapshot.empty) {
+          if (marketSubs.length > 0) {
             const webPayload = JSON.stringify({
               title: 'Új helyettesítési igény',
               body: `${pharmacyName || 'Egy gyógyszertár'} ${positionLabel} helyettest keres${dateStr ? ` (${dateStr})` : ''}.`,
@@ -143,7 +151,7 @@ export async function POST(request) {
             
             const webpushReady = configureWebpush();
             
-            for (const subDoc of subsSnapshot.docs) {
+            for (const subDoc of marketSubs) {
               const subscription = subDoc.data().subscription;
               try {
                 if (subscription.endpoint?.startsWith('native-') && subscription.token) {
@@ -179,7 +187,10 @@ export async function POST(request) {
                 if (pushErr.statusCode === 410 || pushErr.statusCode === 404 ||
                     pushErr.code === 'messaging/registration-token-not-registered' ||
                     pushErr.code === 'messaging/invalid-registration-token') {
-                  await db.collection('pushSubscriptions').doc(subDoc.id).delete();
+                  const subMarket = normalizeMarket(subDoc.data()?.market);
+                  if (subMarket === requestMarket) {
+                    await db.collection('pushSubscriptions').doc(subDoc.id).delete();
+                  }
                 }
               }
             }

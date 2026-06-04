@@ -1,9 +1,11 @@
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 import { verifyAuth } from '@/lib/apiAuth';
 import { isAdminEmail } from '@/lib/scheduleAccess';
+import { resolveMarketFromRequest, isDocInMarket } from '@/lib/market';
 
 export async function POST(request) {
   try {
+    const requestMarket = resolveMarketFromRequest(request);
     const authUser = await verifyAuth(request);
     if (!authUser) {
       return Response.json({ error: 'Nincs jogosultság' }, { status: 401 });
@@ -28,9 +30,11 @@ export async function POST(request) {
       .where('subscription.endpoint', '==', endpoint)
       .get();
 
+    const matching = existingQuery.docs.filter((doc) => isDocInMarket(doc.data(), requestMarket));
+
     return Response.json({ 
-      exists: !existingQuery.empty,
-      count: existingQuery.size
+      exists: matching.length > 0,
+      count: matching.length
     });
 
   } catch (error) {

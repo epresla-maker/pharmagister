@@ -7,6 +7,7 @@ import {
   ArrowLeft, 
   User, 
   Bell, 
+  Languages,
   Shield, 
   ShieldCheck,
   HelpCircle, 
@@ -120,6 +121,13 @@ export default function SettingsPage() {
     {
       title: 'Alkalmazás',
       items: [
+        {
+          icon: Languages,
+          label: 'Piac es nyelv (HU/DE)',
+          onClick: () => router.push('/settings/market'),
+          color: 'text-emerald-600',
+          bgColor: darkMode ? 'bg-emerald-900/30' : 'bg-emerald-100'
+        },
         {
           icon: Bell,
           label: 'Értesítések',
