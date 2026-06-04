@@ -1054,8 +1054,10 @@ function PharmacyScheduleCalendar({
         await createNotificationWithPush({
           userId: targetSchedule.linkedUserId,
           type: 'schedule_swap_request',
-          title: 'Beosztás csere igény',
-          message: `${requesterSchedule.employeeName} csereigényt küldött a beosztásodra (${requesterSchedule.date} ${requesterSchedule.startTime}–${requesterSchedule.endTime}).`,
+          title: market === 'de' ? 'Diensttausch-Anfrage' : 'Beosztás csere igény',
+          message: market === 'de'
+            ? `${requesterSchedule.employeeName} hat eine Tauschanfrage fuer deinen Dienst gesendet (${requesterSchedule.date} ${requesterSchedule.startTime}-${requesterSchedule.endTime}).`
+            : `${requesterSchedule.employeeName} csereigényt küldött a beosztásodra (${requesterSchedule.date} ${requesterSchedule.startTime}–${requesterSchedule.endTime}).`,
           data: { requesterScheduleId: requesterSchedule.id, targetScheduleId: targetSchedule.id },
           url: '/pharmagister?tab=schedule-manager&subtab=swaps',
         });
@@ -3916,18 +3918,24 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       await createNotificationWithPush({
         userId: requesterSchedule.pharmacyId,
         type: 'schedule_swap_request_for_pharmacy',
-        title: 'Új beosztás csere igény indult',
-        message: `${requesterSchedule.employeeName} cserét kezdeményezett ${targetSchedule.employeeName} beosztásával.`,
+        title: market === 'de' ? 'Neue Diensttausch-Anfrage' : 'Új beosztás csere igény indult',
+        message: market === 'de'
+          ? `${requesterSchedule.employeeName} hat einen Tausch mit dem Dienst von ${targetSchedule.employeeName} angefragt.`
+          : `${requesterSchedule.employeeName} cserét kezdeményezett ${targetSchedule.employeeName} beosztásával.`,
         data: { requesterScheduleId: requesterSchedule.id, targetScheduleId: targetSchedule.id },
         url: '/pharmagister?tab=schedule-manager&subtab=swaps',
       });
 
       setSwapForm({ requesterScheduleId: '', targetScheduleId: '', message: '' });
-      setStatusMessage('Csereigény elküldve, az értesítés megérkezett a csere alanyához.');
+      setStatusMessage(
+        market === 'de'
+          ? 'Tauschanfrage gesendet, Benachrichtigung wurde zugestellt.'
+          : 'Csereigény elküldve, az értesítés megérkezett a csere alanyához.'
+      );
       await loadData();
     } catch (error) {
       console.error('Create swap request error:', error);
-      setStatusError('Nem sikerült elküldeni a csereigényt.');
+      setStatusError(market === 'de' ? 'Tauschanfrage konnte nicht gesendet werden.' : 'Nem sikerült elküldeni a csereigényt.');
     } finally {
       setSaving(false);
     }
@@ -3938,7 +3946,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     const requesterSchedule = schedules.find(item => item.id === requesterScheduleId);
     const targetSchedule = schedules.find(item => item.id === targetScheduleId);
     if (!requesterSchedule || !targetSchedule) {
-      setStatusError('Beosztás nem található.');
+      setStatusError(market === 'de' ? 'Dienst nicht gefunden.' : 'Beosztás nem található.');
       return;
     }
 
@@ -3974,8 +3982,10 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         await createNotificationWithPush({
           userId: targetSchedule.linkedUserId,
           type: 'schedule_swap_request',
-          title: 'Beosztás csere igény',
-          message: `${requesterSchedule.employeeName} cserét kér a ${requesterSchedule.date} ${requesterSchedule.startTime}–${requesterSchedule.endTime} műszakodra.`,
+          title: market === 'de' ? 'Diensttausch-Anfrage' : 'Beosztás csere igény',
+          message: market === 'de'
+            ? `${requesterSchedule.employeeName} moechte deinen Dienst tauschen (${requesterSchedule.date} ${requesterSchedule.startTime}-${requesterSchedule.endTime}).`
+            : `${requesterSchedule.employeeName} cserét kér a ${requesterSchedule.date} ${requesterSchedule.startTime}–${requesterSchedule.endTime} műszakodra.`,
           data: { requesterScheduleId: requesterSchedule.id, targetScheduleId: targetSchedule.id },
           url: '/pharmagister?tab=schedule-manager&subtab=swaps',
         });
@@ -3984,8 +3994,10 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       await createNotificationWithPush({
         userId: requesterSchedule.pharmacyId,
         type: 'schedule_swap_request_for_pharmacy',
-        title: 'Új beosztás csere igény indult',
-        message: `${requesterSchedule.employeeName} csereigényt nyújtott be ${targetSchedule.employeeName} beosztásával. Az elfogadáshoz a kollégája döntése után még jóváhagyásra van szükség.`,
+        title: market === 'de' ? 'Neue Diensttausch-Anfrage' : 'Új beosztás csere igény indult',
+        message: market === 'de'
+          ? `${requesterSchedule.employeeName} hat eine Tauschanfrage mit dem Dienst von ${targetSchedule.employeeName} eingereicht. Danach ist noch eine Apothekenfreigabe noetig.`
+          : `${requesterSchedule.employeeName} csereigényt nyújtott be ${targetSchedule.employeeName} beosztásával. Az elfogadáshoz a kollégája döntése után még jóváhagyásra van szükség.`,
         data: { requesterScheduleId: requesterSchedule.id, targetScheduleId: targetSchedule.id },
         url: '/pharmagister?tab=schedule-manager&subtab=swaps',
         dedupeWindowSeconds: 60,
@@ -3994,11 +4006,11 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
       setQuickSwapScheduleId(null);
       setQuickSwapMessage('');
-      setStatusMessage(`Csereigény elküldve ${targetSchedule.employeeName} felé.`);
+      setStatusMessage(market === 'de' ? `Tauschanfrage an ${targetSchedule.employeeName} gesendet.` : `Csereigény elküldve ${targetSchedule.employeeName} felé.`);
       await loadData();
     } catch (error) {
       console.error('Quick swap request error:', error);
-      setStatusError('Nem sikerült elküldeni a csereigényt.');
+      setStatusError(market === 'de' ? 'Tauschanfrage konnte nicht gesendet werden.' : 'Nem sikerült elküldeni a csereigényt.');
     } finally {
       setSaving(false);
     }
@@ -4027,8 +4039,10 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           await createNotificationWithPush({
             userId: requestItem.requesterUserId,
             type: 'schedule_swap_employee_accepted',
-            title: 'Csere elfogadva – gyógyszertár jóváhagyása szükséges',
-            message: `${requestItem.targetName} elfogadta a csereigényt. A csere végrehajtásához még a gyógyszertár jóváhagyása szükséges.`,
+            title: market === 'de' ? 'Tausch akzeptiert – Apothekenfreigabe erforderlich' : 'Csere elfogadva – gyógyszertár jóváhagyása szükséges',
+            message: market === 'de'
+              ? `${requestItem.targetName} hat die Tauschanfrage akzeptiert. Fuer die Umsetzung ist noch die Apothekenfreigabe erforderlich.`
+              : `${requestItem.targetName} elfogadta a csereigényt. A csere végrehajtásához még a gyógyszertár jóváhagyása szükséges.`,
             data: { requestId },
             url: '/pharmagister?tab=schedule-manager&subtab=swaps',
           });
@@ -4038,15 +4052,17 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         await createNotificationWithPush({
           userId: requestItem.pharmacyId,
           type: 'schedule_swap_awaiting_pharmacy',
-          title: 'Csere jóváhagyása szükséges',
-          message: `${requestItem.requesterName} és ${requestItem.targetName} beosztáscseréje elfogadásra vár. Kérjük, erősítse meg vagy utasítsa el.`,
+          title: market === 'de' ? 'Tauschfreigabe erforderlich' : 'Csere jóváhagyása szükséges',
+          message: market === 'de'
+            ? `Der Diensttausch von ${requestItem.requesterName} und ${requestItem.targetName} wartet auf Freigabe. Bitte bestaetigen oder ablehnen.`
+            : `${requestItem.requesterName} és ${requestItem.targetName} beosztáscseréje elfogadásra vár. Kérjük, erősítse meg vagy utasítsa el.`,
           data: { requestId },
           url: '/pharmagister?tab=schedule-manager&subtab=swaps',
           dedupeWindowSeconds: 120,
           dedupeByDataKeys: ['requestId'],
         });
 
-        setStatusMessage('Elfogadtad a csereigényt. Várakozás a gyógyszertár jóváhagyására.');
+        setStatusMessage(market === 'de' ? 'Tauschanfrage akzeptiert. Warte auf Apothekenfreigabe.' : 'Elfogadtad a csereigényt. Várakozás a gyógyszertár jóváhagyására.');
       } else {
         // Employee rejects
         await updateDoc(doc(db, 'scheduleSwapRequests', requestId), {
@@ -4059,8 +4075,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           await createNotificationWithPush({
             userId: requestItem.requesterUserId,
             type: 'schedule_swap_result',
-            title: 'Csereigény elutasítva',
-            message: `${requestItem.targetName} elutasította a csereigényt.`,
+            title: market === 'de' ? 'Tauschanfrage abgelehnt' : 'Csereigény elutasítva',
+            message: market === 'de' ? `${requestItem.targetName} hat die Tauschanfrage abgelehnt.` : `${requestItem.targetName} elutasította a csereigényt.`,
             data: { requestId },
             url: '/pharmagister?tab=schedule-manager&subtab=swaps',
           });
@@ -4069,19 +4085,21 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         await createNotificationWithPush({
           userId: requestItem.pharmacyId,
           type: 'schedule_swap_result_for_pharmacy',
-          title: 'Csere elutasítva',
-          message: `${requestItem.targetName} nem fogadta el a csereigényt (${requestItem.requesterName} kezdeményezte).`,
+          title: market === 'de' ? 'Tausch abgelehnt' : 'Csere elutasítva',
+          message: market === 'de'
+            ? `${requestItem.targetName} hat die Tauschanfrage nicht akzeptiert (${requestItem.requesterName} hat sie initiiert).`
+            : `${requestItem.targetName} nem fogadta el a csereigényt (${requestItem.requesterName} kezdeményezte).`,
           data: { requestId },
           url: '/pharmagister?tab=schedule-manager&subtab=swaps',
         });
 
-        setStatusMessage('A csereigényt elutasítottad.');
+        setStatusMessage(market === 'de' ? 'Tauschanfrage abgelehnt.' : 'A csereigényt elutasítottad.');
       }
 
       await loadData();
     } catch (error) {
       console.error('Respond to swap request error:', error);
-      setStatusError(error.message || 'Nem sikerült lezárni a csereigényt.');
+      setStatusError(error.message || (market === 'de' ? 'Tauschanfrage konnte nicht abgeschlossen werden.' : 'Nem sikerült lezárni a csereigényt.'));
     } finally {
       setSaving(false);
     }
@@ -4121,8 +4139,10 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             await createNotificationWithPush({
               userId: linkedUserId,
               type: 'schedule_swap_cancelled',
-              title: 'Csereigény megszakítva',
-              message: 'A csereigény megszakadt, mert az egyik érintett beosztás már nem található.',
+              title: market === 'de' ? 'Tauschanfrage abgebrochen' : 'Csereigény megszakítva',
+              message: market === 'de'
+                ? 'Die Tauschanfrage wurde abgebrochen, weil einer der betroffenen Dienste nicht mehr verfuegbar ist.'
+                : 'A csereigény megszakadt, mert az egyik érintett beosztás már nem található.',
               data: { requestId, pharmacyId: requestItem.pharmacyId },
               url: '/pharmagister?tab=schedule-manager&subtab=swaps',
               dedupeWindowSeconds: 120,
@@ -4130,7 +4150,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             });
           }
           await loadData();
-          setStatusError('A csere egyik beosztása már nem található, a csereigényt visszavontuk.');
+          setStatusError(market === 'de' ? 'Einer der Tausch-Dienste wurde nicht gefunden, die Anfrage wurde zurueckgezogen.' : 'A csere egyik beosztása már nem található, a csereigényt visszavontuk.');
           return;
         }
 
@@ -4172,8 +4192,10 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           await createNotificationWithPush({
             userId: requestItem.requesterUserId,
             type: 'schedule_swap_result',
-            title: 'Csere jóváhagyva – beosztás frissítve',
-            message: `A gyógyszertár jóváhagyta a cserét ${requestItem.targetName} dolgozóval. Az új beosztás automatikusan publikálva.`,
+            title: market === 'de' ? 'Tausch genehmigt – Dienstplan aktualisiert' : 'Csere jóváhagyva – beosztás frissítve',
+            message: market === 'de'
+              ? `Die Apotheke hat den Tausch mit ${requestItem.targetName} genehmigt. Der neue Dienstplan wurde automatisch veroeffentlicht.`
+              : `A gyógyszertár jóváhagyta a cserét ${requestItem.targetName} dolgozóval. Az új beosztás automatikusan publikálva.`,
             data: { requestId },
             url: '/pharmagister?tab=schedule-manager&subtab=swaps',
           });
@@ -4182,14 +4204,16 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           await createNotificationWithPush({
             userId: requestItem.targetUserId,
             type: 'schedule_swap_result',
-            title: 'Csere jóváhagyva – beosztás frissítve',
-            message: `A gyógyszertár jóváhagyta a cserét ${requestItem.requesterName} dolgozóval. Az új beosztás automatikusan publikálva.`,
+            title: market === 'de' ? 'Tausch genehmigt – Dienstplan aktualisiert' : 'Csere jóváhagyva – beosztás frissítve',
+            message: market === 'de'
+              ? `Die Apotheke hat den Tausch mit ${requestItem.requesterName} genehmigt. Der neue Dienstplan wurde automatisch veroeffentlicht.`
+              : `A gyógyszertár jóváhagyta a cserét ${requestItem.requesterName} dolgozóval. Az új beosztás automatikusan publikálva.`,
             data: { requestId },
             url: '/pharmagister?tab=schedule-manager&subtab=swaps',
           });
         }
 
-        setStatusMessage('Csere jóváhagyva, beosztások automatikusan újrapublikálva.');
+        setStatusMessage(market === 'de' ? 'Tausch genehmigt, Dienstplaene wurden automatisch neu veroeffentlicht.' : 'Csere jóváhagyva, beosztások automatikusan újrapublikálva.');
       } else {
         // Pharmacy rejects
         await updateDoc(doc(db, 'scheduleSwapRequests', requestId), {
@@ -4202,8 +4226,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           await createNotificationWithPush({
             userId: requestItem.requesterUserId,
             type: 'schedule_swap_result',
-            title: 'Csere elutasítva a gyógyszertár által',
-            message: `A gyógyszertár nem hagyta jóvá a cserét ${requestItem.targetName} dolgozóval.`,
+            title: market === 'de' ? 'Tausch von Apotheke abgelehnt' : 'Csere elutasítva a gyógyszertár által',
+            message: market === 'de' ? `Die Apotheke hat den Tausch mit ${requestItem.targetName} nicht genehmigt.` : `A gyógyszertár nem hagyta jóvá a cserét ${requestItem.targetName} dolgozóval.`,
             data: { requestId },
             url: '/pharmagister?tab=schedule-manager&subtab=swaps',
           });
@@ -4212,20 +4236,20 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           await createNotificationWithPush({
             userId: requestItem.targetUserId,
             type: 'schedule_swap_result',
-            title: 'Csere elutasítva a gyógyszertár által',
-            message: `A gyógyszertár nem hagyta jóvá a cserét ${requestItem.requesterName} dolgozóval.`,
+            title: market === 'de' ? 'Tausch von Apotheke abgelehnt' : 'Csere elutasítva a gyógyszertár által',
+            message: market === 'de' ? `Die Apotheke hat den Tausch mit ${requestItem.requesterName} nicht genehmigt.` : `A gyógyszertár nem hagyta jóvá a cserét ${requestItem.requesterName} dolgozóval.`,
             data: { requestId },
             url: '/pharmagister?tab=schedule-manager&subtab=swaps',
           });
         }
 
-        setStatusMessage('A cserét elutasítottad.');
+        setStatusMessage(market === 'de' ? 'Tausch abgelehnt.' : 'A cserét elutasítottad.');
       }
 
       await loadData();
     } catch (error) {
       console.error('Pharmacy respond to swap error:', error);
-      setStatusError(error.message || 'Nem sikerült lezárni a csereigényt.');
+      setStatusError(error.message || (market === 'de' ? 'Tauschanfrage konnte nicht abgeschlossen werden.' : 'Nem sikerült lezárni a csereigényt.'));
     } finally {
       setSaving(false);
     }
@@ -4252,17 +4276,17 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     setStatusMessage('');
 
     if (!vacationForm.startDate || !vacationForm.endDate) {
-      setStatusError('Add meg a szabadság időszakát.');
+      setStatusError(market === 'de' ? 'Bitte gib den Urlaubszeitraum an.' : 'Add meg a szabadság időszakát.');
       return;
     }
     if (vacationForm.endDate < vacationForm.startDate) {
-      setStatusError('A záró dátum nem lehet korábbi a kezdő dátumnál.');
+      setStatusError(market === 'de' ? 'Das Enddatum darf nicht vor dem Startdatum liegen.' : 'A záró dátum nem lehet korábbi a kezdő dátumnál.');
       return;
     }
 
     const employeeRecord = ownEmployeeRecords[0];
     if (!employeeRecord) {
-      setStatusError('Ehhez a fiókhoz nincs kapcsolt dolgozói rekord.');
+      setStatusError(market === 'de' ? 'Zu diesem Konto ist kein Mitarbeiterdatensatz verknuepft.' : 'Ehhez a fiókhoz nincs kapcsolt dolgozói rekord.');
       return;
     }
 
@@ -4286,18 +4310,18 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       await createNotificationWithPush({
         userId: employeeRecord.pharmacyId,
         type: 'vacation_request_created',
-        title: 'Új szabadságigény',
-        message: `${employeeRecord.name} szabadságigényt küldött be.`,
+        title: market === 'de' ? 'Neuer Urlaubsantrag' : 'Új szabadságigény',
+        message: market === 'de' ? `${employeeRecord.name} hat einen Urlaubsantrag eingereicht.` : `${employeeRecord.name} szabadságigényt küldött be.`,
         data: { employeeId: employeeRecord.id },
         url: '/pharmagister?tab=schedule-manager&subtab=schedule',
       });
 
       setVacationForm(prev => ({ ...prev, reason: '' }));
-      setStatusMessage('Szabadságigény elküldve.');
+      setStatusMessage(market === 'de' ? 'Urlaubsantrag gesendet.' : 'Szabadságigény elküldve.');
       await loadData();
     } catch (error) {
       console.error('Create vacation request error:', error);
-      setStatusError('Nem sikerült elküldeni a szabadságigényt.');
+      setStatusError(market === 'de' ? 'Urlaubsantrag konnte nicht gesendet werden.' : 'Nem sikerült elküldeni a szabadságigényt.');
     } finally {
       setSaving(false);
     }
@@ -4322,10 +4346,16 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         await createNotificationWithPush({
           userId: requestItem.userId,
           type: 'vacation_request_result',
-          title: decision === 'accepted' ? 'Szabadság jóváhagyva' : 'Szabadság elutasítva',
+          title: decision === 'accepted'
+            ? (market === 'de' ? 'Urlaub genehmigt' : 'Szabadság jóváhagyva')
+            : (market === 'de' ? 'Urlaub abgelehnt' : 'Szabadság elutasítva'),
           message: decision === 'accepted'
-            ? `${requestItem.startDate} - ${requestItem.endDate} közötti szabadságigényed jóvá lett hagyva.`
-            : `${requestItem.startDate} - ${requestItem.endDate} közötti szabadságigényed el lett utasítva.`,
+            ? (market === 'de'
+              ? `Dein Urlaubsantrag fuer ${requestItem.startDate} - ${requestItem.endDate} wurde genehmigt.`
+              : `${requestItem.startDate} - ${requestItem.endDate} közötti szabadságigényed jóvá lett hagyva.`)
+            : (market === 'de'
+              ? `Dein Urlaubsantrag fuer ${requestItem.startDate} - ${requestItem.endDate} wurde abgelehnt.`
+              : `${requestItem.startDate} - ${requestItem.endDate} közötti szabadságigényed el lett utasítva.`),
           data: { requestId, pharmacyId: requestItem.pharmacyId },
           url: '/pharmagister?tab=schedule-manager&subtab=vacations',
         });
@@ -4337,14 +4367,18 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           sickEmployeeId: requestItem.employeeId,
           affectedDates: getDateRangeKeys(requestItem.startDate, requestItem.endDate),
         });
-        setStatusMessage('A szabadságigény jóváhagyva, és újratervezési javaslat készült az érintett napokra.');
+        setStatusMessage(
+          market === 'de'
+            ? 'Urlaubsantrag genehmigt, fuer die betroffenen Tage wurde ein Neuplanungs-Vorschlag erstellt.'
+            : 'A szabadságigény jóváhagyva, és újratervezési javaslat készült az érintett napokra.'
+        );
       } else {
-        setStatusMessage('A szabadságigény elutasítva.');
+        setStatusMessage(market === 'de' ? 'Urlaubsantrag abgelehnt.' : 'A szabadságigény elutasítva.');
       }
       await loadData();
     } catch (error) {
       console.error('Respond to vacation request error:', error);
-      setStatusError(error.message || 'Nem sikerült frissíteni a szabadságigényt.');
+      setStatusError(error.message || (market === 'de' ? 'Urlaubsantrag konnte nicht aktualisiert werden.' : 'Nem sikerült frissíteni a szabadságigényt.'));
     } finally {
       setSaving(false);
     }
@@ -7142,12 +7176,16 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
       const result = await response.json();
       if (!response.ok || !result?.success) {
-        throw new Error(result?.error || 'Automatikus tervezési hiba történt.');
+        throw new Error(result?.error || (market === 'de' ? 'Fehler bei der automatischen Planung.' : 'Automatikus tervezési hiba történt.'));
       }
 
       const proposed = result.proposedShifts || [];
       if (proposed.length === 0) {
-        setStatusMessage('Az automatikus tervező nem javasolt új műszakot (lehet már minden nap ki van töltve).');
+        setStatusMessage(
+          market === 'de'
+            ? 'Der automatische Planer hat keine neuen Dienste vorgeschlagen (moeglicherweise sind alle Tage bereits ausgefuellt).'
+            : 'Az automatikus tervező nem javasolt új műszakot (lehet már minden nap ki van töltve).'
+        );
         return;
       }
 
@@ -7195,16 +7233,18 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       const errorCount = (result.conflicts || []).filter(c => c.severity === 'error').length;
       const warningCount = (result.conflicts || []).filter(c => c.severity === 'warning').length;
       setStatusMessage(
-        `✅ Intelligens beosztás generálva: ${created} műszak mentve` +
-        (errorCount ? `, ${errorCount} piros figyelmeztetés` : '') +
-        (warningCount ? `, ${warningCount} narancs figyelmeztetés` : '') +
-        '.'
+        market === 'de'
+          ? `Intelligenter Dienstplan erstellt: ${created} Dienste gespeichert${errorCount ? `, ${errorCount} kritische Warnungen` : ''}${warningCount ? `, ${warningCount} Hinweise` : ''}.`
+          : `✅ Intelligens beosztás generálva: ${created} műszak mentve` +
+            (errorCount ? `, ${errorCount} piros figyelmeztetés` : '') +
+            (warningCount ? `, ${warningCount} narancs figyelmeztetés` : '') +
+            '.'
       );
       setPlannerResult(result);
       await loadData();
     } catch (error) {
       console.error('generateAndApply error:', error);
-      setStatusError(error.message || 'Nem sikerült lefuttatni az automatikus tervezést.');
+      setStatusError(error.message || (market === 'de' ? 'Automatische Planung konnte nicht ausgefuehrt werden.' : 'Nem sikerült lefuttatni az automatikus tervezést.'));
     } finally {
       setPlannerLoading(false);
     }
@@ -7212,7 +7252,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
   async function handleApplyPlannerResult() {
     if (!plannerResult?.proposedShifts?.length) {
-      setStatusError('Nincs alkalmazható javasolt műszak.');
+      setStatusError(market === 'de' ? 'Keine anwendbaren vorgeschlagenen Dienste.' : 'Nincs alkalmazható javasolt műszak.');
       return;
     }
     await applyProposedShifts(plannerResult.proposedShifts);
@@ -7220,7 +7260,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
   async function applyProposedShifts(proposedShifts) {
     if (!proposedShifts?.length) {
-      setStatusError('Nincs alkalmazható javasolt műszak.');
+      setStatusError(market === 'de' ? 'Keine anwendbaren vorgeschlagenen Dienste.' : 'Nincs alkalmazható javasolt műszak.');
       return;
     }
 
@@ -7272,12 +7312,16 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         created += 1;
       }
 
-      setStatusMessage(`Automatikus terv alkalmazva: ${created} új műszak mentve.`);
+      setStatusMessage(
+        market === 'de'
+          ? `Automatischer Plan angewendet: ${created} neue Dienste gespeichert.`
+          : `Automatikus terv alkalmazva: ${created} új műszak mentve.`
+      );
       setPlannerResult(null);
       await loadData();
     } catch (error) {
       console.error('Apply planner result error:', error);
-      setStatusError('Nem sikerült alkalmazni az automatikus tervet.');
+      setStatusError(market === 'de' ? 'Automatischer Plan konnte nicht angewendet werden.' : 'Nem sikerült alkalmazni az automatikus tervet.');
     } finally {
       setApplyingPlanner(false);
     }
