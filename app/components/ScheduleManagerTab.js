@@ -414,10 +414,10 @@ function normalizeEmail(email) {
   return (email || '').trim().toLowerCase();
 }
 
-function prettyRole(role) {
-  if (role === 'pharmacist') return 'Gyógyszerész';
-  if (role === 'assistant') return 'Szakasszisztens';
-  return 'Egyéb';
+function prettyRole(role, market = 'hu') {
+  if (role === 'pharmacist') return market === 'de' ? 'Apotheker/in' : 'Gyógyszerész';
+  if (role === 'assistant') return market === 'de' ? 'Pharmazeutisch-technische Assistenz' : 'Szakasszisztens';
+  return market === 'de' ? 'Andere' : 'Egyéb';
 }
 
 function normalizeRoleFromProfile(role) {
@@ -658,7 +658,7 @@ function getShiftType(key) {
   return SHIFT_TYPES.find(t => t.key === key) || SHIFT_TYPES[0];
 }
 
-function calcHours(from, to) {
+function calcHours(from, to, market = 'hu') {
   if (!from || !to) return null;
   const [fh, fm] = from.split(':').map(Number);
   const [th, tm] = to.split(':').map(Number);
@@ -666,10 +666,92 @@ function calcHours(from, to) {
   if (mins <= 0) return null;
   const h = Math.floor(mins / 60);
   const m = mins % 60;
+  if (market === 'de') {
+    return m === 0 ? `${h} Std` : `${h} Std ${m} Min`;
+  }
   return m === 0 ? `${h}ó` : `${h}ó${m}p`;
 }
 
-function getErrorAdvice(code) {
+function getErrorAdvice(code, market = 'hu') {
+  if (market === 'de') {
+    const mapDe = {
+      min_staff: {
+        title: 'Personalunterdeckung',
+        tip: 'In dieser Schicht sind weniger Mitarbeitende eingeplant als das erforderliche Minimum.',
+        suggestion: 'Erhoehe die verfuegbare Teamgroesse, reduziere die Mindestbesetzung in den Planungskriterien oder fuege fuer die fehlenden Tage manuell Schichten hinzu.',
+      },
+      missing_pharmacist: {
+        title: 'Apotheker/in fehlt',
+        tip: 'Fuer diese Schicht ist mindestens ein/e Apotheker/in erforderlich, aber niemand mit dieser Rolle ist eingeplant.',
+        suggestion: 'Plane eine/n Apotheker/in fuer diesen Tag ein oder deaktiviere die Apothekerpflicht in den Planungskriterien.',
+      },
+      rest_time: {
+        title: 'Unzureichende Ruhezeit',
+        tip: 'Zwischen zwei aufeinanderfolgenden Schichten liegt laut individueller Grenze zu wenig Ruhezeit.',
+        suggestion: 'Passe die betroffenen Schichtzeiten an oder teile fuer den Folgetag eine andere Person ein.',
+      },
+      legal_rest_time: {
+        title: 'Gesetzliche Ruhezeit verletzt',
+        tip: 'Zwischen zwei aufeinanderfolgenden Schichten liegen weniger als 11 Stunden Ruhezeit.',
+        suggestion: 'Plane die Schichten so um, dass mindestens 11 Stunden Pause dazwischen liegen, oder ersetze die Person am Folgetag.',
+      },
+      max_daily_hours: {
+        title: 'Tageslimit ueberschritten',
+        tip: 'Die gesamten Arbeitsstunden dieser Person an diesem Tag ueberschreiten das eingestellte Tagesmaximum.',
+        suggestion: 'Verkuerze die Schicht, entferne an diesem Tag eine Einteilung oder erhoehe das Tagesmaximum im Profil.',
+      },
+      legal_max_daily_hours: {
+        title: 'Gesetzliches Tagesmaximum ueberschritten',
+        tip: 'Die taeglichen Arbeitsstunden ueberschreiten das gesetzliche Maximum (in der Regel 12 Stunden).',
+        suggestion: 'Reduziere die gesamte Arbeitszeit dieses Tages auf unter 12 Stunden.',
+      },
+      legal_weekly_hours_limit: {
+        title: 'Gesetzliches Wochenmaximum ueberschritten',
+        tip: 'Die Wochenarbeitszeit dieser Person ueberschreitet das gesetzliche Maximum (in der Regel 48 Stunden).',
+        suggestion: 'Entferne eine Schicht in dieser Woche oder verteile die Last gleichmaessiger ueber den Wochenplan.',
+      },
+      double_shift: {
+        title: 'Ueberlappende Schichten',
+        tip: 'Dieselbe Person hat am gleichen Tag zwei sich ueberschneidende Schichten.',
+        suggestion: 'Loesche oder korrigiere eine der ueberlappenden Schichten.',
+      },
+      time_off_violation: {
+        title: 'Einteilung waehrend Abwesenheit',
+        tip: 'Fuer diesen Tag ist bereits eine genehmigte Abwesenheit hinterlegt, die Person wurde trotzdem eingeplant.',
+        suggestion: 'Loesche diese Schicht und teile stattdessen eine verfuegbare Kollegin oder einen verfuegbaren Kollegen ein.',
+      },
+      outside_opening_hours: {
+        title: 'Schicht ausserhalb der Oeffnungszeiten',
+        tip: 'Schichtbeginn oder Schichtende liegt ausserhalb der eingestellten Oeffnungszeiten.',
+        suggestion: 'Passe die Schichtzeit an die Oeffnungszeiten an oder aktualisiere die Oeffnungszeiten in den Planungskriterien.',
+      },
+      shift_type_permission: {
+        title: 'Schichttyp nicht erlaubt',
+        tip: 'Die Person ist fuer diesen Schichttyp nicht freigegeben (z. B. Nacht- oder Wochenendschicht).',
+        suggestion: 'Erlaube den Schichttyp im Profil oder ersetze die Person durch eine freigegebene Kollegin bzw. einen Kollegen.',
+      },
+      site_permission: {
+        title: 'Standortberechtigung fehlt',
+        tip: 'Die Person hat keine Berechtigung fuer diesen Standort.',
+        suggestion: 'Fuege den Standort in den Mitarbeitenden-Einstellungen hinzu oder waehle eine berechtigte Person.',
+      },
+      max_staff: {
+        title: 'Zu viele Mitarbeitende in der Schicht',
+        tip: 'Die eingeplante Teamgroesse ueberschreitet das in den Basiskriterien eingestellte Maximum.',
+        suggestion: 'Entferne eine Person aus der Schicht oder erhoehe das maximale Teamlimit in den Basiskriterien.',
+      },
+      max_pharmacist: {
+        title: 'Zu viele Apotheker/innen in der Schicht',
+        tip: 'Die Anzahl der eingeplanten Apotheker/innen ueberschreitet das eingestellte Maximum.',
+        suggestion: 'Entferne eine/n Apotheker/in aus der Schicht oder erhoehe den Maximalwert in den Basiskriterien.',
+      },
+    };
+    return mapDe[code] || {
+      title: 'Unbekannter Fehler',
+      tip: null,
+      suggestion: 'Pruefe den Dienstplan manuell und korrigiere den Fehler.',
+    };
+  }
   const map = {
     min_staff: {
       title: 'Létszámhiány',
@@ -1174,7 +1256,7 @@ function PharmacyScheduleCalendar({
               return (
                 <div className="space-y-3">
                   {uniqueErrors.map((err, i) => {
-                    const advice = getErrorAdvice(err.code);
+                    const advice = getErrorAdvice(err.code, market);
                     const group = publishBlockModal.filter(e => (e.code || 'unknown') === (err.code || 'unknown'));
                     return (
                       <div key={i} className={`rounded-xl border p-4 ${darkMode ? 'border-rose-700 bg-rose-900/30' : 'border-rose-200 bg-rose-50'}`}>
@@ -1539,7 +1621,7 @@ function PharmacyScheduleCalendar({
                 <div className="flex flex-col gap-1.5">
                   {dayScheds.map(s => {
                     const st = getShiftType(s.shiftType || 'N');
-                    const hrs = calcHours(s.startTime, s.endTime);
+                    const hrs = calcHours(s.startTime, s.endTime, market);
                     return (
                       <div
                         key={s.id}
@@ -1905,7 +1987,7 @@ function PharmacyScheduleCalendar({
               {employeeRows.map((row, idx) => {
                 const rowReadOnly = row.isPublished || row.locked;
                 const st = getShiftType(row.shiftType);
-                const hrs = calcHours(row.from, row.to);
+                const hrs = calcHours(row.from, row.to, market);
                 // Find this employee's draft preference for the selected day
                 const dayKey = selectedDay ? formatDateKey(year, month, selectedDay) : null;
                 const empPref = dayKey && preferences
@@ -2053,7 +2135,7 @@ function PharmacyScheduleCalendar({
                             {empPref.startTime && empPref.endTime && (
                               <span className={`text-xs tabular-nums ${darkMode ? 'text-emerald-300' : 'text-emerald-700'}`}>{empPref.startTime}–{empPref.endTime}</span>
                             )}
-                            {(() => { const h = calcHours(empPref.startTime, empPref.endTime); return h ? <span className={`text-xs font-semibold ${darkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>{h}</span> : null; })()}
+                            {(() => { const h = calcHours(empPref.startTime, empPref.endTime, market); return h ? <span className={`text-xs font-semibold ${darkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>{h}</span> : null; })()}
                             {empPref.notes && <span className={`text-xs italic ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>"{empPref.notes}"</span>}
                           </div>
                         </div>
@@ -2561,7 +2643,7 @@ function EmployeePreferenceCalendar({
                 {dayOwn.map(p => {
                   const isSz = isOffShift(p.shiftType);
                   const st = getShiftType(p.shiftType || 'N');
-                  const hrs = calcHours(p.startTime, p.endTime);
+                  const hrs = calcHours(p.startTime, p.endTime, market);
                   // running hours up to this day
                   const runningHrs = plannedWorkPrefs
                     .filter(pp => pp.date <= formatDateKey(year, month, d))
@@ -2601,7 +2683,7 @@ function EmployeePreferenceCalendar({
                 })}
                 {dayOthers.map(p => {
                   const st = getShiftType(p.shiftType || 'N');
-                  const hrs = calcHours(p.startTime, p.endTime);
+                  const hrs = calcHours(p.startTime, p.endTime, market);
                   return (
                     <div key={p.id} className={`flex items-center gap-2 rounded-xl px-3 py-2 border ${darkMode ? 'border-gray-700 bg-gray-800/60' : 'border-gray-200 bg-white/70'}`}>
                       <span className={`flex-shrink-0 inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-black ${st.bg} ${st.text}`}>{st.label}</span>
@@ -2693,7 +2775,7 @@ function EmployeePreferenceCalendar({
                     <div className="flex flex-col gap-1.5">
                       {dayOthers.map(p => {
                         const st = getShiftType(p.shiftType || 'N');
-                        const hrs = calcHours(p.startTime, p.endTime);
+                        const hrs = calcHours(p.startTime, p.endTime, market);
                         return (
                           <div key={p.id} className={`flex items-center gap-2 rounded-xl px-3 py-2 border ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'}`}>
                             <span className={`flex-shrink-0 inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-black ${st.bg} ${st.text}`}>{st.label}</span>
@@ -4902,7 +4984,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       item.endTime,
       item.employeeName,
       item.employeeEmail || '',
-      prettyRole(item.role),
+      prettyRole(item.role, market),
       item.publishedAt ? 'igen' : 'nem',
       item.planningSource || item.source || 'manual',
       item.notes || '',
@@ -8181,7 +8263,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
               <button type="button" onClick={() => setPlannerResult(null)} className={`text-xs underline ${darkMode ? 'text-rose-400' : 'text-rose-600'}`}>bezár</button>
             </div>
             {uniqueCodes.map((err, i) => {
-              const advice = getErrorAdvice(err.code);
+              const advice = getErrorAdvice(err.code, market);
               const group = errors.filter(e => (e.code || 'unknown') === (err.code || 'unknown'));
               return (
                 <div key={i} className={`rounded-lg border p-3 ${darkMode ? 'border-rose-700 bg-rose-900/30' : 'border-rose-200 bg-white'}`}>
@@ -8283,7 +8365,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className={`font-semibold text-sm truncate ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>{employee.name}</p>
-                          <p className={`text-xs truncate ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{employee.email} · {prettyRole(employee.role)}</p>
+                          <p className={`text-xs truncate ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{employee.email} · {prettyRole(employee.role, market)}</p>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
                           {empPrefs.length > 0 && (
@@ -8483,7 +8565,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                                 <div className="flex flex-col gap-1">
                                   {sorted.map(p => {
                                     const st = getShiftType(p.shiftType || 'N');
-                                    const hrs = calcHours(p.startTime, p.endTime);
+                                    const hrs = calcHours(p.startTime, p.endTime, market);
                                     const dow = new Date(p.year, p.month - 1, p.day || parseInt(p.date.split('-')[2])).getDay();
                                     const DOW_SHORT = ['V','H','K','Sz','Cs','P','Szo'];
                                     return (
@@ -9458,7 +9540,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   <Field label="Szerepkör (automatikus)">
                     <input
                       type="text"
-                      value={selectedEmployee ? prettyRole(selectedEmployee.role) : '-'}
+                      value={selectedEmployee ? prettyRole(selectedEmployee.role, market) : '-'}
                       readOnly
                       className="w-full rounded-xl border px-3 py-2 bg-gray-50 text-gray-700 dark:bg-gray-800 dark:text-gray-200"
                     />
@@ -9499,7 +9581,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                         ) : null}
                       </div>
                       <p className="text-sm text-gray-500">{item.startTime} - {item.endTime}</p>
-                      <p className="text-sm text-gray-500">{prettyRole(item.role)}</p>
+                      <p className="text-sm text-gray-500">{prettyRole(item.role, market)}</p>
                       {item.notes ? <p className="mt-1 text-sm">{item.notes}</p> : null}
                     </div>
                     <button type="button" onClick={() => handleDeleteSchedule(item.id)} className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700">
