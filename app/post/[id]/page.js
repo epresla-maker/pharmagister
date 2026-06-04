@@ -6,8 +6,9 @@ import { doc, getDoc, updateDoc, arrayUnion, Timestamp } from 'firebase/firestor
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { ArrowLeft, MessageCircle, Send, MoreHorizontal, Calendar, Clock, MapPin, Briefcase, User } from 'lucide-react';
+import { getClientMarket } from '@/lib/marketI18n';
 
-function CommentItem({ comment, postId, depth = 0, onReply, replyingTo, setReplyingTo, userData, user, formatTime }) {
+function CommentItem({ comment, postId, depth = 0, onReply, replyingTo, setReplyingTo, userData, user, formatTime, currentMarket }) {
   const maxDepth = 5;
   const isHighlighted = replyingTo?.commentId === comment.id;
 
@@ -41,7 +42,7 @@ function CommentItem({ comment, postId, depth = 0, onReply, replyingTo, setReply
               onClick={() => setReplyingTo({ commentId: comment.id, userName: comment.userName })}
               className="text-xs text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 font-semibold mt-1 px-2"
             >
-              Válasz
+              {currentMarket === 'de' ? 'Antworten' : 'Válasz'}
             </button>
           )}
         </div>
@@ -62,6 +63,7 @@ function CommentItem({ comment, postId, depth = 0, onReply, replyingTo, setReply
               userData={userData}
               user={user}
               formatTime={formatTime}
+              currentMarket={currentMarket}
             />
           ))}
         </div>
@@ -73,9 +75,11 @@ function CommentItem({ comment, postId, depth = 0, onReply, replyingTo, setReply
 export default function PostDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const market = getClientMarket();
   const searchParams = useSearchParams();
   const collectionName = searchParams.get('collection') || 'serviceFeedPosts';
   const { user, userData } = useAuth();
+  const currentMarket = userData?.market || market;
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [commentText, setCommentText] = useState('');
@@ -93,11 +97,11 @@ export default function PostDetailPage() {
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
 
-    if (minutes < 1) return 'Most';
-    if (minutes < 60) return `${minutes} perce`;
-    if (hours < 24) return `${hours} órája`;
-    if (days < 7) return `${days} napja`;
-    return date.toLocaleDateString('hu-HU');
+    if (minutes < 1) return currentMarket === 'de' ? 'Gerade eben' : 'Most';
+    if (minutes < 60) return currentMarket === 'de' ? `vor ${minutes} Min.` : `${minutes} perce`;
+    if (hours < 24) return currentMarket === 'de' ? `vor ${hours} Std.` : `${hours} órája`;
+    if (days < 7) return currentMarket === 'de' ? `vor ${days} Tagen` : `${days} napja`;
+    return date.toLocaleDateString(currentMarket === 'de' ? 'de-DE' : 'hu-HU');
   };
 
   useEffect(() => {
@@ -127,7 +131,7 @@ export default function PostDetailPage() {
         id: Date.now().toString(),
         text: commentText,
         userId: user.uid,
-        userName: userData?.displayName || 'Névtelen',
+        userName: userData?.displayName || (currentMarket === 'de' ? 'Unbekannt' : 'Névtelen'),
         userPhoto: userData?.photoURL || user.photoURL || '',
         createdAt: Timestamp.now(),
         replies: []
@@ -156,7 +160,7 @@ export default function PostDetailPage() {
         id: Date.now().toString(),
         text: commentText,
         userId: user.uid,
-        userName: userData?.displayName || 'Névtelen',
+        userName: userData?.displayName || (currentMarket === 'de' ? 'Unbekannt' : 'Névtelen'),
         userPhoto: userData?.photoURL || user.photoURL || '',
         createdAt: Timestamp.now(),
         replies: []
@@ -216,12 +220,12 @@ export default function PostDetailPage() {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Poszt nem található</h2>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{currentMarket === 'de' ? 'Beitrag nicht gefunden' : 'Poszt nem található'}</h2>
           <button
             onClick={() => router.push('/')}
             className="text-cyan-500 hover:text-cyan-600"
           >
-            Vissza a főoldalra
+            {currentMarket === 'de' ? 'Zurueck zur Startseite' : 'Vissza a főoldalra'}
           </button>
         </div>
       </div>
@@ -250,7 +254,7 @@ export default function PostDetailPage() {
           </button>
           <div className="flex-1 min-w-0">
             <h1 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
-              {post.authorData?.displayName || 'Névtelen'}
+              {post.authorData?.displayName || (currentMarket === 'de' ? 'Unbekannt' : 'Névtelen')}
             </h1>
             <p className="text-xs text-gray-500">{formatTime(post.createdAt)}</p>
           </div>
@@ -274,7 +278,7 @@ export default function PostDetailPage() {
                   className="font-semibold text-gray-900 dark:text-white hover:underline cursor-pointer"
                   onClick={() => post.userId && router.push(`/profil/${post.userId}`)}
                 >
-                  {post.authorData?.displayName || 'Névtelen'}
+                  {post.authorData?.displayName || (currentMarket === 'de' ? 'Unbekannt' : 'Névtelen')}
                 </h3>
                 <p className="text-xs text-gray-500">{formatTime(post.createdAt)}</p>
               </div>
@@ -294,7 +298,7 @@ export default function PostDetailPage() {
                 rel="noopener noreferrer"
                 className="text-cyan-500 hover:text-cyan-600 text-sm mt-1 block px-3 sm:px-4"
               >
-                Tovább az oldalra →
+                {currentMarket === 'de' ? 'Zur Website →' : 'Tovább az oldalra →'}
               </a>
             )}
           </div>
@@ -332,7 +336,7 @@ export default function PostDetailPage() {
                 onClick={() => router.push(`/pharmagister/demand/${post.demandId}`)}
                 className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white py-2.5 rounded-xl font-semibold hover:from-cyan-600 hover:to-blue-600 transition-all"
               >
-                Megnézem
+                {currentMarket === 'de' ? 'Ansehen' : 'Megnézem'}
               </button>
             </div>
           )}
@@ -343,19 +347,19 @@ export default function PostDetailPage() {
               <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-3 space-y-2">
                 {post.slotDate && (
                   <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400 text-sm">📅 Dátum</span>
+                    <span className="text-gray-600 dark:text-gray-400 text-sm">📅 {currentMarket === 'de' ? 'Datum' : 'Dátum'}</span>
                     <span className="font-medium text-gray-900 dark:text-white text-sm">{post.slotDate}</span>
                   </div>
                 )}
                 {post.slotTime && (
                   <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400 text-sm">🕐 Időpont</span>
+                    <span className="text-gray-600 dark:text-gray-400 text-sm">🕐 {currentMarket === 'de' ? 'Uhrzeit' : 'Időpont'}</span>
                     <span className="font-medium text-gray-900 dark:text-white text-sm">{post.slotTime}</span>
                   </div>
                 )}
                 {post.serviceName && (
                   <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400 text-sm">Szolgáltatás</span>
+                    <span className="text-gray-600 dark:text-gray-400 text-sm">{currentMarket === 'de' ? 'Leistung' : 'Szolgáltatás'}</span>
                     <span className="font-medium text-gray-900 dark:text-white text-sm">{post.serviceName}</span>
                   </div>
                 )}
@@ -394,7 +398,7 @@ export default function PostDetailPage() {
                 className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
               >
                 <MessageCircle className="w-4 h-4" />
-                <span>{commentsCount + totalReplies} hozzászólás</span>
+                <span>{commentsCount + totalReplies} {currentMarket === 'de' ? 'Kommentare' : 'hozzászólás'}</span>
               </button>
             </div>
           </div>
@@ -417,6 +421,7 @@ export default function PostDetailPage() {
                   userData={userData}
                   user={user}
                   formatTime={formatTime}
+                  currentMarket={currentMarket}
                 />
               ))}
             </div>
@@ -424,7 +429,7 @@ export default function PostDetailPage() {
             {commentsCount === 0 && (
               <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                 <MessageCircle size={48} className="mx-auto mb-2 opacity-50" />
-                <p>Még nincs hozzászólás</p>
+                <p>{currentMarket === 'de' ? 'Noch keine Kommentare' : 'Még nincs hozzászólás'}</p>
               </div>
             )}
           </div>
@@ -438,13 +443,13 @@ export default function PostDetailPage() {
           {replyingTo && (
             <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
               <span className="text-sm text-gray-600 dark:text-gray-400">
-                Válasz <span className="font-semibold text-gray-900 dark:text-white">{replyingTo.userName}</span> számára
+                {currentMarket === 'de' ? 'Antwort an' : 'Válasz'} <span className="font-semibold text-gray-900 dark:text-white">{replyingTo.userName}</span> {currentMarket === 'de' ? '' : 'számára'}
               </span>
               <button 
                 onClick={() => setReplyingTo(null)}
                 className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
               >
-                Mégsem
+                {currentMarket === 'de' ? 'Abbrechen' : 'Mégsem'}
               </button>
             </div>
           )}
@@ -463,7 +468,7 @@ export default function PostDetailPage() {
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
-                  placeholder={replyingTo ? `Válasz ${replyingTo.userName} számára...` : "Írj hozzászólást..."}
+                  placeholder={replyingTo ? (currentMarket === 'de' ? `Antwort an ${replyingTo.userName}...` : `Válasz ${replyingTo.userName} számára...`) : (currentMarket === 'de' ? 'Schreibe einen Kommentar...' : 'Írj hozzászólást...')}
                   className="flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
                 <button
@@ -482,9 +487,9 @@ export default function PostDetailPage() {
                   onClick={() => router.push('/login')}
                   className="text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium"
                 >
-                  Jelentkezz be
+                  {currentMarket === 'de' ? 'Melde dich an' : 'Jelentkezz be'}
                 </button>
-                {' '}a hozzászóláshoz
+                {' '}{currentMarket === 'de' ? 'um zu kommentieren' : 'a hozzászóláshoz'}
               </p>
             </div>
           )}

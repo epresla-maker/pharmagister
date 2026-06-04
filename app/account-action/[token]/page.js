@@ -3,10 +3,12 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { CheckCircle2, XCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { getClientMarket } from '@/lib/marketI18n';
 
 export default function AccountActionPage() {
   const params = useParams();
   const router = useRouter();
+  const market = getClientMarket();
   const token = params.token;
 
   const [loading, setLoading] = useState(true);
@@ -33,7 +35,7 @@ export default function AccountActionPage() {
         setTokenData(data);
       }
     } catch (err) {
-      setError({ error: 'Hiba történt a token ellenőrzése során', code: 'NETWORK_ERROR' });
+      setError({ error: market === 'de' ? 'Fehler bei der Token-Pruefung' : 'Hiba történt a token ellenőrzése során', code: 'NETWORK_ERROR' });
     } finally {
       setLoading(false);
     }
@@ -59,7 +61,7 @@ export default function AccountActionPage() {
         setProcessing(false);
       }
     } catch (err) {
-      setError({ error: 'Hiba történt a művelet végrehajtása során', code: 'NETWORK_ERROR' });
+      setError({ error: market === 'de' ? 'Fehler bei der Ausfuehrung der Aktion' : 'Hiba történt a művelet végrehajtása során', code: 'NETWORK_ERROR' });
       setProcessing(false);
     }
   };
@@ -69,7 +71,7 @@ export default function AccountActionPage() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <Loader2 className="w-12 h-12 animate-spin text-blue-500 mx-auto mb-4" />
-          <p className="text-gray-600">Token ellenőrzése...</p>
+          <p className="text-gray-600">{market === 'de' ? 'Token wird geprueft...' : 'Token ellenőrzése...'}</p>
         </div>
       </div>
     );
@@ -82,31 +84,31 @@ export default function AccountActionPage() {
           {result.action === 'keep' ? (
             <>
               <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">Fiók megtartva!</h1>
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">{market === 'de' ? 'Konto behalten!' : 'Fiók megtartva!'}</h1>
               <p className="text-gray-600 mb-6">
                 {result.message}
               </p>
               <p className="text-sm text-gray-500 mb-6">
-                A fiókod aktív marad. Most állítsd be a jelszavadat, hogy tudjál belépni!
+                {market === 'de' ? 'Dein Konto bleibt aktiv. Lege jetzt dein Passwort fest, damit du dich einloggen kannst.' : 'A fiókod aktív marad. Most állítsd be a jelszavadat, hogy tudjál belépni!'}
               </p>
               {result.passwordSetUrl && (
                 <a
                   href={result.passwordSetUrl}
                   className="inline-block bg-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-purple-700 transition-colors"
                 >
-                  Jelszó beállítása →
+                  {market === 'de' ? 'Passwort festlegen →' : 'Jelszó beállítása →'}
                 </a>
               )}
             </>
           ) : (
             <>
               <CheckCircle2 className="w-16 h-16 text-blue-500 mx-auto mb-4" />
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">Fiók törölve</h1>
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">{market === 'de' ? 'Konto geloescht' : 'Fiók törölve'}</h1>
               <p className="text-gray-600 mb-6">
                 {result.message}
               </p>
               <p className="text-sm text-gray-500">
-                Minden adatod törlésre került az adatbázisból.
+                {market === 'de' ? 'Alle deine Daten wurden aus der Datenbank geloescht.' : 'Minden adatod törlésre került az adatbázisból.'}
               </p>
             </>
           )}
@@ -116,16 +118,16 @@ export default function AccountActionPage() {
   }
 
   if (error) {
-    let errorMessage = 'Ismeretlen hiba történt';
+    let errorMessage = market === 'de' ? 'Unbekannter Fehler' : 'Ismeretlen hiba történt';
     let errorIcon = <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />;
 
     if (error.code === 'INVALID_TOKEN') {
-      errorMessage = 'Ez a link érvénytelen. Lehet, hogy már törölve lett a fiókod, vagy rossz linket használtál.';
+      errorMessage = market === 'de' ? 'Dieser Link ist ungueltig. Vielleicht wurde dein Konto schon geloescht oder der Link ist falsch.' : 'Ez a link érvénytelen. Lehet, hogy már törölve lett a fiókod, vagy rossz linket használtál.';
     } else if (error.code === 'ALREADY_USED') {
-      errorMessage = 'Ez a link már fel lett használva. Nem lehet újra felhasználni.';
+      errorMessage = market === 'de' ? 'Dieser Link wurde bereits verwendet und kann nicht erneut genutzt werden.' : 'Ez a link már fel lett használva. Nem lehet újra felhasználni.';
       errorIcon = <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />;
     } else if (error.code === 'EXPIRED') {
-      errorMessage = 'Ez a link lejárt. Kérlek, vedd fel velünk a kapcsolatot, ha segítségre van szükséged.';
+      errorMessage = market === 'de' ? 'Dieser Link ist abgelaufen. Bitte kontaktiere uns, wenn du Hilfe brauchst.' : 'Ez a link lejárt. Kérlek, vedd fel velünk a kapcsolatot, ha segítségre van szükséged.';
       errorIcon = <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />;
     } else if (error.error) {
       errorMessage = error.error;
@@ -135,7 +137,7 @@ export default function AccountActionPage() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
         <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
           {errorIcon}
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Hiba</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">{market === 'de' ? 'Fehler' : 'Hiba'}</h1>
           <p className="text-gray-600">{errorMessage}</p>
         </div>
       </div>
@@ -155,10 +157,10 @@ export default function AccountActionPage() {
               <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
             )}
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              {isKeep ? 'Fiók megtartása' : 'Fiók törlése'}
+              {isKeep ? (market === 'de' ? 'Konto behalten' : 'Fiók megtartása') : (market === 'de' ? 'Konto loeschen' : 'Fiók törlése')}
             </h1>
             <p className="text-gray-600">
-              Szia, <strong>{tokenData.name}</strong>!
+              {market === 'de' ? 'Hallo' : 'Szia'}, <strong>{tokenData.name}</strong>!
             </p>
             <p className="text-sm text-gray-500 mt-1">{tokenData.email}</p>
           </div>
@@ -166,22 +168,25 @@ export default function AccountActionPage() {
           <div className="bg-gray-50 rounded-lg p-4 mb-6">
             {isKeep ? (
               <p className="text-gray-700">
-                Ha ezt a gombot megnyomod, a fiókod <strong>aktív marad</strong> az oldalunkon. 
-                Később aktiválhatod a jelszavadat és beléphetssz.
+                {market === 'de'
+                  ? <>Wenn du diesen Button drueckst, bleibt dein Konto auf unserer Seite <strong>aktiv</strong>. Spaeter kannst du dein Passwort setzen und dich einloggen.</>
+                  : <>Ha ezt a gombot megnyomod, a fiókod <strong>aktív marad</strong> az oldalunkon. Később aktiválhatod a jelszavadat és beléphetssz.</>}
               </p>
             ) : (
               <div>
                 <p className="text-gray-700 mb-2">
-                  Ha ezt a gombot megnyomod, a fiókod és <strong>minden adatod véglegesen törlésre kerül</strong>:
+                  {market === 'de'
+                    ? <>Wenn du diesen Button drueckst, werden dein Konto und <strong>alle Daten endgueltig geloescht</strong>:</>
+                    : <>Ha ezt a gombot megnyomod, a fiókod és <strong>minden adatod véglegesen törlésre kerül</strong>:</>}
                 </p>
                 <ul className="text-sm text-gray-600 list-disc list-inside space-y-1">
-                  <li>Felhasználói adatok</li>
-                  <li>Beállítások</li>
-                  <li>Push értesítések</li>
-                  <li>Minden kapcsolódó információ</li>
+                  <li>{market === 'de' ? 'Benutzerdaten' : 'Felhasználói adatok'}</li>
+                  <li>{market === 'de' ? 'Einstellungen' : 'Beállítások'}</li>
+                  <li>{market === 'de' ? 'Push-Benachrichtigungen' : 'Push értesítések'}</li>
+                  <li>{market === 'de' ? 'Alle verknuepften Informationen' : 'Minden kapcsolódó információ'}</li>
                 </ul>
                 <p className="text-sm text-red-600 mt-3 font-medium">
-                  ⚠️ Ez a művelet nem vonható vissza!
+                  {market === 'de' ? '⚠️ Diese Aktion kann nicht rueckgaengig gemacht werden!' : '⚠️ Ez a művelet nem vonható vissza!'}
                 </p>
               </div>
             )}
@@ -199,18 +204,18 @@ export default function AccountActionPage() {
             {processing ? (
               <span className="flex items-center justify-center">
                 <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                Feldolgozás...
+                {market === 'de' ? 'Verarbeitung...' : 'Feldolgozás...'}
               </span>
             ) : isKeep ? (
-              'Igen, megtartom a fiókomat'
+              market === 'de' ? 'Ja, ich behalte mein Konto' : 'Igen, megtartom a fiókomat'
             ) : (
-              'Igen, töröljétek a fiókomat'
+              market === 'de' ? 'Ja, loescht mein Konto' : 'Igen, töröljétek a fiókomat'
             )}
           </button>
 
           {!isKeep && (
             <p className="text-xs text-gray-500 text-center mt-4">
-              Ha mégsem szeretnéd törölni a fiókodat, egyszerűen zárd be ezt az oldalt.
+              {market === 'de' ? 'Wenn du dein Konto doch nicht loeschen willst, schliesse diese Seite einfach.' : 'Ha mégsem szeretnéd törölni a fiókodat, egyszerűen zárd be ezt az oldalt.'}
             </p>
           )}
         </div>

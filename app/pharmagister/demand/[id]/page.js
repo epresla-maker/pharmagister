@@ -7,6 +7,7 @@ import RouteGuard from '@/app/components/RouteGuard';
 import { doc, getDoc, updateDoc, arrayUnion, arrayRemove, Timestamp, collection, addDoc, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { createNotificationWithPush } from '@/lib/notifications';
+import { getClientMarket } from '@/lib/marketI18n';
 import { MessageCircle } from 'lucide-react';
 
 const ADMIN_EMAILS = ['epresla@icloud.com'];
@@ -17,6 +18,7 @@ import ResponseRateBar from '@/app/components/ResponseRateBar';
 export default function DemandDetailPage() {
   const { user, userData } = useAuth();
   const { darkMode } = useTheme();
+  const market = getClientMarket();
   const router = useRouter();
   const params = useParams();
   const demandId = params.id;
@@ -72,11 +74,11 @@ export default function DemandDetailPage() {
             }
           }
         } else {
-          setError('Az igény nem található.');
+          setError(market === 'de' ? 'Anfrage nicht gefunden.' : 'Az igény nem található.');
         }
       } catch (err) {
         console.error('Error fetching demand:', err);
-        setError('Hiba történt az igény betöltésekor.');
+        setError(market === 'de' ? 'Fehler beim Laden der Anfrage.' : 'Hiba történt az igény betöltésekor.');
       } finally {
         setLoading(false);
       }
@@ -95,20 +97,20 @@ export default function DemandDetailPage() {
     const today = new Date();
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     if (demand.date && demand.date < todayStr) {
-      alert('Ez az igény már lejárt, nem lehet rá jelentkezni.');
+      alert(market === 'de' ? 'Diese Anfrage ist bereits abgelaufen.' : 'Ez az igény már lejárt, nem lehet rá jelentkezni.');
       return;
     }
 
     // Check if user has pharmagister role (admin bypasses)
     const isAdminUser = ADMIN_EMAILS.includes(user?.email);
     if (!isAdminUser && (!userData.pharmagisterRole || userData.pharmagisterRole === 'pharmacy')) {
-      alert('Csak gyógyszerészek és szakasszisztensek jelentkezhetnek!');
+      alert(market === 'de' ? 'Nur Apotheker/innen und Assistent/innen koennen sich bewerben.' : 'Csak gyógyszerészek és szakasszisztensek jelentkezhetnek!');
       return;
     }
 
     // Check if profile is complete (admin bypasses)
     if (!isAdminUser && !userData.pharmaProfileComplete) {
-      alert('Kérlek először töltsd ki a profilodat!');
+      alert(market === 'de' ? 'Bitte fuelle zuerst dein Profil aus.' : 'Kérlek először töltsd ki a profilodat!');
       return;
     }
 
@@ -124,10 +126,10 @@ export default function DemandDetailPage() {
     });
     
     if (!isAdminUser && userRole !== demandPosition) {
-      const userRoleLabel = userRole === 'pharmacist' ? 'gyógyszerész' : 'szakasszisztens';
-      const demandPositionLabel = demandPosition === 'pharmacist' ? 'gyógyszerész' : 'szakasszisztens';
+      const userRoleLabel = userRole === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'gyógyszerész') : (market === 'de' ? 'Assistent/in' : 'szakasszisztens');
+      const demandPositionLabel = demandPosition === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'gyógyszerész') : (market === 'de' ? 'Assistent/in' : 'szakasszisztens');
       console.log('❌ Szerepkör nem egyezik! User:', userRoleLabel, '| Demand:', demandPositionLabel);
-      alert(`Erre az igényre csak ${demandPositionLabel}ek jelentkezhetnek. Te ${userRoleLabel}ként vagy regisztrálva.`);
+      alert(market === 'de' ? `Auf diese Anfrage koennen sich nur ${demandPositionLabel} bewerben. Du bist als ${userRoleLabel} registriert.` : `Erre az igényre csak ${demandPositionLabel}ek jelentkezhetnek. Te ${userRoleLabel}ként vagy regisztrálva.`);
       return;
     }
     
@@ -200,11 +202,11 @@ export default function DemandDetailPage() {
       console.log('✅ Értesítés sikeresen létrehozva!');
 
       setHasApplied(true);
-      alert('Sikeres jelentkezés! A gyógyszertár hamarosan értesítést kap és felveszi veled a kapcsolatot.');
+      alert(market === 'de' ? 'Bewerbung erfolgreich! Die Apotheke wird bald benachrichtigt und meldet sich bei dir.' : 'Sikeres jelentkezés! A gyógyszertár hamarosan értesítést kap és felveszi veled a kapcsolatot.');
 
     } catch (err) {
       console.error('Error applying:', err);
-      alert('Hiba történt a jelentkezés során. Kérjük, próbáld újra.');
+      alert(market === 'de' ? 'Fehler bei der Bewerbung. Bitte versuche es erneut.' : 'Hiba történt a jelentkezés során. Kérjük, próbáld újra.');
     } finally {
       setApplying(false);
     }
@@ -243,8 +245,8 @@ export default function DemandDetailPage() {
         const newChatRef = await addDoc(chatsRef, {
           members: [user.uid, demand.pharmacyId],
           memberNames: {
-            [user.uid]: userData?.displayName || 'Felhasználó',
-            [demand.pharmacyId]: demand.pharmacyName || 'Gyógyszertár'
+            [user.uid]: userData?.displayName || (market === 'de' ? 'Benutzer/in' : 'Felhasználó'),
+            [demand.pharmacyId]: demand.pharmacyName || (market === 'de' ? 'Apotheke' : 'Gyógyszertár')
           },
           memberPhotos: {
             [user.uid]: userData?.photoURL || null,
@@ -257,7 +259,7 @@ export default function DemandDetailPage() {
           relatedDemandId: demandId,
           relatedDemandDate: demand.date,
           relatedDemandPosition: demand.position,
-          relatedDemandPositionLabel: demand.position === 'pharmacist' ? 'Gyógyszerész' : 'Szakasszisztens',
+          relatedDemandPositionLabel: demand.position === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'Gyógyszerész') : (market === 'de' ? 'Assistent/in' : 'Szakasszisztens'),
           archivedBy: [],
           deletedBy: [],
           readBy: []
@@ -267,7 +269,7 @@ export default function DemandDetailPage() {
       
     } catch (err) {
       console.error('Error opening chat:', err);
-      alert('Hiba történt a chat megnyitásakor.');
+      alert(market === 'de' ? 'Fehler beim Oeffnen des Chats.' : 'Hiba történt a chat megnyitásakor.');
     } finally {
       setOpeningChat(false);
     }
@@ -289,12 +291,12 @@ export default function DemandDetailPage() {
         <div className={`min-h-screen ${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'} p-4`}>
           <div className="max-w-lg mx-auto pt-20 text-center">
             <div className="text-6xl mb-4">😕</div>
-            <h1 className="text-xl font-bold mb-2">{error || 'Hiba történt'}</h1>
+            <h1 className="text-xl font-bold mb-2">{error || (market === 'de' ? 'Es ist ein Fehler aufgetreten' : 'Hiba történt')}</h1>
             <button
               onClick={() => router.back()}
               className="mt-4 text-green-600 hover:text-green-700 font-medium"
             >
-              ← Vissza
+              ← {market === 'de' ? 'Zurueck' : 'Vissza'}
             </button>
           </div>
         </div>
@@ -303,8 +305,8 @@ export default function DemandDetailPage() {
   }
 
   const positionLabels = {
-    pharmacist: 'Gyógyszerész',
-    assistant: 'Szakasszisztens'
+    pharmacist: market === 'de' ? 'Apotheker/in' : 'Gyógyszerész',
+    assistant: market === 'de' ? 'Assistent/in' : 'Szakasszisztens'
   };
 
   const getMonogram = (name) => {
@@ -358,7 +360,7 @@ export default function DemandDetailPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
-            <h1 className="text-lg font-semibold">Helyettesítési igény</h1>
+            <h1 className="text-lg font-semibold">{market === 'de' ? 'Vertretungsanfrage' : 'Helyettesítési igény'}</h1>
           </div>
         </div>
 
@@ -385,10 +387,10 @@ export default function DemandDetailPage() {
                       : 'text-yellow-800 dark:text-yellow-300'
                   }`}>
                     {myApplication.status === 'accepted' 
-                      ? 'Jelentkezésed elfogadva!' 
+                      ? (market === 'de' ? 'Deine Bewerbung wurde angenommen!' : 'Jelentkezésed elfogadva!') 
                       : myApplication.status === 'rejected'
-                      ? 'Jelentkezésed elutasítva'
-                      : 'Jelentkezésed elbírálás alatt'}
+                      ? (market === 'de' ? 'Deine Bewerbung wurde abgelehnt' : 'Jelentkezésed elutasítva')
+                      : (market === 'de' ? 'Deine Bewerbung wird geprueft' : 'Jelentkezésed elbírálás alatt')}
                   </h3>
                   <p className={`text-sm mt-1 ${
                     myApplication.status === 'accepted' 
@@ -398,10 +400,10 @@ export default function DemandDetailPage() {
                       : 'text-yellow-700 dark:text-yellow-400'
                   }`}>
                     {myApplication.status === 'accepted' 
-                      ? 'A gyógyszertár elfogadta a jelentkezésedet. Az elérhetőségeik lent találhatók!' 
+                      ? (market === 'de' ? 'Die Apotheke hat deine Bewerbung angenommen. Kontaktdaten findest du unten.' : 'A gyógyszertár elfogadta a jelentkezésedet. Az elérhetőségeik lent találhatók!') 
                       : myApplication.status === 'rejected'
-                      ? `Indok: ${myApplication.rejectionReason || 'Nincs megadva'}`
-                      : 'A gyógyszertár hamarosan válaszol a jelentkezésedre.'}
+                      ? `${market === 'de' ? 'Grund' : 'Indok'}: ${myApplication.rejectionReason || (market === 'de' ? 'Nicht angegeben' : 'Nincs megadva')}`
+                      : (market === 'de' ? 'Die Apotheke antwortet bald auf deine Bewerbung.' : 'A gyógyszertár hamarosan válaszol a jelentkezésedre.')}
                   </p>
                 </div>
               </div>
@@ -444,7 +446,7 @@ export default function DemandDetailPage() {
                 if (isExpired) {
                   return (
                     <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
-                      ⛔ Lejárt igény
+                      ⛔ {market === 'de' ? 'Abgelaufene Anfrage' : 'Lejárt igény'}
                     </span>
                   );
                 }
@@ -456,7 +458,7 @@ export default function DemandDetailPage() {
                       ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
                       : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400'
                   }`}>
-                    {demand.status === 'open' ? '🟢 Aktív' : demand.status === 'filled' ? '✅ Betöltve' : '⚪ Lezárva'}
+                    {demand.status === 'open' ? (market === 'de' ? '🟢 Aktiv' : '🟢 Aktív') : demand.status === 'filled' ? (market === 'de' ? '✅ Besetzt' : '✅ Betöltve') : (market === 'de' ? '⚪ Geschlossen' : '⚪ Lezárva')}
                   </span>
                 );
               })()}
@@ -465,15 +467,15 @@ export default function DemandDetailPage() {
             {/* Details */}
             <div className="p-4 space-y-4">
               <h3 className="font-semibold text-lg">
-                {positionLabels[demand.position] || demand.position} helyettesítés
+                {positionLabels[demand.position] || demand.position} {market === 'de' ? 'Vertretung' : 'helyettesítés'}
               </h3>
 
               <div className={`space-y-3 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                 <div className="flex items-center gap-3 py-3 border-b border-gray-200 dark:border-gray-700">
                   <div>
-                    <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Dátum</p>
+                      <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{market === 'de' ? 'Datum' : 'Dátum'}</p>
                     <p className="font-medium">
-                      {new Date(demand.date).toLocaleDateString('hu-HU', {
+                      {new Date(demand.date).toLocaleDateString(market === 'de' ? 'de-DE' : 'hu-HU', {
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric',
@@ -486,7 +488,7 @@ export default function DemandDetailPage() {
                 {demand.workHours && (
                   <div className="flex items-center gap-3 py-3 border-b border-gray-200 dark:border-gray-700">
                     <div>
-                      <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Munkaidő</p>
+                      <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{market === 'de' ? 'Arbeitszeit' : 'Munkaidő'}</p>
                       <p className="font-medium">{demand.workHours}</p>
                     </div>
                   </div>
@@ -495,7 +497,7 @@ export default function DemandDetailPage() {
                 {demand.minExperience && (
                   <div className="flex items-center gap-3 py-3 border-b border-gray-200 dark:border-gray-700">
                     <div>
-                      <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Elvárt tapasztalat</p>
+                      <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{market === 'de' ? 'Erforderliche Erfahrung' : 'Elvárt tapasztalat'}</p>
                       <p className="font-medium">{demand.minExperience}</p>
                     </div>
                   </div>
@@ -504,8 +506,8 @@ export default function DemandDetailPage() {
                 {demand.maxHourlyRate && (
                   <div className="flex items-center gap-3 py-3 border-b border-gray-200 dark:border-gray-700">
                     <div>
-                      <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Maximum órabér</p>
-                      <p className="font-medium">{demand.maxHourlyRate} Ft/óra</p>
+                      <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{market === 'de' ? 'Maximaler Stundenlohn' : 'Maximum órabér'}</p>
+                      <p className="font-medium">{demand.maxHourlyRate} {market === 'de' ? 'Ft/Stunde' : 'Ft/óra'}</p>
                     </div>
                   </div>
                 )}
@@ -515,7 +517,7 @@ export default function DemandDetailPage() {
               {demand.requiredSoftware && demand.requiredSoftware.length > 0 && (
                 <div className="pt-2">
                   <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'} mb-2`}>
-                    Elvárt szoftverismeret:
+                    {market === 'de' ? 'Erforderliche Softwarekenntnisse:' : 'Elvárt szoftverismeret:'}
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {demand.requiredSoftware.map((software, idx) => (
@@ -534,7 +536,7 @@ export default function DemandDetailPage() {
               {demand.additionalRequirements && (
                 <div className={`pt-4 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
                   <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'} mb-2`}>
-                    További információk:
+                    {market === 'de' ? 'Weitere Informationen:' : 'További információk:'}
                   </p>
                   <p className={`${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                     {demand.additionalRequirements}
@@ -549,7 +551,7 @@ export default function DemandDetailPage() {
             <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border rounded-xl p-6`}>
               <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
                 <span>📞</span>
-                Gyógyszertár elérhetőségei
+                {market === 'de' ? 'Kontakt der Apotheke' : 'Gyógyszertár elérhetőségei'}
               </h3>
               
               <div className="space-y-4">
@@ -557,7 +559,7 @@ export default function DemandDetailPage() {
                   <div className="flex items-center gap-3 py-3 border-b border-gray-200 dark:border-gray-700">
                     <span className="text-2xl">📱</span>
                     <div className="flex-1">
-                      <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Telefon</p>
+                      <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{market === 'de' ? 'Telefon' : 'Telefon'}</p>
                       <a href={`tel:${pharmacyData.pharmacyPhone}`} className="font-semibold text-purple-600 hover:underline">
                         {pharmacyData.pharmacyPhone}
                       </a>
@@ -569,7 +571,7 @@ export default function DemandDetailPage() {
                   <div className="flex items-center gap-3 py-3 border-b border-gray-200 dark:border-gray-700">
                     <span className="text-2xl">📧</span>
                     <div className="flex-1">
-                      <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Email</p>
+                      <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{market === 'de' ? 'E-Mail' : 'Email'}</p>
                       <a href={`mailto:${pharmacyData.email}`} className="font-semibold text-purple-600 hover:underline">
                         {pharmacyData.email}
                       </a>
@@ -581,7 +583,7 @@ export default function DemandDetailPage() {
                   <div className="flex items-center gap-3 py-3">
                     <span className="text-2xl">🏥</span>
                     <div className="flex-1">
-                      <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>NKK szám</p>
+                      <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{market === 'de' ? 'NKK-Nummer' : 'NKK szám'}</p>
                       <p className="font-semibold">{pharmacyData.pharmacyNKK}</p>
                     </div>
                   </div>
@@ -590,7 +592,7 @@ export default function DemandDetailPage() {
 
               <div className={`mt-6 p-4 rounded-lg ${darkMode ? 'bg-green-900/20' : 'bg-green-50'}`}>
                 <p className={`text-sm ${darkMode ? 'text-green-400' : 'text-green-700'}`}>
-                  💡 <strong>Tipp:</strong> Vedd fel a kapcsolatot a gyógyszertárral mielőbb, hogy megbeszéljétek a részleteket!
+                  💡 <strong>{market === 'de' ? 'Tipp' : 'Tipp'}:</strong> {market === 'de' ? 'Nimm moeglichst bald Kontakt zur Apotheke auf, um die Details zu besprechen.' : 'Vedd fel a kapcsolatot a gyógyszertárral mielőbb, hogy megbeszéljétek a részleteket!'}
                 </p>
               </div>
 
@@ -601,7 +603,7 @@ export default function DemandDetailPage() {
                 className="w-full mt-4 px-4 py-3 bg-[#6B46C1] hover:bg-[#5a3aa3] text-white rounded-xl transition-colors font-semibold flex items-center justify-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
                 <MessageCircle className="w-5 h-5" />
-                {openingChat ? 'Megnyitás...' : 'Üzenet küldése'}
+                {openingChat ? (market === 'de' ? 'Wird geoeffnet...' : 'Megnyitás...') : (market === 'de' ? 'Nachricht senden' : 'Üzenet küldése')}
               </button>
             </div>
           )}
@@ -610,7 +612,7 @@ export default function DemandDetailPage() {
           {isOwnDemand && demand.applicants && demand.applicants.length > 0 && (
             <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border rounded-xl p-4`}>
               <h3 className="font-semibold mb-3">
-                Jelentkezők ({demand.applicants.length})
+                {market === 'de' ? 'Bewerber/innen' : 'Jelentkezők'} ({demand.applicants.length})
               </h3>
               <div className="space-y-3">
                 {demand.applicants.map((applicant, idx) => (
@@ -634,7 +636,7 @@ export default function DemandDetailPage() {
                     <div className="flex-1">
                       <p className="font-medium">{applicant.displayName}</p>
                       <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                        {applicant.pharmagisterRole === 'pharmacist' ? 'Gyógyszerész' : 'Szakasszisztens'}
+                        {applicant.pharmagisterRole === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'Gyógyszerész') : (market === 'de' ? 'Assistent/in' : 'Szakasszisztens')}
                         {applicant.experience && ` • ${applicant.experience}`}
                       </p>
                     </div>
@@ -642,7 +644,7 @@ export default function DemandDetailPage() {
                       onClick={() => router.push(`/profil/${applicant.userId}`)}
                       className="text-green-600 hover:text-green-700 text-sm font-medium"
                     >
-                      Profil →
+                      {market === 'de' ? 'Profil →' : 'Profil →'}
                     </button>
                   </div>
                 ))}
@@ -671,11 +673,11 @@ export default function DemandDetailPage() {
                       disabled={applying || isPendingApproval}
                       className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl transition-colors font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed"
                     >
-                      {applying ? 'Jelentkezés...' : 'Jelentkezem'}
+                      {applying ? (market === 'de' ? 'Bewerbung...' : 'Jelentkezés...') : (market === 'de' ? 'Bewerben' : 'Jelentkezem')}
                     </button>
                   ) : (
                     <div className="flex-1 px-4 py-3 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-xl font-semibold text-center">
-                      ✅ Jelentkeztél
+                      ✅ {market === 'de' ? 'Beworben' : 'Jelentkeztél'}
                     </div>
                   )}
                   <button
@@ -684,12 +686,12 @@ export default function DemandDetailPage() {
                     className="px-4 py-3 bg-[#6B46C1] hover:bg-[#5a3aa3] text-white rounded-xl transition-colors font-semibold flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
                   >
                     <MessageCircle className="w-5 h-5" />
-                    {openingChat ? 'Megnyitás...' : 'Üzenet'}
+                    {openingChat ? (market === 'de' ? 'Wird geoeffnet...' : 'Megnyitás...') : (market === 'de' ? 'Nachricht' : 'Üzenet')}
                   </button>
                 </>
               ) : (
                 <div className={`flex-1 px-4 py-3 rounded-xl text-center font-semibold ${darkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
-                  {demand.position === 'pharmacist' ? 'Csak gyógyszerészeknek' : 'Csak szakasszisztenseknek'}
+                  {demand.position === 'pharmacist' ? (market === 'de' ? 'Nur fuer Apotheker/innen' : 'Csak gyógyszerészeknek') : (market === 'de' ? 'Nur fuer Assistent/innen' : 'Csak szakasszisztenseknek')}
                 </div>
               )}
             </div>
