@@ -4,6 +4,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { doc, setDoc, collection } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
+import { getClientMarket } from '@/lib/marketI18n';
 
 // --- Jelentési kategóriák ---
 const reportCategories = {
@@ -190,6 +191,7 @@ export default function ReportModal({
 }) {
   const { darkMode } = useTheme();
   const { user } = useAuth();
+  const market = getClientMarket();
   const [step, setStep] = useState('categories'); // 'categories' | 'detail' | 'success'
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [details, setDetails] = useState('');
@@ -251,7 +253,7 @@ export default function ReportModal({
       }, 2500);
     } catch (error) {
       console.error('Report error:', error);
-      alert('Hiba történt a jelentés során');
+      alert(market === 'de' ? 'Beim Melden ist ein Fehler aufgetreten.' : 'Hiba történt a jelentés során');
     } finally {
       setLoading(false);
     }
@@ -271,17 +273,19 @@ export default function ReportModal({
               onClick={handleClose}
               className="text-purple-500 hover:text-purple-400 text-base font-medium"
             >
-              Bezárás
+              {market === 'de' ? 'Schliessen' : 'Bezárás'}
             </button>
           </div>
 
           {/* Tartalom */}
           <div className="flex-1 overflow-y-auto px-5 pb-8">
             <h1 className={`text-[1.4rem] font-bold mb-3 leading-tight ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}>
-              Mi a probléma?
+              {market === 'de' ? 'Was ist das Problem?' : 'Mi a probléma?'}
             </h1>
             <p className={`text-[0.9rem] mb-6 leading-relaxed ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-              A bejelentésed bizalmasan kezeljük. Azonnali veszélyhelyzet esetén kérjük, hívd a 112-t.
+              {market === 'de'
+                ? 'Deine Meldung wird vertraulich behandelt. In akuten Notfaellen rufe bitte 112 an.'
+                : 'A bejelentésed bizalmasan kezeljük. Azonnali veszélyhelyzet esetén kérjük, hívd a 112-t.'}
             </p>
 
             {/* Kategória lista */}
@@ -340,7 +344,7 @@ export default function ReportModal({
             {selectedCategory.examples.length > 0 && (
               <div className="mb-6">
                 <h3 className={`text-base font-semibold mb-4 ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>
-                  Ilyen esetekben alkalmazható:
+                  {market === 'de' ? 'Anwendbar in folgenden Faellen:' : 'Ilyen esetekben alkalmazható:'}
                 </h3>
                 <div className="space-y-3">
                   {selectedCategory.examples.map((example, i) => (
@@ -356,13 +360,13 @@ export default function ReportModal({
             {/* Részletek (opcionális) */}
             <div className="mt-4">
               <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                Megjegyzés (nem kötelező)
+                {market === 'de' ? 'Bemerkung (optional)' : 'Megjegyzés (nem kötelező)'}
               </label>
               <textarea
                 value={details}
                 onChange={(e) => setDetails(e.target.value)}
                 rows={3}
-                placeholder="Részletezd röviden a tapasztaltakat..."
+                placeholder={market === 'de' ? 'Beschreibe kurz, was passiert ist...' : 'Részletezd röviden a tapasztaltakat...'}
                 className={`w-full p-3 rounded-xl border focus:outline-none resize-none ${
                   darkMode 
                     ? 'bg-[#252547] border-gray-700 text-white placeholder-gray-500 focus:border-purple-500' 
@@ -377,7 +381,9 @@ export default function ReportModal({
             darkMode ? 'bg-[#1a1a2e] border-gray-700/50' : 'bg-white border-gray-200'
           }`}>
             <p className={`text-xs text-center mb-3 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-              Bejelentésedet áttekintjük és szükség esetén lépéseket teszünk.
+              {market === 'de'
+                ? 'Wir pruefen deine Meldung und ergreifen bei Bedarf weitere Schritte.'
+                : 'Bejelentésedet áttekintjük és szükség esetén lépéseket teszünk.'}
             </p>
             <button
               onClick={handleSubmit}
@@ -388,7 +394,7 @@ export default function ReportModal({
                   : 'bg-purple-600 hover:bg-purple-700 text-white active:bg-purple-800'
               }`}
             >
-              {loading ? 'Küldés...' : 'Bejelentés küldése'}
+              {loading ? (market === 'de' ? 'Wird gesendet...' : 'Küldés...') : (market === 'de' ? 'Meldung senden' : 'Bejelentés küldése')}
             </button>
           </div>
         </div>
@@ -403,10 +409,12 @@ export default function ReportModal({
             </svg>
           </div>
           <h2 className={`text-2xl font-bold mb-3 text-center ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}>
-            Bejelentés elküldve
+            {market === 'de' ? 'Meldung gesendet' : 'Bejelentés elküldve'}
           </h2>
           <p className={`text-center text-base leading-relaxed max-w-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-            Köszönjük, hogy segítesz a közösség védelmében. A bejelentésedet hamarosan feldolgozzuk.
+            {market === 'de'
+              ? 'Danke, dass du zum Schutz der Community beitraegst. Wir bearbeiten deine Meldung in Kuerze.'
+              : 'Köszönjük, hogy segítesz a közösség védelmében. A bejelentésedet hamarosan feldolgozzuk.'}
           </p>
         </div>
       )}
