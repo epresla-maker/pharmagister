@@ -7,11 +7,13 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { ArrowLeft, EyeOff, MessageSquare, CheckCircle, Loader2 } from 'lucide-react';
 import RouteGuard from '@/app/components/RouteGuard';
+import { getClientMarket } from '@/lib/marketI18n';
 
 export default function FeedSettingsPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { darkMode } = useTheme();
+  const market = getClientMarket();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -72,24 +74,24 @@ export default function FeedSettingsPage() {
     {
       key: 'hideAnonymousPosts',
       icon: EyeOff,
-      label: 'Anonim posztok elrejtése',
-      description: 'Az anonim posztok nem jelennek meg a hírfolyamban',
+      label: market === 'de' ? 'Anonyme Beitraege ausblenden' : 'Anonim posztok elrejtése',
+      description: market === 'de' ? 'Anonyme Beitraege werden im Feed ausgeblendet' : 'Az anonim posztok nem jelennek meg a hírfolyamban',
       color: 'text-purple-600',
       bgColor: darkMode ? 'bg-purple-900/30' : 'bg-purple-100',
     },
     {
       key: 'compactView',
       icon: MessageSquare,
-      label: 'Kompakt nézet',
-      description: 'Kisebb posztok, több tartalom fér a képernyőre',
+      label: market === 'de' ? 'Kompakte Ansicht' : 'Kompakt nézet',
+      description: market === 'de' ? 'Kleinere Beitraege, mehr Inhalt auf dem Bildschirm' : 'Kisebb posztok, több tartalom fér a képernyőre',
       color: 'text-blue-600',
       bgColor: darkMode ? 'bg-blue-900/30' : 'bg-blue-100',
     },
     {
       key: 'hideReactions',
       icon: EyeOff,
-      label: 'Reakciók elrejtése',
-      description: 'Ne jelenjenek meg a reakció számlálók a posztokon',
+      label: market === 'de' ? 'Reaktionen ausblenden' : 'Reakciók elrejtése',
+      description: market === 'de' ? 'Reaktionszaehler werden bei Beitraegen ausgeblendet' : 'Ne jelenjenek meg a reakció számlálók a posztokon',
       color: 'text-orange-600',
       bgColor: darkMode ? 'bg-orange-900/30' : 'bg-orange-100',
     },
@@ -108,7 +110,7 @@ export default function FeedSettingsPage() {
               <ArrowLeft className={`w-5 h-5 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`} />
             </button>
             <h1 className={`text-lg font-semibold ml-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              Hírfolyam beállítások
+              {market === 'de' ? 'Feed-Einstellungen' : 'Hírfolyam beállítások'}
             </h1>
             {saving && <Loader2 className="w-4 h-4 ml-auto animate-spin text-purple-500" />}
             {saved && <CheckCircle className="w-4 h-4 ml-auto text-green-500" />}
@@ -125,7 +127,7 @@ export default function FeedSettingsPage() {
             <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-sm overflow-hidden`}>
               <div className={`px-4 py-2 ${darkMode ? 'bg-gray-700/50 border-gray-700' : 'bg-gray-50 border-gray-100'} border-b`}>
                 <h3 className={`text-xs font-semibold ${darkMode ? 'text-gray-400' : 'text-gray-500'} uppercase tracking-wider`}>
-                  Megjelenítés
+                  {market === 'de' ? 'Anzeige' : 'Megjelenítés'}
                 </h3>
               </div>
               <div className={`divide-y ${darkMode ? 'divide-gray-700' : 'divide-gray-100'}`}>
@@ -163,7 +165,7 @@ export default function FeedSettingsPage() {
             {/* Info */}
             <div className={`px-4 py-3 rounded-xl ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-sm`}>
               <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                A beállítások automatikusan mentődnek és minden eszközödön érvényesek lesznek.
+                {market === 'de' ? 'Einstellungen werden automatisch gespeichert und auf allen deinen Geraeten angewendet.' : 'A beállítások automatikusan mentődnek és minden eszközödön érvényesek lesznek.'}
               </p>
             </div>
           </div>

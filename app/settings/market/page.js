@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Languages } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
+import { getClientMarket } from '@/lib/marketI18n';
 
 function buildSwitchUrl(market, currentPath) {
   const encodedPath = encodeURIComponent(currentPath || '/');
@@ -13,6 +14,7 @@ function buildSwitchUrl(market, currentPath) {
 export default function MarketSettingsPage() {
   const router = useRouter();
   const { darkMode } = useTheme();
+  const market = getClientMarket();
 
   const currentPath = typeof window !== 'undefined'
     ? window.location.pathname + window.location.search + window.location.hash
@@ -21,19 +23,19 @@ export default function MarketSettingsPage() {
   const options = useMemo(() => ([
     {
       key: 'hu',
-      title: 'Magyar nyelv (HU)',
-      subtitle: 'Magyar tartalom ugyanazon a domainen',
+      title: market === 'de' ? 'Ungarisch (HU)' : 'Magyar nyelv (HU)',
+      subtitle: market === 'de' ? 'Ungarischer Inhalt auf derselben Domain' : 'Magyar tartalom ugyanazon a domainen',
       target: buildSwitchUrl('hu', currentPath),
       flag: 'HU'
     },
     {
       key: 'de',
-      title: 'Német nyelv (DE)',
-      subtitle: 'A weboldal ugyanazon a domainen marad',
+      title: market === 'de' ? 'Deutsch (DE)' : 'Német nyelv (DE)',
+      subtitle: market === 'de' ? 'Die Website bleibt auf derselben Domain' : 'A weboldal ugyanazon a domainen marad',
       target: buildSwitchUrl('de', currentPath),
       flag: 'DE'
     }
-  ]), [currentPath]);
+  ]), [currentPath, market]);
 
   const goToMarket = (target) => {
     window.location.href = target;
@@ -50,7 +52,7 @@ export default function MarketSettingsPage() {
             <ArrowLeft className={`w-5 h-5 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`} />
           </button>
           <h1 className={`text-lg font-semibold ml-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-            Piac es nyelv valasztas
+            {market === 'de' ? 'Markt- und Sprachauswahl' : 'Piac es nyelv valasztas'}
           </h1>
         </div>
       </div>
@@ -60,12 +62,12 @@ export default function MarketSettingsPage() {
           <div className="flex items-center gap-2 mb-3">
             <Languages className="w-5 h-5 text-emerald-500" />
             <h2 className={`text-base font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              Kivalasztott piac kulon domainre visz
+              {market === 'de' ? 'Ausgewaehlter Markt bleibt auf derselben Domain' : 'Kivalasztott piac ugyanazon a domainen marad'}
             </h2>
           </div>
 
           <p className={`text-sm mb-4 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-            A választás ugyanazon a domainen marad, csak a megjelenő nyelv és market cookie változik.
+            {market === 'de' ? 'Die Domain bleibt gleich, nur Sprache und Market-Cookie aendern sich.' : 'A választás ugyanazon a domainen marad, csak a megjelenő nyelv és market cookie változik.'}
           </p>
 
           <div className="space-y-3">

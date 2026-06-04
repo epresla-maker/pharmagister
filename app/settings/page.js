@@ -66,7 +66,7 @@ export default function SettingsPage() {
       });
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Törlési hiba');
+        throw new Error(data.error || (market === 'de' ? 'Loeschfehler' : 'Törlési hiba'));
       }
       setDeleteStep(3);
       // Sign out locally after deletion
@@ -76,7 +76,7 @@ export default function SettingsPage() {
       }, 2000);
     } catch (error) {
       console.error('Delete account error:', error);
-      setDeleteError(error.message || 'Hiba történt a fiók törlésekor');
+      setDeleteError(error.message || (market === 'de' ? 'Beim Loeschen des Kontos ist ein Fehler aufgetreten.' : 'Hiba történt a fiók törlésekor'));
       setDeleteStep(1);
     }
   };
@@ -241,7 +241,7 @@ export default function SettingsPage() {
           {userData?.photoURL ? (
             <img 
               src={userData.photoURL} 
-              alt={userData.displayName || 'Profil'}
+              alt={userData.displayName || (market === 'de' ? 'Profil' : 'Profil')}
               className="w-16 h-16 rounded-full object-cover"
             />
           ) : (
@@ -251,12 +251,12 @@ export default function SettingsPage() {
           )}
           <div className="flex-1">
             <h2 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              {userData?.displayName || 'Felhasználó'}
+              {userData?.displayName || (market === 'de' ? 'Benutzer/in' : 'Felhasználó')}
             </h2>
             <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{user.email}</p>
             {userData?.role && (
               <span className={`inline-block mt-1 px-2 py-0.5 ${darkMode ? 'bg-emerald-900/30 text-emerald-400' : 'bg-emerald-100 text-emerald-700'} text-xs rounded-full`}>
-                {userData.role === 'pharmacist' ? 'Gyógyszerész' : userData.role}
+                {userData.role === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'Gyógyszerész') : userData.role === 'assistant' ? (market === 'de' ? 'Assistent/in' : 'Szakasszisztens') : userData.role}
               </span>
             )}
           </div>
@@ -389,13 +389,15 @@ export default function SettingsPage() {
                 {deleteStep === 0 && (
                   <>
                     <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-4`}>
-                      Ezzel <strong>véglegesen és visszavonhatatlanul</strong> törlöd a fiókodat és az összes adatodat:
+                      {market === 'de'
+                        ? <>Damit loeschst du dein Konto und alle Daten <strong>endgueltig und unwiderruflich</strong>:</>
+                        : <>Ezzel <strong>véglegesen és visszavonhatatlanul</strong> törlöd a fiókodat és az összes adatodat:</>}
                     </p>
                     <ul className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'} list-disc pl-5 mb-4 space-y-1`}>
-                      <li>Profil és beállítások</li>
-                      <li>Helyettesítési igények és jelentkezések</li>
-                      <li>Chat üzenetek</li>
-                      <li>Értesítések</li>
+                      <li>{market === 'de' ? 'Profil und Einstellungen' : 'Profil és beállítások'}</li>
+                      <li>{market === 'de' ? 'Vertretungsanfragen und Bewerbungen' : 'Helyettesítési igények és jelentkezések'}</li>
+                      <li>{market === 'de' ? 'Chat-Nachrichten' : 'Chat üzenetek'}</li>
+                      <li>{market === 'de' ? 'Benachrichtigungen' : 'Értesítések'}</li>
                     </ul>
                     <div className="flex gap-3">
                       <button
@@ -417,7 +419,7 @@ export default function SettingsPage() {
                 {deleteStep === 1 && (
                   <>
                     <p className={`${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-4 font-medium`}>
-                      Biztosan törölni szeretnéd a fiókodat? Ez a művelet NEM vonható vissza!
+                      {market === 'de' ? 'Moechtest du dein Konto wirklich loeschen? Dieser Vorgang kann NICHT rueckgaengig gemacht werden.' : 'Biztosan törölni szeretnéd a fiókodat? Ez a művelet NEM vonható vissza!'}
                     </p>
                     {deleteError && (
                       <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 text-sm text-red-800 dark:text-red-200 mb-4">
@@ -435,7 +437,7 @@ export default function SettingsPage() {
                         onClick={handleDeleteAccount}
                         className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold"
                       >
-                        Véglegesen törlöm
+                        {market === 'de' ? 'Endgueltig loeschen' : 'Véglegesen törlöm'}
                       </button>
                     </div>
                   </>
