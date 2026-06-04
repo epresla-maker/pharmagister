@@ -2564,15 +2564,17 @@ function EmployeePreferenceCalendar({
           <div className="text-white font-bold text-base tracking-tight whitespace-nowrap">{monthLabel} {year}</div>
           {monthlyRequiredHours > 0 ? (
             <div className="text-xs font-medium text-white/80 whitespace-nowrap">
-              havi {monthlyRequiredHours} · tervben {Math.round(plannedHoursTotal)} · maradt {remainingHours > 0 ? Math.round(remainingHours) : '✓'}
+              {market === 'de'
+                ? `Monatlich ${monthlyRequiredHours} · geplant ${Math.round(plannedHoursTotal)} · offen ${remainingHours > 0 ? Math.round(remainingHours) : '✓'}`
+                : `havi ${monthlyRequiredHours} · tervben ${Math.round(plannedHoursTotal)} · maradt ${remainingHours > 0 ? Math.round(remainingHours) : '✓'}`}
             </div>
           ) : annualVacDays > 0 ? (
-            <div className="text-xs font-medium text-white/80 whitespace-nowrap">{ownMonthCount} nap</div>
+            <div className="text-xs font-medium text-white/80 whitespace-nowrap">{ownMonthCount} {market === 'de' ? 'Tage' : 'nap'}</div>
           ) : (
-            <div className="text-xs font-medium text-white/70">{ownMonthCount} tervezett nap</div>
+            <div className="text-xs font-medium text-white/70">{ownMonthCount} {market === 'de' ? 'geplante Tage' : 'tervezett nap'}</div>
           )}
           {annualVacDays > 0 && (
-            <div className="text-xs font-medium text-white/80 whitespace-nowrap">maradék szabi: {Math.max(0, vacAfterThisMonth)}</div>
+            <div className="text-xs font-medium text-white/80 whitespace-nowrap">{market === 'de' ? 'Urlaub offen' : 'maradék szabi'}: {Math.max(0, vacAfterThisMonth)}</div>
           )}
         </div>
         <button type="button" onClick={() => onChangeMonth('next')} className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold text-xl leading-none">›</button>
@@ -2580,8 +2582,8 @@ function EmployeePreferenceCalendar({
 
       {/* Legend */}
       <div className={`flex-shrink-0 flex items-center gap-4 px-4 py-2 text-xs border-b ${darkMode ? 'border-gray-800 bg-gray-850 text-gray-400' : 'border-gray-100 bg-gray-50 text-gray-500'}`}>
-        <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-full bg-emerald-500"/> Saját tervem</span>
-        <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-full bg-gray-400"/> Kollégák tervei</span>
+        <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-full bg-emerald-500"/> {market === 'de' ? 'Mein Entwurf' : 'Saját tervem'}</span>
+        <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-full bg-gray-400"/> {market === 'de' ? 'Entwuerfe von Kolleg/innen' : 'Kollégák tervei'}</span>
       </div>
 
       {/* Unpublished banner */}
@@ -2691,7 +2693,7 @@ function EmployeePreferenceCalendar({
                       <div className="flex items-center gap-2">
                         <span className={`flex-shrink-0 inline-flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-black ${st.bg} ${st.text}`}>{st.label}</span>
                         <span className={`flex-1 text-sm font-medium ${isSz ? (darkMode ? 'text-orange-300' : 'text-orange-700') : (darkMode ? 'text-emerald-200' : 'text-emerald-800')}`}>
-                          {isSz ? 'Szabadságot kértem' : 'Saját tervem'}
+                          {isSz ? (market === 'de' ? 'Urlaub angefragt' : 'Szabadságot kértem') : (market === 'de' ? 'Mein Entwurf' : 'Saját tervem')}
                         </span>
                         {!isSz && contractHours > 0 && (
                           <span className="flex-shrink-0 text-xs font-bold tabular-nums text-emerald-600">{hrs || `${contractHours}.00`}</span>
@@ -5045,15 +5047,23 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
   const topTabs = isPharmacy
     ? [
-        { key: 'schedule', label: 'Beosztás', fullLabel: 'Beosztások kezelése' },
-        { key: 'workers', label: 'Dolgozók', fullLabel: 'Dolgozók kezelése' },
+        {
+          key: 'schedule',
+          label: market === 'de' ? 'Dienstplan' : 'Beosztás',
+          fullLabel: market === 'de' ? 'Dienstplaene verwalten' : 'Beosztások kezelése',
+        },
+        {
+          key: 'workers',
+          label: market === 'de' ? 'Mitarbeitende' : 'Dolgozók',
+          fullLabel: market === 'de' ? 'Mitarbeitende verwalten' : 'Dolgozók kezelése',
+        },
       ]
     : [
-        { key: 'mine', label: 'Beosztásom' },
-        { key: 'planner', label: 'Tervező' },
-        { key: 'swaps', label: 'Cserék', badge: pendingIncomingSwaps.length },
-        { key: 'vacations', label: 'Szabadságolások' },
-        { key: 'preferences', label: 'Preferenciák' },
+        { key: 'mine', label: market === 'de' ? 'Mein Dienstplan' : 'Beosztásom' },
+        { key: 'planner', label: market === 'de' ? 'Planer' : 'Tervező' },
+        { key: 'swaps', label: market === 'de' ? 'Tausche' : 'Cserék', badge: pendingIncomingSwaps.length },
+        { key: 'vacations', label: market === 'de' ? 'Urlaube' : 'Szabadságolások' },
+        { key: 'preferences', label: market === 'de' ? 'Praeferenzen' : 'Preferenciák' },
       ];
 
   const visibleSchedules = schedules.filter(item => item.status !== 'deleted');
@@ -5195,7 +5205,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       setStatusMessage(
         market === 'de'
           ? 'Praeferenzen gespeichert. Sie werden bei der naechsten automatischen Planung beruecksichtigt.'
-          : 'Preferenciák mentve. A következő automatikus tervezésnél figyelembe lesznek véve.'
+          : 'Preferenciák mentve. A kovetkezo automatikus tervezesnel figyelembe lesznek veve.'
       );
       await loadData();
     } catch (error) {
@@ -6370,8 +6380,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           {
             id: 'sw_missing',
             type: 'send_message',
-            label: 'Ki nem küldte be a tervezetét?',
-            utterance: `Ki nem küldte be még a ${monthName.toLowerCase()}i tervezetét?`,
+            label: market === 'de' ? 'Wer hat den Entwurf nicht gesendet?' : 'Ki nem küldte be a tervezetét?',
+            utterance: market === 'de' ? `Wer hat den Entwurf fuer ${monthName} noch nicht gesendet?` : `Ki nem küldte be még a ${monthName.toLowerCase()}i tervezetét?`,
           },
         ],
       }]);
@@ -6895,7 +6905,12 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           uiCommands: [
             { id: 'sw_auto', type: 'local_run_auto_planner', label: `Automatikus tervezes – ${monthName}`, monthNumber: targetMonth, monthOffset: null, monthLabel: monthName },
             { id: 'sw_manual', type: 'set_main_tab', label: `Manualis szerkesztes – ${monthName}`, tab: 'schedule', monthNumber: targetMonth, monthOffset: null },
-            { id: 'sw_missing', type: 'send_message', label: 'Ki nem kuldte be a tervezetet?', utterance: `Ki nem kuldte be meg a ${monthName.toLowerCase()}i tervezetet?` },
+            {
+              id: 'sw_missing',
+              type: 'send_message',
+              label: market === 'de' ? 'Wer hat den Entwurf nicht gesendet?' : 'Ki nem kuldte be a tervezetet?',
+              utterance: market === 'de' ? `Wer hat den Entwurf fuer ${monthName} noch nicht gesendet?` : `Ki nem kuldte be meg a ${monthName.toLowerCase()}i tervezetet?`,
+            },
           ],
         }]);
       } else if (result?.payload?.action) {
@@ -8308,12 +8323,22 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         <h2 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-[#111827]'}`}>
           {isPharmacy
             ? (topTabs.find(t => t.key === mainTab)?.fullLabel || topTabs.find(t => t.key === mainTab)?.label)
-            : (mainTab === 'mine' ? 'Beosztásom' : mainTab === 'swaps' ? 'Csereigények' : mainTab === 'vacations' ? 'Szabadságolások' : mainTab === 'planner' ? 'Beosztás-tervező' : 'Preferenciák')}
+            : (mainTab === 'mine'
+              ? (market === 'de' ? 'Mein Dienstplan' : 'Beosztásom')
+              : mainTab === 'swaps'
+                ? (market === 'de' ? 'Tauschanfragen' : 'Csereigények')
+                : mainTab === 'vacations'
+                  ? (market === 'de' ? 'Urlaube' : 'Szabadságolások')
+                  : mainTab === 'planner'
+                    ? (market === 'de' ? 'Dienstplan-Entwurf' : 'Beosztás-tervező')
+                    : (market === 'de' ? 'Praeferenzen' : 'Preferenciák'))}
         </h2>
         <p className={`mt-1 text-sm ${darkMode ? 'text-gray-400' : 'text-[#6B7280]'}`}>
           {isPharmacy
-            ? (mainTab === 'workers' ? 'Dolgozók hozzáadása, eltávolítása és preferenciáik megtekintése.' : 'Beosztások írása, publikálása és csereigények kezelése.')
-            : 'Saját beosztások, csereigények és szabadságigények egy helyen.'}
+            ? (mainTab === 'workers'
+              ? (market === 'de' ? 'Mitarbeitende hinzufuegen, entfernen und ihre Praeferenzen ansehen.' : 'Dolgozók hozzáadása, eltávolítása és preferenciáik megtekintése.')
+              : (market === 'de' ? 'Dienstplaene erstellen, veroeffentlichen und Tauschanfragen verwalten.' : 'Beosztások írása, publikálása és csereigények kezelése.'))
+            : (market === 'de' ? 'Eigene Dienste, Tauschanfragen und Urlaubsanfragen an einem Ort.' : 'Saját beosztások, csereigények és szabadságigények egy helyen.')}
         </p>
       </div>
 
@@ -8382,10 +8407,10 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       {!loading && !isPharmacy && awaitingPharmacyAssignment ? (
         <div className={`rounded-2xl border px-4 py-4 ${darkMode ? 'border-amber-700 bg-amber-900/20' : 'border-amber-300 bg-amber-50'}`}>
           <p className={`text-sm font-semibold ${darkMode ? 'text-amber-300' : 'text-amber-900'}`}>
-            A beosztásod még nem aktív.
+            {market === 'de' ? 'Dein Dienstplan ist noch nicht aktiv.' : 'A beosztásod még nem aktív.'}
           </p>
           <p className={`mt-1 text-sm ${darkMode ? 'text-amber-200/90' : 'text-amber-800'}`}>
-            Akkor fogsz itt adatokat látni, ha egy gyógyszertár felvesz a dolgozói közé.
+            {market === 'de' ? 'Hier siehst du Daten, sobald dich eine Apotheke in die Mitarbeitenden-Liste aufnimmt.' : 'Akkor fogsz itt adatokat látni, ha egy gyógyszertár felvesz a dolgozói közé.'}
           </p>
         </div>
       ) : null}
@@ -8394,8 +8419,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         <div className="space-y-6">
           <SegmentedTabs
             tabs={[
-              { key: 'add', label: 'Dolgozó hozzáadása' },
-              { key: 'remove', label: 'Dolgozó eltávolítása' },
+              { key: 'add', label: market === 'de' ? 'Mitarbeitende hinzufuegen' : 'Dolgozó hozzáadása' },
+              { key: 'remove', label: market === 'de' ? 'Mitarbeitende entfernen' : 'Dolgozó eltávolítása' },
             ]}
             active={workerTab}
             onChange={setWorkerTab}
@@ -8448,7 +8473,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                         <div className="flex items-center gap-2 flex-shrink-0">
                           {empPrefs.length > 0 && (
                             <span className={`text-[11px] font-semibold rounded-full px-2 py-0.5 ${darkMode ? 'bg-emerald-900/50 text-emerald-300' : 'bg-emerald-100 text-emerald-700'}`}>
-                              {empPrefs.length} beküldött tervezet
+                              {empPrefs.length} {market === 'de' ? 'eingereichte Entwuerfe' : 'beküldött tervezet'}
                             </span>
                           )}
                           {workerTab === 'remove' && (
@@ -8458,7 +8483,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                               className="inline-flex items-center gap-1.5 rounded-xl bg-red-600 px-3 py-1.5 text-xs font-medium text-white"
                             >
                               <UserMinus className="h-3.5 w-3.5" />
-                              Eltávolítás
+                              {market === 'de' ? 'Entfernen' : 'Eltávolítás'}
                             </button>
                           )}
                           <span className={`text-xs font-bold ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{isExpanded ? '▲' : '▼'}</span>
@@ -8622,30 +8647,30 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                                 onClick={() => handleSaveWorkerBasicData(employee.id)}
                                 className="inline-flex items-center gap-1.5 rounded-xl bg-violet-600 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-60"
                               >
-                                {isSavingEf ? 'Mentés...' : 'Mentés'}
+                                {isSavingEf ? (market === 'de' ? 'Speichern...' : 'Mentés...') : (market === 'de' ? 'Speichern' : 'Mentés')}
                               </button>
                             </div>
                           </div>
 
                           {/* Preferences section */}
                           {monthKeys.length === 0 ? (
-                            <p className={`text-sm italic ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Még nem küldött be tervezetet.</p>
+                            <p className={`text-sm italic ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{market === 'de' ? 'Es wurde noch kein Entwurf eingereicht.' : 'Még nem küldött be tervezetet.'}</p>
                           ) : monthKeys.map(mk => {
                             const { year: y, month: m, entries } = byMonth[mk];
-                            const label = `${MONTHS_HU[m - 1]} ${y}`;
+                            const label = `${(market === 'de' ? MONTHS_DE : MONTHS_HU)[m - 1]} ${y}`;
                             const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
                             return (
                               <div key={mk}>
                                 <div className="flex items-center gap-2 mb-2">
                                   <p className={`text-xs font-bold uppercase tracking-wider ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{label}</p>
-                                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${darkMode ? 'bg-emerald-900/60 text-emerald-300' : 'bg-emerald-100 text-emerald-700'}`}>✓ Beküldve</span>
+                                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${darkMode ? 'bg-emerald-900/60 text-emerald-300' : 'bg-emerald-100 text-emerald-700'}`}>✓ {market === 'de' ? 'Eingereicht' : 'Beküldve'}</span>
                                 </div>
                                 <div className="flex flex-col gap-1">
                                   {sorted.map(p => {
                                     const st = getShiftType(p.shiftType || 'N', market);
                                     const hrs = calcHours(p.startTime, p.endTime, market);
                                     const dow = new Date(p.year, p.month - 1, p.day || parseInt(p.date.split('-')[2])).getDay();
-                                    const DOW_SHORT = ['V','H','K','Sz','Cs','P','Szo'];
+                                    const DOW_SHORT = market === 'de' ? ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'] : ['V','H','K','Sz','Cs','P','Szo'];
                                     return (
                                       <div key={p.id} className={`flex items-center gap-2 rounded-lg px-3 py-2 ${darkMode ? 'bg-gray-800' : 'bg-gray-50'}`}>
                                         <span className={`flex-shrink-0 text-xs font-bold w-6 text-center ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{DOW_SHORT[dow]}</span>
