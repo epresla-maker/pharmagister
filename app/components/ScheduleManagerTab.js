@@ -5,6 +5,7 @@ import { Capacitor } from '@capacitor/core';
 import { Keyboard } from '@capacitor/keyboard';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
+import { getClientMarket } from '@/lib/marketI18n';
 import {
   addDoc,
   collection,
@@ -2688,6 +2689,8 @@ function EmployeePreferenceCalendar({
 export default function ScheduleManagerTab({ pharmaRole }) {
   const { user, userData } = useAuth();
   const { darkMode } = useTheme();
+  const market = getClientMarket();
+  const locale = market === 'de' ? 'de-DE' : 'hu-HU';
   const isPharmacy = pharmaRole === 'pharmacy';
 
   const now = new Date();
@@ -5068,7 +5071,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   function formatHuDate(dateKey) {
     const dt = new Date(`${dateKey}T00:00:00`);
     if (Number.isNaN(dt.getTime())) return dateKey;
-    return dt.toLocaleDateString('hu-HU', { month: 'long', day: 'numeric', weekday: 'short' });
+    return dt.toLocaleDateString(locale, { month: 'long', day: 'numeric', weekday: 'short' });
   }
 
   function getLocalBettiPersonalReply(text) {
@@ -5409,7 +5412,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       return;
     }
     const recognition = new SpeechRecognition();
-    recognition.lang = 'hu-HU';
+    recognition.lang = locale;
     recognition.continuous = false;
     recognition.interimResults = false;
     recognition.onstart = () => setBettiVoiceListening(true);
@@ -5430,7 +5433,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'hu-HU';
+    utterance.lang = locale;
     utterance.rate = 1.05;
     window.speechSynthesis.speak(utterance);
   }
@@ -7492,7 +7495,11 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             {/* Navigáció + autosave */}
             <div className={`px-5 py-4 flex items-center justify-between gap-3 border-t ${darkMode ? 'border-gray-800 bg-gray-900' : 'border-gray-100 bg-gray-50'}`}>
               <p className={`text-xs ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>
-                {plannerDraftSaving ? '💾 Mentés...' : plannerDraftSavedAt ? `✓ Mentve ${plannerDraftSavedAt.toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' })}` : 'Auto-mentés'}
+                {plannerDraftSaving
+                  ? (market === 'de' ? '💾 Speichern...' : '💾 Mentés...')
+                  : plannerDraftSavedAt
+                    ? `${market === 'de' ? '✓ Gespeichert' : '✓ Mentve'} ${plannerDraftSavedAt.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}`
+                    : (market === 'de' ? 'Auto-Speichern' : 'Auto-mentés')}
               </p>
               <div className="flex gap-2">
                 <button
@@ -8256,7 +8263,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                             <div className="flex items-center justify-end gap-3">
                               {savedAtEf && (
                                 <span className={`text-xs font-semibold ${darkMode ? 'text-emerald-300' : 'text-emerald-700'}`}>
-                                  Mentve {savedAtEf.toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' })}
+                                  {market === 'de' ? 'Gespeichert' : 'Mentve'} {savedAtEf.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                               )}
                               <button
@@ -8645,7 +8652,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                             {ignoredPrefsArray.map((p, i) => {
                               const empName = p.employeeName || activeEmployees.find(e => e.id === p.employeeId)?.name || 'Ismeretlen';
                               const dt = new Date(`${p.date}T00:00:00`);
-                              const dateLabel = dt.toLocaleDateString('hu-HU', { month: 'long', day: 'numeric', weekday: 'short' });
+                              const dateLabel = dt.toLocaleDateString(locale, { month: 'long', day: 'numeric', weekday: 'short' });
                               const shiftLabel = p.startTime && p.endTime ? `${p.startTime}–${p.endTime}` : (p.shiftType || 'N');
                               const isLocking = lockingPrefId === p.id;
                               return (
