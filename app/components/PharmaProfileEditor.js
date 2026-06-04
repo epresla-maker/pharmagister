@@ -4,9 +4,11 @@ import { useAuth } from '@/context/AuthContext';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Loader2, Edit2, Save, X, Camera, AlertTriangle, Trash2 } from 'lucide-react';
+import { getClientMarket } from '@/lib/marketI18n';
 
 export default function PharmaProfileEditor({ pharmaRole }) {
   const { user, userData } = useAuth();
+  const market = getClientMarket();
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -37,6 +39,12 @@ export default function PharmaProfileEditor({ pharmaRole }) {
     'Primula',
     'Egyéb'
   ];
+
+  const getSoftwareLabel = (software) => {
+    if (market !== 'de') return software;
+    if (software === 'Egyéb') return 'Sonstige';
+    return software;
+  };
 
   // Store original data for cancel functionality
   const [originalFormData, setOriginalFormData] = useState({});
@@ -82,13 +90,13 @@ export default function PharmaProfileEditor({ pharmaRole }) {
 
     // Check file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert('A fájl mérete maximum 5MB lehet!');
+      alert(market === 'de' ? 'Die Dateigroesse darf maximal 5 MB sein!' : 'A fájl mérete maximum 5MB lehet!');
       return;
     }
 
     // Check file type
     if (!file.type.startsWith('image/')) {
-      alert('Csak képfájlokat tölthetsz fel!');
+      alert(market === 'de' ? 'Du kannst nur Bilddateien hochladen!' : 'Csak képfájlokat tölthetsz fel!');
       return;
     }
 
@@ -112,7 +120,7 @@ export default function PharmaProfileEditor({ pharmaRole }) {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Feltöltés sikertelen');
+        throw new Error(data.error || (market === 'de' ? 'Upload fehlgeschlagen' : 'Feltöltés sikertelen'));
       }
 
       // 3. URL mentése Firestore-ba
@@ -122,13 +130,13 @@ export default function PharmaProfileEditor({ pharmaRole }) {
         updatedAt: new Date().toISOString()
       });
 
-      alert('Profilkép sikeresen feltöltve!');
+      alert(market === 'de' ? 'Profilbild erfolgreich hochgeladen!' : 'Profilkép sikeresen feltöltve!');
       
       // Frissítjük az oldalt hogy látszódjon az új kép
       window.location.reload();
     } catch (error) {
       console.error('Error uploading photo:', error);
-      alert('Hiba történt a kép feltöltése során.');
+      alert(market === 'de' ? 'Fehler beim Hochladen des Bildes.' : 'Hiba történt a kép feltöltése során.');
     } finally {
       setUploadingPhoto(false);
     }
@@ -146,7 +154,7 @@ export default function PharmaProfileEditor({ pharmaRole }) {
 
       if (pharmaRole === 'pharmacy') {
         if (!formData.pharmacyName || !formData.pharmacyCity) {
-          alert('Kérlek töltsd ki a kötelező mezőket!');
+          alert(market === 'de' ? 'Bitte fuelle die Pflichtfelder aus!' : 'Kérlek töltsd ki a kötelező mezőket!');
           setLoading(false);
           return;
         }
@@ -161,7 +169,7 @@ export default function PharmaProfileEditor({ pharmaRole }) {
         });
       } else {
         if (!formData.pharmaYearsOfExperience || formData.pharmaSoftwareKnowledge.length === 0 || !formData.pharmaHourlyRate) {
-          alert('Kérlek töltsd ki a kötelező mezőket!');
+          alert(market === 'de' ? 'Bitte fuelle die Pflichtfelder aus!' : 'Kérlek töltsd ki a kötelező mezőket!');
           setLoading(false);
           return;
         }
@@ -177,12 +185,12 @@ export default function PharmaProfileEditor({ pharmaRole }) {
 
       await updateDoc(userRef, dataToUpdate);
       
-      alert('Profil sikeresen frissítve!');
+      alert(market === 'de' ? 'Profil erfolgreich aktualisiert!' : 'Profil sikeresen frissítve!');
       setEditing(false);
       
     } catch (error) {
       console.error('Error updating profile:', error);
-      alert('Hiba történt a profil frissítése során.');
+      alert(market === 'de' ? 'Fehler beim Aktualisieren des Profils.' : 'Hiba történt a profil frissítése során.');
     } finally {
       setLoading(false);
     }
@@ -192,11 +200,13 @@ export default function PharmaProfileEditor({ pharmaRole }) {
     if (!user) return;
 
     const confirmation = window.prompt(
-      'A Pharmagister profil törlésének megerősítéséhez írd be: PHARMA'
+      market === 'de'
+        ? 'Gib zur Bestaetigung der Loeschung des Pharmagister-Profils bitte ein: PHARMA'
+        : 'A Pharmagister profil törlésének megerősítéséhez írd be: PHARMA'
     );
 
     if (confirmation !== 'PHARMA') {
-      alert('A törlés megszakítva.');
+      alert(market === 'de' ? 'Loeschung abgebrochen.' : 'A törlés megszakítva.');
       return;
     }
 
@@ -218,14 +228,14 @@ export default function PharmaProfileEditor({ pharmaRole }) {
         pharmaBio: null,
       });
 
-      alert('Pharmagister profilod sikeresen törölve!');
+      alert(market === 'de' ? 'Dein Pharmagister-Profil wurde erfolgreich geloescht!' : 'Pharmagister profilod sikeresen törölve!');
       setShowDeleteModal(false);
       
       // Refresh the page to show updated data
       window.location.reload();
     } catch (error) {
       console.error('Error deleting Pharmagister profile:', error);
-      alert('Hiba történt a Pharmagister profil törlése során: ' + error.message);
+      alert((market === 'de' ? 'Fehler beim Loeschen des Pharmagister-Profils: ' : 'Hiba történt a Pharmagister profil törlése során: ') + error.message);
     }
   };
 
@@ -233,13 +243,13 @@ export default function PharmaProfileEditor({ pharmaRole }) {
     return (
       <div>
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-[#111827]">Pharmagister Profilom</h2>
+          <h2 className="text-2xl font-bold text-[#111827]">{market === 'de' ? 'Mein Pharmagister-Profil' : 'Pharmagister Profilom'}</h2>
           <button
             onClick={() => setEditing(true)}
             className="flex items-center gap-2 px-4 py-2 bg-[#6B46C1] hover:bg-purple-700 text-white rounded-xl transition-colors font-medium"
           >
             <Edit2 className="w-4 h-4" />
-            Szerkesztés
+            {market === 'de' ? 'Bearbeiten' : 'Szerkesztés'}
           </button>
         </div>
 
@@ -249,13 +259,13 @@ export default function PharmaProfileEditor({ pharmaRole }) {
             <div>
               <img 
                 src={userData.pharmaPhotoURL} 
-                alt="Pharma profil"
+                alt={market === 'de' ? 'Pharma-Profil' : 'Pharma profil'}
                 className="w-24 h-24 rounded-full object-cover border-4 border-green-600"
               />
             </div>
             <div>
-              <p className="text-sm text-gray-600">Pharmagister profilkép</p>
-              <p className="text-xs text-gray-500 mt-1">Ez a kép jelenik meg a posztjaidnál</p>
+              <p className="text-sm text-gray-600">{market === 'de' ? 'Pharmagister-Profilbild' : 'Pharmagister profilkép'}</p>
+              <p className="text-xs text-gray-500 mt-1">{market === 'de' ? 'Dieses Bild wird bei deinen Beitragen angezeigt' : 'Ez a kép jelenik meg a posztjaidnál'}</p>
             </div>
           </div>
         )}
@@ -264,32 +274,32 @@ export default function PharmaProfileEditor({ pharmaRole }) {
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-semibold text-[#6B7280] mb-1">Regisztráció típusa:</label>
-                <p className="text-[#111827] font-medium text-lg">Gyógyszertár</p>
+                <label className="block text-sm font-semibold text-[#6B7280] mb-1">{market === 'de' ? 'Registrierungstyp:' : 'Regisztráció típusa:'}</label>
+                <p className="text-[#111827] font-medium text-lg">{market === 'de' ? 'Apotheke' : 'Gyógyszertár'}</p>
               </div>
               
               <div>
-                <label className="block text-sm font-semibold text-[#6B7280] mb-1">Gyógyszertár neve</label>
+                <label className="block text-sm font-semibold text-[#6B7280] mb-1">{market === 'de' ? 'Apothekenname' : 'Gyógyszertár neve'}</label>
                 <p className="text-[#111827] font-medium text-lg">{formData.pharmacyName || '-'}</p>
               </div>
               
               <div>
-                <label className="block text-sm font-semibold text-[#6B7280] mb-1">Város</label>
+                <label className="block text-sm font-semibold text-[#6B7280] mb-1">{market === 'de' ? 'Stadt' : 'Város'}</label>
                 <p className="text-[#111827] font-medium text-lg">{formData.pharmacyCity || '-'}</p>
               </div>
               
               <div>
-                <label className="block text-sm font-semibold text-[#6B7280] mb-1">Irányítószám</label>
+                <label className="block text-sm font-semibold text-[#6B7280] mb-1">{market === 'de' ? 'Postleitzahl' : 'Irányítószám'}</label>
                 <p className="text-[#111827] font-medium text-lg">{formData.pharmacyZipCode || '-'}</p>
               </div>
               
               <div>
-                <label className="block text-sm font-semibold text-[#6B7280] mb-1">Cím</label>
+                <label className="block text-sm font-semibold text-[#6B7280] mb-1">{market === 'de' ? 'Adresse' : 'Cím'}</label>
                 <p className="text-[#111827] font-medium text-lg">{formData.pharmacyAddress || '-'}</p>
               </div>
               
               <div>
-                <label className="block text-sm font-semibold text-[#6B7280] mb-1">Telefonszám</label>
+                <label className="block text-sm font-semibold text-[#6B7280] mb-1">{market === 'de' ? 'Telefonnummer' : 'Telefonszám'}</label>
                 <p className="text-[#111827] font-medium text-lg">{formData.pharmacyPhone || '-'}</p>
               </div>
               
@@ -303,35 +313,35 @@ export default function PharmaProfileEditor({ pharmaRole }) {
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-semibold text-[#6B7280] mb-1">Regisztráció típusa:</label>
+                <label className="block text-sm font-semibold text-[#6B7280] mb-1">{market === 'de' ? 'Registrierungstyp:' : 'Regisztráció típusa:'}</label>
                 <p className="text-[#111827] font-medium text-lg">
-                  {pharmaRole === 'pharmacist' ? 'Gyógyszerész' : 'Szakasszisztens'}
+                  {pharmaRole === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'Gyógyszerész') : (market === 'de' ? 'Assistent/in' : 'Szakasszisztens')}
                 </p>
               </div>
               
               <div>
-                <label className="block text-sm font-semibold text-[#6B7280] mb-1">Tapasztalat</label>
+                <label className="block text-sm font-semibold text-[#6B7280] mb-1">{market === 'de' ? 'Erfahrung' : 'Tapasztalat'}</label>
                 <p className="text-[#111827] font-medium text-lg">{formData.pharmaYearsOfExperience || '-'}</p>
               </div>
               
               <div>
-                <label className="block text-sm font-semibold text-[#6B7280] mb-1">Órabér</label>
+                <label className="block text-sm font-semibold text-[#6B7280] mb-1">{market === 'de' ? 'Stundenlohn' : 'Órabér'}</label>
                 <p className="text-[#111827] font-medium text-lg">{formData.pharmaHourlyRate ? `${formData.pharmaHourlyRate} Ft` : '-'}</p>
               </div>
               
               <div>
-                <label className="block text-sm font-semibold text-[#6B7280] mb-1">Elérhető</label>
+                <label className="block text-sm font-semibold text-[#6B7280] mb-1">{market === 'de' ? 'Verfuegbar' : 'Elérhető'}</label>
                 <p className="text-[#111827] font-medium text-lg">{formData.pharmaAvailableFrom || '-'}</p>
               </div>
             </div>
             
             <div>
-              <label className="block text-sm font-semibold text-[#6B7280] mb-1">Szoftverismeret</label>
+              <label className="block text-sm font-semibold text-[#6B7280] mb-1">{market === 'de' ? 'Softwarekenntnisse' : 'Szoftverismeret'}</label>
               <div className="flex flex-wrap gap-2 mt-2">
                 {formData.pharmaSoftwareKnowledge.length > 0 ? (
                   formData.pharmaSoftwareKnowledge.map(software => (
                     <span key={software} className="px-3 py-2 bg-[#F3F4F6] text-[#111827] border border-[#E5E7EB] rounded-xl text-sm font-semibold">
-                      {software}
+                      {getSoftwareLabel(software)}
                     </span>
                   ))
                 ) : (
@@ -341,7 +351,7 @@ export default function PharmaProfileEditor({ pharmaRole }) {
             </div>
             
             <div>
-              <label className="block text-sm font-semibold text-[#6B7280] mb-1">Bemutatkozás</label>
+              <label className="block text-sm font-semibold text-[#6B7280] mb-1">{market === 'de' ? 'Vorstellung' : 'Bemutatkozás'}</label>
               <p className="text-[#111827] whitespace-pre-wrap text-lg">{formData.pharmaBio || '-'}</p>
             </div>
           </div>
@@ -353,7 +363,7 @@ export default function PharmaProfileEditor({ pharmaRole }) {
   return (
     <div>
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-[#111827]">Profil Szerkesztése</h2>
+        <h2 className="text-2xl font-bold text-[#111827]">{market === 'de' ? 'Profil bearbeiten' : 'Profil Szerkesztése'}</h2>
       </div>
 
       {/* Profilkép feltöltés - csak szerkesztéskor, csak gyógyszertárnál */}
@@ -364,7 +374,7 @@ export default function PharmaProfileEditor({ pharmaRole }) {
               {userData?.pharmaPhotoURL ? (
                 <img 
                   src={userData.pharmaPhotoURL} 
-                  alt="Pharma profil"
+                  alt={market === 'de' ? 'Pharma-Profil' : 'Pharma profil'}
                   className="w-24 h-24 rounded-full object-cover border-4 border-green-600"
                 />
               ) : (
@@ -394,8 +404,8 @@ export default function PharmaProfileEditor({ pharmaRole }) {
               />
             </div>
             <div>
-              <p className="text-sm font-semibold text-[#111827]">Profilkép</p>
-              <p className="text-xs text-[#6B7280] mt-1">Kattints a kamera ikonra a kép megváltoztatásához</p>
+              <p className="text-sm font-semibold text-[#111827]">{market === 'de' ? 'Profilbild' : 'Profilkép'}</p>
+              <p className="text-xs text-[#6B7280] mt-1">{market === 'de' ? 'Klicke auf das Kamera-Symbol, um das Bild zu aendern' : 'Kattints a kamera ikonra a kép megváltoztatásához'}</p>
               <p className="text-xs text-[#6B7280]">Max 5MB, JPG/PNG</p>
             </div>
           </div>
@@ -406,7 +416,7 @@ export default function PharmaProfileEditor({ pharmaRole }) {
         <div className="space-y-6">
           <div>
             <label className="block text-sm font-semibold text-[#6B7280] mb-2">
-              Gyógyszertár neve <span className="text-red-500">*</span>
+              {market === 'de' ? 'Apothekenname' : 'Gyógyszertár neve'} <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -419,7 +429,7 @@ export default function PharmaProfileEditor({ pharmaRole }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold text-[#6B7280] mb-2">
-                Irányítószám
+                {market === 'de' ? 'Postleitzahl' : 'Irányítószám'}
               </label>
               <input
                 type="text"
@@ -431,7 +441,7 @@ export default function PharmaProfileEditor({ pharmaRole }) {
             
             <div>
               <label className="block text-sm font-semibold text-[#6B7280] mb-2">
-                Város <span className="text-red-500">*</span>
+                {market === 'de' ? 'Stadt' : 'Város'} <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -444,7 +454,7 @@ export default function PharmaProfileEditor({ pharmaRole }) {
 
           <div>
             <label className="block text-sm font-medium text-[#6B7280] mb-2">
-              Cím (utca, házszám)
+              {market === 'de' ? 'Adresse (Strasse, Hausnummer)' : 'Cím (utca, házszám)'}
             </label>
             <input
               type="text"
@@ -457,7 +467,7 @@ export default function PharmaProfileEditor({ pharmaRole }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold text-[#6B7280] mb-2">
-                Telefonszám
+                {market === 'de' ? 'Telefonnummer' : 'Telefonszám'}
               </label>
               <input
                 type="tel"
@@ -469,7 +479,7 @@ export default function PharmaProfileEditor({ pharmaRole }) {
             
             <div>
               <label className="block text-sm font-medium text-[#6B7280] mb-2">
-                Email cím
+                {market === 'de' ? 'E-Mail-Adresse' : 'Email cím'}
               </label>
               <input
                 type="email"
@@ -484,25 +494,25 @@ export default function PharmaProfileEditor({ pharmaRole }) {
         <div className="space-y-6">
           <div>
             <label className="block text-sm font-semibold text-[#6B7280] mb-2">
-              Tapasztalat (évek) <span className="text-red-500">*</span>
+              {market === 'de' ? 'Erfahrung (Jahre)' : 'Tapasztalat (évek)'} <span className="text-red-500">*</span>
             </label>
             <select
               value={formData.pharmaYearsOfExperience}
               onChange={(e) => setFormData({ ...formData, pharmaYearsOfExperience: e.target.value })}
               className="w-full px-4 py-2 bg-white border border-[#E5E7EB] rounded-xl text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#6B7280]"
             >
-              <option value="">Válassz...</option>
-              <option value="0-1">0-1 év</option>
-              <option value="1-3">1-3 év</option>
-              <option value="3-5">3-5 év</option>
-              <option value="5-10">5-10 év</option>
-              <option value="10+">10+ év</option>
+              <option value="">{market === 'de' ? 'Waehlen...' : 'Válassz...'}</option>
+              <option value="0-1">{market === 'de' ? '0-1 Jahre' : '0-1 év'}</option>
+              <option value="1-3">{market === 'de' ? '1-3 Jahre' : '1-3 év'}</option>
+              <option value="3-5">{market === 'de' ? '3-5 Jahre' : '3-5 év'}</option>
+              <option value="5-10">{market === 'de' ? '5-10 Jahre' : '5-10 év'}</option>
+              <option value="10+">{market === 'de' ? '10+ Jahre' : '10+ év'}</option>
             </select>
           </div>
 
           <div>
             <label className="block text-sm font-semibold text-[#6B7280] mb-2">
-              Szoftverismeret <span className="text-red-500">*</span>
+              {market === 'de' ? 'Softwarekenntnisse' : 'Szoftverismeret'} <span className="text-red-500">*</span>
             </label>
             <div className="space-y-2">
               {softwareOptions.map(software => (
@@ -513,7 +523,7 @@ export default function PharmaProfileEditor({ pharmaRole }) {
                     onChange={() => handleSoftwareToggle(software)}
                     className="w-4 h-4 text-[#111827] bg-white border-[#E5E7EB] rounded focus:ring-[#6B7280]"
                   />
-                  <span className="ml-2 text-[#111827] font-medium">{software}</span>
+                  <span className="ml-2 text-[#111827] font-medium">{getSoftwareLabel(software)}</span>
                 </label>
               ))}
             </div>
@@ -521,7 +531,7 @@ export default function PharmaProfileEditor({ pharmaRole }) {
 
           <div>
             <label className="block text-sm font-semibold text-[#6B7280] mb-2">
-              Órabér (Ft) <span className="text-red-500">*</span>
+              {market === 'de' ? 'Stundenlohn (Ft)' : 'Órabér (Ft)'} <span className="text-red-500">*</span>
             </label>
             <input
               type="number"
@@ -534,7 +544,7 @@ export default function PharmaProfileEditor({ pharmaRole }) {
 
           <div>
             <label className="block text-sm font-medium text-[#6B7280] mb-2">
-              Elérhető mikortól?
+              {market === 'de' ? 'Ab wann verfuegbar?' : 'Elérhető mikortól?'}
             </label>
             <input
               type="date"
@@ -546,14 +556,14 @@ export default function PharmaProfileEditor({ pharmaRole }) {
 
           <div>
             <label className="block text-sm font-semibold text-[#6B7280] mb-2">
-              Bemutatkozás
+              {market === 'de' ? 'Vorstellung' : 'Bemutatkozás'}
             </label>
             <textarea
               value={formData.pharmaBio}
               onChange={(e) => setFormData({ ...formData, pharmaBio: e.target.value })}
               rows="4"
               className="w-full px-4 py-2 bg-white border border-[#E5E7EB] rounded-xl text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#6B7280]"
-              placeholder="Írj néhány mondatot magadról..."
+              placeholder={market === 'de' ? 'Schreibe ein paar Saetze ueber dich...' : 'Írj néhány mondatot magadról...'}
             />
           </div>
         </div>
@@ -566,7 +576,7 @@ export default function PharmaProfileEditor({ pharmaRole }) {
           className="flex items-center justify-center gap-2 px-6 py-3 border-2 border-[#E5E7EB] text-[#111827] rounded-xl hover:bg-[#F3F4F6] transition-colors font-medium w-full sm:w-auto"
         >
           <X className="w-5 h-5" />
-          Mégse
+          {market === 'de' ? 'Abbrechen' : 'Mégse'}
         </button>
         <button
           onClick={handleSave}
@@ -576,12 +586,12 @@ export default function PharmaProfileEditor({ pharmaRole }) {
           {loading ? (
             <>
               <Loader2 className="w-5 h-5 animate-spin" />
-              Mentés...
+              {market === 'de' ? 'Speichern...' : 'Mentés...'}
             </>
           ) : (
             <>
               <Save className="w-5 h-5" />
-              Mentés
+              {market === 'de' ? 'Speichern' : 'Mentés'}
             </>
           )}
         </button>
@@ -589,7 +599,7 @@ export default function PharmaProfileEditor({ pharmaRole }) {
 
       {/* Pharmagister Profile Deletion Section */}
       <div className="mt-8 pt-8 border-t-2 border-red-200">
-        <h2 className="text-xl font-bold text-[#111827] mb-4">Pharmagister profil törlése</h2>
+        <h2 className="text-xl font-bold text-[#111827] mb-4">{market === 'de' ? 'Pharmagister-Profil loeschen' : 'Pharmagister profil törlése'}</h2>
         <div className="bg-white border-2 border-red-200 rounded-xl p-6">
           <button
             type="button"
@@ -597,7 +607,7 @@ export default function PharmaProfileEditor({ pharmaRole }) {
             className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-xl transition-colors flex items-center justify-center gap-2"
           >
             <Trash2 className="w-5 h-5" />
-            Pharmagister profil törlése
+            {market === 'de' ? 'Pharmagister-Profil loeschen' : 'Pharmagister profil törlése'}
           </button>
         </div>
       </div>
@@ -608,22 +618,25 @@ export default function PharmaProfileEditor({ pharmaRole }) {
           <div className="bg-white rounded-2xl border-2 border-red-300 p-6 max-w-md w-full">
             <div className="flex items-center gap-3 mb-4">
               <AlertTriangle className="w-8 h-8 text-red-600" />
-              <h3 className="text-2xl font-bold text-red-600">Pharmagister profil törlése</h3>
+              <h3 className="text-2xl font-bold text-red-600">{market === 'de' ? 'Pharmagister-Profil loeschen' : 'Pharmagister profil törlése'}</h3>
             </div>
             
             <div className="bg-red-50 border-l-4 border-red-600 p-4 rounded-r-xl mb-4">
               <p className="text-sm text-red-800 font-semibold mb-2">
-                Ez a művelet végleges!
+                {market === 'de' ? 'Diese Aktion ist endgueltig!' : 'Ez a művelet végleges!'}
               </p>
               <p className="text-sm text-red-700">
-                A Pharmagister profilod összes adata törlődik (gyógyszertár, szakmai adatok stb.), 
-                de a fő fiókodat nem érinti. Biztosan folytatni szeretnéd?
+                {market === 'de'
+                  ? 'Alle Daten deines Pharmagister-Profils werden geloescht (Apotheke, berufliche Daten usw.), aber dein Hauptkonto bleibt unberuehrt. Moechtest du wirklich fortfahren?'
+                  : 'A Pharmagister profilod összes adata törlődik (gyógyszertár, szakmai adatok stb.), de a fő fiókodat nem érinti. Biztosan folytatni szeretnéd?'}
               </p>
             </div>
 
             <div className="space-y-4">
               <p className="text-sm text-[#374151]">
-                A törlés megerősítéséhez írd be a mezőbe: <strong>PHARMA</strong>
+                {market === 'de'
+                  ? 'Zur Bestaetigung der Loeschung gib in das Feld Folgendes ein: '
+                  : 'A törlés megerősítéséhez írd be a mezőbe: '}<strong>PHARMA</strong>
               </p>
 
               <div className="flex gap-3">
@@ -631,13 +644,13 @@ export default function PharmaProfileEditor({ pharmaRole }) {
                   onClick={handleDeletePharmagisterProfile}
                   className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-xl transition-colors"
                 >
-                  Pharmagister profil törlése
+                  {market === 'de' ? 'Pharmagister-Profil loeschen' : 'Pharmagister profil törlése'}
                 </button>
                 <button
                   onClick={() => setShowDeleteModal(false)}
                   className="flex-1 border border-[#E5E7EB] hover:bg-[#F3F4F6] text-[#111827] font-semibold py-3 px-6 rounded-xl transition-colors"
                 >
-                  Mégse
+                  {market === 'de' ? 'Abbrechen' : 'Mégse'}
                 </button>
               </div>
             </div>
