@@ -3432,14 +3432,18 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     try {
       const employeeEmail = normalizeEmail(employeeForm.email);
       if (!employeeEmail) {
-        setStatusError('Dolgozó hozzáadásához regisztrált Pharmagister email cím megadása kötelező.');
+        setStatusError(
+          market === 'de'
+            ? 'Zum Hinzufuegen eines Mitarbeiters ist eine registrierte Pharmagister-E-Mail-Adresse erforderlich.'
+            : 'Dolgozó hozzáadásához regisztrált Pharmagister email cím megadása kötelező.'
+        );
         setSaving(false);
         return;
       }
 
       const existingAtPharmacy = activeEmployees.some(item => normalizeEmail(item.email) === employeeEmail);
       if (existingAtPharmacy) {
-        setStatusError('Ez az email cím már hozzá van adva ehhez a gyógyszertárhoz.');
+        setStatusError(market === 'de' ? 'Diese E-Mail-Adresse ist dieser Apotheke bereits zugeordnet.' : 'Ez az email cím már hozzá van adva ehhez a gyógyszertárhoz.');
         setSaving(false);
         return;
       }
@@ -3453,14 +3457,18 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       );
       const existingActiveRecord = existingSnapshot.docs.some(item => item.data()?.status !== 'inactive');
       if (existingActiveRecord) {
-        setStatusError('Ez az email cím már hozzá van adva ehhez a gyógyszertárhoz.');
+        setStatusError(market === 'de' ? 'Diese E-Mail-Adresse ist dieser Apotheke bereits zugeordnet.' : 'Ez az email cím már hozzá van adva ehhez a gyógyszertárhoz.');
         setSaving(false);
         return;
       }
 
       const userSnapshot = await getDocs(query(collection(db, 'users'), where('email', '==', employeeEmail)));
       if (userSnapshot.empty) {
-        setStatusError('A megadott email cím még nincs regisztrálva a Pharmagister rendszerben. Csak regisztrált felhasználó vehető fel.');
+        setStatusError(
+          market === 'de'
+            ? 'Diese E-Mail-Adresse ist im Pharmagister-System noch nicht registriert. Es koennen nur registrierte Nutzer hinzugefuegt werden.'
+            : 'A megadott email cím még nincs regisztrálva a Pharmagister rendszerben. Csak regisztrált felhasználó vehető fel.'
+        );
         setSaving(false);
         return;
       }
@@ -3468,18 +3476,26 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       const linkedUser = { id: userSnapshot.docs[0].id, ...userSnapshot.docs[0].data() };
       const autoRole = normalizeRoleFromProfile(linkedUser.pharmagisterRole);
       if (!autoRole) {
-        setStatusError('A felhasználó szerepköre nem megfelelő a beosztáshoz. Csak gyógyszerész vagy szakasszisztens profil vehető fel.');
+        setStatusError(
+          market === 'de'
+            ? 'Die Benutzerrolle ist fuer die Dienstplanung nicht geeignet. Es koennen nur Apotheker/in oder Assistent/in hinzugefuegt werden.'
+            : 'A felhasználó szerepköre nem megfelelő a beosztáshoz. Csak gyógyszerész vagy szakasszisztens profil vehető fel.'
+        );
         setSaving(false);
         return;
       }
       const employeeNameFromProfile = (linkedUser.displayName || linkedUser.name || '').trim();
       if (!employeeNameFromProfile) {
-        setStatusError('A felhasználó profiljában nincs név megadva. Kérd meg, hogy előbb töltse ki a profilját.');
+        setStatusError(
+          market === 'de'
+            ? 'Im Benutzerprofil fehlt ein Name. Bitte den Nutzer zuerst das Profil vervollstaendigen lassen.'
+            : 'A felhasználó profiljában nincs név megadva. Kérd meg, hogy előbb töltse ki a profilját.'
+        );
         setSaving(false);
         return;
       }
 
-      const pharmacyName = userData?.pharmacyName || userData?.name || user?.displayName || user?.email || 'Gyógyszertár';
+      const pharmacyName = userData?.pharmacyName || userData?.name || user?.displayName || user?.email || (market === 'de' ? 'Apotheke' : 'Gyógyszertár');
 
       await addDoc(collection(db, 'pharmacyEmployees'), {
         pharmacyId: user.uid,
@@ -3515,8 +3531,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       await createNotificationWithPush({
         userId: linkedUser.id,
         type: 'employee_added_to_pharmacy',
-        title: 'Új gyógyszertári kapcsolat',
-        message: `${pharmacyName} felvett a Pharmagisterben a dolgozói közé.`,
+        title: market === 'de' ? 'Neue Apothekenverknuepfung' : 'Új gyógyszertári kapcsolat',
+        message: market === 'de' ? `${pharmacyName} hat dich in Pharmagister als Mitarbeitenden hinzugefuegt.` : `${pharmacyName} felvett a Pharmagisterben a dolgozói közé.`,
         data: { pharmacyId: user.uid, pharmacyName },
         url: '/pharmagister?tab=schedule-manager&subtab=mine',
         dedupeWindowSeconds: 120,
@@ -3524,11 +3540,11 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       });
 
       setEmployeeForm({ email: '', phone: '', address: '', notes: '' });
-      setStatusMessage('A dolgozó sikeresen hozzáadva.');
+      setStatusMessage(market === 'de' ? 'Mitarbeiter erfolgreich hinzugefuegt.' : 'A dolgozó sikeresen hozzáadva.');
       await loadData();
     } catch (error) {
       console.error('Add employee error:', error);
-      setStatusError('Nem sikerült a dolgozó hozzáadása.');
+      setStatusError(market === 'de' ? 'Mitarbeiter konnte nicht hinzugefuegt werden.' : 'Nem sikerült a dolgozó hozzáadása.');
     } finally {
       setSaving(false);
     }
@@ -3559,7 +3575,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         setWorkerProfiles(prev => ({ ...prev, [employee.linkedUserId]: { ...(prev[employee.linkedUserId] || {}), ...empPayload, userId: employee.linkedUserId } }));
       }
       setStatusError('');
-      setStatusMessage('Dolgozói alapadatok mentve.');
+      setStatusMessage(market === 'de' ? 'Mitarbeiter-Grunddaten gespeichert.' : 'Dolgozói alapadatok mentve.');
       setWorkerEditSavedAt(prev => ({ ...prev, [employeeId]: new Date() }));
       if (workerEditSavedTimersRef.current[employeeId]) {
         clearTimeout(workerEditSavedTimersRef.current[employeeId]);
@@ -3573,7 +3589,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         delete workerEditSavedTimersRef.current[employeeId];
       }, 3500);
     } catch (err) {
-      setStatusError('Mentés sikertelen: ' + err.message);
+      setStatusError((market === 'de' ? 'Speichern fehlgeschlagen: ' : 'Mentés sikertelen: ') + err.message);
     } finally {
       setWorkerEditSaving(prev => ({ ...prev, [employeeId]: false }));
     }
@@ -3582,11 +3598,15 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   async function handleRemoveEmployee(employeeId) {
     const employee = activeEmployees.find(item => item.id === employeeId);
     if (!employee) {
-      setStatusError('A kiválasztott dolgozó nem található.');
+      setStatusError(market === 'de' ? 'Ausgewaehlter Mitarbeiter nicht gefunden.' : 'A kiválasztott dolgozó nem található.');
       return;
     }
 
-    const confirmed = window.confirm(`Biztosan törölni szeretnéd ${employee.name} dolgozót a beosztásból?`);
+    const confirmed = window.confirm(
+      market === 'de'
+        ? `Moechtest du ${employee.name} wirklich aus der Mitarbeiterliste entfernen?`
+        : `Biztosan törölni szeretnéd ${employee.name} dolgozót a beosztásból?`
+    );
     if (!confirmed) {
       return;
     }
@@ -3612,12 +3632,12 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       }
 
       if (linkedUserId) {
-        const pharmacyName = userData?.pharmacyName || userData?.name || user?.displayName || user?.email || 'Gyógyszertár';
+        const pharmacyName = userData?.pharmacyName || userData?.name || user?.displayName || user?.email || (market === 'de' ? 'Apotheke' : 'Gyógyszertár');
         await createNotificationWithPush({
           userId: linkedUserId,
           type: 'employee_removed_from_pharmacy',
-          title: 'Gyógyszertári kapcsolat törölve',
-          message: `${pharmacyName} eltávolított a dolgozói listájából.`,
+          title: market === 'de' ? 'Apothekenverknuepfung entfernt' : 'Gyógyszertári kapcsolat törölve',
+          message: market === 'de' ? `${pharmacyName} hat dich aus der Mitarbeiterliste entfernt.` : `${pharmacyName} eltávolított a dolgozói listájából.`,
           data: { pharmacyId: user.uid, pharmacyName, employeeId },
           url: '/pharmagister?tab=schedule-manager&subtab=mine',
           dedupeWindowSeconds: 120,
@@ -3625,11 +3645,11 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         });
       }
 
-      setStatusMessage('A dolgozó eltávolítva.');
+      setStatusMessage(market === 'de' ? 'Mitarbeiter entfernt.' : 'A dolgozó eltávolítva.');
       await loadData();
     } catch (error) {
       console.error('Remove employee error:', error);
-      setStatusError('Nem sikerült eltávolítani a dolgozót.');
+      setStatusError(market === 'de' ? 'Mitarbeiter konnte nicht entfernt werden.' : 'Nem sikerült eltávolítani a dolgozót.');
     } finally {
       setSaving(false);
     }
@@ -3642,7 +3662,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
     const employee = activeEmployees.find(item => item.id === scheduleForm.employeeId);
     if (!employee) {
-      setStatusError('Válassz dolgozót a beosztáshoz.');
+      setStatusError(market === 'de' ? 'Bitte waehle einen Mitarbeiter fuer den Dienstplan aus.' : 'Válassz dolgozót a beosztáshoz.');
       return;
     }
 
