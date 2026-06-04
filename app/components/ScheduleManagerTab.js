@@ -6367,17 +6367,57 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         targetYear = d.getFullYear();
       }
 
-      const monthName = cmd.monthLabel || MONTHS_HU[targetMonth - 1] || 'honap';
+      const monthName = cmd.monthLabel || (market === 'de' ? MONTHS_DE[targetMonth - 1] : MONTHS_HU[targetMonth - 1]) || (market === 'de' ? 'Monat' : 'honap');
       const lowerMonth = String(monthName).toLowerCase();
       const commands = [
-        { id: `scp_plan_${Date.now()}`, type: 'send_message', label: 'Beosztas tervezes inditasa', utterance: `Ird meg a ${lowerMonth}i beosztast` },
-        { id: `scp_show_${Date.now()}`, type: 'send_message', label: 'Havi beosztas mutatasa', utterance: `Mutasd a ${lowerMonth}i beosztast` },
-        { id: `scp_vac_${Date.now()}`, type: 'send_message', label: 'Szabadsagok lekerdezese', utterance: `Kik mennek szabira ${lowerMonth}ban?` },
-        { id: `scp_draft_${Date.now()}`, type: 'send_message', label: 'Hianyzo tervezetek', utterance: `Ki nem kuldte be a ${lowerMonth}i tervezetet?` },
-        { id: `scp_replan_${Date.now()}`, type: 'send_message', label: 'Ujratervezes', utterance: `Tervezd ujra a ${lowerMonth}i beosztast` },
-        { id: `scp_ot_${Date.now()}`, type: 'send_message', label: 'Tulora csokkentese', utterance: 'Csokkentsd a tulorat' },
-        { id: `scp_fair_${Date.now()}`, type: 'send_message', label: 'Igazsagosabb beosztas', utterance: 'Legyen igazsagosabb a beosztas' },
-        { id: `scp_rep_${Date.now()}`, type: 'send_message', label: 'Helyettesitesi igenyek', utterance: 'Mutasd a nyitott helyettesitesi igenyeket' },
+        {
+          id: `scp_plan_${Date.now()}`,
+          type: 'send_message',
+          label: market === 'de' ? 'Dienstplan erstellen' : 'Beosztas tervezes inditasa',
+          utterance: market === 'de' ? `Erstelle den Dienstplan fuer ${monthName}` : `Ird meg a ${lowerMonth}i beosztast`,
+        },
+        {
+          id: `scp_show_${Date.now()}`,
+          type: 'send_message',
+          label: market === 'de' ? 'Monatsplan anzeigen' : 'Havi beosztas mutatasa',
+          utterance: market === 'de' ? `Zeig den Dienstplan fuer ${monthName}` : `Mutasd a ${lowerMonth}i beosztast`,
+        },
+        {
+          id: `scp_vac_${Date.now()}`,
+          type: 'send_message',
+          label: market === 'de' ? 'Urlaube abfragen' : 'Szabadsagok lekerdezese',
+          utterance: market === 'de' ? `Wer ist im ${monthName} im Urlaub?` : `Kik mennek szabira ${lowerMonth}ban?`,
+        },
+        {
+          id: `scp_draft_${Date.now()}`,
+          type: 'send_message',
+          label: market === 'de' ? 'Fehlende Entwuerfe' : 'Hianyzo tervezetek',
+          utterance: market === 'de' ? `Wer hat den Entwurf fuer ${monthName} noch nicht gesendet?` : `Ki nem kuldte be a ${lowerMonth}i tervezetet?`,
+        },
+        {
+          id: `scp_replan_${Date.now()}`,
+          type: 'send_message',
+          label: market === 'de' ? 'Neu planen' : 'Ujratervezes',
+          utterance: market === 'de' ? `Plane den Dienstplan fuer ${monthName} neu` : `Tervezd ujra a ${lowerMonth}i beosztast`,
+        },
+        {
+          id: `scp_ot_${Date.now()}`,
+          type: 'send_message',
+          label: market === 'de' ? 'Ueberstunden reduzieren' : 'Tulora csokkentese',
+          utterance: market === 'de' ? 'Reduziere die Ueberstunden' : 'Csokkentsd a tulorat',
+        },
+        {
+          id: `scp_fair_${Date.now()}`,
+          type: 'send_message',
+          label: market === 'de' ? 'Faireren Plan erstellen' : 'Igazsagosabb beosztas',
+          utterance: market === 'de' ? 'Mache den Dienstplan fairer' : 'Legyen igazsagosabb a beosztas',
+        },
+        {
+          id: `scp_rep_${Date.now()}`,
+          type: 'send_message',
+          label: market === 'de' ? 'Vertretungsbedarfe' : 'Helyettesitesi igenyek',
+          utterance: market === 'de' ? 'Zeig die offenen Vertretungsbedarfe' : 'Mutasd a nyitott helyettesitesi igenyeket',
+        },
       ];
 
       setBettiChatMessages((prev) => [...prev, {
@@ -9525,16 +9565,16 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
                           <div className="rounded bg-white/80 px-2 py-1 dark:bg-gray-800">Havi órák: <strong>{Number(plannerResult.stats.summary.totalMonthlyHours || 0).toFixed(1)}</strong></div>
                           <div className="rounded bg-white/80 px-2 py-1 dark:bg-gray-800">Túlóra: <strong>{Number(plannerResult.stats.summary.totalOvertimeHours || 0).toFixed(1)}</strong></div>
-                          <div className="rounded bg-white/80 px-2 py-1 dark:bg-gray-800">Hétvégék: <strong>{plannerResult.stats.summary.totalWeekendShifts || 0}</strong></div>
-                          <div className="rounded bg-white/80 px-2 py-1 dark:bg-gray-800">Vasárnapok: <strong>{plannerResult.stats.summary.totalSundayShifts || 0}</strong></div>
-                          <div className="rounded bg-white/80 px-2 py-1 dark:bg-gray-800">Munkaszüneti napok: <strong>{plannerResult.stats.summary.totalPublicHolidayShifts || 0}</strong></div>
-                          <div className="rounded bg-white/80 px-2 py-1 dark:bg-gray-800">Éjszakák: <strong>{plannerResult.stats.summary.totalNightShifts || 0}</strong></div>
-                          <div className="rounded bg-white/80 px-2 py-1 dark:bg-gray-800">Vasárnapi pótlék órák*: <strong>{Number(plannerResult.stats.summary.totalEstimatedSundayPremiumHours || 0).toFixed(1)}</strong></div>
-                          <div className="rounded bg-white/80 px-2 py-1 dark:bg-gray-800">Ünnepnapi pótlék órák*: <strong>{Number(plannerResult.stats.summary.totalEstimatedHolidayPremiumHours || 0).toFixed(1)}</strong></div>
-                          <div className="rounded bg-white/80 px-2 py-1 dark:bg-gray-800">Szabadságok: <strong>{plannerResult.stats.summary.totalVacationDays || 0}</strong></div>
-                          <div className="rounded bg-white/80 px-2 py-1 dark:bg-gray-800">Hiányzások: <strong>{plannerResult.stats.summary.totalAbsences || 0}</strong></div>
+                          <div className="rounded bg-white/80 px-2 py-1 dark:bg-gray-800">{market === 'de' ? 'Wochenenden' : 'Hétvégék'}: <strong>{plannerResult.stats.summary.totalWeekendShifts || 0}</strong></div>
+                          <div className="rounded bg-white/80 px-2 py-1 dark:bg-gray-800">{market === 'de' ? 'Sonntage' : 'Vasárnapok'}: <strong>{plannerResult.stats.summary.totalSundayShifts || 0}</strong></div>
+                          <div className="rounded bg-white/80 px-2 py-1 dark:bg-gray-800">{market === 'de' ? 'Feiertage' : 'Munkaszüneti napok'}: <strong>{plannerResult.stats.summary.totalPublicHolidayShifts || 0}</strong></div>
+                          <div className="rounded bg-white/80 px-2 py-1 dark:bg-gray-800">{market === 'de' ? 'Nachtschichten' : 'Éjszakák'}: <strong>{plannerResult.stats.summary.totalNightShifts || 0}</strong></div>
+                          <div className="rounded bg-white/80 px-2 py-1 dark:bg-gray-800">{market === 'de' ? 'Sonntagszuschlag-Stunden*' : 'Vasárnapi pótlék órák*'}: <strong>{Number(plannerResult.stats.summary.totalEstimatedSundayPremiumHours || 0).toFixed(1)}</strong></div>
+                          <div className="rounded bg-white/80 px-2 py-1 dark:bg-gray-800">{market === 'de' ? 'Feiertagszuschlag-Stunden*' : 'Ünnepnapi pótlék órák*'}: <strong>{Number(plannerResult.stats.summary.totalEstimatedHolidayPremiumHours || 0).toFixed(1)}</strong></div>
+                          <div className="rounded bg-white/80 px-2 py-1 dark:bg-gray-800">{market === 'de' ? 'Urlaubstage' : 'Szabadságok'}: <strong>{plannerResult.stats.summary.totalVacationDays || 0}</strong></div>
+                          <div className="rounded bg-white/80 px-2 py-1 dark:bg-gray-800">{market === 'de' ? 'Abwesenheiten' : 'Hiányzások'}: <strong>{plannerResult.stats.summary.totalAbsences || 0}</strong></div>
                         </div>
-                        <p className="mt-2 text-[11px] text-gray-500">* Tájékoztató mutató a bérszámfejtés ellenőrzéséhez, nem minősül automatikus bérszámításnak.</p>
+                        <p className="mt-2 text-[11px] text-gray-500">{market === 'de' ? '* Hinweiswert zur Plausibilitaetspruefung der Abrechnung, keine automatische Lohnabrechnung.' : '* Tájékoztató mutató a bérszámfejtés ellenőrzéséhez, nem minősül automatikus bérszámításnak.'}</p>
                       </div>
                     ) : null}
                   </div>
