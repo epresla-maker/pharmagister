@@ -4,6 +4,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import { canAccessScheduleManager } from '@/lib/pharmagisterFeatures';
 import { Calendar, BarChart3, Star, HelpCircle } from 'lucide-react';
+import { getClientMarket } from '@/lib/marketI18n';
 
 function ScheduleGridIcon({ className }) {
   return (
@@ -30,6 +31,7 @@ export default function PharmaNavbar({ isVisible = true }) {
   const searchParams = useSearchParams();
   const { darkMode } = useTheme();
   const { user, userData } = useAuth();
+  const market = getClientMarket();
   
   const pharmaRole = userData?.pharmagisterRole || null;
   const showScheduleManager = canAccessScheduleManager(user, userData);
@@ -40,29 +42,29 @@ export default function PharmaNavbar({ isVisible = true }) {
   const allNavItems = [
     {
       icon: Calendar,
-      label: 'Naptár',
+      label: market === 'de' ? 'Kalender' : 'Naptár',
       tab: 'calendar'
     },
     {
       icon: BarChart3,
-      label: 'Vezérlőpult',
+      label: market === 'de' ? 'Dashboard' : 'Vezérlőpult',
       tab: 'dashboard'
     },
     {
       icon: Star,
-      label: 'Értékelés',
+      label: market === 'de' ? 'Bewertung' : 'Értékelés',
       tab: 'ratings',
       pharmacyOnly: true
     },
     {
       icon: HelpCircle,
-      label: 'Súgó',
+      label: market === 'de' ? 'Hilfe' : 'Súgó',
       tab: 'help',
       isLink: true
     },
     {
       icon: ScheduleGridIcon,
-      label: 'Beosztások kezelése',
+      label: market === 'de' ? 'Dienstplanverwaltung' : 'Beosztások kezelése',
       tab: 'schedule-manager',
       adminOnly: true
     }
@@ -116,7 +118,7 @@ export default function PharmaNavbar({ isVisible = true }) {
               <div className="relative">
                 <Icon className="w-6 h-6" />
                 {item.tab === 'schedule-manager' && (
-                  <span className="absolute -top-1.5 -right-2 text-[8px] font-black tracking-wider leading-none px-0.5 py-px rounded bg-violet-500 text-white" style={{fontSize:'7px'}}>Új</span>
+                  <span className="absolute -top-1.5 -right-2 text-[8px] font-black tracking-wider leading-none px-0.5 py-px rounded bg-violet-500 text-white" style={{fontSize:'7px'}}>{market === 'de' ? 'Neu' : 'Új'}</span>
                 )}
               </div>
               <span className="mt-1 text-xs font-medium">{item.label}</span>
