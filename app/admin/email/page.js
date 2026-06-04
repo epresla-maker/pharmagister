@@ -5,13 +5,39 @@ import { useEffect, useState, useMemo } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Mail, Users, Search, X, ChevronDown, ChevronUp, Send, ArrowLeft, CheckCircle, AlertCircle, Clock, Eye, EyeOff } from "lucide-react";
+import { getClientMarket } from '@/lib/marketI18n';
 
 const ADMIN_EMAILS = ['epresla@icloud.com'];
 const ADMINKA_EMAILS = ['etinatina22@gmail.com'];
 const ALL_ADMIN_EMAILS = [...ADMIN_EMAILS, ...ADMINKA_EMAILS];
 
 // Email vázlat sablon - ITT TUDOD MÓDOSÍTANI AZ EMAIL SZÖVEGÉT
-const generateInactiveUserEmail = (name, keepLink, deleteLink) => {
+const generateInactiveUserEmail = (name, keepLink, deleteLink, market = 'hu') => {
+  if (market === 'de') {
+    const subject = 'Kontoloeschung - Entscheidung erforderlich';
+    const body = `Hallo ${name}!
+
+Wir haben gesehen, dass du dich bei Pharmagister registriert hast, dein Konto aber noch nicht aktiviert hast und dich noch nicht angemeldet hast.
+
+Bitte waehle eine der folgenden Optionen:
+
+✅ KONTO BEHALTEN
+Wenn du dein Konto behalten moechtest, klicke auf diesen Link:
+${keepLink}
+
+❌ KONTO LOESCHEN
+Wenn du dein Konto und alle deine Daten loeschen moechtest, klicke auf diesen Link:
+${deleteLink}
+
+Wenn du innerhalb von 30 Tagen keine Auswahl triffst, wird dein Konto automatisch geloescht.
+
+Die Links sind 30 Tage gueltig und koennen nur einmal verwendet werden.
+
+Viele Gruesse,
+Pharmagister Team`;
+    return { subject, body };
+  }
+
   const subject = 'Fiók törlése - döntés szükséges';
   const body = `Kedves ${name}!
 
@@ -40,6 +66,7 @@ Pharmagister csapat`;
 export default function AdminEmailPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const market = getClientMarket();
   
   // Users state
   const [users, setUsers] = useState([]);
@@ -99,7 +126,7 @@ export default function AdminEmailPage() {
       const usersData = usersSnapshot.docs
         .map(doc => ({ id: doc.id, ...doc.data() }))
         .filter(u => u.email)
-        .sort((a, b) => (a.displayName || a.email || '').localeCompare(b.displayName || b.email || '', 'hu'));
+        .sort((a, b) => (a.displayName || a.email || '').localeCompare(b.displayName || b.email || '', market === 'de' ? 'de' : 'hu'));
       setUsers(usersData);
     } catch (error) {
       console.error('Error loading users:', error);
@@ -138,13 +165,13 @@ export default function AdminEmailPage() {
       userIds = users.map(u => u.id);
     } else if (tokenTarget === 'custom') {
       if (tokenSelectedUsers.length === 0) {
-        return alert('Válassz ki legalább egy felhasználót!');
+        return alert(market === 'de' ? 'Waehle mindestens einen Benutzer aus!' : 'Válassz ki legalább egy felhasználót!');
       }
       targetLabel = `${tokenSelectedUsers.length} kiválasztott felhasználónak`;
       userIds = tokenSelectedUsers.map(u => u.id);
     }
 
-    if (!confirm(`Biztosan generálod a tokeneket ${targetLabel}?`)) return;
+    if (!confirm(market === 'de' ? `Moechtest du die Tokens wirklich fuer ${targetLabel} generieren?` : `Biztosan generálod a tokeneket ${targetLabel}?`)) return;
     
     setGeneratingTokens(true);
     try {
@@ -162,20 +189,20 @@ export default function AdminEmailPage() {
       
       if (response.ok) {
         setGeneratedTokens(data.tokens);
-        alert(`✅ Sikeresen generálva ${data.count} felhasználónak!`);
+        alert(market === 'de' ? `✅ Erfolgreich fuer ${data.count} Benutzer generiert!` : `✅ Sikeresen generálva ${data.count} felhasználónak!`);
       } else {
-        alert('❌ Hiba: ' + data.error);
+        alert((market === 'de' ? '❌ Fehler: ' : '❌ Hiba: ') + data.error);
       }
     } catch (error) {
-      alert('❌ Hiba a token generálás során: ' + error.message);
+      alert((market === 'de' ? '❌ Fehler bei der Token-Generierung: ' : '❌ Hiba a token generálás során: ') + error.message);
     } finally {
       setGeneratingTokens(false);
     }
   };
 
   const sendBulkTokenEmails = async () => {
-    if (generatedTokens.length === 0) return alert('Nincsenek generált tokenek!');
-    if (!confirm(`Biztosan elküldöd a személyre szabott emailt mind a ${generatedTokens.length} felhasználónak?\n\nEz ${Math.ceil(generatedTokens.length / 10)} batch-ben fog kimenni (10-esével).`)) return;
+    if (generatedTokens.length === 0) return alert(market === 'de' ? 'Es gibt keine generierten Tokens!' : 'Nincsenek generált tokenek!');
+    if (!confirm(market === 'de' ? `Moechtest du die personalisierte E-Mail wirklich an alle ${generatedTokens.length} Benutzer senden?\n\nDer Versand erfolgt in ${Math.ceil(generatedTokens.length / 10)} Batches (je 10).` : `Biztosan elküldöd a személyre szabott emailt mind a ${generatedTokens.length} felhasználónak?\n\nEz ${Math.ceil(generatedTokens.length / 10)} batch-ben fog kimenni (10-esével).`)) return;
 
     setBulkSending(true);
     setBulkSendProgress({ sent: 0, failed: 0, total: generatedTokens.length });
@@ -304,11 +331,11 @@ export default function AdminEmailPage() {
     setSelectedRecipients(prev => [...prev, ...newRecipients]);
   };
   const sendEmail = async () => {
-    if (selectedRecipients.length === 0) return alert('Válassz legalább egy címzettet!');
-    if (!subject.trim()) return alert('Add meg a tárgyat!');
-    if (!body.trim()) return alert('Írd meg az üzenetet!');
+    if (selectedRecipients.length === 0) return alert(market === 'de' ? 'Waehle mindestens einen Empfaenger aus!' : 'Válassz legalább egy címzettet!');
+    if (!subject.trim()) return alert(market === 'de' ? 'Gib einen Betreff ein!' : 'Add meg a tárgyat!');
+    if (!body.trim()) return alert(market === 'de' ? 'Schreibe eine Nachricht!' : 'Írd meg az üzenetet!');
 
-    if (!confirm(`Biztosan elküldöd az emailt ${selectedRecipients.length} címzettnek?`)) return;
+    if (!confirm(market === 'de' ? `Moechtest du die E-Mail wirklich an ${selectedRecipients.length} Empfaenger senden?` : `Biztosan elküldöd az emailt ${selectedRecipients.length} címzettnek?`)) return;
 
     setSending(true);
     setSendResult(null);
@@ -334,7 +361,9 @@ export default function AdminEmailPage() {
       if (response.ok) {
         setSendResult({
           type: 'success',
-          message: `✅ Sikeresen elküldve ${result.sent} címzettnek!${result.failed > 0 ? ` ❌ ${result.failed} sikertelen.` : ''}`,
+          message: market === 'de'
+            ? `✅ Erfolgreich an ${result.sent} Empfaenger gesendet!${result.failed > 0 ? ` ❌ ${result.failed} fehlgeschlagen.` : ''}`
+            : `✅ Sikeresen elküldve ${result.sent} címzettnek!${result.failed > 0 ? ` ❌ ${result.failed} sikertelen.` : ''}`,
           details: result
         });
         if (result.failed === 0) {
@@ -345,10 +374,10 @@ export default function AdminEmailPage() {
         // Reload sent emails list
         loadSentEmails();
       } else {
-        setSendResult({ type: 'error', message: result.error || 'Ismeretlen hiba történt' });
+        setSendResult({ type: 'error', message: result.error || (market === 'de' ? 'Unbekannter Fehler' : 'Ismeretlen hiba történt') });
       }
     } catch (err) {
-      setSendResult({ type: 'error', message: 'Hálózati hiba: ' + err.message });
+      setSendResult({ type: 'error', message: (market === 'de' ? 'Netzwerkfehler: ' : 'Hálózati hiba: ') + err.message });
     } finally {
       setSending(false);
     }
@@ -357,7 +386,7 @@ export default function AdminEmailPage() {
   if (loading || !user || !ALL_ADMIN_EMAILS.includes(user.email)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Betöltés...</div>
+        <div className="text-xl">{market === 'de' ? 'Wird geladen...' : 'Betöltés...'}</div>
       </div>
     );
   }
@@ -370,7 +399,7 @@ export default function AdminEmailPage() {
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-3">
               <Mail className="text-purple-600" size={28} />
-              <h1 className="text-xl sm:text-2xl font-bold">Email küldés</h1>
+              <h1 className="text-xl sm:text-2xl font-bold">{market === 'de' ? 'E-Mail Versand' : 'Email küldés'}</h1>
             </div>
             <button
               onClick={() => router.push('/admin')}
@@ -380,7 +409,7 @@ export default function AdminEmailPage() {
               Admin
             </button>
           </div>
-          <p className="text-sm text-gray-500">Feladó: epresla@icloud.com</p>
+          <p className="text-sm text-gray-500">{market === 'de' ? 'Absender' : 'Feladó'}: epresla@icloud.com</p>
 
           {/* Tabs */}
           <div className="flex gap-2 mt-4">
@@ -391,7 +420,7 @@ export default function AdminEmailPage() {
               }`}
             >
               <Send size={16} />
-              Új email
+              {market === 'de' ? 'Neue E-Mail' : 'Új email'}
             </button>
             <button
               onClick={() => setActiveTab('tokens')}
@@ -400,7 +429,7 @@ export default function AdminEmailPage() {
               }`}
             >
               <Users size={16} />
-              Token generálás
+              {market === 'de' ? 'Token-Generierung' : 'Token generálás'}
             </button>
             <button
               onClick={() => setActiveTab('sent')}
@@ -409,7 +438,7 @@ export default function AdminEmailPage() {
               }`}
             >
               <Clock size={16} />
-              Elküldött ({sentEmails.length})
+              {market === 'de' ? 'Gesendet' : 'Elküldött'} ({sentEmails.length})
             </button>
           </div>
         </div>
@@ -421,14 +450,14 @@ export default function AdminEmailPage() {
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-semibold flex items-center gap-2">
               <Users size={20} />
-              Címzettek ({selectedRecipients.length})
+              {market === 'de' ? 'Empfaenger' : 'Címzettek'} ({selectedRecipients.length})
             </h2>
             <button
               onClick={() => setShowUserList(!showUserList)}
               className="flex items-center gap-1 bg-purple-600 text-white px-3 py-1.5 rounded-lg hover:bg-purple-700 text-sm"
             >
               {showUserList ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-              {showUserList ? 'Bezárás' : 'Felhasználók'}
+              {showUserList ? (market === 'de' ? 'Schliessen' : 'Bezárás') : (market === 'de' ? 'Benutzer' : 'Felhasználók')}
             </button>
           </div>
 
@@ -447,7 +476,7 @@ export default function AdminEmailPage() {
                 onClick={() => setSelectedRecipients([])}
                 className="text-xs text-red-600 hover:text-red-800 underline"
               >
-                Mind törlése
+                {market === 'de' ? 'Alle entfernen' : 'Mind törlése'}
               </button>
             </div>
           )}
@@ -461,7 +490,7 @@ export default function AdminEmailPage() {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                   <input
                     type="text"
-                    placeholder="Keresés név vagy email alapján..."
+                    placeholder={market === 'de' ? 'Suche nach Name oder E-Mail...' : 'Keresés név vagy email alapján...'}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -472,11 +501,11 @@ export default function AdminEmailPage() {
                   onChange={(e) => setFilterRole(e.target.value)}
                   className="border rounded-lg px-3 py-2 text-sm bg-white"
                 >
-                  <option value="all">Minden szerep</option>
-                  <option value="pharmacist">Gyógyszerész</option>
-                  <option value="pharmacy">Gyógyszertár</option>
-                  <option value="assistant">Szakasszisztens</option>
-                  <option value="inactive" className="text-red-600">🚫 Inaktív (soha nem lépett be)</option>
+                  <option value="all">{market === 'de' ? 'Alle Rollen' : 'Minden szerep'}</option>
+                  <option value="pharmacist">{market === 'de' ? 'Apotheker' : 'Gyógyszerész'}</option>
+                  <option value="pharmacy">{market === 'de' ? 'Apotheke' : 'Gyógyszertár'}</option>
+                  <option value="assistant">{market === 'de' ? 'Assistent' : 'Szakasszisztens'}</option>
+                  <option value="inactive" className="text-red-600">{market === 'de' ? '🚫 Inaktiv (nie angemeldet)' : '🚫 Inaktív (soha nem lépett be)'}</option>
                 </select>
               </div>
 
@@ -486,29 +515,29 @@ export default function AdminEmailPage() {
                   onClick={selectAll}
                   className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded hover:bg-green-200"
                 >
-                  Mind kijelölés ({filteredUsers.length})
+                  {market === 'de' ? 'Alle auswaehlen' : 'Mind kijelölés'} ({filteredUsers.length})
                 </button>
                 <button
                   onClick={deselectAll}
                   className="text-xs bg-red-100 text-red-700 px-3 py-1 rounded hover:bg-red-200"
                 >
-                  Mind törlés
+                  {market === 'de' ? 'Alle entfernen' : 'Mind törlés'}
                 </button>
                 <button
                   onClick={selectInactiveUsers}
                   className="text-xs bg-orange-100 text-orange-700 px-3 py-1 rounded hover:bg-orange-200 font-medium"
                 >
-                  🚫 Inaktív felhasználók ({users.filter(u => !u.lastLogin && !u.lastSeen && !u.passwordActivated).length})
+                  {market === 'de' ? '🚫 Inaktive Benutzer' : '🚫 Inaktív felhasználók'} ({users.filter(u => !u.lastLogin && !u.lastSeen && !u.passwordActivated).length})
                 </button>
               </div>
 
               {/* Users list */}
               {loadingUsers ? (
-                <div className="text-center py-4 text-gray-500">Felhasználók betöltése...</div>
+                <div className="text-center py-4 text-gray-500">{market === 'de' ? 'Benutzer werden geladen...' : 'Felhasználók betöltése...'}</div>
               ) : (
                 <div className="max-h-64 overflow-y-auto space-y-1">
                   {filteredUsers.length === 0 ? (
-                    <div className="text-center py-4 text-gray-500 text-sm">Nincs találat</div>
+                    <div className="text-center py-4 text-gray-500 text-sm">{market === 'de' ? 'Keine Treffer' : 'Nincs találat'}</div>
                   ) : (
                     filteredUsers.map(u => (
                       <label
@@ -524,7 +553,7 @@ export default function AdminEmailPage() {
                           className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
                         />
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium truncate">{u.displayName || 'Névtelen'}</div>
+                          <div className="text-sm font-medium truncate">{u.displayName || (market === 'de' ? 'Ohne Namen' : 'Névtelen')}</div>
                           <div className="text-xs text-gray-500 truncate">{u.email}</div>
                         </div>
                         {u.pharmagisterRole && (
@@ -543,26 +572,26 @@ export default function AdminEmailPage() {
 
         {/* Email form */}
         <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 mb-4">
-          <h2 className="text-lg font-semibold mb-3">Üzenet</h2>
+          <h2 className="text-lg font-semibold mb-3">{market === 'de' ? 'Nachricht' : 'Üzenet'}</h2>
           
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tárgy</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{market === 'de' ? 'Betreff' : 'Tárgy'}</label>
               <input
                 type="text"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                placeholder="Email tárgya..."
+                placeholder={market === 'de' ? 'E-Mail Betreff...' : 'Email tárgya...'}
                 className="w-full px-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Üzenet</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{market === 'de' ? 'Nachricht' : 'Üzenet'}</label>
               <textarea
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
-                placeholder="Írd meg az üzenetet..."
+                placeholder={market === 'de' ? 'Schreibe deine Nachricht...' : 'Írd meg az üzenetet...'}
                 rows={10}
                 className="w-full px-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-y"
               />
@@ -607,12 +636,12 @@ export default function AdminEmailPage() {
             {sending ? (
               <>
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Küldés folyamatban...
+                {market === 'de' ? 'Wird gesendet...' : 'Küldés folyamatban...'}
               </>
             ) : (
               <>
                 <Send size={18} />
-                Email küldése ({selectedRecipients.length} címzett)
+                {market === 'de' ? 'E-Mail senden' : 'Email küldése'} ({selectedRecipients.length} {market === 'de' ? 'Empfaenger' : 'címzett'})
               </>
             )}
           </button>
@@ -625,30 +654,29 @@ export default function AdminEmailPage() {
           <div className="space-y-4">
             {/* Info box */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h3 className="font-medium text-blue-900 mb-2">Token generálás felhasználóknak</h3>
+              <h3 className="font-medium text-blue-900 mb-2">{market === 'de' ? 'Token-Generierung fuer Benutzer' : 'Token generálás felhasználóknak'}</h3>
               <p className="text-sm text-blue-800">
-                Ez a funkció egyedi linkeket generál a kiválasztott felhasználóknak.
-                Minden felhasználó kap 2 linket:
+                {market === 'de' ? 'Diese Funktion erstellt individuelle Links fuer die ausgewaehlten Benutzer. Jeder Benutzer erhaelt 2 Links:' : 'Ez a funkció egyedi linkeket generál a kiválasztott felhasználóknak. Minden felhasználó kap 2 linket:'}
               </p>
               <ul className="text-sm text-blue-800 mt-2 space-y-1 ml-4 list-disc">
                 <li><strong>Megtartás link:</strong> A felhasználó megtarthatja a fiókját</li>
                 <li><strong>Törlés link:</strong> A felhasználó törölheti a fiókját és minden adatát</li>
               </ul>
               <p className="text-sm text-blue-800 mt-2">
-                A tokenek 30 napig érvényesek és csak egyszer használhatók fel.
+                {market === 'de' ? 'Die Tokens sind 30 Tage gueltig und nur einmal verwendbar.' : 'A tokenek 30 napig érvényesek és csak egyszer használhatók fel.'}
               </p>
             </div>
 
             {/* Célcsoport választó */}
             <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
-              <h3 className="font-semibold text-sm mb-3">Célcsoport kiválasztása</h3>
+              <h3 className="font-semibold text-sm mb-3">{market === 'de' ? 'Zielgruppe auswaehlen' : 'Célcsoport kiválasztása'}</h3>
               
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
                 {[
-                  { key: 'inactive', label: '🚫 Inaktívak', count: users.filter(u => !u.lastLogin && !u.lastSeen && !u.passwordActivated).length, color: 'orange' },
-                  { key: 'active', label: '✅ Aktívak', count: users.filter(u => u.passwordActivated || u.lastLogin || u.lastSeen).length, color: 'green' },
-                  { key: 'all', label: '👥 Mindenki', count: users.length, color: 'blue' },
-                  { key: 'custom', label: '🎯 Egyéni', count: tokenSelectedUsers.length, color: 'purple' },
+                  { key: 'inactive', label: market === 'de' ? '🚫 Inaktive' : '🚫 Inaktívak', count: users.filter(u => !u.lastLogin && !u.lastSeen && !u.passwordActivated).length, color: 'orange' },
+                  { key: 'active', label: market === 'de' ? '✅ Aktive' : '✅ Aktívak', count: users.filter(u => u.passwordActivated || u.lastLogin || u.lastSeen).length, color: 'green' },
+                  { key: 'all', label: market === 'de' ? '👥 Alle' : '👥 Mindenki', count: users.length, color: 'blue' },
+                  { key: 'custom', label: market === 'de' ? '🎯 Individuell' : '🎯 Egyéni', count: tokenSelectedUsers.length, color: 'purple' },
                 ].map(opt => (
                   <button
                     key={opt.key}
@@ -674,7 +702,7 @@ export default function AdminEmailPage() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                     <input
                       type="text"
-                      placeholder="Keresés név vagy email alapján..."
+                      placeholder={market === 'de' ? 'Suche nach Name oder E-Mail...' : 'Keresés név vagy email alapján...'}
                       value={tokenSearch}
                       onChange={(e) => setTokenSearch(e.target.value)}
                       className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -696,14 +724,14 @@ export default function AdminEmailPage() {
                         onClick={() => setTokenSelectedUsers([])}
                         className="text-xs text-red-600 hover:text-red-800 underline"
                       >
-                        Mind törlése
+                        {market === 'de' ? 'Alle entfernen' : 'Mind törlése'}
                       </button>
                     </div>
                   )}
 
                   {/* Felhasználó lista */}
                   {loadingUsers ? (
-                    <div className="text-center py-4 text-gray-500 text-sm">Betöltés...</div>
+                    <div className="text-center py-4 text-gray-500 text-sm">{market === 'de' ? 'Wird geladen...' : 'Betöltés...'}</div>
                   ) : (
                     <div className="max-h-64 overflow-y-auto space-y-1">
                       {(() => {
@@ -715,7 +743,7 @@ export default function AdminEmailPage() {
                             )
                           : users;
                         if (filtered.length === 0) {
-                          return <div className="text-center py-4 text-gray-500 text-sm">Nincs találat</div>;
+                          return <div className="text-center py-4 text-gray-500 text-sm">{market === 'de' ? 'Keine Treffer' : 'Nincs találat'}</div>;
                         }
                         return filtered.map(u => {
                           const isChecked = tokenSelectedUsers.some(s => s.id === u.id);
@@ -740,17 +768,17 @@ export default function AdminEmailPage() {
                                 className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
                               />
                               <div className="flex-1 min-w-0">
-                                <div className="text-sm font-medium truncate">{u.displayName || 'Névtelen'}</div>
+                                <div className="text-sm font-medium truncate">{u.displayName || (market === 'de' ? 'Ohne Namen' : 'Névtelen')}</div>
                                 <div className="text-xs text-gray-500 truncate">{u.email}</div>
                               </div>
                               {isInactive && (
-                                <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded flex-shrink-0">Inaktív</span>
+                                <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded flex-shrink-0">{market === 'de' ? 'Inaktiv' : 'Inaktív'}</span>
                               )}
                               {u.pharmagisterRole && (
                                 <span className="text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded flex-shrink-0">
-                                  {u.pharmagisterRole === 'pharmacist' || u.pharmagisterRole === 'gyógyszerész' ? 'Gyógyszerész' :
-                                   u.pharmagisterRole === 'pharmacy' || u.pharmagisterRole === 'gyógyszertár' ? 'Gyógyszertár' :
-                                   u.pharmagisterRole === 'assistant' || u.pharmagisterRole === 'szakasszisztens' ? 'Szakasszisztens' :
+                                  {u.pharmagisterRole === 'pharmacist' || u.pharmagisterRole === 'gyógyszerész' ? (market === 'de' ? 'Apotheker' : 'Gyógyszerész') :
+                                   u.pharmagisterRole === 'pharmacy' || u.pharmagisterRole === 'gyógyszertár' ? (market === 'de' ? 'Apotheke' : 'Gyógyszertár') :
+                                   u.pharmagisterRole === 'assistant' || u.pharmagisterRole === 'szakasszisztens' ? (market === 'de' ? 'Assistent' : 'Szakasszisztens') :
                                    u.pharmagisterRole}
                                 </span>
                               )}
@@ -773,12 +801,12 @@ export default function AdminEmailPage() {
                 {generatingTokens ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Tokenek generálása...
+                    {market === 'de' ? 'Tokens werden generiert...' : 'Tokenek generálása...'}
                   </>
                 ) : (
                   <>
                     <Users size={20} />
-                    Tokenek generálása
+                    {market === 'de' ? 'Tokens generieren' : 'Tokenek generálása'}
                     {tokenTarget === 'inactive' && ` (${users.filter(u => !u.lastLogin && !u.lastSeen && !u.passwordActivated).length} inaktív)`}
                     {tokenTarget === 'active' && ` (${users.filter(u => u.passwordActivated || u.lastLogin || u.lastSeen).length} aktív)`}
                     {tokenTarget === 'all' && ` (${users.length} felhasználó)`}
@@ -793,7 +821,7 @@ export default function AdminEmailPage() {
             {generatedTokens.length > 0 && (
               <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
                 <h2 className="text-lg font-semibold mb-4">
-                  Generált tokenek ({generatedTokens.length} felhasználó)
+                  {market === 'de' ? 'Generierte Tokens' : 'Generált tokenek'} ({generatedTokens.length} {market === 'de' ? 'Benutzer' : 'felhasználó'})
                 </h2>
                 
                 <div className="space-y-3">
@@ -809,12 +837,12 @@ export default function AdminEmailPage() {
                           className="text-xs bg-purple-100 text-purple-700 px-3 py-1.5 rounded-lg hover:bg-purple-200 flex items-center gap-1"
                         >
                           {showTokenEmail === idx ? <EyeOff size={14} /> : <Eye size={14} />}
-                          {showTokenEmail === idx ? 'Email elrejtése' : 'Email vázlat'}
+                          {showTokenEmail === idx ? (market === 'de' ? 'E-Mail ausblenden' : 'Email elrejtése') : (market === 'de' ? 'E-Mail Vorlage' : 'Email vázlat')}
                         </button>
                       </div>
 
                       {showTokenEmail === idx && (() => {
-                        const emailTemplate = generateInactiveUserEmail(tokenData.name, tokenData.keepLink, tokenData.deleteLink);
+                        const emailTemplate = generateInactiveUserEmail(tokenData.name, tokenData.keepLink, tokenData.deleteLink, market);
                         return (
                         <div className="bg-gray-50 rounded-lg p-3 text-sm">
                           <p className="font-medium mb-2">Email vázlat (másold be az Új email tabon):</p>
@@ -832,7 +860,7 @@ export default function AdminEmailPage() {
                             <button
                               onClick={() => {
                                 navigator.clipboard.writeText(emailTemplate.body);
-                                alert('📋 Email szöveg vágólapra másolva!');
+                                alert(market === 'de' ? '📋 E-Mail Text in die Zwischenablage kopiert!' : '📋 Email szöveg vágólapra másolva!');
                               }}
                               className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700"
                             >
@@ -840,7 +868,7 @@ export default function AdminEmailPage() {
                             </button>
                             <button
                               onClick={() => {
-                                const template = generateInactiveUserEmail(tokenData.name, tokenData.keepLink, tokenData.deleteLink);
+                                const template = generateInactiveUserEmail(tokenData.name, tokenData.keepLink, tokenData.deleteLink, market);
                                 setActiveTab('compose');
                                 setSelectedRecipients([{ email: tokenData.email, displayName: tokenData.name }]);
                                 setSubject(template.subject);
@@ -953,20 +981,20 @@ export default function AdminEmailPage() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold flex items-center gap-2">
                 <Clock size={20} />
-                Elküldött emailek
+                {market === 'de' ? 'Gesendete E-Mails' : 'Elküldött emailek'}
               </h2>
               <button
                 onClick={loadSentEmails}
                 className="text-xs bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-200"
               >
-                Frissítés
+                {market === 'de' ? 'Aktualisieren' : 'Frissítés'}
               </button>
             </div>
 
             {loadingSent ? (
-              <div className="text-center py-8 text-gray-500">Betöltés...</div>
+              <div className="text-center py-8 text-gray-500">{market === 'de' ? 'Wird geladen...' : 'Betöltés...'}</div>
             ) : sentEmails.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">Még nincs elküldött email</div>
+              <div className="text-center py-8 text-gray-500">{market === 'de' ? 'Noch keine gesendeten E-Mails' : 'Még nincs elküldött email'}</div>
             ) : (
               <div className="space-y-3">
                 {sentEmails.map(email => (
@@ -979,19 +1007,19 @@ export default function AdminEmailPage() {
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-sm truncate">{email.subject}</p>
                           <p className="text-xs text-gray-500 mt-0.5">
-                            {email.sentAt ? new Date(email.sentAt).toLocaleString('hu-HU', {
+                            {email.sentAt ? new Date(email.sentAt).toLocaleString(market === 'de' ? 'de-DE' : 'hu-HU', {
                               year: 'numeric', month: '2-digit', day: '2-digit',
                               hour: '2-digit', minute: '2-digit'
-                            }) : 'Ismeretlen dátum'}
+                            }) : (market === 'de' ? 'Unbekanntes Datum' : 'Ismeretlen dátum')}
                           </p>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
-                            {email.sentCount} elküldve
+                            {email.sentCount} {market === 'de' ? 'gesendet' : 'elküldve'}
                           </span>
                           {email.failedCount > 0 && (
                             <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded">
-                              {email.failedCount} sikertelen
+                              {email.failedCount} {market === 'de' ? 'fehlgeschlagen' : 'sikertelen'}
                             </span>
                           )}
                           {expandedEmail === email.id ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
@@ -1002,7 +1030,7 @@ export default function AdminEmailPage() {
                     {expandedEmail === email.id && (
                       <div className="border-t p-3 bg-gray-50">
                         <div className="mb-3">
-                          <p className="text-xs font-medium text-gray-500 mb-1">Címzettek ({email.to.length}):</p>
+                          <p className="text-xs font-medium text-gray-500 mb-1">{market === 'de' ? 'Empfaenger' : 'Címzettek'} ({email.to.length}):</p>
                           <div className="flex flex-wrap gap-1">
                             {email.to.map((addr, i) => (
                               <span key={i} className="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full">
@@ -1013,7 +1041,7 @@ export default function AdminEmailPage() {
                         </div>
                         {email.failedTo?.length > 0 && (
                           <div className="mb-3">
-                            <p className="text-xs font-medium text-red-500 mb-1">Sikertelen címzettek:</p>
+                            <p className="text-xs font-medium text-red-500 mb-1">{market === 'de' ? 'Fehlgeschlagene Empfaenger:' : 'Sikertelen címzettek:'}</p>
                             <div className="flex flex-wrap gap-1">
                               {email.failedTo.map((addr, i) => (
                                 <span key={i} className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded-full">
@@ -1024,7 +1052,7 @@ export default function AdminEmailPage() {
                           </div>
                         )}
                         <div>
-                          <p className="text-xs font-medium text-gray-500 mb-1">Üzenet:</p>
+                          <p className="text-xs font-medium text-gray-500 mb-1">{market === 'de' ? 'Nachricht:' : 'Üzenet:'}</p>
                           <div className="bg-white border rounded p-3 text-sm text-gray-700 whitespace-pre-wrap">
                             {email.body}
                           </div>
