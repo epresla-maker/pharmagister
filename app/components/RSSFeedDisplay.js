@@ -5,15 +5,17 @@ import { useRSSFeed } from '@/hooks/useRSSFeed';
 import { useAuth } from '@/context/AuthContext';
 import { ExternalLink, Calendar, User, AlertCircle, MessageCircle, Send, MoreHorizontal, Flag } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { hu } from 'date-fns/locale';
+import { de, hu } from 'date-fns/locale';
 import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useEffect } from 'react';
 import { createNotificationWithPush } from '@/lib/notifications';
 import ReportModal from '@/app/components/ReportModal';
+import { getClientMarket } from '@/lib/marketI18n';
 
 function RSSComments({ postId }) {
   const { user, userData } = useAuth();
+  const market = getClientMarket();
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -64,14 +66,14 @@ function RSSComments({ postId }) {
       await addDoc(collection(db, 'rssComments', postId, 'comments'), {
         text: newComment.trim(),
         userId: user.uid,
-        userName: userData?.displayName || 'Névtelen',
+        userName: userData?.displayName || (market === 'de' ? 'Ohne Namen' : 'Névtelen'),
         userPhoto: userData?.photoURL || null,
         createdAt: serverTimestamp(),
       });
       setNewComment('');
     } catch (error) {
       console.error('Comment error:', error);
-      alert('Hiba történt a komment küldésekor');
+      alert(market === 'de' ? 'Fehler beim Senden des Kommentars.' : 'Hiba történt a komment küldésekor');
     } finally {
       setSubmitting(false);
     }
@@ -86,7 +88,7 @@ function RSSComments({ postId }) {
           className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
         >
           <MessageCircle className="w-4 h-4" />
-          <span>{comments.length} hozzászólás</span>
+          <span>{comments.length} {market === 'de' ? 'Kommentare' : 'hozzászólás'}</span>
         </button>
       </div>
 
@@ -106,7 +108,7 @@ function RSSComments({ postId }) {
                   type="text"
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="Írj hozzászólást..."
+                  placeholder={market === 'de' ? 'Schreibe einen Kommentar...' : 'Írj hozzászólást...'}
                   className="flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                   disabled={submitting}
                 />
@@ -121,7 +123,7 @@ function RSSComments({ postId }) {
             </form>
           ) : (
             <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
-              Jelentkezz be a hozzászóláshoz
+              {market === 'de' ? 'Melde dich an, um zu kommentieren' : 'Jelentkezz be a hozzászóláshoz'}
             </p>
           )}
 
@@ -151,7 +153,7 @@ function RSSComments({ postId }) {
                         <span className="text-xs text-gray-500 dark:text-gray-400">
                           {formatDistanceToNow(comment.createdAt.toDate(), {
                             addSuffix: true,
-                            locale: hu
+                            locale: market === 'de' ? de : hu
                           })}
                         </span>
                       )}
@@ -165,7 +167,7 @@ function RSSComments({ postId }) {
             </div>
           ) : (
             <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
-              Még nincs hozzászólás
+              {market === 'de' ? 'Noch keine Kommentare' : 'Még nincs hozzászólás'}
             </p>
           )}
 
@@ -175,7 +177,7 @@ function RSSComments({ postId }) {
             onClose={() => { setShowReportModal(false); setReportComment(null); }}
             reportType="rssComment"
             reportedUserId={reportComment?.userId || null}
-            reportedUserName={reportComment?.userName || 'Felhasználó'}
+            reportedUserName={reportComment?.userName || (market === 'de' ? 'Benutzer' : 'Felhasználó')}
             itemId={reportComment?.id}
             itemContent={reportComment?.text}
           />
@@ -188,6 +190,7 @@ function RSSComments({ postId }) {
 export default function RSSFeedDisplay() {
   const { rssPosts, loading, error, refetch } = useRSSFeed();
   const { user } = useAuth();
+  const market = getClientMarket();
   const [hiddenRssIds, setHiddenRssIds] = useState(new Set());
   const [loadingHidden, setLoadingHidden] = useState(true);
   const [openMenuPostId, setOpenMenuPostId] = useState(null);
@@ -243,7 +246,7 @@ export default function RSSFeedDisplay() {
           <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
           <div className="flex-1">
             <h3 className="font-semibold text-red-800 dark:text-red-300 mb-1">
-              RSS betöltési hiba
+              {market === 'de' ? 'RSS-Ladefehler' : 'RSS betöltési hiba'}
             </h3>
             <p className="text-sm text-red-700 dark:text-red-400">
               {error}
@@ -258,7 +261,7 @@ export default function RSSFeedDisplay() {
     return (
       <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 text-center">
         <p className="text-gray-600 dark:text-gray-400">
-          Nincsenek elérhető RSS hírek
+          {market === 'de' ? 'Keine RSS-Nachrichten verfuegbar' : 'Nincsenek elérhető RSS hírek'}
         </p>
       </div>
     );
@@ -286,7 +289,7 @@ export default function RSSFeedDisplay() {
                     Semmelweis Egyetem
                   </span>
                   <span className="px-2 py-0.5 text-xs rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300">
-                    Egészségügy
+                    {market === 'de' ? 'Gesundheitswesen' : 'Egészségügy'}
                   </span>
                 </div>
                 
@@ -295,7 +298,7 @@ export default function RSSFeedDisplay() {
                     <Calendar className="w-3 h-3" />
                     {formatDistanceToNow(new Date(post.pubDate), { 
                       addSuffix: true,
-                      locale: hu 
+                      locale: market === 'de' ? de : hu 
                     })}
                   </div>
                 )}
@@ -319,7 +322,7 @@ export default function RSSFeedDisplay() {
                           setReportModalData({
                             reportType: 'rssPost',
                             reportedUserId: null,
-                            reportedUserName: post.source || 'Hírforrás',
+                            reportedUserName: post.source || (market === 'de' ? 'Nachrichtenquelle' : 'Hírforrás'),
                             itemId: post.id,
                             itemContent: post.title || '',
                           });
@@ -327,7 +330,7 @@ export default function RSSFeedDisplay() {
                         className="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
                       >
                         <Flag size={16} />
-                        <span>Jelentés</span>
+                        <span>{market === 'de' ? 'Melden' : 'Jelentés'}</span>
                       </button>
                     </div>
                   )}
@@ -385,7 +388,7 @@ export default function RSSFeedDisplay() {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 text-sm font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors"
             >
-              <span>Teljes cikk elolvasása</span>
+              <span>{market === 'de' ? 'Vollen Artikel lesen' : 'Teljes cikk elolvasása'}</span>
               <ExternalLink className="w-4 h-4" />
             </a>
           </div>
