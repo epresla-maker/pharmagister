@@ -8,6 +8,7 @@ import { db } from '@/lib/firebase';
 import { createNotificationWithPush } from '@/lib/notifications';
 import { ChevronLeft, ChevronRight, Plus, X, Loader2, Clock, MapPin, MessageCircle, Send } from 'lucide-react';
 import ResponseRateBar from '@/app/components/ResponseRateBar';
+import { getClientMarket } from '@/lib/marketI18n';
 
 // Magyar ünnepek (fix dátumok)
 const HUNGARIAN_HOLIDAYS = {
@@ -105,6 +106,8 @@ function isWeekend(date) {
 export default function PharmaCalendar({ pharmaRole }) {
   const { user, userData } = useAuth();
   const { darkMode } = useTheme();
+  const market = getClientMarket();
+  const locale = market === 'de' ? 'de-DE' : 'hu-HU';
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
   const [demands, setDemands] = useState([]);
@@ -247,7 +250,7 @@ export default function PharmaCalendar({ pharmaRole }) {
 
   // Delete demand
   const handleDeleteDemand = async (demandId) => {
-    if (!confirm('Biztosan törölni szeretnéd ezt az igényt?')) return;
+    if (!confirm(market === 'de' ? 'Moechtest du diese Anfrage wirklich loeschen?' : 'Biztosan törölni szeretnéd ezt az igényt?')) return;
     
     try {
       // Töröljük a serviceFeedPosts-ból is
@@ -265,30 +268,31 @@ export default function PharmaCalendar({ pharmaRole }) {
         deletedBy: user.uid
       });
       await loadDemands();
-      alert('Igény sikeresen törölve!');
+      alert(market === 'de' ? 'Anfrage erfolgreich geloescht!' : 'Igény sikeresen törölve!');
     } catch (error) {
       console.error('Error deleting demand:', error);
-      alert('Hiba történt az igény törlése során.');
+      alert(market === 'de' ? 'Fehler beim Loeschen der Anfrage.' : 'Hiba történt az igény törlése során.');
     }
   };
 
   const calendarDays = getCalendarDays();
   const today = new Date().toDateString();
-  const monthNames = ['Január', 'Február', 'Március', 'Április', 'Május', 'Június',
-                      'Július', 'Augusztus', 'Szeptember', 'Október', 'November', 'December'];
-  const dayNames = ['H', 'K', 'Sze', 'Cs', 'P', 'Szo', 'V'];
+  const monthNames = market === 'de'
+    ? ['Januar', 'Februar', 'Maerz', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember']
+    : ['Január', 'Február', 'Március', 'Április', 'Május', 'Június', 'Július', 'Augusztus', 'Szeptember', 'Október', 'November', 'December'];
+  const dayNames = market === 'de' ? ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'] : ['H', 'K', 'Sze', 'Cs', 'P', 'Szo', 'V'];
 
   return (
     <div>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-        <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-[#111827]'}`}>Naptár</h2>
+        <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-[#111827]'}`}>{market === 'de' ? 'Kalender' : 'Naptár'}</h2>
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <button
             type="button"
             onClick={goToToday}
             className="px-4 py-2 text-sm bg-[#6B46C1] hover:bg-[#5a3aa3] text-white rounded-xl transition-colors whitespace-nowrap font-medium"
           >
-            Ma
+            {market === 'de' ? 'Heute' : 'Ma'}
           </button>
           <button
             type="button"
@@ -385,11 +389,12 @@ export default function PharmaCalendar({ pharmaRole }) {
                             }`}
                           >
                             {demand.pharmacyName || 'Igény'}
+                            {demand.pharmacyName || (market === 'de' ? 'Anfrage' : 'Igény')}
                           </div>
                         ))}
                         {dateDemands.length > 2 && (
                           <div className="text-xs text-[#6B46C1] px-2 font-medium">
-                            +{dateDemands.length - 2} további
+                            +{dateDemands.length - 2} {market === 'de' ? 'weitere' : 'további'}
                           </div>
                         )}
                       </div>
@@ -404,11 +409,11 @@ export default function PharmaCalendar({ pharmaRole }) {
           <div className="mt-6 flex flex-wrap items-center gap-4 text-sm">
             <div className="flex items-center gap-2">
               <div className={`w-4 h-4 ${darkMode ? 'bg-blue-900/50 border-blue-700' : 'bg-blue-100 border-blue-300'} border-2 rounded`}></div>
-              <span className={`${darkMode ? 'text-white' : 'text-[#111827]'} font-medium`}>Gyógyszerész</span>
+              <span className={`${darkMode ? 'text-white' : 'text-[#111827]'} font-medium`}>{market === 'de' ? 'Apotheker/in' : 'Gyógyszerész'}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className={`w-4 h-4 ${darkMode ? 'bg-green-900/50 border-green-700' : 'bg-green-100 border-green-300'} border-2 rounded`}></div>
-              <span className={`${darkMode ? 'text-white' : 'text-[#111827]'} font-medium`}>Asszisztens</span>
+              <span className={`${darkMode ? 'text-white' : 'text-[#111827]'} font-medium`}>{market === 'de' ? 'Assistent/in' : 'Asszisztens'}</span>
             </div>
           </div>
         </>
@@ -429,6 +434,8 @@ export default function PharmaCalendar({ pharmaRole }) {
           onDemandCreated={loadDemands}
           showCreateForm={showCreateForm}
           setShowCreateForm={setShowCreateForm}
+          market={market}
+          locale={locale}
         />
       )}
     </div>
@@ -436,8 +443,8 @@ export default function PharmaCalendar({ pharmaRole }) {
 }
 
 // Date Modal Component
-function DateModal({ date, demands, pharmaRole, darkMode, onClose, onDemandDeleted, onDemandCreated, showCreateForm, setShowCreateForm }) {
-  const dateStr = date.toLocaleDateString('hu-HU', { year: 'numeric', month: 'long', day: 'numeric' });
+function DateModal({ date, demands, pharmaRole, darkMode, onClose, onDemandDeleted, onDemandCreated, showCreateForm, setShowCreateForm, market, locale }) {
+  const dateStr = date.toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' });
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -460,7 +467,7 @@ function DateModal({ date, demands, pharmaRole, darkMode, onClose, onDemandDelet
             <>
               {demands.length > 0 && !showCreateForm && (
                 <div className="mb-6">
-                  <h4 className={`font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'} mb-3`}>Meglévő igények ezen a napon:</h4>
+                  <h4 className={`font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'} mb-3`}>{market === 'de' ? 'Bestehende Anfragen an diesem Tag:' : 'Meglévő igények ezen a napon:'}</h4>
                   <div className="space-y-3">
                     {demands.map(demand => (
                       <div key={demand.id} className={`border ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-[#F9FAFB]'} rounded-xl p-4 hover:border-[#6B46C1] transition-colors`}>
@@ -469,15 +476,15 @@ function DateModal({ date, demands, pharmaRole, darkMode, onClose, onDemandDelet
                             <div className="flex items-center gap-2 mb-2">
 
                               <span className={`font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'}`}>
-                                {demand.position === 'pharmacist' ? 'Gyógyszerész' : 'Szakasszisztens'}
+                                {demand.position === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'Gyógyszerész') : (market === 'de' ? 'Assistent/in' : 'Szakasszisztens')}
                               </span>
                               <span className={`px-3 py-1 rounded-lg text-xs font-medium ${
                                 demand.position === 'pharmacist'
                                   ? darkMode ? 'bg-blue-900/50 text-blue-400 border border-blue-700' : 'bg-blue-100 text-blue-700 border border-blue-300'
                                   : darkMode ? 'bg-green-900/50 text-green-400 border border-green-700' : 'bg-green-100 text-green-700 border border-green-300'
                               }`}>
-                                {demand.status === 'open' ? 'Nyitott' :
-                                 demand.status === 'filled' ? 'Betöltve' : 'Törölve'}
+                                  {demand.status === 'open' ? (market === 'de' ? 'Offen' : 'Nyitott') :
+                                  demand.status === 'filled' ? (market === 'de' ? 'Besetzt' : 'Betöltve') : (market === 'de' ? 'Geloescht' : 'Törölve')}
                               </span>
                             </div>
                             {demand.workHours && (
@@ -491,7 +498,7 @@ function DateModal({ date, demands, pharmaRole, darkMode, onClose, onDemandDelet
                             onClick={() => onDemandDeleted(demand.id)}
                             className={`px-3 py-1 text-sm text-red-600 ${darkMode ? 'hover:bg-red-900/30 border-red-700' : 'hover:bg-red-50 border-red-200'} rounded-xl transition-colors border`}
                           >
-                            Törlés
+                            {market === 'de' ? 'Loeschen' : 'Törlés'}
                           </button>
                         </div>
                       </div>
@@ -506,12 +513,14 @@ function DateModal({ date, demands, pharmaRole, darkMode, onClose, onDemandDelet
                   className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#6B46C1] hover:bg-[#5a3aa3] text-white rounded-xl transition-colors font-medium"
                 >
                   <Plus className="w-5 h-5" />
-                  Új igény feladása erre a napra
+                  {market === 'de' ? 'Neue Anfrage fuer diesen Tag erstellen' : 'Új igény feladása erre a napra'}
                 </button>
               ) : (
                 <CreateDemandForm
                   date={date}
                   darkMode={darkMode}
+                  market={market}
+                  locale={locale}
                   onSuccess={() => {
                     onDemandCreated();
                     setShowCreateForm(false);
@@ -526,11 +535,11 @@ function DateModal({ date, demands, pharmaRole, darkMode, onClose, onDemandDelet
               {demands.length > 0 ? (
                 <div className="space-y-4">
                   {demands.map(demand => (
-                    <DemandCard key={demand.id} demand={demand} pharmaRole={pharmaRole} darkMode={darkMode} />
+                    <DemandCard key={demand.id} demand={demand} pharmaRole={pharmaRole} darkMode={darkMode} market={market} locale={locale} />
                   ))}
                 </div>
               ) : (
-                <p className={`${darkMode ? 'text-gray-400' : 'text-[#6B7280]'} text-center py-8`}>Nincs elérhető igény ezen a napon.</p>
+                <p className={`${darkMode ? 'text-gray-400' : 'text-[#6B7280]'} text-center py-8`}>{market === 'de' ? 'Keine verfuegbaren Anfragen an diesem Tag.' : 'Nincs elérhető igény ezen a napon.'}</p>
               )}
             </>
           )}
@@ -541,7 +550,7 @@ function DateModal({ date, demands, pharmaRole, darkMode, onClose, onDemandDelet
 }
 
 // Create Demand Form
-function CreateDemandForm({ date, darkMode, onSuccess, onCancel }) {
+function CreateDemandForm({ date, darkMode, market, locale, onSuccess, onCancel }) {
   const { user, userData } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -554,7 +563,7 @@ function CreateDemandForm({ date, darkMode, onSuccess, onCancel }) {
     additionalRequirements: '',
   });
 
-  const softwareOptions = ['Lx-Line', 'Novodata', 'Quadro Byte', 'Daxa', 'Primula', 'Egyéb'];
+  const softwareOptions = ['Lx-Line', 'Novodata', 'Quadro Byte', 'Daxa', 'Primula', market === 'de' ? 'Sonstige' : 'Egyéb'];
 
   const handleSoftwareToggle = (software) => {
     setFormData(prev => ({
@@ -570,7 +579,7 @@ function CreateDemandForm({ date, darkMode, onSuccess, onCancel }) {
     
     // Ellenőrizzük, hogy a profil ki van-e töltve
     if (userData?.pharmagisterRole === 'pharmacy' && !userData?.pharmaProfileComplete) {
-      alert('Kérlek először töltsd ki a profilodat!');
+      alert(market === 'de' ? 'Bitte fuelle zuerst dein Profil aus!' : 'Kérlek először töltsd ki a profilodat!');
       return;
     }
     
@@ -588,7 +597,7 @@ function CreateDemandForm({ date, darkMode, onSuccess, onCancel }) {
       
       const demandData = {
         pharmacyId: user.uid,
-        pharmacyName: userData.pharmacyName || 'Gyógyszertár',
+        pharmacyName: userData.pharmacyName || (market === 'de' ? 'Apotheke' : 'Gyógyszertár'),
         pharmacyCity: userData.pharmacyCity || '',
         pharmacyZipCode: userData.pharmacyZipCode || '',
         pharmacyStreet: userData.pharmacyStreet || '',
@@ -627,6 +636,7 @@ function CreateDemandForm({ date, darkMode, onSuccess, onCancel }) {
         pharmaDemandId: demandRef.id,
         pharmacyId: user.uid,
         pharmacyName: userData.pharmacyName || 'Gyógyszertár',
+        pharmacyName: userData.pharmacyName || (market === 'de' ? 'Apotheke' : 'Gyógyszertár'),
         pharmacyCity: userData.pharmacyCity || '',
         pharmacyZipCode: userData.pharmacyZipCode || '',
         pharmacyStreet: userData.pharmacyStreet || '',
@@ -634,7 +644,7 @@ function CreateDemandForm({ date, darkMode, onSuccess, onCancel }) {
         pharmacyFullAddress: fullAddress,
         pharmacyPhotoURL: userData.photoURL || userData.pharmaPhotoURL || '',
         position: formData.position,
-        positionLabel: formData.position === 'pharmacist' ? 'Gyógyszerész' : 'Szakasszisztens',
+        positionLabel: formData.position === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'Gyógyszerész') : (market === 'de' ? 'Assistent/in' : 'Szakasszisztens'),
         workHours: formData.workHours,
         minExperience: formData.minExperience,
         requiredSoftware: formData.requiredSoftware,
@@ -659,7 +669,7 @@ function CreateDemandForm({ date, darkMode, onSuccess, onCancel }) {
             demandId: demandRef.id,
             pharmacyZipCode: userData.pharmacyZipCode || '',
             position: formData.position,
-            pharmacyName: userData.pharmacyName || 'Gyógyszertár',
+            pharmacyName: userData.pharmacyName || (market === 'de' ? 'Apotheke' : 'Gyógyszertár'),
             date: localDateString
           })
         });
@@ -668,11 +678,11 @@ function CreateDemandForm({ date, darkMode, onSuccess, onCancel }) {
         console.log('Push notification failed (non-critical):', notifyError);
       }
       
-      alert('Igény sikeresen feladva!');
+      alert(market === 'de' ? 'Anfrage erfolgreich erstellt!' : 'Igény sikeresen feladva!');
       onSuccess();
     } catch (error) {
       console.error('Error creating demand:', error);
-      alert('Hiba történt az igény feladása során.');
+      alert(market === 'de' ? 'Fehler beim Erstellen der Anfrage.' : 'Hiba történt az igény feladása során.');
     } finally {
       setLoading(false);
     }
@@ -680,20 +690,20 @@ function CreateDemandForm({ date, darkMode, onSuccess, onCancel }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <h4 className={`font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'} mb-4 text-lg`}>Új igény létrehozása</h4>
+      <h4 className={`font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'} mb-4 text-lg`}>{market === 'de' ? 'Neue Anfrage erstellen' : 'Új igény létrehozása'}</h4>
 
       {/* Profil figyelmeztetés */}
       {userData?.pharmagisterRole === 'pharmacy' && !userData?.pharmaProfileComplete && (
         <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
           <p className="text-sm text-orange-800">
-            ⚠️ <strong>Figyelem!</strong> Kérlek töltsd ki a profilodat a beállításokban!
+            ⚠️ <strong>{market === 'de' ? 'Achtung!' : 'Figyelem!'}</strong> {market === 'de' ? 'Bitte fuelle dein Profil in den Einstellungen aus!' : 'Kérlek töltsd ki a profilodat a beállításokban!'}
           </p>
         </div>
       )}
 
       <div>
         <label className={`block text-sm font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'} mb-2`}>
-          Pozíció <span className="text-red-600">*</span>
+          {market === 'de' ? 'Position' : 'Pozíció'} <span className="text-red-600">*</span>
         </label>
         <select
           value={formData.position}
@@ -701,45 +711,45 @@ function CreateDemandForm({ date, darkMode, onSuccess, onCancel }) {
           className={`w-full px-4 py-2 ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-[#E5E7EB] text-[#111827]'} border rounded-xl focus:ring-2 focus:ring-[#6B46C1] focus:border-[#6B46C1]`}
           required
         >
-          <option value="pharmacist">Gyógyszerész</option>
-          <option value="assistant">Szakasszisztens</option>
+          <option value="pharmacist">{market === 'de' ? 'Apotheker/in' : 'Gyógyszerész'}</option>
+          <option value="assistant">{market === 'de' ? 'Assistent/in' : 'Szakasszisztens'}</option>
         </select>
       </div>
 
       <div>
         <label className={`block text-sm font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'} mb-2`}>
-          Munkaidő
+          {market === 'de' ? 'Arbeitszeit' : 'Munkaidő'}
         </label>
         <input
           type="text"
           value={formData.workHours}
           onChange={(e) => setFormData({ ...formData, workHours: e.target.value })}
-          placeholder="pl. 8:00-16:00"
+          placeholder={market === 'de' ? 'z.B. 8:00-16:00' : 'pl. 8:00-16:00'}
           className={`w-full px-4 py-2 ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-[#E5E7EB] text-[#111827] placeholder-[#9CA3AF]'} border rounded-xl focus:ring-2 focus:ring-[#6B46C1] focus:border-[#6B46C1]`}
         />
       </div>
 
       <div>
         <label className={`block text-sm font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'} mb-2`}>
-          Minimum tapasztalat
+          {market === 'de' ? 'Mindesterfahrung' : 'Minimum tapasztalat'}
         </label>
         <select
           value={formData.minExperience}
           onChange={(e) => setFormData({ ...formData, minExperience: e.target.value })}
           className={`w-full px-4 py-2 ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-[#E5E7EB] text-[#111827]'} border rounded-xl focus:ring-2 focus:ring-[#6B46C1] focus:border-[#6B46C1]`}
         >
-          <option value="">Nincs követelmény</option>
-          <option value="0-1">0-1 év</option>
-          <option value="1-3">1-3 év</option>
-          <option value="3-5">3-5 év</option>
-          <option value="5-10">5-10 év</option>
-          <option value="10+">10+ év</option>
+          <option value="">{market === 'de' ? 'Keine Anforderung' : 'Nincs követelmény'}</option>
+          <option value="0-1">{market === 'de' ? '0-1 Jahr' : '0-1 év'}</option>
+          <option value="1-3">{market === 'de' ? '1-3 Jahre' : '1-3 év'}</option>
+          <option value="3-5">{market === 'de' ? '3-5 Jahre' : '3-5 év'}</option>
+          <option value="5-10">{market === 'de' ? '5-10 Jahre' : '5-10 év'}</option>
+          <option value="10+">{market === 'de' ? '10+ Jahre' : '10+ év'}</option>
         </select>
       </div>
 
       <div>
         <label className={`block text-sm font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'} mb-2`}>
-          Szükséges szoftverismeret
+          {market === 'de' ? 'Erforderliche Softwarekenntnisse' : 'Szükséges szoftverismeret'}
         </label>
         <div className="space-y-2">
           {softwareOptions.map(software => (
@@ -755,13 +765,13 @@ function CreateDemandForm({ date, darkMode, onSuccess, onCancel }) {
           ))}
         </div>
         
-        {formData.requiredSoftware.includes('Egyéb') && (
+        {formData.requiredSoftware.includes(market === 'de' ? 'Sonstige' : 'Egyéb') && (
           <div className="mt-3">
             <input
               type="text"
               value={formData.otherSoftware}
               onChange={(e) => setFormData({ ...formData, otherSoftware: e.target.value })}
-              placeholder="Add meg az egyéb szoftver nevét"
+              placeholder={market === 'de' ? 'Name der sonstigen Software angeben' : 'Add meg az egyéb szoftver nevét'}
               className={`w-full px-4 py-2 ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-[#E5E7EB] text-[#111827] placeholder-[#9CA3AF]'} border rounded-xl focus:ring-2 focus:ring-[#6B46C1] focus:border-[#6B46C1]`}
             />
           </div>
@@ -770,13 +780,13 @@ function CreateDemandForm({ date, darkMode, onSuccess, onCancel }) {
 
       <div>
         <label className={`block text-sm font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'} mb-2`}>
-          Maximum órabér (Ft)
+          {market === 'de' ? 'Maximaler Stundenlohn (Ft)' : 'Maximum órabér (Ft)'}
         </label>
         <input
           type="number"
           value={formData.maxHourlyRate}
           onChange={(e) => setFormData({ ...formData, maxHourlyRate: e.target.value })}
-          placeholder="pl. 5000"
+          placeholder={market === 'de' ? 'z.B. 5000' : 'pl. 5000'}
           className={`w-full px-4 py-2 ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-[#E5E7EB] text-[#111827] placeholder-[#9CA3AF]'} border rounded-xl focus:ring-2 focus:ring-[#6B46C1] focus:border-[#6B46C1]`}
           min="0"
         />
@@ -784,14 +794,14 @@ function CreateDemandForm({ date, darkMode, onSuccess, onCancel }) {
 
       <div>
         <label className={`block text-sm font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'} mb-2`}>
-          További követelmények
+          {market === 'de' ? 'Weitere Anforderungen' : 'További követelmények'}
         </label>
         <textarea
           value={formData.additionalRequirements}
           onChange={(e) => setFormData({ ...formData, additionalRequirements: e.target.value })}
           rows="3"
           className={`w-full px-4 py-2 ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-[#E5E7EB] text-[#111827] placeholder-[#9CA3AF]'} border rounded-xl focus:ring-2 focus:ring-[#6B46C1] focus:border-[#6B46C1]`}
-          placeholder="Egyéb elvárások..."
+          placeholder={market === 'de' ? 'Weitere Erwartungen...' : 'Egyéb elvárások...'}
         />
       </div>
 
@@ -801,7 +811,7 @@ function CreateDemandForm({ date, darkMode, onSuccess, onCancel }) {
           onClick={onCancel}
           className={`flex-1 px-4 py-2 border ${darkMode ? 'border-gray-600 text-gray-400 hover:bg-gray-700' : 'border-[#E5E7EB] text-[#6B7280] hover:bg-[#F3F4F6]'} rounded-xl transition-colors`}
         >
-          Mégse
+          {market === 'de' ? 'Abbrechen' : 'Mégse'}
         </button>
         <button
           type="submit"
@@ -811,10 +821,10 @@ function CreateDemandForm({ date, darkMode, onSuccess, onCancel }) {
           {loading ? (
             <>
               <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-              Létrehozás...
+              {market === 'de' ? 'Erstellen...' : 'Létrehozás...'}
             </>
           ) : (
-            'Igény feladása'
+            market === 'de' ? 'Anfrage erstellen' : 'Igény feladása'
           )}
         </button>
       </div>
@@ -823,7 +833,7 @@ function CreateDemandForm({ date, darkMode, onSuccess, onCancel }) {
 }
 
 // Demand Card for Substitutes
-function DemandCard({ demand, pharmaRole, darkMode }) {
+function DemandCard({ demand, pharmaRole, darkMode, market, locale }) {
   const { user, userData } = useAuth();
   const router = useRouter();
   const [showDetails, setShowDetails] = useState(false);
@@ -835,18 +845,18 @@ function DemandCard({ demand, pharmaRole, darkMode }) {
   
   const handleApply = async () => {
     if (!user || !userData) {
-      alert('Kérlek jelentkezz be!');
+      alert(market === 'de' ? 'Bitte melde dich an!' : 'Kérlek jelentkezz be!');
       return;
     }
 
     if (!userData.pharmaProfileComplete) {
-      alert('Kérlek töltsd ki a profilodat a jelentkezés előtt!');
+      alert(market === 'de' ? 'Bitte fuelle dein Profil vor der Bewerbung aus!' : 'Kérlek töltsd ki a profilodat a jelentkezés előtt!');
       return;
     }
 
     // Szerepkör ellenőrzés - KRITIKUS!
     if (!userData.pharmagisterRole || userData.pharmagisterRole === 'pharmacy') {
-      alert('Csak gyógyszerészek és szakasszisztensek jelentkezhetnek!');
+      alert(market === 'de' ? 'Nur Apotheker und Assistenten koennen sich bewerben!' : 'Csak gyógyszerészek és szakasszisztensek jelentkezhetnek!');
       return;
     }
 
@@ -855,9 +865,11 @@ function DemandCard({ demand, pharmaRole, darkMode }) {
     const demandPosition = demand.position; // 'pharmacist' vagy 'assistant'
     
     if (userRole !== demandPosition) {
-      const userRoleLabel = userRole === 'pharmacist' ? 'gyógyszerész' : 'szakasszisztens';
-      const demandPositionLabel = demandPosition === 'pharmacist' ? 'gyógyszerész' : 'szakasszisztens';
-      alert(`Erre az igényre csak ${demandPositionLabel}ek jelentkezhetnek! Te ${userRoleLabel}ként vagy regisztrálva.`);
+      const userRoleLabel = userRole === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'gyógyszerész') : (market === 'de' ? 'Assistent/in' : 'szakasszisztens');
+      const demandPositionLabel = demandPosition === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'gyógyszerész') : (market === 'de' ? 'Assistent/in' : 'szakasszisztens');
+      alert(market === 'de'
+        ? `Fuer diese Anfrage koennen sich nur ${demandPositionLabel} bewerben. Du bist als ${userRoleLabel} registriert.`
+        : `Erre az igényre csak ${demandPositionLabel}ek jelentkezhetnek! Te ${userRoleLabel}ként vagy regisztrálva.`);
       return;
     }
 
@@ -876,7 +888,7 @@ function DemandCard({ demand, pharmaRole, darkMode }) {
       const existingApplications = await getDocs(existingApplicationQuery);
       
       if (!existingApplications.empty) {
-        alert('Már jelentkeztél erre az igényre!');
+        alert(market === 'de' ? 'Du hast dich bereits auf diese Anfrage beworben!' : 'Már jelentkeztél erre az igényre!');
         setApplying(false);
         return;
       }
@@ -896,15 +908,17 @@ function DemandCard({ demand, pharmaRole, darkMode }) {
         date: demand.date,
         status: 'pending',
         createdAt: new Date().toISOString(),
-        message: `Jelentkezem a ${demand.date} napra.`
+        message: market === 'de' ? `Ich bewerbe mich fuer den ${demand.date}.` : `Jelentkezem a ${demand.date} napra.`
       });
 
       // Értesítés küldése a gyógyszertárnak push-sal
       await createNotificationWithPush({
         userId: demand.pharmacyId,
         type: 'pharma_application',
-        title: 'Új jelentkező! 📝',
-        message: `${userData.displayName || 'Valaki'} jelentkezett a ${new Date(demand.date).toLocaleDateString('hu-HU')}-i helyettesítésre.`,
+        title: market === 'de' ? 'Neue Bewerbung! 📝' : 'Új jelentkező! 📝',
+        message: market === 'de'
+          ? `${userData.displayName || 'Jemand'} hat sich fuer die Vertretung am ${new Date(demand.date).toLocaleDateString(locale)} beworben.`
+          : `${userData.displayName || 'Valaki'} jelentkezett a ${new Date(demand.date).toLocaleDateString(locale)}-i helyettesítésre.`,
         data: {
           demandId: demand.id,
           applicantId: user.uid,
@@ -912,10 +926,10 @@ function DemandCard({ demand, pharmaRole, darkMode }) {
         url: `/pharmagister?tab=dashboard&expand=${demand.id}`
       });
 
-      alert('Jelentkezés sikeresen elküldve!');
+      alert(market === 'de' ? 'Bewerbung erfolgreich gesendet!' : 'Jelentkezés sikeresen elküldve!');
     } catch (error) {
       console.error('Error applying:', error);
-      alert('Hiba történt a jelentkezés során.');
+      alert(market === 'de' ? 'Fehler bei der Bewerbung.' : 'Hiba történt a jelentkezés során.');
     } finally {
       setApplying(false);
     }
@@ -951,8 +965,8 @@ function DemandCard({ demand, pharmaRole, darkMode }) {
         const newChatRef = await addDoc(chatsRef, {
           members: [user.uid, demand.pharmacyId],
           memberNames: {
-            [user.uid]: userData?.displayName || 'Felhasználó',
-            [demand.pharmacyId]: demand.pharmacyName || 'Gyógyszertár'
+            [user.uid]: userData?.displayName || (market === 'de' ? 'Benutzer' : 'Felhasználó'),
+            [demand.pharmacyId]: demand.pharmacyName || (market === 'de' ? 'Apotheke' : 'Gyógyszertár')
           },
           memberPhotos: {
             [user.uid]: userData?.photoURL || null,
@@ -965,7 +979,7 @@ function DemandCard({ demand, pharmaRole, darkMode }) {
           relatedDemandId: demand.id,
           relatedDemandDate: demand.date,
           relatedDemandPosition: demand.position,
-          relatedDemandPositionLabel: demand.position === 'pharmacist' ? 'Gyógyszerész' : 'Szakasszisztens',
+          relatedDemandPositionLabel: demand.position === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'Gyógyszerész') : (market === 'de' ? 'Assistent/in' : 'Szakasszisztens'),
           archivedBy: [],
           deletedBy: [],
           readBy: []
@@ -975,7 +989,7 @@ function DemandCard({ demand, pharmaRole, darkMode }) {
       
     } catch (err) {
       console.error('Error opening chat:', err);
-      alert('Hiba történt a chat megnyitása során.');
+      alert(market === 'de' ? 'Fehler beim Oeffnen des Chats.' : 'Hiba történt a chat megnyitása során.');
     } finally {
       setSendingMessage(false);
     }
@@ -1006,12 +1020,12 @@ function DemandCard({ demand, pharmaRole, darkMode }) {
             <>
               {demand.minExperience && (
                 <p className={`text-sm ${darkMode ? 'text-white' : 'text-[#111827]'}`}>
-                  <strong>Minimum tapasztalat:</strong> {demand.minExperience}
+                  <strong>{market === 'de' ? 'Mindesterfahrung:' : 'Minimum tapasztalat:'}</strong> {demand.minExperience}
                 </p>
               )}
               {demand.maxHourlyRate && (
                 <p className={`text-sm ${darkMode ? 'text-white' : 'text-[#111827]'}`}>
-                  <strong>Maximum órabér:</strong> {demand.maxHourlyRate} Ft
+                  <strong>{market === 'de' ? 'Maximaler Stundenlohn:' : 'Maximum órabér:'}</strong> {demand.maxHourlyRate} Ft
                 </p>
               )}
             </>
@@ -1020,12 +1034,12 @@ function DemandCard({ demand, pharmaRole, darkMode }) {
             <>
               {demand.minExperience && (
                 <p className={`text-sm ${darkMode ? 'text-white' : 'text-[#111827]'} mb-1`}>
-                  <strong>Minimum tapasztalat:</strong> {demand.minExperience}
+                  <strong>{market === 'de' ? 'Mindesterfahrung:' : 'Minimum tapasztalat:'}</strong> {demand.minExperience}
                 </p>
               )}
               {demand.requiredSoftware?.length > 0 && (
                 <div className="mb-2">
-                  <p className={`text-sm ${darkMode ? 'text-white' : 'text-[#111827]'} mb-1`}><strong>Szoftverismeret:</strong></p>
+                  <p className={`text-sm ${darkMode ? 'text-white' : 'text-[#111827]'} mb-1`}><strong>{market === 'de' ? 'Softwarekenntnisse:' : 'Szoftverismeret:'}</strong></p>
                   <div className="flex flex-wrap gap-1">
                     {demand.requiredSoftware.map(sw => (
                       <span key={sw} className={`px-2 py-1 ${darkMode ? 'bg-blue-900/50 text-blue-400 border-blue-700' : 'bg-blue-50 text-blue-700 border-blue-200'} border rounded-lg text-xs font-medium`}>
@@ -1037,12 +1051,12 @@ function DemandCard({ demand, pharmaRole, darkMode }) {
               )}
               {demand.maxHourlyRate && (
                 <p className={`text-sm ${darkMode ? 'text-white' : 'text-[#111827]'} mb-1`}>
-                  <strong>Maximum órabér:</strong> {demand.maxHourlyRate} Ft
+                  <strong>{market === 'de' ? 'Maximaler Stundenlohn:' : 'Maximum órabér:'}</strong> {demand.maxHourlyRate} Ft
                 </p>
               )}
               {demand.additionalRequirements && (
                 <p className={`text-sm ${darkMode ? 'text-white' : 'text-[#111827]'} mt-2`}>
-                  <strong>További követelmények:</strong> {demand.additionalRequirements}
+                  <strong>{market === 'de' ? 'Weitere Anforderungen:' : 'További követelmények:'}</strong> {demand.additionalRequirements}
                 </p>
               )}
             </>
@@ -1057,7 +1071,7 @@ function DemandCard({ demand, pharmaRole, darkMode }) {
               disabled={applying}
               className="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl transition-colors text-sm font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
-              {applying ? 'Jelentkezés...' : 'Jelentkezem'}
+              {applying ? (market === 'de' ? 'Bewerbung...' : 'Jelentkezés...') : (market === 'de' ? 'Bewerben' : 'Jelentkezem')}
             </button>
             <button 
               onClick={handleOpenChat}
@@ -1065,19 +1079,19 @@ function DemandCard({ demand, pharmaRole, darkMode }) {
               className="px-3 py-2 bg-[#6B46C1] hover:bg-[#5a3aa3] text-white rounded-xl transition-colors text-sm font-medium flex items-center gap-1 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               <MessageCircle className="w-4 h-4" />
-              {sendingMessage ? 'Megnyitás...' : 'Üzenet'}
+              {sendingMessage ? (market === 'de' ? 'Oeffnen...' : 'Megnyitás...') : (market === 'de' ? 'Nachricht' : 'Üzenet')}
             </button>
           </>
         ) : (
           <div className={`flex-1 px-3 py-2 rounded-xl text-sm font-medium text-center ${darkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
-            {demand.position === 'pharmacist' ? 'Csak gyógyszerészeknek' : 'Csak szakasszisztenseknek'}
+            {demand.position === 'pharmacist' ? (market === 'de' ? 'Nur fuer Apotheker/innen' : 'Csak gyógyszerészeknek') : (market === 'de' ? 'Nur fuer Assistent/innen' : 'Csak szakasszisztenseknek')}
           </div>
         )}
         <button 
           onClick={() => router.push(`/pharmagister/demand/${demand.id}`)}
           className={`px-3 py-2 border ${darkMode ? 'border-gray-600 text-white hover:bg-gray-700' : 'border-[#E5E7EB] text-[#111827] hover:bg-[#F3F4F6]'} rounded-xl transition-colors text-sm font-medium`}
         >
-          Részletek
+          {market === 'de' ? 'Details' : 'Részletek'}
         </button>
       </div>
     </div>
