@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { getClientMarket } from '@/lib/marketI18n';
 
 /**
  * ResponseRateBar – Visszajelző sáv a gyógyszertár 72 órán belüli válaszadási arányáról.
@@ -13,6 +14,7 @@ import { db } from '@/lib/firebase';
  * @param {{ pharmacyId: string }} props
  */
 export default function ResponseRateBar({ pharmacyId }) {
+  const market = getClientMarket();
   const [responseRate, setResponseRate] = useState(null);
   const [totalApplications, setTotalApplications] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -140,7 +142,7 @@ export default function ResponseRateBar({ pharmacyId }) {
 
       {/* Felirat */}
       <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>
-        válaszadás határidőtartása
+        {market === 'de' ? 'fristgerechte Rueckmeldung' : 'válaszadás határidőtartása'}
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { X, Smartphone } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
+import { getClientMarket } from '@/lib/marketI18n';
 
 // --- IDE ÍRD BE A VALÓS LINKEKET ---
 const APP_STORE_URL = 'https://apps.apple.com/hu/app/pharmagister/id6759405794?l=hu';
@@ -32,7 +33,7 @@ const PlayStoreLogo = ({ className }) => (
 );
 
 // Store gombok komponens (újrafelhasználható a bannerben és a modalban)
-function StoreButtons({ size = 'normal' }) {
+function StoreButtons({ size = 'normal', market = 'hu' }) {
   const isLarge = size === 'large';
   const btnClass = isLarge
     ? 'bg-black text-white font-semibold text-sm py-3 px-6 rounded-xl hover:bg-gray-800 transition-colors flex items-center gap-3'
@@ -54,7 +55,7 @@ function StoreButtons({ size = 'normal' }) {
       >
         <AppleLogo className={iconSize} />
         <span className="flex flex-col leading-tight">
-          <span className={`${labelSize} font-normal opacity-80`}>Elérhető</span>
+            <span className={`${labelSize} font-normal opacity-80`}>{market === 'de' ? 'Verfuegbar' : 'Elérhető'}</span>
           <span className={`${nameSize} font-semibold -mt-0.5`}>App Store</span>
         </span>
       </a>
@@ -67,7 +68,7 @@ function StoreButtons({ size = 'normal' }) {
         >
           <PlayStoreLogo className={iconSize} />
           <span className="flex flex-col leading-tight">
-            <span className={`${labelSize} font-normal opacity-80`}>Elérhető</span>
+            <span className={`${labelSize} font-normal opacity-80`}>{market === 'de' ? 'Verfuegbar' : 'Elérhető'}</span>
             <span className={`${nameSize} font-semibold -mt-0.5`}>Google Play</span>
           </span>
         </a>
@@ -75,7 +76,7 @@ function StoreButtons({ size = 'normal' }) {
         <span className={`${disabledClass} ${isLarge ? 'w-full sm:w-auto justify-center' : ''}`}>
           <PlayStoreLogo className={`${iconSize} opacity-50`} />
           <span className="flex flex-col leading-tight">
-            <span className={`${labelSize} font-normal opacity-80`}>Hamarosan</span>
+            <span className={`${labelSize} font-normal opacity-80`}>{market === 'de' ? 'Bald' : 'Hamarosan'}</span>
             <span className={`${nameSize} font-semibold -mt-0.5`}>Google Play</span>
           </span>
         </span>
@@ -86,6 +87,7 @@ function StoreButtons({ size = 'normal' }) {
 
 export default function AppStoreBanner() {
   const pathname = usePathname();
+  const market = getClientMarket();
   const [showBanner, setShowBanner] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [platform, setPlatform] = useState(null);
@@ -156,8 +158,10 @@ export default function AppStoreBanner() {
                       <p className="text-white font-semibold text-sm">Pharmagister app</p>
                       <p className="text-white/80 text-xs">
                         {platform === 'ios'
-                          ? 'Töltsd le az App Store-ból!'
-                          : (PLAY_STORE_LIVE ? 'Töltsd le a Google Play-ből!' : 'Hamarosan a Google Play-en!')
+                          ? (market === 'de' ? 'Lade sie aus dem App Store herunter!' : 'Töltsd le az App Store-ból!')
+                          : (PLAY_STORE_LIVE
+                            ? (market === 'de' ? 'Lade sie aus Google Play herunter!' : 'Töltsd le a Google Play-ből!')
+                            : (market === 'de' ? 'Bald auf Google Play!' : 'Hamarosan a Google Play-en!'))
                         }
                       </p>
                     </div>
@@ -169,20 +173,20 @@ export default function AppStoreBanner() {
                       rel="noopener noreferrer"
                       className="flex-shrink-0 bg-white text-purple-700 font-bold text-sm py-2 px-4 rounded-lg hover:bg-purple-50 transition-colors"
                     >
-                      Letöltés
+                      {market === 'de' ? 'Download' : 'Letöltés'}
                     </a>
                   ) : (
                     <span className="flex-shrink-0 bg-gray-400 text-white font-bold text-sm py-2 px-4 rounded-lg cursor-not-allowed opacity-70">
-                      Hamarosan
+                      {market === 'de' ? 'Bald' : 'Hamarosan'}
                     </span>
                   )}
                 </>
               ) : (
                 <>
                   <p className="text-white font-medium text-sm">
-                    📱 A Pharmagister elérhető mobilalkalmazásként!
+                    {market === 'de' ? '📱 Pharmagister ist auch als mobile App verfuegbar!' : '📱 A Pharmagister elérhető mobilalkalmazásként!'}
                   </p>
-                  <StoreButtons size="normal" />
+                  <StoreButtons size="normal" market={market} />
                 </>
               )}
               <button
@@ -217,23 +221,23 @@ export default function AppStoreBanner() {
             </div>
 
             <h2 className="text-xl font-bold text-gray-900 mb-2">
-              Töltsd le az alkalmazást!
+              {market === 'de' ? 'Lade die App herunter!' : 'Töltsd le az alkalmazást!'}
             </h2>
             <p className="text-gray-600 text-sm mb-6 leading-relaxed">
-              A Pharmagister mobilalkalmazással push értesítéseket kapsz, 
-              és gyorsabban eléred a közösséget, a hiánycikk keresőt 
-              és a helyettesítési igényeket.
+              {market === 'de'
+                ? 'Mit der Pharmagister App bekommst du Push-Benachrichtigungen und erreichst die Community, die Engpass-Suche und Vertretungsanfragen schneller.'
+                : 'A Pharmagister mobilalkalmazással push értesítéseket kapsz, és gyorsabban eléred a közösséget, a hiánycikk keresőt és a helyettesítési igényeket.'}
             </p>
 
             {/* Store gombok */}
-            <StoreButtons size="large" />
+            <StoreButtons size="large" market={market} />
 
             {/* Tovább a webes verzióhoz */}
             <button
               onClick={handleDismissModal}
               className="mt-5 text-gray-400 text-xs hover:text-gray-600 transition-colors underline"
             >
-              Folytatás a böngészőben
+              {market === 'de' ? 'Im Browser fortfahren' : 'Folytatás a böngészőben'}
             </button>
           </div>
         </div>
