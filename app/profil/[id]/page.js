@@ -9,12 +9,14 @@ import RouteGuard from '@/app/components/RouteGuard';
 import { ArrowLeft, User, Phone, Mail, MapPin, Clock, Code, DollarSign, FileText, Shield, Loader2, Pencil, Flag, Ban, Star, ThumbsUp } from 'lucide-react';
 import ReportModal from '@/app/components/ReportModal';
 import BlockUserModal from '@/app/components/BlockUserModal';
+import { getClientMarket } from '@/lib/marketI18n';
 
 export default function ProfilePage() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
   const { darkMode } = useTheme();
+  const market = getClientMarket();
   const userId = params.id;
   
   const [profileData, setProfileData] = useState(null);
@@ -48,12 +50,12 @@ export default function ProfilePage() {
       if (userDoc.exists()) {
         setProfileData(userDoc.data());
       } else {
-        alert('A felhasználó nem található.');
+        alert(market === 'de' ? 'Benutzer nicht gefunden.' : 'A felhasználó nem található.');
         router.back();
       }
     } catch (error) {
       console.error('Error loading profile:', error);
-      alert('Hiba történt az adatlap betöltése során.');
+      alert(market === 'de' ? 'Fehler beim Laden des Profils.' : 'Hiba történt az adatlap betöltése során.');
       router.back();
     } finally {
       setLoading(false);
@@ -83,8 +85,8 @@ export default function ProfilePage() {
   const isSubstitute = profileData.pharmagisterRole === 'pharmacist' || profileData.pharmagisterRole === 'assistant';
   const isProfileAdmin = profileData.email === 'epresla@icloud.com';
   const roleLabel = isProfileAdmin ? 'Admin' :
-                    profileData.pharmagisterRole === 'pharmacist' ? 'Gyógyszerész' : 
-                    profileData.pharmagisterRole === 'assistant' ? 'Szakasszisztens' : 'Gyógyszertár';
+                    profileData.pharmagisterRole === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'Gyógyszerész') : 
+                    profileData.pharmagisterRole === 'assistant' ? (market === 'de' ? 'Assistent/in' : 'Szakasszisztens') : (market === 'de' ? 'Apotheke' : 'Gyógyszertár');
   
   // Ellenőrizzük, hogy saját profilunkat nézzük-e
   const isOwnProfile = user?.uid === userId;
@@ -102,7 +104,7 @@ export default function ProfilePage() {
               >
                 <ArrowLeft className="w-5 h-5" />
               </button>
-              <h1 className="text-2xl font-bold">{isOwnProfile ? 'Profilom' : 'Adatlap'}</h1>
+              <h1 className="text-2xl font-bold">{isOwnProfile ? (market === 'de' ? 'Mein Profil' : 'Profilom') : (market === 'de' ? 'Profil' : 'Adatlap')}</h1>
             </div>
             
             {/* Szerkesztés gomb - csak saját profilnál */}
@@ -116,7 +118,7 @@ export default function ProfilePage() {
                 }`}
               >
                 <Pencil className="w-4 h-4" />
-                Szerkesztés
+                {market === 'de' ? 'Bearbeiten' : 'Szerkesztés'}
               </button>
             ) : (
               <div className="flex items-center gap-2">
@@ -127,7 +129,7 @@ export default function ProfilePage() {
                       ? 'hover:bg-gray-700 text-orange-400' 
                       : 'hover:bg-gray-100 text-orange-600'
                   }`}
-                  title="Felhasználó letiltása"
+                  title={market === 'de' ? 'Benutzer blockieren' : 'Felhasználó letiltása'}
                 >
                   <Ban className="w-5 h-5" />
                 </button>
@@ -138,7 +140,7 @@ export default function ProfilePage() {
                       ? 'hover:bg-gray-700 text-red-400' 
                       : 'hover:bg-gray-100 text-red-600'
                   }`}
-                  title="Jelentés"
+                  title={market === 'de' ? 'Melden' : 'Jelentés'}
                 >
                   <Flag className="w-5 h-5" />
                 </button>
@@ -169,7 +171,7 @@ export default function ProfilePage() {
             <div className="pt-16 px-6 pb-6">
               <div className="mb-4">
                 <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                  {profileData.displayName || 'Névtelen'}
+                  {profileData.displayName || (market === 'de' ? 'Unbekannt' : 'Névtelen')}
                 </h2>
                 <div className="flex flex-wrap items-center gap-2 mt-1">
                   <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
@@ -178,7 +180,7 @@ export default function ProfilePage() {
                   {profileData.pharmaApproved && (
                     <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium flex items-center gap-1">
                       <Shield className="w-3 h-3" />
-                      Jóváhagyott
+                      {market === 'de' ? 'Verifiziert' : 'Jóváhagyott'}
                     </span>
                   )}
                   {/* Értékelés megjelenítése helyettesítőknél */}
@@ -190,14 +192,14 @@ export default function ProfilePage() {
                         {profileData.pharmaRating.wouldChooseAgainPercent >= 70 && (
                           <span className="ml-1 flex items-center gap-0.5">
                             <ThumbsUp className="w-3 h-3" />
-                            Ajánlott
+                            {market === 'de' ? 'Empfohlen' : 'Ajánlott'}
                           </span>
                         )}
                       </span>
                     ) : (
                       <span className={`px-3 py-1 ${darkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-500'} rounded-full text-sm flex items-center gap-1`}>
                         <Star className="w-3 h-3" />
-                        Még nem érkezett értékelés
+                        {market === 'de' ? 'Noch keine Bewertung' : 'Még nem érkezett értékelés'}
                       </span>
                     )
                   )}
@@ -210,7 +212,7 @@ export default function ProfilePage() {
                   {/* Elérhetőség */}
                   <div>
                     <h3 className={`text-sm font-semibold ${darkMode ? 'text-gray-400' : 'text-gray-500'} uppercase mb-3`}>
-                      Elérhetőség
+                      {market === 'de' ? 'Kontakt' : 'Elérhetőség'}
                     </h3>
                     <div className="space-y-3">
                       {canShow('shareEmail') ? (
@@ -241,7 +243,7 @@ export default function ProfilePage() {
                           <div className="flex items-center gap-3 opacity-50">
                             <Phone className="w-5 h-5 text-gray-400" />
                             <span className={`text-sm italic ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                              Telefon nincs megadva
+                              {market === 'de' ? 'Keine Telefonnummer angegeben' : 'Telefon nincs megadva'}
                             </span>
                           </div>
                         )
@@ -249,7 +251,7 @@ export default function ProfilePage() {
                         <div className="flex items-center gap-3 opacity-50">
                           <Phone className="w-5 h-5 text-gray-400" />
                           <span className={`text-sm italic ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                            Telefon nem nyilvános
+                            {market === 'de' ? 'Telefon nicht oeffentlich' : 'Telefon nem nyilvános'}
                           </span>
                         </div>
                       )}
@@ -259,16 +261,16 @@ export default function ProfilePage() {
                   {/* Szakmai adatok */}
                   <div>
                     <h3 className={`text-sm font-semibold ${darkMode ? 'text-gray-400' : 'text-gray-500'} uppercase mb-3`}>
-                      Szakmai adatok
+                      {market === 'de' ? 'Berufliche Daten' : 'Szakmai adatok'}
                     </h3>
                     <div className="space-y-3">
                       {canShow('shareExperience') && profileData.pharmaYearsOfExperience && (
                         <div className="flex items-center gap-3">
                           <Clock className="w-5 h-5 text-orange-600" />
                           <div>
-                            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Tapasztalat</p>
+                            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{market === 'de' ? 'Erfahrung' : 'Tapasztalat'}</p>
                             <p className={`font-medium ${darkMode ? 'text-gray-200' : 'text-gray-900'}`}>
-                              {profileData.pharmaYearsOfExperience} év
+                              {profileData.pharmaYearsOfExperience} {market === 'de' ? 'Jahre' : 'év'}
                             </p>
                           </div>
                         </div>
@@ -278,7 +280,7 @@ export default function ProfilePage() {
                         <div className="flex items-start gap-3">
                           <Code className="w-5 h-5 text-purple-600 mt-1" />
                           <div className="flex-1">
-                            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'} mb-2`}>Szoftverismeret</p>
+                            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'} mb-2`}>{market === 'de' ? 'Software-Kenntnisse' : 'Szoftverismeret'}</p>
                             <div className="flex flex-wrap gap-2">
                               {profileData.pharmaSoftwareKnowledge.map((software, idx) => (
                                 <span
@@ -297,9 +299,9 @@ export default function ProfilePage() {
                         <div className="flex items-center gap-3">
                           <DollarSign className="w-5 h-5 text-teal-600" />
                           <div>
-                            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Órabér</p>
+                            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{market === 'de' ? 'Stundenlohn' : 'Órabér'}</p>
                             <p className={`font-medium ${darkMode ? 'text-gray-200' : 'text-gray-900'}`}>
-                              {profileData.pharmaHourlyRate} Ft/óra
+                              {profileData.pharmaHourlyRate} {market === 'de' ? 'Ft/Stunde' : 'Ft/óra'}
                             </p>
                           </div>
                         </div>
@@ -311,7 +313,7 @@ export default function ProfilePage() {
                   {canShow('shareBio') && profileData.pharmaBio && (
                     <div>
                       <h3 className={`text-sm font-semibold ${darkMode ? 'text-gray-400' : 'text-gray-500'} uppercase mb-3`}>
-                        Bemutatkozás
+                        {market === 'de' ? 'Vorstellung' : 'Bemutatkozás'}
                       </h3>
                       <div className="flex items-start gap-3">
                         <FileText className="w-5 h-5 text-indigo-600 mt-1" />
@@ -325,7 +327,7 @@ export default function ProfilePage() {
                   {/* Értékelések részletesen */}
                   <div>
                     <h3 className={`text-sm font-semibold ${darkMode ? 'text-gray-400' : 'text-gray-500'} uppercase mb-3`}>
-                      Értékelések
+                      {market === 'de' ? 'Bewertungen' : 'Értékelések'}
                     </h3>
                     {profileData.pharmaRating && profileData.pharmaRating.ratingCount >= 1 ? (
                       <div className={`${darkMode ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-lg p-4 space-y-3`}>
@@ -341,7 +343,7 @@ export default function ProfilePage() {
                           {profileData.pharmaRating.wouldChooseAgainPercent >= 70 && (
                             <div className="flex items-center gap-1 text-green-600">
                               <ThumbsUp className="w-4 h-4" />
-                              <span className="text-sm font-medium">Ajánlott</span>
+                              <span className="text-sm font-medium">{market === 'de' ? 'Empfohlen' : 'Ajánlott'}</span>
                             </div>
                           )}
                         </div>
@@ -350,7 +352,7 @@ export default function ProfilePage() {
                         <div className="space-y-2 pt-2 border-t border-gray-300/30">
                           {profileData.pharmaRating.ratings?.megbizhatas && (
                             <div className="flex items-center justify-between">
-                              <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>Megbízhatóság</span>
+                              <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>{market === 'de' ? 'Zuverlaessigkeit' : 'Megbízhatóság'}</span>
                               <div className="flex items-center gap-1">
                                 {[1,2,3,4,5].map(star => (
                                   <Star 
@@ -367,7 +369,7 @@ export default function ProfilePage() {
                           )}
                           {profileData.pharmaRating.ratings?.szakmaiTudas && (
                             <div className="flex items-center justify-between">
-                              <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>Szakmai tudás</span>
+                              <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>{market === 'de' ? 'Fachwissen' : 'Szakmai tudás'}</span>
                               <div className="flex items-center gap-1">
                                 {[1,2,3,4,5].map(star => (
                                   <Star 
@@ -384,7 +386,7 @@ export default function ProfilePage() {
                           )}
                           {profileData.pharmaRating.ratings?.kommunikacio && (
                             <div className="flex items-center justify-between">
-                              <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>Kommunikáció</span>
+                              <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>{market === 'de' ? 'Kommunikation' : 'Kommunikáció'}</span>
                               <div className="flex items-center gap-1">
                                 {[1,2,3,4,5].map(star => (
                                   <Star 
@@ -405,7 +407,9 @@ export default function ProfilePage() {
                         {profileData.pharmaRating.wouldChooseAgainPercent !== undefined && (
                           <div className={`pt-2 border-t border-gray-300/30 text-center`}>
                             <span className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                              A gyógyszertárak <span className="font-semibold text-green-600">{profileData.pharmaRating.wouldChooseAgainPercent}%</span>-a újra választaná
+                              {market === 'de'
+                                ? <> <span className="font-semibold text-green-600">{profileData.pharmaRating.wouldChooseAgainPercent}%</span> der Apotheken wuerden diese Person wieder waehlen</>
+                                : <>A gyógyszertárak <span className="font-semibold text-green-600">{profileData.pharmaRating.wouldChooseAgainPercent}%</span>-a újra választaná</>}
                             </span>
                           </div>
                         )}
@@ -414,7 +418,7 @@ export default function ProfilePage() {
                       <div className={`${darkMode ? 'bg-gray-700/50' : 'bg-gray-100'} rounded-lg p-4 flex items-center gap-2`}>
                         <Star className={`w-5 h-5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`} />
                         <span className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                          Még nem érkezett értékelés
+                          {market === 'de' ? 'Noch keine Bewertung' : 'Még nem érkezett értékelés'}
                         </span>
                       </div>
                     )}
@@ -425,7 +429,7 @@ export default function ProfilePage() {
                 <div className="space-y-4">
                   <div>
                     <h3 className={`text-sm font-semibold ${darkMode ? 'text-gray-400' : 'text-gray-500'} uppercase mb-3`}>
-                      Gyógyszertár adatok
+                      {market === 'de' ? 'Apothekendaten' : 'Gyógyszertár adatok'}
                     </h3>
                     <div className="space-y-3">
                       {profileData.pharmacyName && (
@@ -471,7 +475,7 @@ export default function ProfilePage() {
                 <div className="flex items-start gap-2">
                   <Shield className={`w-4 h-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'} mt-0.5`} />
                   <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    Az adatok az adatvédelmi beállításoknak megfelelően jelennek meg.
+                    {market === 'de' ? 'Die Daten werden gemaess Datenschutzeinstellungen angezeigt.' : 'Az adatok az adatvédelmi beállításoknak megfelelően jelennek meg.'}
                   </p>
                 </div>
               </div>

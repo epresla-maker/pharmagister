@@ -1,12 +1,14 @@
 "use client";
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { getClientMarket } from '@/lib/marketI18n';
 
 function VerifyEmailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const market = getClientMarket();
   const [status, setStatus] = useState('loading'); // loading, success, error, expired
-  const [message, setMessage] = useState('Email cím ellenőrzése...');
+  const [message, setMessage] = useState(market === 'de' ? 'E-Mail-Adresse wird bestaetigt...' : 'Email cím ellenőrzése...');
 
   useEffect(() => {
     const verifyEmail = async () => {
@@ -14,7 +16,7 @@ function VerifyEmailContent() {
       
       if (!token) {
         setStatus('error');
-        setMessage('Érvénytelen verifikációs link');
+        setMessage(market === 'de' ? 'Ungueltiger Verifizierungslink' : 'Érvénytelen verifikációs link');
         return;
       }
 
@@ -36,13 +38,13 @@ function VerifyEmailContent() {
             setMessage(data.error);
           } else {
             setStatus('error');
-            setMessage(data.error || 'Hiba történt az email megerősítése során');
+            setMessage(data.error || (market === 'de' ? 'Fehler bei der E-Mail-Bestaetigung' : 'Hiba történt az email megerősítése során'));
           }
           return;
         }
 
         setStatus('success');
-        setMessage('Email cím sikeresen megerősítve! ✅');
+        setMessage(market === 'de' ? 'E-Mail-Adresse erfolgreich bestaetigt! ✅' : 'Email cím sikeresen megerősítve! ✅');
         
         // 3 mp múlva átirányítás
         setTimeout(() => {
@@ -52,12 +54,12 @@ function VerifyEmailContent() {
       } catch (error) {
         console.error('Verification error:', error);
         setStatus('error');
-        setMessage('Hiba történt az email megerősítése során');
+        setMessage(market === 'de' ? 'Fehler bei der E-Mail-Bestaetigung' : 'Hiba történt az email megerősítése során');
       }
     };
 
     verifyEmail();
-  }, [searchParams, router]);
+  }, [searchParams, router, market]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center p-4">
@@ -72,22 +74,22 @@ function VerifyEmailContent() {
         {status === 'success' && (
           <>
             <div className="text-6xl mb-4">✅</div>
-            <h1 className="text-2xl font-bold text-green-600 mb-2">Sikeres!</h1>
+            <h1 className="text-2xl font-bold text-green-600 mb-2">{market === 'de' ? 'Erfolgreich!' : 'Sikeres!'}</h1>
             <p className="text-gray-600 mb-4">{message}</p>
-            <p className="text-sm text-gray-500">Átirányítás a bejelentkezéshez...</p>
+            <p className="text-sm text-gray-500">{market === 'de' ? 'Weiterleitung zur Anmeldung...' : 'Átirányítás a bejelentkezéshez...'}</p>
           </>
         )}
 
         {status === 'error' && (
           <>
             <div className="text-6xl mb-4">❌</div>
-            <h1 className="text-2xl font-bold text-red-600 mb-2">Hiba</h1>
+            <h1 className="text-2xl font-bold text-red-600 mb-2">{market === 'de' ? 'Fehler' : 'Hiba'}</h1>
             <p className="text-gray-600 mb-4">{message}</p>
             <button
               onClick={() => router.push('/register')}
               className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700"
             >
-              Vissza a regisztrációhoz
+              {market === 'de' ? 'Zurueck zur Registrierung' : 'Vissza a regisztrációhoz'}
             </button>
           </>
         )}
@@ -95,13 +97,13 @@ function VerifyEmailContent() {
         {status === 'expired' && (
           <>
             <div className="text-6xl mb-4">⏰</div>
-            <h1 className="text-2xl font-bold text-orange-600 mb-2">Lejárt</h1>
+            <h1 className="text-2xl font-bold text-orange-600 mb-2">{market === 'de' ? 'Abgelaufen' : 'Lejárt'}</h1>
             <p className="text-gray-600 mb-4">{message}</p>
             <button
               onClick={() => router.push('/login')}
               className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700"
             >
-              Új link kérése
+              {market === 'de' ? 'Neuen Link anfordern' : 'Új link kérése'}
             </button>
           </>
         )}

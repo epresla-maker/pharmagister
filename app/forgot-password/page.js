@@ -2,9 +2,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Mail, ArrowLeft, Check, AlertCircle, Loader2 } from 'lucide-react';
+import { getClientMarket } from '@/lib/marketI18n';
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
+  const market = getClientMarket();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -25,12 +27,12 @@ export default function ForgotPasswordPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.details || data.error || 'Hiba történt');
+        throw new Error(data.details || data.error || (market === 'de' ? 'Ein Fehler ist aufgetreten' : 'Hiba történt'));
       }
 
       setSuccess(true);
     } catch (err) {
-      setError(err.message || 'Hiba történt. Kérlek próbáld újra.');
+      setError(err.message || (market === 'de' ? 'Ein Fehler ist aufgetreten. Bitte versuche es erneut.' : 'Hiba történt. Kérlek próbáld újra.'));
     } finally {
       setLoading(false);
     }
@@ -43,16 +45,15 @@ export default function ForgotPasswordPage() {
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Check className="w-8 h-8 text-green-600" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Email elküldve!</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">{market === 'de' ? 'E-Mail gesendet!' : 'Email elküldve!'}</h1>
           <p className="text-gray-600 mb-6">
-            Ha az email cím létezik a rendszerben, küldtünk egy jelszó-visszaállító linket. 
-            Kérlek ellenőrizd a postaládádat (és a spam mappát is).
+            {market === 'de' ? 'Wenn diese E-Mail-Adresse im System existiert, haben wir einen Link zum Zuruecksetzen gesendet. Bitte pruefe auch den Spam-Ordner.' : 'Ha az email cím létezik a rendszerben, küldtünk egy jelszó-visszaállító linket. Kérlek ellenőrizd a postaládádat (és a spam mappát is).'}
           </p>
           <button
             onClick={() => router.push('/login')}
             className="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 font-medium"
           >
-            Vissza a bejelentkezéshez
+            {market === 'de' ? 'Zurueck zur Anmeldung' : 'Vissza a bejelentkezéshez'}
           </button>
         </div>
       </div>
@@ -65,7 +66,7 @@ export default function ForgotPasswordPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-purple-800 mb-2">Pharmagister</h1>
-          <p className="text-gray-600">Elfelejtett jelszó</p>
+          <p className="text-gray-600">{market === 'de' ? 'Passwort vergessen' : 'Elfelejtett jelszó'}</p>
         </div>
 
         {/* Card */}
@@ -76,14 +77,14 @@ export default function ForgotPasswordPage() {
             className="flex items-center gap-2 text-gray-600 hover:text-purple-600 mb-6 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span className="text-sm">Vissza a bejelentkezéshez</span>
+            <span className="text-sm">{market === 'de' ? 'Zurueck zur Anmeldung' : 'Vissza a bejelentkezéshez'}</span>
           </button>
 
           {/* Info */}
           <div className="flex items-start gap-3 p-4 bg-purple-50 rounded-lg mb-6">
             <Mail className="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" />
             <p className="text-sm text-purple-800">
-              Add meg az email címedet és küldünk egy linket, amivel új jelszót állíthatsz be.
+              {market === 'de' ? 'Gib deine E-Mail-Adresse ein. Wir senden dir einen Link zum Festlegen eines neuen Passworts.' : 'Add meg az email címedet és küldünk egy linket, amivel új jelszót állíthatsz be.'}
             </p>
           </div>
 
@@ -98,14 +99,14 @@ export default function ForgotPasswordPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-2 text-gray-700">
-                Email cím
+                {market === 'de' ? 'E-Mail-Adresse' : 'Email cím'}
               </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-                placeholder="pelda@email.com"
+                placeholder={market === 'de' ? 'beispiel@email.com' : 'pelda@email.com'}
                 required
               />
             </div>
@@ -122,10 +123,10 @@ export default function ForgotPasswordPage() {
               {loading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Küldés...
+                  {market === 'de' ? 'Wird gesendet...' : 'Küldés...'}
                 </>
               ) : (
-                'Jelszó-visszaállító link küldése'
+                market === 'de' ? 'Link zum Zuruecksetzen senden' : 'Jelszó-visszaállító link küldése'
               )}
             </button>
           </form>
