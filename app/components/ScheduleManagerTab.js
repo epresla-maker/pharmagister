@@ -2725,6 +2725,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   const { darkMode } = useTheme();
   const market = getClientMarket();
   const locale = market === 'de' ? 'de-DE' : 'hu-HU';
+  const monthNames = market === 'de' ? MONTHS_DE : MONTHS_HU;
   const weekdayDisplay = useMemo(() => getWeekdayDisplay(market), [market]);
   const criteriaWizardSteps = useMemo(() => getCriteriaWizardSteps(market), [market]);
   const isPharmacy = pharmaRole === 'pharmacy';
@@ -3340,7 +3341,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       await loadData();
     } catch (err) {
       console.error('handleSavePreferenceDaySchedules error:', err);
-      setStatusError('Nem sikerült menteni a tervezetet.');
+      setStatusError(market === 'de' ? 'Entwurf konnte nicht gespeichert werden.' : 'Nem sikerült menteni a tervezetet.');
     } finally {
       setSaving(false);
     }
@@ -3352,7 +3353,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     const ownRec = ownEmployeeRecords[0];
     const pharmacyId = ownRec?.pharmacyId;
     if (!pharmacyId) {
-      setStatusError('Nincs hozzarendelt gyogyszertar a publikalahoz.');
+      setStatusError(market === 'de' ? 'Keine zugeordnete Apotheke fuer die Veroeffentlichung.' : 'Nincs hozzarendelt gyogyszertar a publikalahoz.');
       return { success: false };
     }
 
@@ -3361,7 +3362,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     );
 
     if (ownMonthItems.length === 0) {
-      setStatusError('Nincs mit publikalni: nincs mentett tervezeted ebben a honapban.');
+      setStatusError(market === 'de' ? 'Nichts zu veroeffentlichen: kein gespeicherter Entwurf in diesem Monat.' : 'Nincs mit publikalni: nincs mentett tervezeted ebben a honapban.');
       return { success: false };
     }
 
@@ -3387,8 +3388,10 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       await createNotificationWithPush({
         userId: pharmacyId,
         type: 'schedule_preference_published',
-        title: 'Dolgozoi tervezet publikalva',
-        message: `${ownRec?.name || userData?.name || user.email} publikalta a ${MONTHS_HU[targetMonth - 1]} ${targetYear} havi tervezetet.`,
+        title: market === 'de' ? 'Mitarbeiter-Entwurf veroeffentlicht' : 'Dolgozoi tervezet publikalva',
+        message: market === 'de'
+          ? `${ownRec?.name || userData?.name || user.email} hat den Monatsentwurf ${monthNames[targetMonth - 1]} ${targetYear} veroeffentlicht.`
+          : `${ownRec?.name || userData?.name || user.email} publikalta a ${monthNames[targetMonth - 1]} ${targetYear} havi tervezetet.`,
         data: { employeeId: ownRec?.id || '', year: targetYear, month: targetMonth },
         url: '/pharmagister?tab=schedule-manager&subtab=workers',
         dedupeWindowSeconds: 120,
@@ -3396,16 +3399,24 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       });
 
       if (updatedCount > 0) {
-        setStatusMessage(`Sikeres publikalas: ${updatedCount} tervezett nap publikalva (${MONTHS_HU[targetMonth - 1]} ${targetYear}).`);
+        setStatusMessage(
+          market === 'de'
+            ? `Erfolgreich veroeffentlicht: ${updatedCount} geplante Tage (${monthNames[targetMonth - 1]} ${targetYear}).`
+            : `Sikeres publikalas: ${updatedCount} tervezett nap publikalva (${monthNames[targetMonth - 1]} ${targetYear}).`
+        );
       } else {
-        setStatusMessage(`A ${MONTHS_HU[targetMonth - 1]} ${targetYear} havi tervezet mar korabban publikalva lett.`);
+        setStatusMessage(
+          market === 'de'
+            ? `Der Entwurf fuer ${monthNames[targetMonth - 1]} ${targetYear} wurde bereits frueher veroeffentlicht.`
+            : `A ${monthNames[targetMonth - 1]} ${targetYear} havi tervezet mar korabban publikalva lett.`
+        );
       }
 
       await loadData();
       return { success: true, updatedCount };
     } catch (error) {
       console.error('Publish preference month error:', error);
-      setStatusError(error.message || 'Nem sikerult publikalni a havi tervezetet.');
+      setStatusError(error.message || (market === 'de' ? 'Monatsentwurf konnte nicht veroeffentlicht werden.' : 'Nem sikerult publikalni a havi tervezetet.'));
       return { success: false };
     } finally {
       setSaving(false);
@@ -4315,8 +4326,11 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
   async function handlePublishSchedules() {
     if (!user || activeMonthSchedules.length === 0) {
-      setStatusError('Nincs publikálható beosztás a kiválasztott hónapban.');
-      return { success: false, blockingErrors: [{ message: 'Nincs kitöltött beosztás ebben a hónapban.' }] };
+      setStatusError(market === 'de' ? 'Kein veroeffentlichbarer Dienstplan im ausgewaehlten Monat.' : 'Nincs publikálható beosztás a kiválasztott hónapban.');
+      return {
+        success: false,
+        blockingErrors: [{ message: market === 'de' ? 'In diesem Monat gibt es keinen ausgefuellten Dienstplan.' : 'Nincs kitöltött beosztás ebben a hónapban.' }],
+      };
     }
 
     setSaving(true);
@@ -4345,13 +4359,17 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
       const result = await response.json();
       if (!response.ok || !result?.success) {
-        throw new Error(result?.error || 'Nem sikerült validálni a beosztást.');
+        throw new Error(result?.error || (market === 'de' ? 'Dienstplanvalidierung fehlgeschlagen.' : 'Nem sikerült validálni a beosztást.'));
       }
 
       const blockingErrors = (result.conflicts || []).filter(item => item.severity === 'error');
       if (blockingErrors.length > 0) {
         setPlannerResult(result);
-        setStatusError(`A publikálás blokkolva: ${blockingErrors.length} piros hiba maradt a beosztásban.`);
+        setStatusError(
+          market === 'de'
+            ? `Veroeffentlichung blockiert: ${blockingErrors.length} kritische Fehler sind noch im Dienstplan.`
+            : `A publikálás blokkolva: ${blockingErrors.length} piros hiba maradt a beosztásban.`
+        );
         return { success: false, blockingErrors };
       }
 
@@ -4382,8 +4400,10 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         await createNotificationWithPush({
           userId,
           type: 'schedule_published',
-          title: 'Uj beosztas publikalva',
-          message: `${MONTHS_HU[month - 1]} ${year} havi beosztasod publikalva lett.`,
+          title: market === 'de' ? 'Neuer Dienstplan veroeffentlicht' : 'Uj beosztas publikalva',
+          message: market === 'de'
+            ? `Dein Dienstplan fuer ${monthNames[month - 1]} ${year} wurde veroeffentlicht.`
+            : `${monthNames[month - 1]} ${year} havi beosztasod publikalva lett.`,
           data: { pharmacyId: user.uid, year, month },
           url: '/pharmagister?tab=schedule-manager&subtab=mine',
           dedupeWindowSeconds: 120,
@@ -4393,15 +4413,23 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
       const missingCount = missingLinkedUsers.size;
       if (missingCount > 0) {
-        setStatusMessage(`A ${MONTHS_HU[month - 1]} ${year}. havi beosztas publikalva lett. Ertesites elkuldve ${notifyTargets.size} dolgozonak, ${missingCount} dolgozohoz nincs kapcsolt fiok.`);
+        setStatusMessage(
+          market === 'de'
+            ? `Dienstplan ${monthNames[month - 1]} ${year} veroeffentlicht. Benachrichtigung an ${notifyTargets.size} Mitarbeitende gesendet, fuer ${missingCount} Mitarbeitende fehlt ein verknuepftes Konto.`
+            : `A ${monthNames[month - 1]} ${year}. havi beosztas publikalva lett. Ertesites elkuldve ${notifyTargets.size} dolgozonak, ${missingCount} dolgozohoz nincs kapcsolt fiok.`
+        );
       } else {
-        setStatusMessage(`A ${MONTHS_HU[month - 1]} ${year}. havi beosztas publikalva lett. Ertesites elkuldve minden erintett dolgozonak.`);
+        setStatusMessage(
+          market === 'de'
+            ? `Dienstplan ${monthNames[month - 1]} ${year} veroeffentlicht. Benachrichtigung an alle betroffenen Mitarbeitenden gesendet.`
+            : `A ${monthNames[month - 1]} ${year}. havi beosztas publikalva lett. Ertesites elkuldve minden erintett dolgozonak.`
+        );
       }
       await loadData();
       return { success: true };
     } catch (error) {
       console.error('Publish schedules error:', error);
-      const msg = error.message || 'Nem sikerült publikálni a beosztásokat.';
+      const msg = error.message || (market === 'de' ? 'Dienstplaene konnten nicht veroeffentlicht werden.' : 'Nem sikerült publikálni a beosztásokat.');
       setStatusError(msg);
       return { success: false, blockingErrors: [{ message: msg }] };
     } finally {
@@ -4434,19 +4462,25 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         await createNotificationWithPush({
           userId,
           type: 'schedule_updated',
-          title: 'Beosztas valtozas',
-          message: `${MONTHS_HU[month - 1]} ${year} havi beosztasban csere tortent.`,
+          title: market === 'de' ? 'Dienstplan-Aenderung' : 'Beosztas valtozas',
+          message: market === 'de'
+            ? `Im Dienstplan ${monthNames[month - 1]} ${year} wurde ein Tausch vorgenommen.`
+            : `${monthNames[month - 1]} ${year} havi beosztasban csere tortent.`,
           data: { pharmacyId: user.uid, year, month },
           url: '/pharmagister?tab=schedule-manager&subtab=mine',
           dedupeWindowSeconds: 60,
           dedupeByDataKeys: ['pharmacyId', 'year', 'month', 'type'],
         });
       }
-      setStatusMessage(`Változtatások publikálva. Értesítés elküldve ${changedLinkedUsers.length} érintett dolgozónak.`);
+      setStatusMessage(
+        market === 'de'
+          ? `Aenderungen veroeffentlicht. Benachrichtigung an ${changedLinkedUsers.length} betroffene Mitarbeitende gesendet.`
+          : `Változtatások publikálva. Értesítés elküldve ${changedLinkedUsers.length} érintett dolgozónak.`
+      );
       await loadData();
     } catch (err) {
       console.error('handlePublishSwapChanges error', err);
-      setStatusError('Nem sikerült publikálni a változtatásokat.');
+      setStatusError(market === 'de' ? 'Aenderungen konnten nicht veroeffentlicht werden.' : 'Nem sikerült publikálni a változtatásokat.');
     } finally {
       setSaving(false);
     }
@@ -4489,8 +4523,10 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         await createNotificationWithPush({
           userId: linkedUserId,
           type: 'schedule_month_deleted',
-          title: 'Havi beosztás törölve',
-          message: `${MONTHS_HU[month - 1]} ${year} havi beosztásodat a gyógyszertár törölte.`,
+          title: market === 'de' ? 'Monatsdienstplan geloescht' : 'Havi beosztás törölve',
+          message: market === 'de'
+            ? `Dein Monatsdienstplan ${monthNames[month - 1]} ${year} wurde von der Apotheke geloescht.`
+            : `${monthNames[month - 1]} ${year} havi beosztásodat a gyógyszertár törölte.`,
           data: { pharmacyId: user.uid, year, month },
           url: '/pharmagister?tab=schedule-manager&subtab=mine',
           dedupeWindowSeconds: 120,
@@ -4508,19 +4544,23 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         await createNotificationWithPush({
           userId: linkedUserId,
           type: 'schedule_swap_cancelled',
-          title: 'Csereigény megszakítva',
-          message: 'Egy csereigény megszakadt, mert az érintett beosztást törölték.',
+          title: market === 'de' ? 'Tauschanfrage abgebrochen' : 'Csereigény megszakítva',
+          message: market === 'de' ? 'Eine Tauschanfrage wurde abgebrochen, weil der betroffene Dienst geloescht wurde.' : 'Egy csereigény megszakadt, mert az érintett beosztást törölték.',
           data: { requestId, pharmacyId: user.uid, year, month },
           url: '/pharmagister?tab=schedule-manager&subtab=swaps',
           dedupeWindowSeconds: 120,
           dedupeByDataKeys: ['requestId', 'type'],
         });
       }
-      setStatusMessage(`${toDelete.length} beosztás törölve (${MONTHS_HU[month - 1]} ${year}).`);
+      setStatusMessage(
+        market === 'de'
+          ? `${toDelete.length} Dienste geloescht (${monthNames[month - 1]} ${year}).`
+          : `${toDelete.length} beosztás törölve (${monthNames[month - 1]} ${year}).`
+      );
       await loadData();
     } catch (err) {
       console.error('handleDeleteMonth error', err);
-      setStatusError('Nem sikerült törölni a havi beosztást.');
+      setStatusError(market === 'de' ? 'Monatsdienstplan konnte nicht geloescht werden.' : 'Nem sikerült törölni a havi beosztást.');
     } finally {
       setSaving(false);
     }
@@ -4707,7 +4747,11 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     if (!user) return;
 
     const { year: previousYear, month: previousMonth } = getPreviousMonth(year, month);
-    const confirmed = window.confirm(`Átmásoljam a ${MONTHS_HU[previousMonth - 1]} ${previousYear}. havi beosztásokat erre a hónapra?`);
+    const confirmed = window.confirm(
+      market === 'de'
+        ? `Soll ich die Dienstplaene aus ${monthNames[previousMonth - 1]} ${previousYear} in diesen Monat kopieren?`
+        : `Átmásoljam a ${monthNames[previousMonth - 1]} ${previousYear}. havi beosztásokat erre a hónapra?`
+    );
     if (!confirmed) return;
 
     setSaving(true);
@@ -4763,11 +4807,15 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         created += 1;
       }
 
-      setStatusMessage(`${created} műszak átmásolva az előző hónapból.`);
+      setStatusMessage(
+        market === 'de'
+          ? `${created} Dienste aus dem Vormonat kopiert.`
+          : `${created} műszak átmásolva az előző hónapból.`
+      );
       await loadData();
     } catch (error) {
       console.error('Copy previous month schedules error:', error);
-      setStatusError('Nem sikerült átmásolni az előző havi beosztást.');
+      setStatusError(market === 'de' ? 'Vorheriger Monatsdienstplan konnte nicht kopiert werden.' : 'Nem sikerült átmásolni az előző havi beosztást.');
     } finally {
       setSaving(false);
     }
@@ -4775,7 +4823,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
   function handleExportSchedules() {
     if (activeMonthSchedules.length === 0) {
-      setStatusError('Nincs exportálható beosztás a kiválasztott hónapban.');
+      setStatusError(market === 'de' ? 'Kein exportierbarer Dienstplan im ausgewaehlten Monat.' : 'Nincs exportálható beosztás a kiválasztott hónapban.');
       return;
     }
 
@@ -4802,7 +4850,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    setStatusMessage('CSV export elkészült.');
+    setStatusMessage(market === 'de' ? 'CSV-Export fertig.' : 'CSV export elkészült.');
   }
 
   const pendingIncomingSwaps = swapRequests.filter(r => r.targetUserId === user?.uid && r.status === 'pending');
