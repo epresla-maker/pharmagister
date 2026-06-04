@@ -2,9 +2,11 @@
 import { useTheme } from '@/context/ThemeContext';
 import { ArrowLeft, Mail, Globe, Shield, Trash2, HelpCircle, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
+import { getClientMarket } from '@/lib/marketI18n';
 
 export default function SupportPage() {
   const { darkMode } = useTheme();
+  const market = getClientMarket();
 
   return (
     <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
@@ -17,7 +19,7 @@ export default function SupportPage() {
           <div className="flex items-center gap-2">
             <HelpCircle className="w-5 h-5 text-purple-600" />
             <h1 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              Támogatás / Support
+              {market === 'de' ? 'Support' : 'Támogatás / Support'}
             </h1>
           </div>
         </div>
@@ -29,19 +31,19 @@ export default function SupportPage() {
         {/* Welcome */}
         <div className={`${darkMode ? 'bg-gray-800 text-gray-200' : 'bg-white text-gray-700'} rounded-xl shadow-sm p-6`}>
           <h2 className={`text-xl font-bold mb-3 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-            Üdvözöljük a Pharmagister támogatási oldalán!
+            {market === 'de' ? 'Willkommen beim Pharmagister-Support!' : 'Üdvözöljük a Pharmagister támogatási oldalán!'}
           </h2>
           <p className="leading-relaxed">
-            A Pharmagister egy gyógyszertári helyettesítés-közvetítő platform, amely összeköti a gyógyszertárakat
-            és a helyettesítő gyógyszerészeket/szakasszisztenseket Magyarországon.
-            Ha bármilyen kérdése, problémája vagy javaslata van, az alábbi elérhetőségeken állunk rendelkezésére.
+            {market === 'de'
+              ? 'Pharmagister ist eine Plattform zur Vermittlung von Apothekenvertretungen. Wenn du Fragen, Probleme oder Vorschlaege hast, erreichst du uns ueber die untenstehenden Kontaktmoeglichkeiten.'
+              : 'A Pharmagister egy gyógyszertári helyettesítés-közvetítő platform, amely összeköti a gyógyszertárakat és a helyettesítő gyógyszerészeket/szakasszisztenseket Magyarországon. Ha bármilyen kérdése, problémája vagy javaslata van, az alábbi elérhetőségeken állunk rendelkezésére.'}
           </p>
         </div>
 
         {/* Contact */}
         <div className={`${darkMode ? 'bg-gray-800 text-gray-200' : 'bg-white text-gray-700'} rounded-xl shadow-sm p-6`}>
           <h2 className={`text-xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-            Kapcsolat
+            {market === 'de' ? 'Kontakt' : 'Kapcsolat'}
           </h2>
           <div className="space-y-4">
             <div className="flex items-start gap-3">
@@ -49,12 +51,12 @@ export default function SupportPage() {
                 <Mail className="w-5 h-5 text-purple-600" />
               </div>
               <div>
-                <p className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>E-mail</p>
+                <p className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>E-Mail</p>
                 <a href="mailto:epresla@icloud.com" className="text-purple-600 hover:underline">
                   epresla@icloud.com
                 </a>
                 <p className={`text-sm mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  Válaszidő: általában 24 órán belül
+                  {market === 'de' ? 'Antwortzeit: in der Regel innerhalb von 24 Stunden' : 'Válaszidő: általában 24 órán belül'}
                 </p>
               </div>
             </div>
@@ -63,7 +65,7 @@ export default function SupportPage() {
                 <Globe className="w-5 h-5 text-blue-600" />
               </div>
               <div>
-                <p className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Weboldal</p>
+                <p className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{market === 'de' ? 'Website' : 'Weboldal'}</p>
                 <a href="https://pharmagister.hu" target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:underline">
                   https://pharmagister.hu
                 </a>
@@ -75,58 +77,61 @@ export default function SupportPage() {
         {/* FAQ */}
         <div className={`${darkMode ? 'bg-gray-800 text-gray-200' : 'bg-white text-gray-700'} rounded-xl shadow-sm p-6`}>
           <h2 className={`text-xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-            Gyakran ismételt kérdések
+            {market === 'de' ? 'Haeufig gestellte Fragen' : 'Gyakran ismételt kérdések'}
           </h2>
           <div className="space-y-5">
             <div>
               <h3 className={`font-semibold mb-1 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                Hogyan regisztrálhatok?
+                {market === 'de' ? 'Wie kann ich mich registrieren?' : 'Hogyan regisztrálhatok?'}
               </h3>
               <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                A regisztráció ingyenes. Nyissa meg az alkalmazást, kattintson a "Regisztráció" gombra,
-                adja meg az e-mail címét és válasszon jelszót. A regisztráció után e-mailben kapott linkkel
-                erősítse meg a fiókját.
+                {market === 'de'
+                  ? 'Die Registrierung ist kostenlos. Oeffne die App, tippe auf "Registrieren", gib deine E-Mail-Adresse ein und waehle ein Passwort. Danach bestaetige dein Konto ueber den Link in der E-Mail.'
+                  : 'A regisztráció ingyenes. Nyissa meg az alkalmazást, kattintson a "Regisztráció" gombra, adja meg az e-mail címét és válasszon jelszót. A regisztráció után e-mailben kapott linkkel erősítse meg a fiókját.'}
               </p>
             </div>
             <div>
               <h3 className={`font-semibold mb-1 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                Hogyan adhatok fel helyettesítési igényt?
+                {market === 'de' ? 'Wie kann ich eine Vertretungsanfrage erstellen?' : 'Hogyan adhatok fel helyettesítési igényt?'}
               </h3>
               <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                Gyógyszertárként jelentkezzen be, lépjen a naptár nézetre, kattintson egy jövőbeli napra,
-                és töltse ki az igény adatait (pozíció, munkaidő, követelmények).
+                {market === 'de'
+                  ? 'Melde dich als Apotheke an, gehe in die Kalenderansicht, waehle einen zukuenftigen Tag und fuelle die Anfrage aus (Position, Arbeitszeit, Anforderungen).'
+                  : 'Gyógyszertárként jelentkezzen be, lépjen a naptár nézetre, kattintson egy jövőbeli napra, és töltse ki az igény adatait (pozíció, munkaidő, követelmények).'}
               </p>
             </div>
             <div>
               <h3 className={`font-semibold mb-1 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                Hogyan jelentkezhetek egy igényre?
+                {market === 'de' ? 'Wie bewerbe ich mich auf eine Anfrage?' : 'Hogyan jelentkezhetek egy igényre?'}
               </h3>
               <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                Helyettesítőként böngésszen a naptárban vagy a vezérlőpulton, válassza ki a megfelelő
-                igényt, és kattintson a "Jelentkezem" gombra. A gyógyszertár értesítést kap a jelentkezéséről.
+                {market === 'de'
+                  ? 'Als Vertretung kannst du im Kalender oder Dashboard suchen, die passende Anfrage auswaehlen und auf "Ich bewerbe mich" tippen. Die Apotheke wird benachrichtigt.'
+                  : 'Helyettesítőként böngésszen a naptárban vagy a vezérlőpulton, válassza ki a megfelelő igényt, és kattintson a "Jelentkezem" gombra. A gyógyszertár értesítést kap a jelentkezéséről.'}
               </p>
             </div>
             <div>
               <h3 className={`font-semibold mb-1 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                Elfelejtett jelszó
+                {market === 'de' ? 'Passwort vergessen' : 'Elfelejtett jelszó'}
               </h3>
               <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                A bejelentkezési oldalon kattintson az "Elfelejtett jelszó" linkre, adja meg regisztrált
-                e-mail címét, és a rendszer elküldi a jelszó-visszaállítási hivatkozást.
+                {market === 'de'
+                  ? 'Auf der Anmeldeseite kannst du auf "Passwort vergessen" tippen, deine registrierte E-Mail eingeben und einen Link zum Zuruecksetzen erhalten.'
+                  : 'A bejelentkezési oldalon kattintson az "Elfelejtett jelszó" linkre, adja meg regisztrált e-mail címét, és a rendszer elküldi a jelszó-visszaállítási hivatkozást.'}
               </p>
             </div>
             <div>
               <h3 className={`font-semibold mb-1 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                Hogyan törölhetem a fiókomat?
+                {market === 'de' ? 'Wie kann ich mein Konto loeschen?' : 'Hogyan törölhetem a fiókomat?'}
               </h3>
               <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                Lépjen a Beállítások menübe, majd kattintson a "Fiók törlése" gombra.
-                A törlés azonnali és végleges -- minden adata (profil, igények, jelentkezések, üzenetek)
-                visszavonhatatlanul törlődik. Alternatív megoldásként a{' '}
+                {market === 'de'
+                  ? 'Gehe zu den Einstellungen und tippe auf "Konto loeschen". Die Loeschung ist sofort und endgueltig. Alternativ kannst du auch das '
+                  : 'Lépjen a Beállítások menübe, majd kattintson a "Fiók törlése" gombra. A törlés azonnali és végleges -- minden adata (profil, igények, jelentkezések, üzenetek) visszavonhatatlanul törlődik. Alternatív megoldásként a '}
                 <Link href="/delete-account" className="text-purple-600 hover:underline">
-                  fiók törlési űrlapon
+                  {market === 'de' ? 'Formular zur Kontoloeschung' : 'fiók törlési űrlapon'}
                 </Link>{' '}
-                is kérheti a törlést.
+                {market === 'de' ? 'verwenden.' : 'is kérheti a törlést.'}
               </p>
             </div>
           </div>
@@ -135,26 +140,26 @@ export default function SupportPage() {
         {/* Useful links */}
         <div className={`${darkMode ? 'bg-gray-800 text-gray-200' : 'bg-white text-gray-700'} rounded-xl shadow-sm p-6`}>
           <h2 className={`text-xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-            Hasznos hivatkozások
+            {market === 'de' ? 'Nutzliche Links' : 'Hasznos hivatkozások'}
           </h2>
           <div className="space-y-3">
             <Link href="/help" className="flex items-center gap-3 group">
               <div className={`p-2 rounded-lg ${darkMode ? 'bg-teal-900/30' : 'bg-teal-100'}`}>
                 <HelpCircle className="w-5 h-5 text-teal-600" />
               </div>
-              <span className="text-purple-600 group-hover:underline">Súgó - részletes használati útmutató</span>
+              <span className="text-purple-600 group-hover:underline">{market === 'de' ? 'Hilfe - detaillierte Anleitung' : 'Súgó - részletes használati útmutató'}</span>
             </Link>
             <Link href="/privacy-policy" className="flex items-center gap-3 group">
               <div className={`p-2 rounded-lg ${darkMode ? 'bg-blue-900/30' : 'bg-blue-100'}`}>
                 <Shield className="w-5 h-5 text-blue-600" />
               </div>
-              <span className="text-purple-600 group-hover:underline">Adatvédelmi tájékoztató</span>
+              <span className="text-purple-600 group-hover:underline">{market === 'de' ? 'Datenschutzerklaerung' : 'Adatvédelmi tájékoztató'}</span>
             </Link>
             <Link href="/delete-account" className="flex items-center gap-3 group">
               <div className={`p-2 rounded-lg ${darkMode ? 'bg-red-900/30' : 'bg-red-100'}`}>
                 <Trash2 className="w-5 h-5 text-red-600" />
               </div>
-              <span className="text-purple-600 group-hover:underline">Fiók törlése</span>
+              <span className="text-purple-600 group-hover:underline">{market === 'de' ? 'Konto loeschen' : 'Fiók törlése'}</span>
             </Link>
           </div>
         </div>
@@ -162,12 +167,12 @@ export default function SupportPage() {
         {/* Developer info */}
         <div className={`${darkMode ? 'bg-gray-800 text-gray-200' : 'bg-white text-gray-700'} rounded-xl shadow-sm p-6`}>
           <h2 className={`text-xl font-bold mb-3 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-            Fejlesztő
+            {market === 'de' ? 'Entwickler' : 'Fejlesztő'}
           </h2>
           <p className="leading-relaxed">
-            <strong>Név:</strong> Epres László<br />
-            <strong>E-mail:</strong> epresla@icloud.com<br />
-            <strong>Alkalmazás:</strong> Pharmagister v1.0.0
+            <strong>{market === 'de' ? 'Name' : 'Név'}:</strong> Epres László<br />
+            <strong>E-Mail:</strong> epresla@icloud.com<br />
+            <strong>{market === 'de' ? 'App' : 'Alkalmazás'}:</strong> Pharmagister v1.0.0
           </p>
         </div>
 

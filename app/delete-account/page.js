@@ -6,10 +6,12 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { auth } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
+import { getClientMarket } from '@/lib/marketI18n';
 
 export default function DeleteAccountPage() {
   const { darkMode } = useTheme();
   const router = useRouter();
+  const market = getClientMarket();
   const [email, setEmail] = useState('');
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -28,7 +30,7 @@ export default function DeleteAccountPage() {
     e.preventDefault();
     
     if (!email.trim()) {
-      setError('Kérjük adja meg az email címét.');
+      setError(market === 'de' ? 'Bitte gib deine E-Mail-Adresse an.' : 'Kérjük adja meg az email címét.');
       return;
     }
 
@@ -51,11 +53,11 @@ export default function DeleteAccountPage() {
       if (response.ok) {
         setSubmitted(true);
       } else {
-        setError('Hiba történt. Kérjük írjon közvetlenül az epresla@icloud.com címre.');
+        setError(market === 'de' ? 'Fehler. Bitte schreibe direkt an epresla@icloud.com.' : 'Hiba történt. Kérjük írjon közvetlenül az epresla@icloud.com címre.');
       }
     } catch (err) {
       console.error('Delete account request error:', err);
-      setError('Hiba történt. Kérjük írjon közvetlenül az epresla@icloud.com címre.');
+      setError(market === 'de' ? 'Fehler. Bitte schreibe direkt an epresla@icloud.com.' : 'Hiba történt. Kérjük írjon közvetlenül az epresla@icloud.com címre.');
     } finally {
       setSubmitting(false);
     }
@@ -82,7 +84,7 @@ export default function DeleteAccountPage() {
             <div className="flex items-center gap-2">
               <Trash2 className="w-5 h-5 text-red-600" />
               <h1 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                Fiók törlése
+                {market === 'de' ? 'Konto loeschen' : 'Fiók törlése'}
               </h1>
             </div>
           </div>
@@ -92,20 +94,21 @@ export default function DeleteAccountPage() {
           <div className={`${darkMode ? 'bg-gray-800 text-gray-200' : 'bg-white text-gray-700'} rounded-xl shadow-sm p-8 text-center`}>
             <Settings className="w-16 h-16 text-purple-600 mx-auto mb-4" />
             <h2 className={`text-2xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              Azonnali fiók törlés
+              {market === 'de' ? 'Sofortige Kontoloeschung' : 'Azonnali fiók törlés'}
             </h2>
             <p className="leading-relaxed mb-6">
-              Be vagy jelentkezve, így <strong>azonnal törölheted</strong> a fiókodat a Beállítások oldalon. 
-              Nem kell várnod — az adataid azonnal törlésre kerülnek.
+              {market === 'de'
+                ? <>Du bist angemeldet, daher kannst du dein Konto in den Einstellungen <strong>sofort loeschen</strong>. Du musst nicht warten.</>
+                : <>Be vagy jelentkezve, így <strong>azonnal törölheted</strong> a fiókodat a Beállítások oldalon. Nem kell várnod — az adataid azonnal törlésre kerülnek.</>}
             </p>
             <button
               onClick={() => router.push('/settings')}
               className="inline-block px-8 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold"
             >
-              Fiók törlése a Beállításokban
+              {market === 'de' ? 'Konto in den Einstellungen loeschen' : 'Fiók törlése a Beállításokban'}
             </button>
             <p className="text-sm text-gray-500 mt-4">
-              Beállítások → Fiók törlése → Azonnali törlés
+              {market === 'de' ? 'Einstellungen → Konto loeschen → Sofort loeschen' : 'Beállítások → Fiók törlése → Azonnali törlés'}
             </p>
           </div>
         </div>
@@ -122,7 +125,7 @@ export default function DeleteAccountPage() {
               <ArrowLeft className={`w-5 h-5 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`} />
             </Link>
             <h1 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              Fiók törlése
+              {market === 'de' ? 'Konto loeschen' : 'Fiók törlése'}
             </h1>
           </div>
         </div>
@@ -131,20 +134,21 @@ export default function DeleteAccountPage() {
           <div className={`${darkMode ? 'bg-gray-800 text-gray-200' : 'bg-white text-gray-700'} rounded-xl shadow-sm p-8 text-center`}>
             <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
             <h2 className={`text-2xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              Kérés elküldve
+              {market === 'de' ? 'Anfrage gesendet' : 'Kérés elküldve'}
             </h2>
             <p className="leading-relaxed mb-6">
-              Fiók törlési kérését megkaptuk. Munkatársunk <strong>72 órán belül</strong> kapcsolatba lép Önnel 
-              az <strong>{email}</strong> email címen a kérés feldolgozásához.
+              {market === 'de'
+                ? <>Wir haben deine Anfrage erhalten. Unser Team meldet sich innerhalb von <strong>72 Stunden</strong> unter <strong>{email}</strong>.</>
+                : <>Fiók törlési kérését megkaptuk. Munkatársunk <strong>72 órán belül</strong> kapcsolatba lép Önnel az <strong>{email}</strong> email címen a kérés feldolgozásához.</>}
             </p>
             <p className="text-sm mb-6">
-              A GDPR szabályok értelmében adatai <strong>30 napon belül</strong> törlésre kerülnek a rendszerünkből.
+              {market === 'de' ? <>Gemaess DSGVO werden deine Daten innerhalb von <strong>30 Tagen</strong> aus unserem System geloescht.</> : <>A GDPR szabályok értelmében adatai <strong>30 napon belül</strong> törlésre kerülnek a rendszerünkből.</>}
             </p>
             <Link 
               href="/"
               className="inline-block px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
             >
-              Vissza a főoldalra
+              {market === 'de' ? 'Zurueck zur Startseite' : 'Vissza a főoldalra'}
             </Link>
           </div>
         </div>
@@ -163,7 +167,7 @@ export default function DeleteAccountPage() {
           <div className="flex items-center gap-2">
             <Trash2 className="w-5 h-5 text-red-600" />
             <h1 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              Fiók és adatok törlése
+              {market === 'de' ? 'Konto und Daten loeschen' : 'Fiók és adatok törlése'}
             </h1>
           </div>
         </div>
@@ -179,17 +183,17 @@ export default function DeleteAccountPage() {
               <AlertTriangle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
               <div>
                 <h3 className="font-semibold text-yellow-900 dark:text-yellow-100 mb-1">
-                  Figyelem! Visszavonhatatlan művelet
+                  {market === 'de' ? 'Achtung! Unwiderruflicher Vorgang' : 'Figyelem! Visszavonhatatlan művelet'}
                 </h3>
                 <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                  A fiók törlése <strong>végleges és visszavonhatatlan</strong>. Az alábbi adatok <strong>véglegesen törlésre</strong> kerülnek:
+                  {market === 'de' ? <>Die Kontoloeschung ist <strong>endgueltig und unwiderruflich</strong>. Folgende Daten werden <strong>dauerhaft geloescht</strong>:</> : <>A fiók törlése <strong>végleges és visszavonhatatlan</strong>. Az alábbi adatok <strong>véglegesen törlésre</strong> kerülnek:</>}
                 </p>
                 <ul className="text-sm text-yellow-800 dark:text-yellow-200 list-disc pl-5 mt-2 space-y-1">
-                  <li>Felhasználói profil és beállítások</li>
-                  <li>Helyettesítési igények és jelentkezések</li>
-                  <li>Chat üzenetek és beszélgetések</li>
-                  <li>Értesítési előzmények</li>
-                  <li>Profilkép és egyéb feltöltött média</li>
+                  <li>{market === 'de' ? 'Benutzerprofil und Einstellungen' : 'Felhasználói profil és beállítások'}</li>
+                  <li>{market === 'de' ? 'Vertretungsanfragen und Bewerbungen' : 'Helyettesítési igények és jelentkezések'}</li>
+                  <li>{market === 'de' ? 'Chat-Nachrichten und Gespraeche' : 'Chat üzenetek és beszélgetések'}</li>
+                  <li>{market === 'de' ? 'Benachrichtigungsverlauf' : 'Értesítési előzmények'}</li>
+                  <li>{market === 'de' ? 'Profilbild und andere hochgeladene Medien' : 'Profilkép és egyéb feltöltött média'}</li>
                 </ul>
               </div>
             </div>
@@ -198,12 +202,12 @@ export default function DeleteAccountPage() {
           {/* Info */}
           <div className="mb-6">
             <h2 className={`text-xl font-bold mb-3 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              Hogyan működik?
+              {market === 'de' ? 'Wie funktioniert es?' : 'Hogyan működik?'}
             </h2>
             <ol className="list-decimal pl-6 space-y-2">
-              <li>Töltse ki az alábbi űrlapot az email címével ami a fiókjához tartozik</li>
-              <li>Munkatársunk 72 órán belül kapcsolatba lép Önnel az email megerősítéshez</li>
-              <li>Megerősítés után adatai 30 napon belül törlésre kerülnek (GDPR előírás szerint)</li>
+              <li>{market === 'de' ? 'Fuelle das Formular unten mit der E-Mail aus, die zu deinem Konto gehoert.' : 'Töltse ki az alábbi űrlapot az email címével ami a fiókjához tartozik'}</li>
+              <li>{market === 'de' ? 'Unser Team meldet sich innerhalb von 72 Stunden zur Bestaetigung.' : 'Munkatársunk 72 órán belül kapcsolatba lép Önnel az email megerősítéshez'}</li>
+              <li>{market === 'de' ? 'Nach Bestaetigung werden die Daten innerhalb von 30 Tagen geloescht (DSGVO).' : 'Megerősítés után adatai 30 napon belül törlésre kerülnek (GDPR előírás szerint)'}</li>
             </ol>
           </div>
 
@@ -211,14 +215,14 @@ export default function DeleteAccountPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                Email cím <span className="text-red-500">*</span>
+                {market === 'de' ? 'E-Mail-Adresse' : 'Email cím'} <span className="text-red-500">*</span>
               </label>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="fiok@pelda.hu"
+                placeholder={market === 'de' ? 'konto@beispiel.de' : 'fiok@pelda.hu'}
                 className={`w-full px-4 py-3 rounded-lg border ${
                   darkMode 
                     ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
@@ -226,19 +230,19 @@ export default function DeleteAccountPage() {
                 } focus:ring-2 focus:ring-purple-500 focus:border-transparent`}
               />
               <p className="text-xs text-gray-500 mt-1">
-                Adja meg azt az email címet, amellyel regisztrált.
+                {market === 'de' ? 'Gib die E-Mail-Adresse an, mit der du registriert hast.' : 'Adja meg azt az email címet, amellyel regisztrált.'}
               </p>
             </div>
 
             <div>
               <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                Törlés oka (opcionális)
+                {market === 'de' ? 'Grund fuer die Loeschung (optional)' : 'Törlés oka (opcionális)'}
               </label>
               <textarea
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 rows={4}
-                placeholder="Miért szeretné törölni a fiókját? (Ez segít nekünk javítani a szolgáltatásunkat)"
+                placeholder={market === 'de' ? 'Warum moechtest du dein Konto loeschen? (Hilft uns bei Verbesserungen)' : 'Miért szeretné törölni a fiókját? (Ez segít nekünk javítani a szolgáltatásunkat)'}
                 className={`w-full px-4 py-3 rounded-lg border ${
                   darkMode 
                     ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
@@ -263,7 +267,7 @@ export default function DeleteAccountPage() {
                     : 'bg-red-600 hover:bg-red-700 text-white'
                 }`}
               >
-                {submitting ? 'Küldés...' : 'Fiók törlésének kérelmezése'}
+                {submitting ? (market === 'de' ? 'Wird gesendet...' : 'Küldés...') : (market === 'de' ? 'Kontoloeschung beantragen' : 'Fiók törlésének kérelmezése')}
               </button>
               <Link
                 href="/"
@@ -273,7 +277,7 @@ export default function DeleteAccountPage() {
                     : 'bg-gray-200 hover:bg-gray-300 text-gray-900'
                 } transition-colors`}
               >
-                Mégse
+                {market === 'de' ? 'Abbrechen' : 'Mégse'}
               </Link>
             </div>
           </form>
@@ -281,7 +285,7 @@ export default function DeleteAccountPage() {
           {/* Alternative contact */}
           <div className={`mt-6 pt-6 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
             <p className="text-sm text-center">
-              <strong>Egyéb kérdés?</strong> Írjon nekünk:{' '}
+              <strong>{market === 'de' ? 'Weitere Fragen?' : 'Egyéb kérdés?'}</strong> {market === 'de' ? 'Schreibe uns:' : 'Írjon nekünk:'}{' '}
               <a href="mailto:epresla@icloud.com" className="text-purple-600 hover:text-purple-700 font-medium">
                 epresla@icloud.com
               </a>

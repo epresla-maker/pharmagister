@@ -23,6 +23,7 @@ import {
 } from 'firebase/firestore';
 import { Star, Send, MoreHorizontal, X, Heart, Laugh, Frown, Angry, Zap, ImagePlus, RefreshCw, Trash2, Edit3, Flag } from 'lucide-react';
 import ReportModal from '@/app/components/ReportModal';
+import { getClientMarket } from '@/lib/marketI18n';
 
 const PAGE_SIZE = 20;
 
@@ -30,6 +31,7 @@ function AllandoKeresContent() {
   const { user, userData } = useAuth();
   const { darkMode } = useTheme();
   const router = useRouter();
+  const market = getClientMarket();
 
   // Posts state
   const [posts, setPosts] = useState([]);
@@ -239,7 +241,7 @@ function AllandoKeresContent() {
         });
 
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Képfeltöltés sikertelen');
+        if (!response.ok) throw new Error(data.error || (market === 'de' ? 'Bild-Upload fehlgeschlagen' : 'Képfeltöltés sikertelen'));
         imageUrl = data.url;
       }
 
@@ -250,7 +252,7 @@ function AllandoKeresContent() {
         imageUrl: imageUrl,
         createdAt: serverTimestamp(),
         authorData: {
-          displayName: userData?.displayName || user?.displayName || 'Névtelen',
+          displayName: userData?.displayName || user?.displayName || (market === 'de' ? 'Unbekannt' : 'Névtelen'),
           photoURL: userData?.photoURL || user?.photoURL || null
         },
         pharmaRole: userData?.pharmagisterRole || null,
@@ -277,7 +279,7 @@ function AllandoKeresContent() {
       fetchPosts();
     } catch (error) {
       console.error('Error creating post:', error);
-      alert('Hiba történt a bejegyzés létrehozása során: ' + error.message);
+      alert((market === 'de' ? 'Fehler beim Erstellen des Beitrags: ' : 'Hiba történt a bejegyzés létrehozása során: ') + error.message);
     } finally {
       setUploading(false);
     }
@@ -285,7 +287,7 @@ function AllandoKeresContent() {
 
   // Delete post
   const handleDeletePost = async (postId) => {
-    if (!user || !window.confirm('Biztosan törölni szeretnéd ezt a bejegyzést?')) return;
+    if (!user || !window.confirm(market === 'de' ? 'Moechtest du diesen Beitrag wirklich loeschen?' : 'Biztosan törölni szeretnéd ezt a bejegyzést?')) return;
 
     setDeleting(postId);
     try {
@@ -294,7 +296,7 @@ function AllandoKeresContent() {
       setPosts(prev => prev.filter(p => p.id !== postId));
     } catch (error) {
       console.error('Error deleting post:', error);
-      alert('Hiba történt a bejegyzés törlése során.');
+      alert(market === 'de' ? 'Fehler beim Loeschen des Beitrags.' : 'Hiba történt a bejegyzés törlése során.');
     } finally {
       setDeleting(null);
     }
@@ -314,7 +316,7 @@ function AllandoKeresContent() {
       setEditText('');
     } catch (error) {
       console.error('Error editing post:', error);
-      alert('Hiba történt a bejegyzés szerkesztése során.');
+      alert(market === 'de' ? 'Fehler beim Bearbeiten des Beitrags.' : 'Hiba történt a bejegyzés szerkesztése során.');
     }
   };
 
@@ -335,11 +337,11 @@ function AllandoKeresContent() {
     const now = new Date();
     const diff = Math.floor((now - date) / 1000);
 
-    if (diff < 60) return 'most';
-    if (diff < 3600) return `${Math.floor(diff / 60)} perce`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)} órája`;
-    if (diff < 604800) return `${Math.floor(diff / 86400)} napja`;
-    return date.toLocaleDateString('hu-HU');
+    if (diff < 60) return market === 'de' ? 'gerade eben' : 'most';
+    if (diff < 3600) return market === 'de' ? `vor ${Math.floor(diff / 60)} Min` : `${Math.floor(diff / 60)} perce`;
+    if (diff < 86400) return market === 'de' ? `vor ${Math.floor(diff / 3600)} Std` : `${Math.floor(diff / 3600)} órája`;
+    if (diff < 604800) return market === 'de' ? `vor ${Math.floor(diff / 86400)} Tagen` : `${Math.floor(diff / 86400)} napja`;
+    return date.toLocaleDateString(market === 'de' ? 'de-DE' : 'hu-HU');
   };
 
   // Loading state
@@ -367,12 +369,12 @@ function AllandoKeresContent() {
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
-              vissza
+              {market === 'de' ? 'zurueck' : 'vissza'}
             </button>
 
             {/* Cím - középre */}
             <h1 className="absolute left-1/2 -translate-x-1/2 text-lg sm:text-xl font-bold text-purple-600 whitespace-nowrap">
-              Állást keres
+              {market === 'de' ? 'Stelle gesucht' : 'Állást keres'}
             </h1>
 
             <div className="w-16"></div>
@@ -407,7 +409,7 @@ function AllandoKeresContent() {
                 onClick={() => setShowPostEditor(true)}
               >
                 <div className={`w-full px-4 py-2.5 ${darkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-500'} rounded-full text-sm`}>
-                  Írj valamit...
+                  {market === 'de' ? 'Schreibe etwas...' : 'Írj valamit...'}
                 </div>
               </div>
             </div>
@@ -432,13 +434,13 @@ function AllandoKeresContent() {
                   >
                     <X size={24} />
                   </button>
-                  <h2 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Állást keres</h2>
+                  <h2 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{market === 'de' ? 'Stelle gesucht' : 'Állást keres'}</h2>
                   <button
                     onClick={handleCreatePost}
                     disabled={!newPostText.trim() || uploading}
                     className="px-4 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-full font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {uploading ? 'Küldés...' : 'Közzététel'}
+                    {uploading ? (market === 'de' ? 'Senden...' : 'Küldés...') : (market === 'de' ? 'Veroeffentlichen' : 'Közzététel')}
                   </button>
                 </div>
 
@@ -460,7 +462,7 @@ function AllandoKeresContent() {
                     <textarea
                       value={newPostText}
                       onChange={(e) => setNewPostText(e.target.value)}
-                      placeholder="Írd le, kit keresel állandó munkaviszonyra..."
+                      placeholder={market === 'de' ? 'Beschreibe, wen du fuer eine feste Stelle suchst...' : 'Írd le, kit keresel állandó munkaviszonyra...'}
                       className="w-full h-full min-h-[100px] bg-transparent resize-none focus:outline-none placeholder-current opacity-50"
                       style={{
                         color: postStyle.textColor,
@@ -502,14 +504,14 @@ function AllandoKeresContent() {
                       className={`flex items-center gap-2 px-3 py-2 rounded-lg ${darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'} transition-colors`}
                     >
                       <ImagePlus size={18} />
-                      <span className="text-sm">Kép</span>
+                      <span className="text-sm">{market === 'de' ? 'Bild' : 'Kép'}</span>
                     </button>
                   </div>
 
                   {/* Stílus beállítások */}
                   <div className="space-y-4">
                     <div>
-                      <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-2`}>Háttérszín</label>
+                      <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-2`}>{market === 'de' ? 'Hintergrundfarbe' : 'Háttérszín'}</label>
                       <div className="flex flex-wrap gap-2">
                         {['#ffffff', '#fef3c7', '#dcfce7', '#dbeafe', '#fce7f3', '#f3e8ff', '#fee2e2', '#1f2937', '#7c3aed', '#059669'].map(color => (
                           <button
@@ -527,7 +529,7 @@ function AllandoKeresContent() {
                     </div>
 
                     <div>
-                      <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-2`}>Szövegszín</label>
+                      <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-2`}>{market === 'de' ? 'Textfarbe' : 'Szövegszín'}</label>
                       <div className="flex flex-wrap gap-2">
                         {['#000000', '#374151', '#dc2626', '#059669', '#2563eb', '#7c3aed', '#db2777', '#ea580c', '#ffffff'].map(color => (
                           <button
@@ -541,7 +543,7 @@ function AllandoKeresContent() {
                     </div>
 
                     <div>
-                      <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-2`}>Betűtípus</label>
+                      <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'} mb-2`}>{market === 'de' ? 'Schriftart' : 'Betűtípus'}</label>
                       <div className="flex flex-wrap gap-2">
                         {[
                           { value: 'default', label: 'Alap' },
@@ -560,7 +562,7 @@ function AllandoKeresContent() {
                                 : 'cursive'
                             }}
                           >
-                            {font.label}
+                            {market === 'de' ? (font.value === 'default' ? 'Standard' : font.value === 'cursive' ? 'Handschrift' : font.label) : font.label}
                           </button>
                         ))}
                       </div>
@@ -576,7 +578,7 @@ function AllandoKeresContent() {
             {posts.length === 0 ? (
               <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} p-12 text-center`}>
                 <div className="text-4xl mb-4">📋</div>
-                <p className={`${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Még nincsenek bejegyzések.</p>
+                <p className={`${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{market === 'de' ? 'Noch keine Beitraege.' : 'Még nincsenek bejegyzések.'}</p>
               </div>
             ) : (
               posts.map((post) => {
@@ -596,11 +598,11 @@ function AllandoKeresContent() {
                             className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'} hover:underline cursor-pointer`}
                             onClick={() => post.userId && router.push(`/profil/${post.userId}`)}
                           >
-                            {post.authorData?.displayName || 'Névtelen'}
+                            {post.authorData?.displayName || (market === 'de' ? 'Unbekannt' : 'Névtelen')}
                           </h3>
                           <div className="flex items-center gap-2">
                             <p className="text-xs text-gray-500">{formatTime(post.createdAt)}</p>
-                            {post.editedAt && <span className="text-xs text-gray-400">(szerkesztve)</span>}
+                            {post.editedAt && <span className="text-xs text-gray-400">{market === 'de' ? '(bearbeitet)' : '(szerkesztve)'}</span>}
                             {post.pharmaRole && (
                               <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                                 post.pharmaRole === 'pharmacy' 
@@ -609,7 +611,7 @@ function AllandoKeresContent() {
                                   ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300'
                                   : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300'
                               }`}>
-                                {post.pharmaRole === 'pharmacy' ? 'Gyógyszertár' : post.pharmaRole === 'pharmacist' ? 'Gyógyszerész' : 'Szakasszisztens'}
+                                {post.pharmaRole === 'pharmacy' ? (market === 'de' ? 'Apotheke' : 'Gyógyszertár') : post.pharmaRole === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'Gyógyszerész') : (market === 'de' ? 'Assistent/in' : 'Szakasszisztens')}
                               </span>
                             )}
                           </div>
@@ -634,7 +636,7 @@ function AllandoKeresContent() {
                                   setReportModalData({
                                     reportType: 'allandoKeresPost',
                                     reportedUserId: post.userId || null,
-                                    reportedUserName: post.authorData?.displayName || 'Felhasználó',
+                                    reportedUserName: post.authorData?.displayName || (market === 'de' ? 'Benutzer/in' : 'Felhasználó'),
                                     itemId: post.id,
                                     itemContent: post.title || post.text || '',
                                   });
@@ -642,7 +644,7 @@ function AllandoKeresContent() {
                                 className={`w-full flex items-center gap-3 px-4 py-2 text-left ${darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}
                               >
                                 <Flag size={16} />
-                                <span>Jelentés</span>
+                                <span>{market === 'de' ? 'Melden' : 'Jelentés'}</span>
                               </button>
                               {post.userId === user.uid && (
                                 <>
@@ -651,7 +653,7 @@ function AllandoKeresContent() {
                                     className={`w-full flex items-center gap-3 px-4 py-2 text-left ${darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-700'}`}
                                   >
                                     <Edit3 size={16} />
-                                    <span>Szerkesztés</span>
+                                    <span>{market === 'de' ? 'Bearbeiten' : 'Szerkesztés'}</span>
                                   </button>
                                   <button
                                     onClick={() => handleDeletePost(post.id)}
@@ -663,7 +665,7 @@ function AllandoKeresContent() {
                                     ) : (
                                       <Trash2 size={16} />
                                     )}
-                                    <span>Törlés</span>
+                                    <span>{market === 'de' ? 'Loeschen' : 'Törlés'}</span>
                                   </button>
                                 </>
                               )}
@@ -689,14 +691,14 @@ function AllandoKeresContent() {
                               onClick={cancelEditing}
                               className={`px-4 py-2 ${darkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-100'} rounded-lg`}
                             >
-                              Mégse
+                              {market === 'de' ? 'Abbrechen' : 'Mégse'}
                             </button>
                             <button
                               onClick={handleSaveEdit}
                               disabled={!editText.trim()}
                               className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg disabled:opacity-50"
                             >
-                              Mentés
+                              {market === 'de' ? 'Speichern' : 'Mentés'}
                             </button>
                           </div>
                         </div>
@@ -754,7 +756,7 @@ function AllandoKeresContent() {
 
           {!hasMore && posts.length > 0 && (
             <div className={`text-center py-8 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-              Elérted a bejegyzések végét
+              {market === 'de' ? 'Du hast das Ende der Beitraege erreicht' : 'Elérted a bejegyzések végét'}
             </div>
           )}
         </div>

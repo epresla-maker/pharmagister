@@ -7,11 +7,13 @@ import { doc, updateDoc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Loader2, Save, X, Camera, ArrowLeft, User } from 'lucide-react';
 import RouteGuard from '@/app/components/RouteGuard';
+import { getClientMarket } from '@/lib/marketI18n';
 
 export default function ProfileEditPage() {
   const { user, userData } = useAuth();
   const { darkMode } = useTheme();
   const router = useRouter();
+  const market = getClientMarket();
   const [loading, setLoading] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const fileInputRef = useRef(null);
@@ -38,12 +40,12 @@ export default function ProfileEditPage() {
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      alert('A fájl mérete maximum 5MB lehet!');
+      alert(market === 'de' ? 'Die Dateigroesse darf maximal 5 MB sein.' : 'A fájl mérete maximum 5MB lehet!');
       return;
     }
 
     if (!file.type.startsWith('image/')) {
-      alert('Csak képfájlokat tölthetsz fel!');
+      alert(market === 'de' ? 'Du kannst nur Bilddateien hochladen.' : 'Csak képfájlokat tölthetsz fel!');
       return;
     }
 
@@ -51,7 +53,7 @@ export default function ProfileEditPage() {
     try {
       // Ellenőrzés: van-e user
       if (!user || !user.uid) {
-        throw new Error('Nincs bejelentkezve felhasználó!');
+        throw new Error(market === 'de' ? 'Kein angemeldeter Benutzer.' : 'Nincs bejelentkezve felhasználó!');
       }
 
       const formDataUpload = new FormData();
@@ -60,7 +62,7 @@ export default function ProfileEditPage() {
 
       const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
       if (!cloudName) {
-        throw new Error('Cloudinary nincs konfigurálva');
+        throw new Error(market === 'de' ? 'Cloudinary ist nicht konfiguriert.' : 'Cloudinary nincs konfigurálva');
       }
 
       console.log('Uploading to Cloudinary...');
@@ -83,18 +85,18 @@ export default function ProfileEditPage() {
       const imageUrl = data.secure_url;
       
       if (!imageUrl) {
-        throw new Error('Nem kaptunk vissza URL-t a Cloudinary-tól');
+        throw new Error(market === 'de' ? 'Keine URL von Cloudinary erhalten.' : 'Nem kaptunk vissza URL-t a Cloudinary-tól');
       }
 
       // Firestore update - setDoc merge-gel megbízhatóbb
       const userDocRef = doc(db, 'users', user.uid);
       await setDoc(userDocRef, { photoURL: imageUrl }, { merge: true });
       
-      alert('✅ Kép mentve! Frissítés...');
+      alert(market === 'de' ? '✅ Bild gespeichert. Aktualisierung...' : '✅ Kép mentve! Frissítés...');
       window.location.reload();
     } catch (error) {
       console.error('Error uploading photo:', error);
-      alert(`Hiba történt: ${error.message}`);
+      alert(`${market === 'de' ? 'Fehler:' : 'Hiba történt:'} ${error.message}`);
     } finally {
       setUploadingPhoto(false);
     }
@@ -109,11 +111,11 @@ export default function ProfileEditPage() {
         phone: formData.phone || null,
         bio: formData.bio || null,
       });
-      alert('✅ Profil sikeresen mentve!');
+      alert(market === 'de' ? '✅ Profil erfolgreich gespeichert.' : '✅ Profil sikeresen mentve!');
       router.push('/settings');
     } catch (error) {
       console.error('Error saving profile:', error);
-      alert('Hiba történt a mentés során.');
+      alert(market === 'de' ? 'Beim Speichern ist ein Fehler aufgetreten.' : 'Hiba történt a mentés során.');
     } finally {
       setLoading(false);
     }
@@ -140,7 +142,7 @@ export default function ProfileEditPage() {
               <ArrowLeft className={`w-5 h-5 ${darkMode ? 'text-white' : 'text-[#111827]'}`} />
             </button>
             <h1 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'}`}>
-              Profil szerkesztése
+              {market === 'de' ? 'Profil bearbeiten' : 'Profil szerkesztése'}
             </h1>
           </div>
         </div>
@@ -180,7 +182,7 @@ export default function ProfileEditPage() {
               />
             </div>
             <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-[#6B7280]'} mt-2`}>
-              Kattints a kamera ikonra a kép módosításához
+              {market === 'de' ? 'Tippe auf das Kamera-Symbol, um dein Bild zu aendern.' : 'Kattints a kamera ikonra a kép módosításához'}
             </p>
           </div>
 
@@ -189,7 +191,7 @@ export default function ProfileEditPage() {
             {/* Name */}
             <div>
               <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-[#374151]'} mb-1`}>
-                Név
+                {market === 'de' ? 'Name' : 'Név'}
               </label>
               <input
                 type="text"
@@ -200,14 +202,14 @@ export default function ProfileEditPage() {
                     ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' 
                     : 'bg-white border-[#E5E7EB] text-[#111827]'
                 }`}
-                placeholder="A neved"
+                placeholder={market === 'de' ? 'Dein Name' : 'A neved'}
               />
             </div>
 
             {/* Email */}
             <div>
               <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-[#374151]'} mb-1`}>
-                E-mail cím
+                {market === 'de' ? 'E-Mail-Adresse' : 'E-mail cím'}
               </label>
               <input
                 type="email"
@@ -225,7 +227,7 @@ export default function ProfileEditPage() {
             {/* Phone */}
             <div>
               <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-[#374151]'} mb-1`}>
-                Telefonszám
+                {market === 'de' ? 'Telefonnummer' : 'Telefonszám'}
               </label>
               <input
                 type="tel"
@@ -243,7 +245,7 @@ export default function ProfileEditPage() {
             {/* Bio */}
             <div>
               <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-[#374151]'} mb-1`}>
-                Bemutatkozás
+                {market === 'de' ? 'Kurzprofil' : 'Bemutatkozás'}
               </label>
               <textarea
                 value={formData.bio}
@@ -254,7 +256,7 @@ export default function ProfileEditPage() {
                     ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' 
                     : 'bg-white border-[#E5E7EB] text-[#111827]'
                 }`}
-                placeholder="Írj magadról néhány sort..."
+                placeholder={market === 'de' ? 'Schreibe ein paar Zeilen ueber dich...' : 'Írj magadról néhány sort...'}
               />
             </div>
           </div>
@@ -263,13 +265,13 @@ export default function ProfileEditPage() {
           {userData.pharmaRole && (
             <div className={`mt-6 p-4 rounded-xl ${darkMode ? 'bg-purple-900/30 border-purple-600' : 'bg-purple-50 border-purple-200'} border`}>
               <p className={`text-sm ${darkMode ? 'text-purple-300' : 'text-purple-700'} mb-2`}>
-                A Pharmagister szakmai profilod szerkesztéséhez:
+                {market === 'de' ? 'Zum Bearbeiten deines professionellen Pharmagister-Profils:' : 'A Pharmagister szakmai profilod szerkesztéséhez:'}
               </p>
               <button
                 onClick={() => router.push('/pharmagister?tab=profile')}
                 className="w-full px-4 py-2 bg-[#6B46C1] text-white rounded-lg hover:bg-[#5a3aa3] transition-colors text-sm font-medium"
               >
-                Pharmagister profil szerkesztése
+                {market === 'de' ? 'Pharmagister-Profil bearbeiten' : 'Pharmagister profil szerkesztése'}
               </button>
             </div>
           )}
@@ -285,7 +287,7 @@ export default function ProfileEditPage() {
             ) : (
               <>
                 <Save className="w-5 h-5" />
-                Mentés
+                {market === 'de' ? 'Speichern' : 'Mentés'}
               </>
             )}
           </button>
@@ -300,7 +302,7 @@ export default function ProfileEditPage() {
             } transition-colors`}
           >
             <X className="w-5 h-5" />
-            Mégse
+            {market === 'de' ? 'Abbrechen' : 'Mégse'}
           </button>
         </div>
       </div>
