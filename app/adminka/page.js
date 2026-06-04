@@ -3,6 +3,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { ArrowLeft, Key, BarChart3, TestTube, Smartphone, ClipboardList, FileText, Users, Building2, Mail, ListChecks } from "lucide-react";
+import { getClientMarket } from '@/lib/marketI18n';
 
 // Adminka szerepkörű felhasználók
 const ADMINKA_EMAILS = ['etinatina22@gmail.com'];
@@ -10,6 +11,7 @@ const ADMINKA_EMAILS = ['etinatina22@gmail.com'];
 export default function AdminkaPage() {
   const { user, userData, loading } = useAuth();
   const router = useRouter();
+  const market = getClientMarket();
 
   useEffect(() => {
     if (!loading) {
@@ -22,7 +24,7 @@ export default function AdminkaPage() {
   if (loading || !user || !ADMINKA_EMAILS.includes(user.email)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-xl">Betöltés...</div>
+        <div className="text-xl">{market === 'de' ? 'Wird geladen...' : 'Betöltés...'}</div>
       </div>
     );
   }
@@ -40,8 +42,8 @@ export default function AdminkaPage() {
               <ArrowLeft className="w-5 h-5 text-gray-700" />
             </button>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Adminka Panel</h1>
-              <p className="text-sm text-gray-500">Üdvözöllek, {userData?.displayName || user.email}</p>
+              <h1 className="text-2xl font-bold text-gray-900">{market === 'de' ? 'Adminka-Bereich' : 'Adminka Panel'}</h1>
+              <p className="text-sm text-gray-500">{market === 'de' ? 'Willkommen, ' : 'Üdvözöllek, '}{userData?.displayName || user.email}</p>
             </div>
           </div>
         </div>
@@ -57,8 +59,8 @@ export default function AdminkaPage() {
                 <ClipboardList className="w-8 h-8 text-orange-600" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">📋 NNK Jóváhagyások</h2>
-                <p className="text-sm text-gray-500">NNK jóváhagyási kérelmek megtekintése (csak olvasás)</p>
+                <h2 className="text-lg font-semibold text-gray-900">{market === 'de' ? '📋 NNK-Freigaben' : '📋 NNK Jóváhagyások'}</h2>
+                <p className="text-sm text-gray-500">{market === 'de' ? 'NNK-Freigabeanfragen ansehen (nur Lesen)' : 'NNK jóváhagyási kérelmek megtekintése (csak olvasás)'}</p>
               </div>
             </div>
           </button>
@@ -72,8 +74,8 @@ export default function AdminkaPage() {
                 <FileText className="w-8 h-8 text-green-600" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">📝 Posztok kezelése</h2>
-                <p className="text-sm text-gray-500">Posztok megtekintése (csak olvasás)</p>
+                <h2 className="text-lg font-semibold text-gray-900">{market === 'de' ? '📝 Beitraege verwalten' : '📝 Posztok kezelése'}</h2>
+                <p className="text-sm text-gray-500">{market === 'de' ? 'Beitraege ansehen (nur Lesen)' : 'Posztok megtekintése (csak olvasás)'}</p>
               </div>
             </div>
           </button>
@@ -87,8 +89,8 @@ export default function AdminkaPage() {
                 <Key className="w-8 h-8 text-blue-600" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">🔐 Jelszó aktiválások</h2>
-                <p className="text-sm text-gray-500">Felhasználók jelszó aktiválási státuszának megtekintése</p>
+                <h2 className="text-lg font-semibold text-gray-900">{market === 'de' ? '🔐 Passwortaktivierungen' : '🔐 Jelszó aktiválások'}</h2>
+                <p className="text-sm text-gray-500">{market === 'de' ? 'Status der Passwortaktivierung von Benutzern anzeigen' : 'Felhasználók jelszó aktiválási státuszának megtekintése'}</p>
               </div>
             </div>
           </button>
@@ -102,8 +104,8 @@ export default function AdminkaPage() {
                 <BarChart3 className="w-8 h-8 text-purple-600" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">📊 Statisztikák</h2>
-                <p className="text-sm text-gray-500">Felhasználói aktivitás és regisztrációs statisztikák</p>
+                <h2 className="text-lg font-semibold text-gray-900">{market === 'de' ? '📊 Statistiken' : '📊 Statisztikák'}</h2>
+                <p className="text-sm text-gray-500">{market === 'de' ? 'Nutzeraktivitaet und Registrierungsstatistiken' : 'Felhasználói aktivitás és regisztrációs statisztikák'}</p>
               </div>
             </div>
           </button>
@@ -118,7 +120,7 @@ export default function AdminkaPage() {
               </div>
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">🧪 RSS Feed Teszt</h2>
-                <p className="text-sm text-gray-500">Tesztelési környezet az RSS hírek integrációjához</p>
+                <p className="text-sm text-gray-500">{market === 'de' ? 'Testumgebung fuer die RSS-News-Integration' : 'Tesztelési környezet az RSS hírek integrációjához'}</p>
               </div>
             </div>
           </button>
@@ -132,8 +134,8 @@ export default function AdminkaPage() {
                 <Smartphone className="w-8 h-8 text-cyan-600" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">📱 Mobil alkalmazások</h2>
-                <p className="text-sm text-gray-500">Letölthető iOS és Android verziók</p>
+                <h2 className="text-lg font-semibold text-gray-900">{market === 'de' ? '📱 Mobile Apps' : '📱 Mobil alkalmazások'}</h2>
+                <p className="text-sm text-gray-500">{market === 'de' ? 'Herunterladbare iOS- und Android-Versionen' : 'Letölthető iOS és Android verziók'}</p>
               </div>
             </div>
           </button>
@@ -147,8 +149,8 @@ export default function AdminkaPage() {
                 <Users className="w-8 h-8 text-pink-600" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">👥 Felhasználók kezelése</h2>
-                <p className="text-sm text-gray-500">Regisztrált felhasználók megtekintése (csak olvasás)</p>
+                <h2 className="text-lg font-semibold text-gray-900">{market === 'de' ? '👥 Benutzer verwalten' : '👥 Felhasználók kezelése'}</h2>
+                <p className="text-sm text-gray-500">{market === 'de' ? 'Registrierte Benutzer ansehen (nur Lesen)' : 'Regisztrált felhasználók megtekintése (csak olvasás)'}</p>
               </div>
             </div>
           </button>
@@ -162,8 +164,8 @@ export default function AdminkaPage() {
                 <Building2 className="w-8 h-8 text-emerald-600" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">🏥 Gyógyszertárak kezelése</h2>
-                <p className="text-sm text-gray-500">Gyógyszertárak megtekintése (csak olvasás)</p>
+                <h2 className="text-lg font-semibold text-gray-900">{market === 'de' ? '🏥 Apotheken verwalten' : '🏥 Gyógyszertárak kezelése'}</h2>
+                <p className="text-sm text-gray-500">{market === 'de' ? 'Apotheken ansehen (nur Lesen)' : 'Gyógyszertárak megtekintése (csak olvasás)'}</p>
               </div>
             </div>
           </button>
@@ -177,8 +179,8 @@ export default function AdminkaPage() {
                 <Mail className="w-8 h-8 text-red-600" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">✉️ Email küldés</h2>
-                <p className="text-sm text-gray-500">Email küldés megtekintése (csak olvasás)</p>
+                <h2 className="text-lg font-semibold text-gray-900">{market === 'de' ? '✉️ E-Mail senden' : '✉️ Email küldés'}</h2>
+                <p className="text-sm text-gray-500">{market === 'de' ? 'E-Mail-Versand ansehen (nur Lesen)' : 'Email küldés megtekintése (csak olvasás)'}</p>
               </div>
             </div>
           </button>
@@ -192,8 +194,8 @@ export default function AdminkaPage() {
                 <ListChecks className="w-8 h-8 text-violet-600" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">📋 Igények kezelése</h2>
-                <p className="text-sm text-gray-500">Igények megtekintése (csak olvasás)</p>
+                <h2 className="text-lg font-semibold text-gray-900">{market === 'de' ? '📋 Anfragen verwalten' : '📋 Igények kezelése'}</h2>
+                <p className="text-sm text-gray-500">{market === 'de' ? 'Anfragen ansehen (nur Lesen)' : 'Igények megtekintése (csak olvasás)'}</p>
               </div>
             </div>
           </button>

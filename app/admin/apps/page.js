@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Smartphone, Download, Bot } from "lucide-react";
 import Link from "next/link";
+import { getClientMarket } from '@/lib/marketI18n';
 
 const ADMIN_EMAILS = ['epresla@icloud.com'];
 const ADMINKA_EMAILS = ['etinatina22@gmail.com'];
@@ -24,6 +25,7 @@ const APP_DOWNLOADS = {
 export default function AdminAppsPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const market = getClientMarket();
 
   useEffect(() => {
     if (!loading) {
@@ -60,7 +62,7 @@ export default function AdminAppsPage() {
           </Link>
           <div>
             <h1 className="text-2xl font-bold text-gray-800">📱 Mobil alkalmazások</h1>
-            <p className="text-gray-500 text-sm">Letölthető iOS és Android verziók</p>
+            <p className="text-gray-500 text-sm">{market === 'de' ? 'Herunterladbare iOS- und Android-Versionen' : 'Letölthető iOS és Android verziók'}</p>
           </div>
         </div>
 
@@ -69,10 +71,11 @@ export default function AdminAppsPage() {
           <div className="flex items-start gap-3">
             <Smartphone className="w-6 h-6 text-purple-600 flex-shrink-0 mt-0.5" />
             <div>
-              <h3 className="font-semibold text-purple-800">Natív alkalmazások</h3>
+              <h3 className="font-semibold text-purple-800">{market === 'de' ? 'Native Apps' : 'Natív alkalmazások'}</h3>
               <p className="text-sm text-purple-700">
-                Ezek a natív Pharmagister alkalmazások közvetlenül telepíthetők az eszközökre.
-                A webes PWA verzió továbbra is elérhető a pharmagister.hu oldalon.
+                {market === 'de'
+                  ? 'Diese nativen Pharmagister-Apps koennen direkt auf den Geraeten installiert werden. Die Web-PWA ist weiterhin unter pharmagister.hu erreichbar.'
+                  : 'Ezek a natív Pharmagister alkalmazások közvetlenül telepíthetők az eszközökre. A webes PWA verzió továbbra is elérhető a pharmagister.hu oldalon.'}
               </p>
             </div>
           </div>
@@ -94,7 +97,7 @@ export default function AdminAppsPage() {
                   <div>
                     <h2 className="text-xl font-bold text-gray-800">{app.name}</h2>
                     <p className="text-gray-500 text-sm">
-                      Verzió: {app.version} • {app.size}
+                      {market === 'de' ? 'Version' : 'Verzió'}: {app.version} • {app.size}
                     </p>
                   </div>
                 </div>
@@ -110,11 +113,11 @@ export default function AdminAppsPage() {
                     className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold transition-all bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700"
                   >
                     <Download className="w-5 h-5" />
-                    Letöltés
+                    {market === 'de' ? 'Herunterladen' : 'Letöltés'}
                   </a>
                 ) : (
                   <div className="w-full py-3 px-4 rounded-xl bg-gray-100 text-gray-500 text-center font-medium">
-                    Még nincs feltöltve
+                    {market === 'de' ? 'Noch nicht hochgeladen' : 'Még nincs feltöltve'}
                   </div>
                 )}
               </div>
@@ -125,14 +128,14 @@ export default function AdminAppsPage() {
         {/* Upload Instructions for Admin */}
         {isAdmin && (
           <div className="mt-8 bg-yellow-50 border border-yellow-200 rounded-2xl p-4">
-            <h3 className="font-semibold text-yellow-800 mb-2">📤 Fájlok feltöltése (Admin)</h3>
+            <h3 className="font-semibold text-yellow-800 mb-2">{market === 'de' ? '📤 Datei-Upload (Admin)' : '📤 Fájlok feltöltése (Admin)'}</h3>
             <p className="text-sm text-yellow-700 mb-3">
-              A mobil alkalmazások feltöltéséhez:
+              {market === 'de' ? 'Zum Hochladen der mobilen Apps:' : 'A mobil alkalmazások feltöltéséhez:'}
             </p>
             <ol className="text-sm text-yellow-700 space-y-1 list-decimal list-inside">
-              <li>Töltsd fel a fájlokat Cloudinary-ra vagy más tárhelyre</li>
-              <li>Másold be a publikus URL-eket a kódba</li>
-              <li>Frissítsd ezt az oldalt</li>
+              <li>{market === 'de' ? 'Dateien zu Cloudinary oder in einen anderen Speicher hochladen' : 'Töltsd fel a fájlokat Cloudinary-ra vagy más tárhelyre'}</li>
+              <li>{market === 'de' ? 'Oeffentliche URLs in den Code eintragen' : 'Másold be a publikus URL-eket a kódba'}</li>
+              <li>{market === 'de' ? 'Diese Seite aktualisieren' : 'Frissítsd ezt az oldalt'}</li>
             </ol>
             <div className="mt-4 p-3 bg-white rounded-lg font-mono text-xs text-gray-600 overflow-x-auto">
               <p>Android APK: ~/pharmagister/android/app/build/outputs/apk/debug/app-debug.apk</p>

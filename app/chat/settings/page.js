@@ -6,11 +6,13 @@ import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { getClientMarket } from '@/lib/marketI18n';
 import Image from "next/image";
 import ChatBottomNavigation from "@/app/components/ChatBottomNavigation";
 
 export default function ChatSettingsPage() {
   const router = useRouter();
+  const market = getClientMarket();
   const { user, userData } = useAuth();
   const { darkMode } = useTheme();
   const [settings, setSettings] = useState({
@@ -58,10 +60,10 @@ export default function ChatSettingsPage() {
       
       // Show success feedback
       const settingNames = {
-        onlineStatus: '"Elérhető" állapot',
-        notifications: 'Értesítések',
-        readReceipts: 'Olvasási visszaigazolás',
-        mediaAutoDownload: 'Média automatikus letöltés'
+        onlineStatus: market === 'de' ? 'Status "Verfuegbar"' : '"Elérhető" állapot',
+        notifications: market === 'de' ? 'Benachrichtigungen' : 'Értesítések',
+        readReceipts: market === 'de' ? 'Lesebestaetigungen' : 'Olvasási visszaigazolás',
+        mediaAutoDownload: market === 'de' ? 'Automatischer Medien-Download' : 'Média automatikus letöltés'
       };
       
       console.log(`✅ ${settingNames[key]} ${value ? 'bekapcsolva' : 'kikapcsolva'}`);
@@ -93,7 +95,7 @@ export default function ChatSettingsPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
             </svg>
           </button>
-          <h1 className="text-xl font-bold">Beállítások</h1>
+          <h1 className="text-xl font-bold">{market === 'de' ? 'Einstellungen' : 'Beállítások'}</h1>
         </div>
       </div>
 
@@ -102,7 +104,7 @@ export default function ChatSettingsPage() {
         {userData?.photoURL ? (
           <Image
             src={userData.photoURL}
-            alt={userData.displayName || "Profil"}
+            alt={userData.displayName || (market === 'de' ? 'Profil' : 'Profil')}
             width={64}
             height={64}
             className="rounded-full"
@@ -116,7 +118,7 @@ export default function ChatSettingsPage() {
           </div>
         )}
         <div>
-          <h2 className="text-xl font-semibold">{userData?.displayName || "Felhasználó"}</h2>
+          <h2 className="text-xl font-semibold">{userData?.displayName || (market === 'de' ? 'Benutzer/in' : 'Felhasználó')}</h2>
         </div>
       </div>
 
@@ -134,10 +136,10 @@ export default function ChatSettingsPage() {
               </svg>
             </div>
             <div className="flex-1 text-left">
-              <p className="font-semibold">"Elérhető" állapot</p>
+              <p className="font-semibold">{market === 'de' ? 'Status "Verfuegbar"' : '"Elérhető" állapot'}</p>
             </div>
             <div className="flex items-center gap-2">
-              <span className={darkMode ? 'text-gray-400' : 'text-gray-500'}>{settings.onlineStatus ? 'Be' : 'Ki'}</span>
+              <span className={darkMode ? 'text-gray-400' : 'text-gray-500'}>{settings.onlineStatus ? (market === 'de' ? 'An' : 'Be') : (market === 'de' ? 'Aus' : 'Ki')}</span>
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={`w-5 h-5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
               </svg>
@@ -157,10 +159,10 @@ export default function ChatSettingsPage() {
               </svg>
             </div>
             <div className="flex-1 text-left">
-              <p className="font-semibold">Értesítések és hangok</p>
+              <p className="font-semibold">{market === 'de' ? 'Benachrichtigungen und Toene' : 'Értesítések és hangok'}</p>
             </div>
             <div className="flex items-center gap-2">
-              <span className={darkMode ? 'text-gray-400' : 'text-gray-500'}>{settings.notifications ? 'Be' : 'Ki'}</span>
+              <span className={darkMode ? 'text-gray-400' : 'text-gray-500'}>{settings.notifications ? (market === 'de' ? 'An' : 'Be') : (market === 'de' ? 'Aus' : 'Ki')}</span>
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={`w-5 h-5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
               </svg>
@@ -180,10 +182,10 @@ export default function ChatSettingsPage() {
               </svg>
             </div>
             <div className="flex-1 text-left">
-              <p className="font-semibold">Olvasási visszaigazolás</p>
+              <p className="font-semibold">{market === 'de' ? 'Lesebestaetigungen' : 'Olvasási visszaigazolás'}</p>
             </div>
             <div className="flex items-center gap-2">
-              <span className={darkMode ? 'text-gray-400' : 'text-gray-500'}>{settings.readReceipts ? 'Be' : 'Ki'}</span>
+              <span className={darkMode ? 'text-gray-400' : 'text-gray-500'}>{settings.readReceipts ? (market === 'de' ? 'An' : 'Be') : (market === 'de' ? 'Aus' : 'Ki')}</span>
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={`w-5 h-5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
               </svg>
@@ -203,10 +205,10 @@ export default function ChatSettingsPage() {
               </svg>
             </div>
             <div className="flex-1 text-left">
-              <p className="font-semibold">Média automatikus letöltése</p>
+              <p className="font-semibold">{market === 'de' ? 'Automatischer Medien-Download' : 'Média automatikus letöltése'}</p>
             </div>
             <div className="flex items-center gap-2">
-              <span className={darkMode ? 'text-gray-400' : 'text-gray-500'}>{settings.mediaAutoDownload ? 'Be' : 'Ki'}</span>
+              <span className={darkMode ? 'text-gray-400' : 'text-gray-500'}>{settings.mediaAutoDownload ? (market === 'de' ? 'An' : 'Be') : (market === 'de' ? 'Aus' : 'Ki')}</span>
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={`w-5 h-5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
               </svg>

@@ -29,7 +29,7 @@ export default function PrivacyPolicyEnPage() {
           
           <div className="text-sm text-gray-500 mb-4">
             Effective: February 11, 2026 |{' '}
-            <Link href="/privacy-policy" className="text-purple-600 hover:underline">Magyar verzió</Link>
+            <Link href="/privacy-policy" className="text-purple-600 hover:underline">Hungarian version</Link>
           </div>
 
           <section>

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Smartphone, Download, Bot } from "lucide-react";
 import Link from "next/link";
+import { getClientMarket } from '@/lib/marketI18n';
 
 const ADMIN_EMAILS = ['epresla@icloud.com'];
 const ADMINKA_EMAILS = ['etinatina22@gmail.com'];
@@ -24,6 +25,7 @@ const APP_DOWNLOADS = {
 export default function AdminkaAppsPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const market = getClientMarket();
 
   useEffect(() => {
     if (!loading) {
@@ -60,7 +62,7 @@ export default function AdminkaAppsPage() {
           </Link>
           <div>
             <h1 className="text-2xl font-bold text-gray-800">📱 Mobil alkalmazások</h1>
-            <p className="text-gray-500 text-sm">Letölthető iOS és Android verziók</p>
+            <p className="text-gray-500 text-sm">{market === 'de' ? 'Herunterladbare iOS- und Android-Versionen' : 'Letölthető iOS és Android verziók'}</p>
           </div>
         </div>
 
@@ -69,10 +71,11 @@ export default function AdminkaAppsPage() {
           <div className="flex items-start gap-3">
             <Smartphone className="w-6 h-6 text-purple-600 flex-shrink-0 mt-0.5" />
             <div>
-              <h3 className="font-semibold text-purple-800">Natív alkalmazások</h3>
+              <h3 className="font-semibold text-purple-800">{market === 'de' ? 'Native Apps' : 'Natív alkalmazások'}</h3>
               <p className="text-sm text-purple-700">
-                Ezek a natív Pharmagister alkalmazások közvetlenül telepíthetők az eszközökre.
-                A webes PWA verzió továbbra is elérhető a pharmagister.hu oldalon.
+                {market === 'de'
+                  ? 'Diese nativen Pharmagister-Apps koennen direkt auf den Geraeten installiert werden. Die Web-PWA ist weiterhin unter pharmagister.hu erreichbar.'
+                  : 'Ezek a natív Pharmagister alkalmazások közvetlenül telepíthetők az eszközökre. A webes PWA verzió továbbra is elérhető a pharmagister.hu oldalon.'}
               </p>
             </div>
           </div>
@@ -94,7 +97,7 @@ export default function AdminkaAppsPage() {
                   <div>
                     <h2 className="text-xl font-bold text-gray-800">{app.name}</h2>
                     <p className="text-gray-500 text-sm">
-                      Verzió: {app.version} • {app.size}
+                      {market === 'de' ? 'Version' : 'Verzió'}: {app.version} • {app.size}
                     </p>
                   </div>
                 </div>
@@ -110,11 +113,11 @@ export default function AdminkaAppsPage() {
                     className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold transition-all bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700"
                   >
                     <Download className="w-5 h-5" />
-                    Letöltés
+                    {market === 'de' ? 'Herunterladen' : 'Letöltés'}
                   </a>
                 ) : (
                   <div className="w-full py-3 px-4 rounded-xl bg-gray-100 text-gray-500 text-center font-medium">
-                    Még nincs feltöltve
+                    {market === 'de' ? 'Noch nicht hochgeladen' : 'Még nincs feltöltve'}
                   </div>
                 )}
               </div>

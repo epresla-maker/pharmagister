@@ -6,9 +6,11 @@ import RouteGuard from '@/app/components/RouteGuard';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { ArrowLeft, Send, Loader2 } from 'lucide-react';
+import { getClientMarket } from '@/lib/marketI18n';
 
 function NewChatContent() {
   const { user, userData } = useAuth();
+  const market = getClientMarket();
   const router = useRouter();
   const searchParams = useSearchParams();
   const inputRef = useRef(null);
@@ -76,8 +78,8 @@ function NewChatContent() {
         const newChatRef = await addDoc(chatsRef, {
           members: [user.uid, recipientId],
           memberNames: {
-            [user.uid]: userData?.pharmacyName || userData?.displayName || 'Felhasználó',
-            [recipientId]: recipientName || 'Felhasználó'
+            [user.uid]: userData?.pharmacyName || userData?.displayName || (market === 'de' ? 'Benutzer/in' : 'Felhasználó'),
+            [recipientId]: recipientName || (market === 'de' ? 'Benutzer/in' : 'Felhasználó')
           },
           memberPhotos: {
             [user.uid]: userData?.pharmaPhotoURL || userData?.photoURL || null,
@@ -99,7 +101,7 @@ function NewChatContent() {
       // Add first message
       await addDoc(collection(db, 'chats', chatId, 'messages'), {
         senderId: user.uid,
-        senderName: userData?.pharmacyName || userData?.displayName || 'Felhasználó',
+        senderName: userData?.pharmacyName || userData?.displayName || (market === 'de' ? 'Benutzer/in' : 'Felhasználó'),
         text: messageText.trim(),
         timestamp: serverTimestamp(),
         read: false
@@ -116,7 +118,7 @@ function NewChatContent() {
           },
           body: JSON.stringify({
             userId: recipientId,
-            title: 'Új üzenet',
+            title: market === 'de' ? 'Neue Nachricht' : 'Új üzenet',
             body: messageText.trim().length > 100 ? messageText.trim().substring(0, 100) + '...' : messageText.trim(),
             url: `/chat/${chatId}`,
             tag: `chat-${chatId}`
@@ -130,7 +132,7 @@ function NewChatContent() {
       router.push(`/chat/${chatId}`);
     } catch (error) {
       console.error('Error creating chat:', error);
-      alert('Hiba történt az üzenet küldése során.');
+      alert(market === 'de' ? 'Fehler beim Senden der Nachricht.' : 'Hiba történt az üzenet küldése során.');
       setSending(false);
     }
   };
@@ -163,11 +165,11 @@ function NewChatContent() {
               
               <div className="flex-1 min-w-0">
                 <h2 className={`font-semibold truncate ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                  {recipientName || 'Felhasználó'}
+                  {recipientName || (market === 'de' ? 'Benutzer/in' : 'Felhasználó')}
                 </h2>
                 {demandDate && (
                   <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    {demandPositionLabel} • {new Date(demandDate).toLocaleDateString('hu-HU')}
+                    {demandPositionLabel} • {new Date(demandDate).toLocaleDateString(market === 'de' ? 'de-DE' : 'hu-HU')}
                   </p>
                 )}
               </div>
@@ -180,10 +182,12 @@ function NewChatContent() {
           <div className="text-center max-w-md">
             <div className="text-6xl mb-4">💬</div>
             <h3 className={`text-xl font-semibold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              Új beszélgetés
+              {market === 'de' ? 'Neue Unterhaltung' : 'Új beszélgetés'}
             </h3>
             <p className={`text-sm mb-6 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              Írj egy üzenetet, hogy elindítsd a beszélgetést {recipientName || 'a felhasználóval'}.
+              {market === 'de'
+                ? <>Schreibe eine Nachricht, um die Unterhaltung mit {recipientName || 'dem Benutzer'} zu starten.</>
+                : <>Írj egy üzenetet, hogy elindítsd a beszélgetést {recipientName || 'a felhasználóval'}.</>}
             </p>
           </div>
         </div>
@@ -197,7 +201,7 @@ function NewChatContent() {
               value={messageText}
               onChange={(e) => setMessageText(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && !sending && handleSendMessage()}
-              placeholder="Írj üzenetet..."
+              placeholder={market === 'de' ? 'Nachricht schreiben...' : 'Írj üzenetet...'}
               className={`flex-1 px-4 py-3 rounded-3xl border focus:outline-none focus:border-cyan-500 ${
                 darkMode 
                   ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-400' 

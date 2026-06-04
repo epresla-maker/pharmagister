@@ -3,9 +3,11 @@ import { useState } from 'react';
 import { useTheme } from '@/context/ThemeContext';
 import { ArrowLeft, ShieldCheck, ChevronDown, ChevronUp } from 'lucide-react';
 import Link from 'next/link';
+import { getClientMarket } from '@/lib/marketI18n';
 
 export default function ChildSafetyPage() {
   const { darkMode } = useTheme();
+  const market = getClientMarket();
   const [showHungarian, setShowHungarian] = useState(false);
 
   return (
@@ -30,7 +32,7 @@ export default function ChildSafetyPage() {
         <div className={`${darkMode ? 'bg-gray-800 text-gray-200' : 'bg-white text-gray-700'} rounded-xl shadow-sm p-6 space-y-6`}>
 
           <div className="text-sm text-gray-500 mb-4">
-            Effective: March 24, 2026 | Hatályos: 2026. március 24.
+            {market === 'de' ? 'Gueltig ab: 24. Maerz 2026' : 'Effective: March 24, 2026 | Hatályos: 2026. március 24.'}
           </div>
 
           {/* Introduction */}
@@ -176,7 +178,7 @@ export default function ChildSafetyPage() {
               onClick={() => setShowHungarian(!showHungarian)}
               className={`flex items-center gap-2 font-semibold text-lg ${darkMode ? 'text-white' : 'text-gray-900'} hover:text-purple-600 transition-colors`}
             >
-              🇭🇺 Magyar verzió
+              {market === 'de' ? '🇭🇺 Ungarische Version' : '🇭🇺 Magyar verzió'}
               {showHungarian ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
             </button>
 

@@ -6,6 +6,7 @@ import { useRouter, useParams, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
+import { getClientMarket } from '@/lib/marketI18n';
 import {
   doc,
   getDoc,
@@ -28,6 +29,7 @@ import BlockUserModal from "@/app/components/BlockUserModal";
 // --- Segédfüggvény az üzenetek időbélyegének formázásához ---
 function formatMessageTimestamp(date) {
   if (!date) return "";
+  const market = getClientMarket();
   const now = new Date();
   
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -41,7 +43,7 @@ function formatMessageTimestamp(date) {
     return time;
   }
   if (msgDateOnly.getTime() === yesterday.getTime()) {
-    return `Tegnap, ${time}`;
+    return `${market === 'de' ? 'Gestern' : 'Tegnap'}, ${time}`;
   }
   return `${date.toLocaleDateString([], { month: 'short', day: 'numeric' })}, ${time}`;
 }
@@ -49,19 +51,21 @@ function formatMessageTimestamp(date) {
 // --- Segédfüggvény utoljára elérhető időpont formázásához ---
 function formatLastSeen(date) {
   if (!date) return "";
+  const market = getClientMarket();
   const now = new Date();
   const diff = Math.floor((now - date) / 1000); // másodpercekben
   
-  if (diff < 60) return "most";
-  if (diff < 3600) return `${Math.floor(diff / 60)} perce`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)} órája`;
-  if (diff < 604800) return `${Math.floor(diff / 86400)} napja`;
+  if (diff < 60) return market === 'de' ? 'gerade eben' : 'most';
+  if (diff < 3600) return market === 'de' ? `vor ${Math.floor(diff / 60)} Min.` : `${Math.floor(diff / 60)} perce`;
+  if (diff < 86400) return market === 'de' ? `vor ${Math.floor(diff / 3600)} Std.` : `${Math.floor(diff / 3600)} órája`;
+  if (diff < 604800) return market === 'de' ? `vor ${Math.floor(diff / 86400)} Tagen` : `${Math.floor(diff / 86400)} napja`;
   
   return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
 }
 
 export default function ChatRoomPage() {
   const { user, loading } = useAuth();
+  const market = getClientMarket();
   const router = useRouter();
   const params = useParams(); 
   const { chatId } = params;
@@ -81,7 +85,7 @@ export default function ChatRoomPage() {
   const [darkModeLoaded, setDarkModeLoaded] = useState(false);
   const [highlightedMessageId, setHighlightedMessageId] = useState(highlightMessageId);
   
-  const [partnerData, setPartnerData] = useState({ name: "Betöltés...", photoURL: "" });
+  const [partnerData, setPartnerData] = useState({ name: market === 'de' ? 'Wird geladen...' : 'Betöltés...', photoURL: "" });
   const [firstMessageAt, setFirstMessageAt] = useState(null);
   const [chatDemandInfo, setChatDemandInfo] = useState(null); // { position, date } 
 
@@ -227,7 +231,7 @@ export default function ChatRoomPage() {
           if (chatData.relatedDemandPosition && chatData.relatedDemandDate) {
             setChatDemandInfo({
               position: chatData.relatedDemandPosition,
-              positionLabel: chatData.relatedDemandPositionLabel || (chatData.relatedDemandPosition === 'pharmacist' ? 'Gyógyszerész' : 'Szakasszisztens'),
+              positionLabel: chatData.relatedDemandPositionLabel || (chatData.relatedDemandPosition === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'Gyógyszerész') : (market === 'de' ? 'Assistent/in' : 'Szakasszisztens')),
               date: chatData.relatedDemandDate
             });
           }
@@ -619,12 +623,12 @@ export default function ChatRoomPage() {
       setShowMessageMenu(null);
     } catch (error) {
       console.error('Üzenet szerkesztési hiba:', error);
-      alert('Hiba történt az üzenet szerkesztésekor');
+      alert(market === 'de' ? 'Fehler beim Bearbeiten der Nachricht.' : 'Hiba történt az üzenet szerkesztésekor');
     }
   };
 
   const deleteMessage = async (messageId) => {
-    if (!confirm('Biztosan törlöd ezt az üzenetet?')) return;
+    if (!confirm(market === 'de' ? 'Moechtest du diese Nachricht wirklich loeschen?' : 'Biztosan törlöd ezt az üzenetet?')) return;
 
     try {
       const messageRef = doc(db, "chats", chatId, "messages", messageId);
@@ -638,7 +642,7 @@ export default function ChatRoomPage() {
           const newLastMsg = remainingMessages[remainingMessages.length - 1];
           const chatDocRef = doc(db, "chats", chatId);
           await updateDoc(chatDocRef, {
-            lastMessage: newLastMsg.text || newLastMsg.imageUrl ? '📷 Kép' : newLastMsg.audioUrl ? '🎤 Hangüzenet' : '',
+            lastMessage: newLastMsg.text || newLastMsg.imageUrl ? (market === 'de' ? '📷 Bild' : '📷 Kép') : newLastMsg.audioUrl ? (market === 'de' ? '🎤 Sprachnachricht' : '🎤 Hangüzenet') : '',
             lastMessageAt: newLastMsg.createdAt,
             lastMessageSenderId: newLastMsg.senderId
           });
@@ -650,13 +654,13 @@ export default function ChatRoomPage() {
       setShowReactionPicker(null);
     } catch (error) {
       console.error('Üzenet törlési hiba:', error);
-      alert('Hiba történt az üzenet törlésekor');
+      alert(market === 'de' ? 'Fehler beim Loeschen der Nachricht.' : 'Hiba történt az üzenet törlésekor');
     }
   };
 
   // Lokális törlés - csak a saját nézetnél tűnik el az üzenet
   const deleteMessageLocally = async (messageId) => {
-    if (!confirm('Csak nálad törlöd ezt az üzenetet. A másik félnél látható marad.')) return;
+    if (!confirm(market === 'de' ? 'Diese Nachricht wird nur bei dir geloescht. Beim Gegenueber bleibt sie sichtbar.' : 'Csak nálad törlöd ezt az üzenetet. A másik félnél látható marad.')) return;
 
     try {
       // Firebase-ben hozzáadjuk a user ID-t a deletedBy tömbhöz
@@ -671,7 +675,7 @@ export default function ChatRoomPage() {
       setShowReactionPicker(null);
     } catch (error) {
       console.error('Lokális törlési hiba:', error);
-      alert('Hiba történt a törlés során');
+      alert(market === 'de' ? 'Fehler beim Loeschen.' : 'Hiba történt a törlés során');
     }
   };
 
@@ -790,7 +794,7 @@ export default function ChatRoomPage() {
       if (partnerId) {
         try {
           // Felhasználói adatok lekérése a saját nevünkhöz
-          const senderName = partnerData?.name ? 'Üzenet' : 'Új üzenet';
+          const senderName = partnerData?.name ? (market === 'de' ? 'Nachricht' : 'Üzenet') : (market === 'de' ? 'Neue Nachricht' : 'Új üzenet');
           
           const idToken = await user.getIdToken();
           await fetch('/api/send-push', {
@@ -801,7 +805,7 @@ export default function ChatRoomPage() {
             },
             body: JSON.stringify({
               userId: partnerId,
-              title: 'Új üzenet',
+              title: market === 'de' ? 'Neue Nachricht' : 'Új üzenet',
               body: text.length > 100 ? text.substring(0, 100) + '...' : text,
               url: `/chat/${chatId}`,
               tag: `chat-${chatId}`
@@ -824,7 +828,7 @@ export default function ChatRoomPage() {
     } catch (error) {
       console.error("Hiba az üzenet küldésekor:", error);
       setNewMessage(text);
-      alert('Hiba történt az üzenet küldésekor');
+      alert(market === 'de' ? 'Fehler beim Senden der Nachricht.' : 'Hiba történt az üzenet küldésekor');
     }
   };
 
@@ -832,7 +836,7 @@ export default function ChatRoomPage() {
   if (loading || isLoading) {
     return (
       <main className={`min-h-screen ${darkMode ? 'bg-[#e8f5e9] text-gray-900' : 'bg-gray-100 text-gray-900'} flex items-center justify-center`}>
-        <p className="text-xl">Üzenetek betöltése...</p>
+        <p className="text-xl">{market === 'de' ? 'Nachrichten werden geladen...' : 'Üzenetek betöltése...'}</p>
       </main>
     );
   }
@@ -877,7 +881,7 @@ export default function ChatRoomPage() {
               {partnerData.name}
               {chatDemandInfo && (
                 <span className={`ml-2 text-sm font-normal ${darkMode ? 'text-gray-600' : 'text-gray-500'}`}>
-                  - {chatDemandInfo.positionLabel} {new Date(chatDemandInfo.date).toLocaleDateString('hu-HU', { month: '2-digit', day: '2-digit' }).replace('. ', '.').replace('.', '.')}
+                  - {chatDemandInfo.positionLabel} {new Date(chatDemandInfo.date).toLocaleDateString(market === 'de' ? 'de-DE' : 'hu-HU', { month: '2-digit', day: '2-digit' }).replace('. ', '.').replace('.', '.')}
                 </span>
               )}
             </h1>
@@ -896,7 +900,7 @@ export default function ChatRoomPage() {
                   ? 'text-gray-600 hover:text-red-500 hover:bg-[#a5d6a7]' 
                   : 'text-gray-500 hover:text-red-500 hover:bg-gray-100'
               }`}
-              title="Felhasználó jelentése"
+              title={market === 'de' ? 'Benutzer melden' : 'Felhasználó jelentése'}
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v1.5M3 21v-6m0 0 2.77-.693a9 9 0 0 1 6.208.682l.108.054a9 9 0 0 0 6.086.71l3.114-.732a48.524 48.524 0 0 1-.005-10.499l-3.11.732a9 9 0 0 1-6.085-.711l-.108-.054a9 9 0 0 0-6.208-.682L3 4.5M3 15V4.5" />
@@ -912,7 +916,7 @@ export default function ChatRoomPage() {
                     ? 'text-gray-600 hover:text-orange-500 hover:bg-[#a5d6a7]' 
                     : 'text-gray-500 hover:text-orange-500 hover:bg-gray-100'
               }`}
-              title={isPartnerBlocked ? 'Tiltás feloldása' : 'Felhasználó letiltása'}
+              title={isPartnerBlocked ? (market === 'de' ? 'Blockierung aufheben' : 'Tiltás feloldása') : (market === 'de' ? 'Benutzer blockieren' : 'Felhasználó letiltása')}
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636" />
@@ -969,7 +973,7 @@ export default function ChatRoomPage() {
               <div className={selectedMessageData.text ? 'mb-2' : ''}>
                 <img 
                   src={selectedMessageData.imageUrl} 
-                  alt="Kép" 
+                  alt={market === 'de' ? 'Bild' : 'Kép'} 
                   className="rounded-lg max-w-full max-h-[40vh] h-auto object-contain"
                   style={{
                     userSelect: 'none',
@@ -1009,7 +1013,7 @@ export default function ChatRoomPage() {
                     }}
                     className={`w-full px-5 py-3 text-left ${darkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-gray-900'} transition-colors flex items-center justify-between border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}
                   >
-                    <span>Szerkesztés</span>
+                    <span>{market === 'de' ? 'Bearbeiten' : 'Szerkesztés'}</span>
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                       <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
                     </svg>
@@ -1022,7 +1026,7 @@ export default function ChatRoomPage() {
                   }}
                   className="w-full px-5 py-3 text-left hover:bg-red-600 transition-colors text-red-400 hover:text-white flex items-center justify-between"
                 >
-                  <span>Törlés</span>
+                  <span>{market === 'de' ? 'Loeschen' : 'Törlés'}</span>
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
                   </svg>
@@ -1037,7 +1041,7 @@ export default function ChatRoomPage() {
                       id: selectedMessageData.id,
                       text: selectedMessageData.text || (selectedMessageData.imageUrl ? '📷 Kép' : selectedMessageData.audioUrl ? '🎤 Hangüzenet' : ''),
                       senderId: selectedMessageData.senderId,
-                      senderName: selectedMessageData.senderId === user.uid ? 'Te' : partnerData.name
+                      senderName: selectedMessageData.senderId === user.uid ? (market === 'de' ? 'Du' : 'Te') : partnerData.name
                     });
                     setShowMessageMenu(null);
                     setShowReactionPicker(null);
@@ -1049,7 +1053,7 @@ export default function ChatRoomPage() {
                   }}
                   className={`w-full px-5 py-3 text-left ${darkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-gray-900'} transition-colors flex items-center justify-between border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}
                 >
-                  <span>Válasz</span>
+                  <span>{market === 'de' ? 'Antworten' : 'Válasz'}</span>
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
                   </svg>
@@ -1068,7 +1072,7 @@ export default function ChatRoomPage() {
                   }}
                   className={`w-full px-5 py-3 text-left ${darkMode ? 'hover:bg-gray-700 text-white' : 'hover:bg-gray-100 text-gray-900'} transition-colors flex items-center justify-between border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}
                 >
-                  <span>Jelentés</span>
+                  <span>{market === 'de' ? 'Melden' : 'Jelentés'}</span>
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v1.5M3 21v-6m0 0 2.77-.693a9 9 0 0 1 6.208.682l.108.054a9 9 0 0 0 6.086.71l3.114-.732a48.524 48.524 0 0 1-.005-10.499l-3.11.732a9 9 0 0 1-6.085-.711l-.108-.054a9 9 0 0 0-6.208-.682L3 4.5M3 15V4.5" />
                   </svg>
@@ -1083,7 +1087,7 @@ export default function ChatRoomPage() {
                   }}
                   className={`w-full px-5 py-3 text-left ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} transition-colors flex items-center justify-between border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'} ${isPartnerBlocked ? 'text-green-400' : 'text-orange-400'}`}
                 >
-                  <span>{isPartnerBlocked ? 'Tiltás feloldása' : 'Letiltás'}</span>
+                  <span>{isPartnerBlocked ? (market === 'de' ? 'Blockierung aufheben' : 'Tiltás feloldása') : (market === 'de' ? 'Blockieren' : 'Letiltás')}</span>
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636" />
                   </svg>
@@ -1095,7 +1099,7 @@ export default function ChatRoomPage() {
                   }}
                   className="w-full px-5 py-3 text-left hover:bg-red-600 transition-colors text-red-400 hover:text-white flex items-center justify-between"
                 >
-                  <span>Törlés</span>
+                  <span>{market === 'de' ? 'Loeschen' : 'Törlés'}</span>
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
                   </svg>
@@ -1115,7 +1119,7 @@ export default function ChatRoomPage() {
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-blue-400">
                   <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
                 </svg>
-                Üzenet szerkesztése
+                {market === 'de' ? 'Nachricht bearbeiten' : 'Üzenet szerkesztése'}
               </h3>
               <button onClick={cancelEditMessage} className={`${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
@@ -1129,7 +1133,7 @@ export default function ChatRoomPage() {
               value={editText}
               onChange={(e) => setEditText(e.target.value)}
               className={`w-full ${darkMode ? 'bg-gray-700 text-white border-gray-600 focus:border-blue-500' : 'bg-gray-100 text-gray-900 border-gray-300 focus:border-blue-500'} rounded-lg p-3 border focus:outline-none resize-none min-h-[120px] max-h-[300px]`}
-              placeholder="Üzenet szövege..."
+              placeholder={market === 'de' ? 'Nachrichtentext...' : 'Üzenet szövege...'}
             />
             
             <div className="flex gap-3 mt-4">
@@ -1137,14 +1141,14 @@ export default function ChatRoomPage() {
                 onClick={cancelEditMessage}
                 className={`flex-1 ${darkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-900'} py-2 px-4 rounded-lg transition-colors`}
               >
-                Mégse
+                {market === 'de' ? 'Abbrechen' : 'Mégse'}
               </button>
               <button
                 onClick={saveEditMessage}
                 disabled={!editText.trim()}
                 className="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Mentés
+                {market === 'de' ? 'Speichern' : 'Mentés'}
               </button>
             </div>
           </div>

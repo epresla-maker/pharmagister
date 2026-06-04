@@ -1,6 +1,6 @@
 export const metadata = {
-  title: "Pharmagister - Gyógyszertári Helyettesítés",
-  description: "Gyógyszertári helyettesítési platform. Kösd össze a gyógyszertárakat és a helyettesítőket.",
+  title: "Pharmagister - Pharmacy Shift Coverage",
+  description: "Pharmacy shift coverage platform connecting pharmacies and substitutes.",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

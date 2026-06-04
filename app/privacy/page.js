@@ -7,11 +7,13 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { ArrowLeft, Shield, Phone, Mail, MapPin, User, Clock, Loader2, Building2 } from 'lucide-react';
 import RouteGuard from '@/app/components/RouteGuard';
+import { getClientMarket } from '@/lib/marketI18n';
 
 export default function PrivacySettingsPage() {
   const router = useRouter();
   const { user, userData } = useAuth();
   const { darkMode } = useTheme();
+  const market = getClientMarket();
   const [saving, setSaving] = useState(false);
   
   // Helyettesítő beállításai - mit küldjön a gyógyszertárnak jelentkezéskor
@@ -101,48 +103,48 @@ export default function PrivacySettingsPage() {
     {
       key: 'sharePhone',
       icon: Phone,
-      title: 'Telefonszám',
-      description: 'A gyógyszertár láthatja a telefonszámodat',
+      title: market === 'de' ? 'Telefonnummer' : 'Telefonszám',
+      description: market === 'de' ? 'Die Apotheke sieht deine Telefonnummer' : 'A gyógyszertár láthatja a telefonszámodat',
       color: 'text-green-600',
       bgColor: darkMode ? 'bg-green-900/30' : 'bg-green-100'
     },
     {
       key: 'shareEmail',
       icon: Mail,
-      title: 'E-mail cím',
-      description: 'A gyógyszertár láthatja az e-mail címedet',
+      title: market === 'de' ? 'E-Mail-Adresse' : 'E-mail cím',
+      description: market === 'de' ? 'Die Apotheke sieht deine E-Mail-Adresse' : 'A gyógyszertár láthatja az e-mail címedet',
       color: 'text-blue-600',
       bgColor: darkMode ? 'bg-blue-900/30' : 'bg-blue-100'
     },
     {
       key: 'shareExperience',
       icon: Clock,
-      title: 'Tapasztalat',
-      description: 'Munkatapasztalat évek száma',
+      title: market === 'de' ? 'Erfahrung' : 'Tapasztalat',
+      description: market === 'de' ? 'Anzahl der Berufsjahre' : 'Munkatapasztalat évek száma',
       color: 'text-orange-600',
       bgColor: darkMode ? 'bg-orange-900/30' : 'bg-orange-100'
     },
     {
       key: 'shareSoftwareKnowledge',
       icon: User,
-      title: 'Szoftverismeret',
-      description: 'Ismert gyógyszertári szoftverek',
+      title: market === 'de' ? 'Softwarekenntnisse' : 'Szoftverismeret',
+      description: market === 'de' ? 'Bekannte Apothekensoftware' : 'Ismert gyógyszertári szoftverek',
       color: 'text-purple-600',
       bgColor: darkMode ? 'bg-purple-900/30' : 'bg-purple-100'
     },
     {
       key: 'shareHourlyRate',
       icon: Clock,
-      title: 'Órabér',
-      description: 'Elvárt órabér megjelenítése',
+      title: market === 'de' ? 'Stundenlohn' : 'Órabér',
+      description: market === 'de' ? 'Gewuenschten Stundenlohn anzeigen' : 'Elvárt órabér megjelenítése',
       color: 'text-teal-600',
       bgColor: darkMode ? 'bg-teal-900/30' : 'bg-teal-100'
     },
     {
       key: 'shareBio',
       icon: User,
-      title: 'Bemutatkozás',
-      description: 'Rövid bemutatkozó szöveg',
+      title: market === 'de' ? 'Kurzprofil' : 'Bemutatkozás',
+      description: market === 'de' ? 'Kurzer Vorstellungstext' : 'Rövid bemutatkozó szöveg',
       color: 'text-indigo-600',
       bgColor: darkMode ? 'bg-indigo-900/30' : 'bg-indigo-100'
     }
@@ -152,32 +154,32 @@ export default function PrivacySettingsPage() {
     {
       key: 'sharePharmacyPhone',
       icon: Phone,
-      title: 'Telefonszám',
-      description: 'A jelentkező láthatja a gyógyszertár telefonszámát',
+      title: market === 'de' ? 'Telefonnummer' : 'Telefonszám',
+      description: market === 'de' ? 'Der/die Bewerber/in sieht die Telefonnummer der Apotheke' : 'A jelentkező láthatja a gyógyszertár telefonszámát',
       color: 'text-green-600',
       bgColor: darkMode ? 'bg-green-900/30' : 'bg-green-100'
     },
     {
       key: 'sharePharmacyEmail',
       icon: Mail,
-      title: 'E-mail cím',
-      description: 'A jelentkező láthatja a gyógyszertár e-mail címét',
+      title: market === 'de' ? 'E-Mail-Adresse' : 'E-mail cím',
+      description: market === 'de' ? 'Der/die Bewerber/in sieht die E-Mail-Adresse der Apotheke' : 'A jelentkező láthatja a gyógyszertár e-mail címét',
       color: 'text-blue-600',
       bgColor: darkMode ? 'bg-blue-900/30' : 'bg-blue-100'
     },
     {
       key: 'sharePharmacyAddress',
       icon: MapPin,
-      title: 'Pontos cím',
-      description: 'Utca, házszám megjelenítése (város mindig látható)',
+      title: market === 'de' ? 'Genaue Adresse' : 'Pontos cím',
+      description: market === 'de' ? 'Strasse und Hausnummer anzeigen (Stadt ist immer sichtbar)' : 'Utca, házszám megjelenítése (város mindig látható)',
       color: 'text-red-600',
       bgColor: darkMode ? 'bg-red-900/30' : 'bg-red-100'
     },
     {
       key: 'shareContactPerson',
       icon: User,
-      title: 'Kapcsolattartó neve',
-      description: 'Kapcsolattartó személy megjelenítése',
+      title: market === 'de' ? 'Ansprechperson' : 'Kapcsolattartó neve',
+      description: market === 'de' ? 'Name der Ansprechperson anzeigen' : 'Kapcsolattartó személy megjelenítése',
       color: 'text-purple-600',
       bgColor: darkMode ? 'bg-purple-900/30' : 'bg-purple-100'
     }
@@ -195,7 +197,7 @@ export default function PrivacySettingsPage() {
             >
               <ArrowLeft className={`w-5 h-5 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`} />
             </button>
-            <h1 className={`text-lg font-semibold ml-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Adatvédelem</h1>
+            <h1 className={`text-lg font-semibold ml-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{market === 'de' ? 'Datenschutz' : 'Adatvédelem'}</h1>
             {saving && <Loader2 className="w-4 h-4 animate-spin ml-auto text-[#6B46C1]" />}
           </div>
         </div>
@@ -206,7 +208,7 @@ export default function PrivacySettingsPage() {
             <div className="flex items-start gap-3">
               <Shield className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
               <p className={`text-sm ${darkMode ? 'text-purple-300' : 'text-purple-700'}`}>
-                Itt beállíthatod, hogy milyen adataidat osszuk meg a másik féllel jelentkezéskor vagy elfogadáskor.
+                {market === 'de' ? 'Hier kannst du festlegen, welche Daten bei Bewerbung oder Annahme mit der Gegenseite geteilt werden.' : 'Itt beállíthatod, hogy milyen adataidat osszuk meg a másik féllel jelentkezéskor vagy elfogadáskor.'}
               </p>
             </div>
           </div>
@@ -218,11 +220,11 @@ export default function PrivacySettingsPage() {
                 <div className="flex items-center gap-2">
                   <User className={`w-4 h-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
                   <h3 className={`text-sm font-semibold ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                    Jelentkezéskor küldött adatok
+                    {market === 'de' ? 'Bei Bewerbung gesendete Daten' : 'Jelentkezéskor küldött adatok'}
                   </h3>
                 </div>
                 <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'} mt-1`}>
-                  Ezeket az adatokat látja a gyógyszertár, amikor jelentkezel egy igényre
+                  {market === 'de' ? 'Diese Daten sieht die Apotheke, wenn du dich auf eine Anfrage bewirbst' : 'Ezeket az adatokat látja a gyógyszertár, amikor jelentkezel egy igényre'}
                 </p>
               </div>
               <div className={`divide-y ${darkMode ? 'divide-gray-700' : 'divide-gray-100'}`}>
@@ -254,11 +256,11 @@ export default function PrivacySettingsPage() {
                 <div className="flex items-center gap-2">
                   <Building2 className={`w-4 h-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
                   <h3 className={`text-sm font-semibold ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                    Elfogadáskor küldött adatok
+                    {market === 'de' ? 'Bei Annahme gesendete Daten' : 'Elfogadáskor küldött adatok'}
                   </h3>
                 </div>
                 <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'} mt-1`}>
-                  Ezeket az adatokat látja a jelentkező, amikor elfogadod
+                  {market === 'de' ? 'Diese Daten sieht der/die Bewerber/in nach Annahme' : 'Ezeket az adatokat látja a jelentkező, amikor elfogadod'}
                 </p>
               </div>
               <div className={`divide-y ${darkMode ? 'divide-gray-700' : 'divide-gray-100'}`}>
@@ -286,7 +288,7 @@ export default function PrivacySettingsPage() {
           {/* Warning */}
           <div className={`${darkMode ? 'bg-yellow-900/30 border-yellow-600' : 'bg-yellow-50 border-yellow-500'} border rounded-xl p-4`}>
             <p className={`text-sm ${darkMode ? 'text-yellow-300' : 'text-yellow-700'}`}>
-              ⚠️ <strong>Fontos:</strong> Az alapvető azonosító adatok (név, profilkép) mindig láthatók a másik fél számára a sikeres kommunikáció érdekében.
+              {market === 'de' ? '⚠️ ' : '⚠️ '}<strong>{market === 'de' ? 'Wichtig:' : 'Fontos:'}</strong> {market === 'de' ? 'Grundlegende Identifikationsdaten (Name, Profilbild) bleiben fuer die Gegenseite immer sichtbar, damit die Kommunikation funktioniert.' : 'Az alapvető azonosító adatok (név, profilkép) mindig láthatók a másik fél számára a sikeres kommunikáció érdekében.'}
             </p>
           </div>
         </div>

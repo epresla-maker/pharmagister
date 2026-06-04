@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
+import { getClientMarket } from '@/lib/marketI18n';
 import ChatBottomNavigation from "../../components/ChatBottomNavigation";
 import {
   collection,
@@ -35,7 +36,7 @@ function formatChatTimestamp(date) {
 }
 
 // --- Segédfüggvény a (már aktív) chat partnerek adatainak lekéréséhez ---
-async function getChatPartnerDetails(chats, currentUserId) {
+async function getChatPartnerDetails(chats, currentUserId, market) {
   const partnerIds = chats.map(chat => chat.members.find(id => id !== currentUserId));
   const uniquePartnerIds = [...new Set(partnerIds.filter(id => id))];
   const partnerDataMap = new Map();
@@ -48,13 +49,13 @@ async function getChatPartnerDetails(chats, currentUserId) {
         // Gyógyszertár esetén a pharmacyName-et használjuk, egyébként displayName
         const name = data.pharmagisterRole === 'pharmacy' && data.pharmacyName 
           ? data.pharmacyName 
-          : (data.displayName || "Ismeretlen");
+          : (data.displayName || (market === 'de' ? 'Unbekannt' : 'Ismeretlen'));
         const photoURL = data.pharmaPhotoURL || data.photoURL || `https://api.dicebear.com/8.x/initials/svg?seed=${name.replace(/\s/g, '%20')}`;
         partnerDataMap.set(id, { name, photoURL });
       }
     } catch (error) {
       console.error("Hiba a partner adatainak lekérésekor:", error);
-      partnerDataMap.set(id, { name: "Ismeretlen", photoURL: `https://api.dicebear.com/8.x/initials/svg?seed=Ismeretlen` });
+      partnerDataMap.set(id, { name: market === 'de' ? 'Unbekannt' : 'Ismeretlen', photoURL: `https://api.dicebear.com/8.x/initials/svg?seed=${market === 'de' ? 'Unbekannt' : 'Ismeretlen'}` });
     }
   }
   return partnerDataMap;
@@ -63,6 +64,7 @@ async function getChatPartnerDetails(chats, currentUserId) {
 
 export default function ArchivePage() {
   const { user, userData, loading } = useAuth();
+  const market = getClientMarket();
   const router = useRouter();
   
   const [archivedChats, setArchivedChats] = useState([]);
@@ -121,16 +123,16 @@ export default function ArchivePage() {
         ...doc.data() 
       }));
       
-      const partnerDetailsMap = await getChatPartnerDetails(rawChats, user.uid);
+      const partnerDetailsMap = await getChatPartnerDetails(rawChats, user.uid, market);
 
       const chatList = rawChats.map(chat => {
         const otherUserId = chat.members.find(id => id !== user.uid);
         const partner = partnerDetailsMap.get(otherUserId) || 
-                        { name: "Ismeretlen", photoURL: `https://api.dicebear.com/8.x/initials/svg?seed=Ismeretlen` };
+                        { name: market === 'de' ? 'Unbekannt' : 'Ismeretlen', photoURL: `https://api.dicebear.com/8.x/initials/svg?seed=${market === 'de' ? 'Unbekannt' : 'Ismeretlen'}` };
         
         let lastMessagePreview = chat.lastMessage;
         if (chat.lastMessageSenderId === user.uid) {
-          lastMessagePreview = `Te: ${chat.lastMessage}`;
+          lastMessagePreview = `${market === 'de' ? 'Du' : 'Te'}: ${chat.lastMessage}`;
         }
 
         return {
@@ -150,7 +152,7 @@ export default function ArchivePage() {
     });
 
     return () => unsubscribe();
-  }, [user, loading]);
+  }, [user, loading, market]);
 
   // --- ÚJ FUNKCIÓ: Visszaállítás (Un-archive) ---
   const handleUnarchive = async (chatId) => {
@@ -174,7 +176,7 @@ export default function ArchivePage() {
   if (loading || isFetching || !userData) {
     return (
       <main className={`min-h-screen ${darkMode ? 'bg-black text-white' : 'bg-gray-100 text-gray-900'} flex items-center justify-center pb-40`}>
-        <p className="text-xl">Archívum betöltése...</p>
+        <p className="text-xl">{market === 'de' ? 'Archiv wird geladen...' : 'Archívum betöltése...'}</p>
       </main>
     );
   }
@@ -195,12 +197,12 @@ export default function ArchivePage() {
             </svg>
           </button>
           <h1 className={`text-3xl font-extrabold ${darkMode ? 'text-white' : 'text-gray-800'} ml-2`}>
-            Archívum
+            {market === 'de' ? 'Archiv' : 'Archívum'}
           </h1>
         </div>
 
         {/* --- MEGLÉVŐ: Aktív beszélgetések --- */}
-        <h2 className={`text-lg font-bold ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-4`}>Archivált beszélgetések</h2>
+        <h2 className={`text-lg font-bold ${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-4`}>{market === 'de' ? 'Archivierte Unterhaltungen' : 'Archivált beszélgetések'}</h2>
         
         {archivedChats.length > 0 ? (
           <div className={`${darkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'} rounded-xl shadow-lg border overflow-hidden`}>
@@ -229,9 +231,9 @@ export default function ArchivePage() {
                   <button
                     onClick={() => handleUnarchive(chat.id)}
                     className={`ml-4 ${darkMode ? 'bg-cyan-900 text-cyan-300 hover:bg-cyan-800' : 'bg-cyan-100 text-cyan-700 hover:bg-cyan-200'} text-xs font-semibold py-1 px-3 rounded-full`}
-                    title="Visszaállítás"
+                    title={market === 'de' ? 'Wiederherstellen' : 'Visszaállítás'}
                   >
-                    Vissza
+                    {market === 'de' ? 'Zurueck' : 'Vissza'}
                   </button>
                 </div>
               ))}
@@ -239,7 +241,7 @@ export default function ArchivePage() {
           </div>
         ) : (
           <div className={`${darkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'} p-6 rounded-xl shadow-lg border text-center`}>
-            <p className={darkMode ? 'text-gray-300' : 'text-gray-700'}>Az archívumod üres.</p>
+            <p className={darkMode ? 'text-gray-300' : 'text-gray-700'}>{market === 'de' ? 'Dein Archiv ist leer.' : 'Az archívumod üres.'}</p>
           </div>
         )}
       </div>

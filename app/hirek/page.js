@@ -4,9 +4,11 @@ import { useAuth } from '@/context/AuthContext';
 import RouteGuard from '@/app/components/RouteGuard';
 import RSSFeedDisplay from '@/app/components/RSSFeedDisplay';
 import { ArrowLeft, Home } from 'lucide-react';
+import { getClientMarket } from '@/lib/marketI18n';
 
 export default function HirekPage() {
   const { user, userData } = useAuth();
+  const market = getClientMarket();
   const router = useRouter();
 
   return (
@@ -21,13 +23,13 @@ export default function HirekPage() {
               className="text-white hover:text-purple-100 flex items-center gap-2 mb-3 transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
-              <span className="font-medium">Vissza</span>
+              <span className="font-medium">{market === 'de' ? 'Zurueck' : 'Vissza'}</span>
             </button>
 
             {/* Cím */}
             <div>
               <h1 className="text-xl font-bold text-white">
-                Hírek
+                {market === 'de' ? 'Nachrichten' : 'Hírek'}
               </h1>
             </div>
           </div>
@@ -40,7 +42,7 @@ export default function HirekPage() {
             className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors shadow-md"
           >
             <Home className="w-5 h-5" />
-            <span>Pharmagister hírfolyam</span>
+            <span>{market === 'de' ? 'Pharmagister Newsfeed' : 'Pharmagister hírfolyam'}</span>
           </button>
         </div>
 

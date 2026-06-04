@@ -8,8 +8,8 @@ import { MARKET_COOKIE, getMarketFromHost, marketToLang } from '@/lib/market';
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "Pharmagister - Gyógyszertári helyettesítés",
-  description: "Gyógyszertári helyettesítés platform",
+  title: "Pharmagister - Pharmacy Shift Coverage",
+  description: "Pharmacy shift coverage platform",
   manifest: "/manifest.json",
   appleWebAppCapable: "yes",
   appleWebAppStatusBarStyle: "default",

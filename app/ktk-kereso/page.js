@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import RouteGuard from '@/app/components/RouteGuard';
 import { db } from '@/lib/firebase';
+import { getClientMarket } from '@/lib/marketI18n';
 import { doc, getDoc, setDoc, updateDoc, increment, collection, addDoc, Timestamp, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import {
   ArrowLeft,
@@ -48,7 +49,7 @@ const STATUS_COLORS = {
   'MEGTELT': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300',
 };
 
-function KtkCard({ item, darkMode }) {
+function KtkCard({ item, darkMode, market }) {
   const szakmak = item.szakmacsoportok
     ? item.szakmacsoportok.split(',').map(s => s.trim()).filter(Boolean)
     : [];
@@ -134,7 +135,7 @@ function KtkCard({ item, darkMode }) {
                 }`}
                 title={SZAKMACSOPORTOK[num] || num}
               >
-                {SZAKMACSOPORTOK[num] || `${num}. szakcsoport`}
+                {SZAKMACSOPORTOK[num] || `${num}. ${market === 'de' ? 'Fachgruppe' : 'szakcsoport'}`}
               </span>
             ))}
           </div>
@@ -144,7 +145,7 @@ function KtkCard({ item, darkMode }) {
         {item.kapcsolattarto_neve && (
           <div className={`mt-2 pt-2 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
             <span className={`text-[10px] uppercase tracking-wider font-medium ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-              Kapcsolattartó
+              {market === 'de' ? 'Kontaktperson' : 'Kapcsolattartó'}
             </span>
             <p className={`text-xs font-medium ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>
               {item.kapcsolattarto_neve}
@@ -172,7 +173,7 @@ function KtkCard({ item, darkMode }) {
         {item.kapcsolattarto2_neve && (
           <div className="mt-2">
             <span className={`text-[10px] uppercase tracking-wider font-medium ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-              Kapcsolattartó 2
+              {market === 'de' ? 'Kontaktperson 2' : 'Kapcsolattartó 2'}
             </span>
             <p className={`text-xs font-medium ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>
               {item.kapcsolattarto2_neve}
@@ -206,7 +207,7 @@ function KtkCard({ item, darkMode }) {
           }`}
         >
           <ExternalLink className="w-3.5 h-3.5" />
-          Elérhetőség: OKFO SZAFTEX
+          {market === 'de' ? 'Kontakt: OKFO SZAFTEX' : 'Elérhetőség: OKFO SZAFTEX'}
         </a>
       </div>
     </div>
@@ -220,6 +221,7 @@ const ALL_ADMIN_EMAILS = [...ADMIN_EMAILS, ...ADMINKA_EMAILS];
 
 export default function KtkKeresoPage() {
   const router = useRouter();
+  const market = getClientMarket();
   const { user, loading: authLoading } = useAuth();
   const { darkMode } = useTheme();
   const [data, setData] = useState([]);
@@ -390,22 +392,22 @@ export default function KtkKeresoPage() {
           <div className={`max-w-md w-full rounded-2xl shadow-2xl p-6 ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
             <div className="flex items-center gap-2 mb-4">
               <svg className="w-6 h-6 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.27 16.5c-.77.833.192 2.5 1.732 2.5Z" /></svg>
-              <h2 className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Fontos figyelmeztetés</h2>
+              <h2 className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{market === 'de' ? 'Wichtiger Hinweis' : 'Fontos figyelmeztetés'}</h2>
             </div>
             <div className={`text-sm space-y-3 mb-6 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-              <p>
-                A KTK Továbbképzés Kereső kizárólag <strong>tájékoztató jellegű</strong> információkat tartalmaz. 
-                Az adatok az OKFO SZAFTEX portáljáról származnak.
-              </p>
-              <p>
-                A Pharmagister <strong>nem vállal felelősséget</strong> az itt megjelenő adatok pontosságáért, 
-                teljességéért és naprakészségéért. A továbbképzésekkel kapcsolatos hivatalos információkért 
-                kérjük, forduljon közvetlenül az OKFO-hoz vagy a szervező intézményhez.
-              </p>
-              <p>
-                A megjelenített adatok nem minősülnek hivatalos tájékoztatásnak, és nem helyettesítik 
-                a SZAFTEX portálon elérhető eredeti információkat.
-              </p>
+              {market === 'de' ? (
+                <>
+                  <p>Die KTK-Suche dient nur zur <strong>Information</strong>. Die Daten stammen vom OKFO-SZAFTEX-Portal.</p>
+                  <p>Pharmagister <strong>uebernimmt keine Haftung</strong> fuer Richtigkeit, Vollstaendigkeit oder Aktualitaet. Fuer offizielle Informationen wende dich bitte direkt an OKFO oder den Veranstalter.</p>
+                  <p>Die angezeigten Daten sind keine offizielle Mitteilung und ersetzen nicht die Originalinformationen im SZAFTEX-Portal.</p>
+                </>
+              ) : (
+                <>
+                  <p>A KTK Továbbképzés Kereső kizárólag <strong>tájékoztató jellegű</strong> információkat tartalmaz. Az adatok az OKFO SZAFTEX portáljáról származnak.</p>
+                  <p>A Pharmagister <strong>nem vállal felelősséget</strong> az itt megjelenő adatok pontosságáért, teljességéért és naprakészségéért. A továbbképzésekkel kapcsolatos hivatalos információkért kérjük, forduljon közvetlenül az OKFO-hoz vagy a szervező intézményhez.</p>
+                  <p>A megjelenített adatok nem minősülnek hivatalos tájékoztatásnak, és nem helyettesítik a SZAFTEX portálon elérhető eredeti információkat.</p>
+                </>
+              )}
             </div>
             <div className="flex gap-3">
               <button
@@ -414,7 +416,7 @@ export default function KtkKeresoPage() {
                   darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                Vissza
+                {market === 'de' ? 'Zurueck' : 'Vissza'}
               </button>
               <button
                 onClick={() => {
@@ -423,7 +425,7 @@ export default function KtkKeresoPage() {
                 }}
                 className="flex-1 py-2.5 px-4 rounded-xl text-sm font-medium bg-purple-600 text-white hover:bg-purple-700 transition-colors"
               >
-                Elfogadom, tovább
+                {market === 'de' ? 'Akzeptieren und weiter' : 'Elfogadom, tovább'}
               </button>
             </div>
           </div>
@@ -441,19 +443,19 @@ export default function KtkKeresoPage() {
                 className="text-white hover:text-purple-100 flex items-center gap-2 mb-3 transition-colors"
               >
                 <ArrowLeft className="w-5 h-5" />
-                <span className="font-medium">Vissza</span>
+                <span className="font-medium">{market === 'de' ? 'Zurueck' : 'Vissza'}</span>
               </button>
               <div className="flex items-center gap-2">
               <GraduationCap className="w-6 h-6 text-white" />
               <h1 className="text-xl font-bold text-white">
-                Kötelező továbbképzés kereső
+                {market === 'de' ? 'Pflichtfortbildungssuche' : 'Kötelező továbbképzés kereső'}
               </h1>
             </div>
             <p className="text-purple-100 text-[11px] mt-0.5">
-              8. Gyógyszertári ellátás szakmacsoport
+              {market === 'de' ? '8. Fachgruppe Apothekenversorgung' : '8. Gyógyszertári ellátás szakmacsoport'}
             </p>
             <p className="text-purple-100 text-xs mt-1">
-              {loading ? 'Betöltés...' : `${filtered.length} továbbképzés`}
+              {loading ? (market === 'de' ? 'Wird geladen...' : 'Betöltés...') : `${filtered.length} ${market === 'de' ? 'Fortbildungen' : 'továbbképzés'}`}
             </p>
             <a
               href="https://enk.okfo.gov.hu/hirek-es-aktualitasok/tajekoztato-a-szaftex-portal-mukodeserol"
@@ -462,14 +464,14 @@ export default function KtkKeresoPage() {
               className="inline-flex items-center gap-1 text-[10px] text-purple-200 hover:text-white mt-1 transition-colors"
             >
               <ExternalLink className="w-3 h-3" />
-              Forrás: OKFO SZAFTEX (Teljes KTK_04.02..xlsx)
+              {market === 'de' ? 'Quelle: OKFO SZAFTEX (Komplett KTK_04.02..xlsx)' : 'Forrás: OKFO SZAFTEX (Teljes KTK_04.02..xlsx)'}
             </a>
             {ADMIN_EMAILS.includes(user?.email) && visitCount !== null && (
               <button
                 onClick={() => setShowVisitLog(!showVisitLog)}
                 className="inline-flex items-center gap-1 text-[10px] text-purple-200 hover:text-white mt-1 transition-colors"
               >
-                👁 {visitCount} megtekintés
+                👁 {visitCount} {market === 'de' ? 'Aufrufe' : 'megtekintés'}
               </button>
             )}
             </div>
@@ -487,7 +489,7 @@ export default function KtkKeresoPage() {
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Keresés: program, szervező, helyszín..."
+                  placeholder={market === 'de' ? 'Suche: Programm, Veranstalter, Ort...' : 'Keresés: program, szervező, helyszín...'}
                   className={`w-full pl-10 pr-10 py-2.5 rounded-xl border transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 ${
                     darkMode
                       ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-500'
@@ -508,11 +510,11 @@ export default function KtkKeresoPage() {
               <div className="flex items-center justify-between gap-2">
                 <div className="flex gap-1">
                   {[
-                    { value: '', label: 'Mind' },
-                    { value: 'MEGHIRDETVE', label: 'Meghirdetve' },
-                    { value: 'LEZAJLOTT', label: 'Lezajlott' },
-                    { value: 'ELMARAD', label: 'Elmarad' },
-                    { value: 'MEGTELT', label: 'Megtelt' },
+                    { value: '', label: market === 'de' ? 'Alle' : 'Mind' },
+                    { value: 'MEGHIRDETVE', label: market === 'de' ? 'Ausgeschrieben' : 'Meghirdetve' },
+                    { value: 'LEZAJLOTT', label: market === 'de' ? 'Abgeschlossen' : 'Lezajlott' },
+                    { value: 'ELMARAD', label: market === 'de' ? 'Abgesagt' : 'Elmarad' },
+                    { value: 'MEGTELT', label: market === 'de' ? 'Ausgebucht' : 'Megtelt' },
                   ].map(opt => (
                     <button
                       key={opt.value}
@@ -547,16 +549,16 @@ export default function KtkKeresoPage() {
         {showVisitLog && ADMIN_EMAILS.includes(user?.email) && (
           <div className="max-w-xl mx-auto px-4 pt-3">
             <div className={`rounded-xl p-3 text-xs ${darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'}`}>
-              <p className={`font-semibold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Utolsó 20 megtekintés</p>
+              <p className={`font-semibold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{market === 'de' ? 'Letzte 20 Aufrufe' : 'Utolsó 20 megtekintés'}</p>
               {recentVisits.length === 0 ? (
-                <p className={darkMode ? 'text-gray-400' : 'text-gray-500'}>Nincs adat</p>
+                <p className={darkMode ? 'text-gray-400' : 'text-gray-500'}>{market === 'de' ? 'Keine Daten' : 'Nincs adat'}</p>
               ) : (
                 <div className="space-y-1">
                   {recentVisits.map((v, i) => (
                     <div key={i} className={`flex justify-between ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                       <span>{v.email}</span>
                       <span className={darkMode ? 'text-gray-500' : 'text-gray-400'}>
-                        {v.timestamp?.toDate?.() ? v.timestamp.toDate().toLocaleString('hu-HU') : '-'}
+                        {v.timestamp?.toDate?.() ? v.timestamp.toDate().toLocaleString(market === 'de' ? 'de-DE' : 'hu-HU') : '-'}
                       </span>
                     </div>
                   ))}
@@ -575,12 +577,12 @@ export default function KtkKeresoPage() {
           ) : filtered.length === 0 ? (
             <div className={`text-center py-12 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
               <GraduationCap className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p className="font-medium">Nem található továbbképzés</p>
-              <p className="text-xs mt-1">Próbálj más keresőkifejezést vagy szűrőt</p>
+              <p className="font-medium">{market === 'de' ? 'Keine Fortbildung gefunden' : 'Nem található továbbképzés'}</p>
+              <p className="text-xs mt-1">{market === 'de' ? 'Versuche einen anderen Suchbegriff oder Filter' : 'Próbálj más keresőkifejezést vagy szűrőt'}</p>
             </div>
           ) : (
             filtered.map((item, idx) => (
-              <KtkCard key={item.nyilvantartasi_szam || idx} item={item} darkMode={darkMode} />
+              <KtkCard key={item.nyilvantartasi_szam || idx} item={item} darkMode={darkMode} market={market} />
             ))
           )}
         </div>

@@ -2,9 +2,11 @@
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { getClientMarket } from '@/lib/marketI18n';
 
 export default function MaintenancePage() {
   const router = useRouter();
+  const market = getClientMarket();
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [adminCode, setAdminCode] = useState("");
   const [error, setError] = useState("");
@@ -18,7 +20,7 @@ export default function MaintenancePage() {
       document.cookie = "maintenance_bypass=true; path=/; max-age=86400";
       router.push("/login");
     } else {
-      setError("Hibás kód!");
+      setError(market === 'de' ? 'Falscher Code!' : 'Hibás kód!');
       setTimeout(() => setError(""), 3000);
     }
   };
@@ -63,21 +65,21 @@ export default function MaintenancePage() {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              <span className="font-medium">Karbantartás alatt</span>
+              <span className="font-medium">{market === 'de' ? 'In Wartung' : 'Karbantartás alatt'}</span>
             </div>
 
             <h2 className="text-2xl md:text-3xl font-semibold text-white mb-4">
-              🔧 Fejlesztés folyamatban
+              {market === 'de' ? '🔧 Entwicklung laeuft' : '🔧 Fejlesztés folyamatban'}
             </h2>
 
             <p className="text-lg text-gray-300 mb-6 leading-relaxed">
-              A <span className="text-purple-300 font-semibold">Pharmagister</span> platform jelenleg 
-              karbantartás alatt áll. Dolgozunk azon, hogy egy <span className="text-indigo-300 font-semibold">teljesen megújult</span>, 
-              gyorsabb és modernebb élményt nyújthassunk Önnek.
+              {market === 'de'
+                ? <>Die <span className="text-purple-300 font-semibold">Pharmagister</span>-Plattform ist derzeit in Wartung. Wir arbeiten an einem <span className="text-indigo-300 font-semibold">komplett erneuerten</span>, schnelleren und moderneren Erlebnis.</>
+                : <>A <span className="text-purple-300 font-semibold">Pharmagister</span> platform jelenleg karbantartás alatt áll. Dolgozunk azon, hogy egy <span className="text-indigo-300 font-semibold">teljesen megújult</span>, gyorsabb és modernebb élményt nyújthassunk Önnek.</>}
             </p>
 
             <div className="bg-white/5 rounded-2xl p-6 mb-8">
-              <p className="text-gray-400 text-sm mb-2">Várható befejezés</p>
+              <p className="text-gray-400 text-sm mb-2">{market === 'de' ? 'Voraussichtlicher Abschluss' : 'Várható befejezés'}</p>
               <div className="flex items-center justify-center gap-4">
                 <div className="bg-gradient-to-br from-purple-600 to-indigo-600 rounded-xl px-6 py-4">
                   <span className="text-4xl font-bold text-white">2026</span>
@@ -95,20 +97,20 @@ export default function MaintenancePage() {
             <div className="space-y-3 text-gray-300">
               <p className="flex items-center justify-center gap-2">
                 <span className="text-green-400">✓</span>
-                Új, modern felhasználói felület
+                {market === 'de' ? 'Neue, moderne Benutzeroberflaeche' : 'Új, modern felhasználói felület'}
               </p>
               <p className="flex items-center justify-center gap-2">
                 <span className="text-green-400">✓</span>
-                Gyorsabb és megbízhatóbb működés
+                {market === 'de' ? 'Schnellerer und zuverlaessigerer Betrieb' : 'Gyorsabb és megbízhatóbb működés'}
               </p>
               <p className="flex items-center justify-center gap-2">
                 <span className="text-green-400">✓</span>
-                Mobilbarát PWA alkalmazás
+                {market === 'de' ? 'Mobilfreundliche PWA-App' : 'Mobilbarát PWA alkalmazás'}
               </p>
             </div>
 
             <p className="text-gray-400 mt-8 text-sm">
-              Köszönjük türelmét!
+              {market === 'de' ? 'Vielen Dank fuer deine Geduld!' : 'Köszönjük türelmét!'}
             </p>
           </motion.div>
 
@@ -119,7 +121,7 @@ export default function MaintenancePage() {
                 onClick={() => setShowAdminLogin(true)}
                 className="text-gray-500 text-xs hover:text-gray-400 transition-colors"
               >
-                Admin hozzáférés
+                {market === 'de' ? 'Admin-Zugang' : 'Admin hozzáférés'}
               </button>
             ) : (
               <motion.div
@@ -131,7 +133,7 @@ export default function MaintenancePage() {
                   type="password"
                   value={adminCode}
                   onChange={(e) => setAdminCode(e.target.value)}
-                  placeholder="Admin kód"
+                  placeholder={market === 'de' ? 'Admin-Code' : 'Admin kód'}
                   className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   onKeyDown={(e) => e.key === "Enter" && handleAdminAccess()}
                 />
@@ -140,7 +142,7 @@ export default function MaintenancePage() {
                   onClick={handleAdminAccess}
                   className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 rounded-lg transition-colors"
                 >
-                  Belépés
+                  {market === 'de' ? 'Anmelden' : 'Belépés'}
                 </button>
               </motion.div>
             )}
@@ -149,7 +151,7 @@ export default function MaintenancePage() {
 
         {/* Footer */}
         <p className="text-center text-gray-500 text-sm mt-6">
-          © 2026 Pharmagister - Minden jog fenntartva
+          {market === 'de' ? '© 2026 Pharmagister - Alle Rechte vorbehalten' : '© 2026 Pharmagister - Minden jog fenntartva'}
         </p>
       </motion.div>
     </div>

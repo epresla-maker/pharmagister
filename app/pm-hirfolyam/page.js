@@ -4,9 +4,11 @@ import { useAuth } from '@/context/AuthContext';
 import RouteGuard from '../components/RouteGuard';
 import ModernServiceFeed from '../components/ModernServiceFeed';
 import { ArrowLeft } from 'lucide-react';
+import { getClientMarket } from '@/lib/marketI18n';
 
 export default function PmHirfolyamPage() {
   const { user, userData } = useAuth();
+  const market = getClientMarket();
   const router = useRouter();
 
   return (
@@ -22,7 +24,7 @@ export default function PmHirfolyamPage() {
               <ArrowLeft className="w-5 h-5 text-gray-700 dark:text-gray-200" />
             </button>
             <h1 className="ml-2 text-lg font-bold text-green-600">
-              PM hírfolyam
+              {market === 'de' ? 'PM Newsfeed' : 'PM hírfolyam'}
             </h1>
           </div>
         </div>

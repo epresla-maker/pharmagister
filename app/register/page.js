@@ -4,9 +4,11 @@ import { useRouter } from 'next/navigation';
 import { createUserWithEmailAndPassword, sendEmailVerification, signOut } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
+import { getClientMarket } from '@/lib/marketI18n';
 
 export default function RegisterPage() {
   const router = useRouter();
+  const market = getClientMarket();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -23,22 +25,22 @@ export default function RegisterPage() {
     setError('');
 
     if (!acceptedPrivacy) {
-      setError('Az adatvédelmi tájékoztató elfogadása kötelező');
+      setError(market === 'de' ? 'Die Annahme der Datenschutzerklaerung ist erforderlich.' : 'Az adatvédelmi tájékoztató elfogadása kötelező');
       return;
     }
 
     if (password !== confirmPassword) {
-      setError('A jelszavak nem egyeznek');
+      setError(market === 'de' ? 'Die Passwoerter stimmen nicht ueberein.' : 'A jelszavak nem egyeznek');
       return;
     }
 
     if (password.length < 8) {
-      setError('A jelszónak legalább 8 karakter hosszúnak kell lennie');
+      setError(market === 'de' ? 'Das Passwort muss mindestens 8 Zeichen lang sein.' : 'A jelszónak legalább 8 karakter hosszúnak kell lennie');
       return;
     }
 
     if (!/[A-Z]/.test(password) || !/[0-9]/.test(password)) {
-      setError('A jelszónak tartalmaznia kell legalább egy nagybetűt és egy számot');
+      setError(market === 'de' ? 'Das Passwort muss mindestens einen Grossbuchstaben und eine Zahl enthalten.' : 'A jelszónak tartalmaznia kell legalább egy nagybetűt és egy számot');
       return;
     }
 
@@ -86,9 +88,9 @@ export default function RegisterPage() {
       setLoading(false);
       
       if (err.code === 'auth/email-already-in-use') {
-        setError('Ez az email cím már használatban van');
+        setError(market === 'de' ? 'Diese E-Mail-Adresse wird bereits verwendet.' : 'Ez az email cím már használatban van');
       } else {
-        setError('Hiba történt a regisztráció során: ' + err.message);
+        setError((market === 'de' ? 'Fehler bei der Registrierung: ' : 'Hiba történt a regisztráció során: ') + err.message);
       }
     }
   };
@@ -103,40 +105,41 @@ export default function RegisterPage() {
       <div className="relative min-h-[100dvh] overflow-y-auto px-4 py-8">
         <div className="flex min-h-[calc(100dvh-4rem)] items-start justify-center">
           <div className="w-full max-w-md rounded-lg border border-white/70 bg-white/90 p-6 shadow-xl shadow-emerald-950/10 backdrop-blur-md sm:p-8">
-        <h1 className="text-3xl font-bold text-center mb-2 text-emerald-950">Regisztráció</h1>
+        <h1 className="text-3xl font-bold text-center mb-2 text-emerald-950">{market === 'de' ? 'Registrierung' : 'Regisztráció'}</h1>
         <p className="text-emerald-800 text-center mb-6">Pharmagister</p>
 
         {success ? (
           <div className="text-center py-6">
             <div className="mb-4 text-6xl">✉️</div>
-            <h2 className="text-2xl font-bold mb-3 text-green-600">Regisztráció sikeres!</h2>
+            <h2 className="text-2xl font-bold mb-3 text-green-600">{market === 'de' ? 'Registrierung erfolgreich!' : 'Regisztráció sikeres!'}</h2>
             <p className="text-gray-700 mb-2">
-              Küldtünk egy aktiváló emailt a <strong>{email}</strong> címre.
+              {market === 'de' ? <>Wir haben eine Aktivierungs-E-Mail an <strong>{email}</strong> gesendet.</> : <>Küldtünk egy aktiváló emailt a <strong>{email}</strong> címre.</>}
             </p>
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
               <p className="text-sm text-yellow-800 mb-2">
-                ⚠️ <strong>Fontos:</strong> Kérjük, ellenőrizd a <strong>Spam/Kéretlen</strong> mappádat is!
+                ⚠️ <strong>{market === 'de' ? 'Wichtig' : 'Fontos'}:</strong> {market === 'de' ? <>Bitte pruefe auch den <strong>Spam</strong>-Ordner.</> : <>Kérjük, ellenőrizd a <strong>Spam/Kéretlen</strong> mappádat is!</>}
               </p>
               <p className="text-xs text-yellow-700">
-                Az automatikus emailek gyakran oda kerülnek.
+                {market === 'de' ? 'Automatische E-Mails landen oft dort.' : 'Az automatikus emailek gyakran oda kerülnek.'}
               </p>
             </div>
             {email.toLowerCase().includes('freemail.hu') && (
               <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
                 <p className="text-sm text-orange-800">
-                  ⚠️ <strong>Freemail figyelmeztetés:</strong> A freemail.hu címekre küldött emailek <strong>gyakran meg sem érkeznek</strong>. 
-                  Ha 5 perc alatt nem látod az emailt (sem a Beérkező, sem a Spam mappában), próbálj másik email címmel regisztrálni.
+                  {market === 'de'
+                    ? <>⚠️ <strong>Freemail-Hinweis:</strong> E-Mails an freemail.hu kommen <strong>haeufig nicht an</strong>. Wenn du innerhalb von 5 Minuten keine E-Mail siehst (auch nicht im Spam), nutze bitte eine andere Adresse.</>
+                    : <>⚠️ <strong>Freemail figyelmeztetés:</strong> A freemail.hu címekre küldött emailek <strong>gyakran meg sem érkeznek</strong>. Ha 5 perc alatt nem látod az emailt (sem a Beérkező, sem a Spam mappában), próbálj másik email címmel regisztrálni.</>}
                 </p>
               </div>
             )}
             <p className="text-gray-600 mb-6 text-sm">
-              Kattints az emailben található linkre a fiókod aktiválásához.
+              {market === 'de' ? 'Klicke auf den Link in der E-Mail, um dein Konto zu aktivieren.' : 'Kattints az emailben található linkre a fiókod aktiválásához.'}
             </p>
             <button
               onClick={() => router.push('/login')}
               className="w-full bg-emerald-700 text-white px-6 py-3 rounded-lg hover:bg-emerald-800 font-semibold"
             >
-              Vissza a bejelentkezéshez
+              {market === 'de' ? 'Zurueck zur Anmeldung' : 'Vissza a bejelentkezéshez'}
             </button>
           </div>
         ) : (
@@ -166,8 +169,9 @@ export default function RegisterPage() {
                 <div className="flex items-start gap-2">
                   <span className="text-orange-600 text-lg flex-shrink-0">⚠️</span>
                   <div className="text-orange-800">
-                    <strong>Figyelem!</strong> A freemail.hu címekre küldött emailek <strong>gyakran meg sem érkeznek</strong>. 
-                    Erősen javasoljuk <strong>Gmail</strong> vagy más szolgáltató használatát.
+                    {market === 'de'
+                      ? <><strong>Achtung!</strong> E-Mails an freemail.hu kommen <strong>oft nicht an</strong>. Wir empfehlen dringend <strong>Gmail</strong> oder einen anderen Anbieter.</>
+                      : <><strong>Figyelem!</strong> A freemail.hu címekre küldött emailek <strong>gyakran meg sem érkeznek</strong>. Erősen javasoljuk <strong>Gmail</strong> vagy más szolgáltató használatát.</>}
                   </div>
                 </div>
               </div>
@@ -175,7 +179,7 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Jelszó</label>
+            <label className="block text-sm font-medium mb-1">{market === 'de' ? 'Passwort' : 'Jelszó'}</label>
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
@@ -196,7 +200,7 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Jelszó megerősítése</label>
+            <label className="block text-sm font-medium mb-1">{market === 'de' ? 'Passwort bestaetigen' : 'Jelszó megerősítése'}</label>
             <div className="relative">
               <input
                 type={showConfirmPassword ? "text" : "password"}
@@ -225,14 +229,15 @@ export default function RegisterPage() {
               className="mt-1 w-4 h-4 text-emerald-700 border-gray-300 rounded focus:ring-emerald-500"
             />
             <label htmlFor="privacy-accept" className="text-sm text-gray-700">
-              Elolvastam és elfogadom az{' '}
+              {market === 'de' ? 'Ich habe die ' : 'Elolvastam és elfogadom az '}
               <a 
                 href="/privacy-policy" 
                 target="_blank" 
                 className="text-emerald-700 hover:underline font-medium"
               >
-                Adatvédelmi Tájékoztatót
+                {market === 'de' ? 'Datenschutzerklaerung' : 'Adatvédelmi Tájékoztatót'}
               </a>
+              {market === 'de' ? ' gelesen und akzeptiere sie.' : ''}
             </label>
           </div>
 
@@ -241,17 +246,17 @@ export default function RegisterPage() {
             disabled={loading || !acceptedPrivacy}
             className="w-full bg-emerald-700 text-white py-2 rounded-lg hover:bg-emerald-800 disabled:opacity-50"
           >
-            {loading ? 'Betöltés...' : 'Regisztrálok'}
+            {loading ? (market === 'de' ? 'Wird geladen...' : 'Betöltés...') : (market === 'de' ? 'Registrieren' : 'Regisztrálok')}
           </button>
         </form>
 
         <p className="text-center mt-4 text-sm">
-          Már van fiókod?{' '}
+          {market === 'de' ? 'Du hast bereits ein Konto?' : 'Már van fiókod?'}{' '}
           <button
             onClick={() => router.push('/login')}
             className="text-emerald-700 hover:underline"
           >
-            Bejelentkezés
+            {market === 'de' ? 'Anmelden' : 'Bejelentkezés'}
           </button>
         </p>
         </>
