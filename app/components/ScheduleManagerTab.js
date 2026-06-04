@@ -566,7 +566,7 @@ function MonthCalendar({ year, month, selectedDate, schedules, ownScheduleIds, o
                     // Saját nézet: színes kocka az idővel
                     daySchedules.length > 0 && (() => {
                       const s = daySchedules[0];
-                      const st = getShiftType(s.shiftType);
+                      const st = getShiftType(s.shiftType, market);
                       const start = s.startTime || s.from;
                       const end = s.endTime || s.to;
                       const timeLabel = (start && end) ? `${start.replace(':00','')}-${end.replace(':00','')}` : st.label;
@@ -654,8 +654,18 @@ const SHIFT_TYPES = [
 ];
 function isOffShift(shiftType) { return shiftType === 'Sz' || shiftType === 'P'; }
 
-function getShiftType(key) {
-  return SHIFT_TYPES.find(t => t.key === key) || SHIFT_TYPES[0];
+function getShiftType(key, market = 'hu') {
+  const base = SHIFT_TYPES.find(t => t.key === key) || SHIFT_TYPES[0];
+  if (market !== 'de') return base;
+  const titleMapDe = {
+    N: 'Tagdienst',
+    'É': 'Nachtdienst',
+    'Ü': 'Bereitschaft',
+    B: 'Krank',
+    Sz: 'Urlaub',
+    P: 'Ruhetag',
+  };
+  return { ...base, title: titleMapDe[base.key] || base.title };
 }
 
 function calcHours(from, to, market = 'hu') {
@@ -1197,7 +1207,7 @@ function PharmacyScheduleCalendar({
         <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/60" onClick={() => setPublishBlockModal(null)}>
           <div className={`rounded-t-2xl p-5 space-y-4 max-h-[60vh] overflow-y-auto ${darkMode ? 'bg-gray-800' : 'bg-white'}`} onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
-              <h3 className={`font-bold text-base ${darkMode ? 'text-white' : 'text-gray-900'}`}>Miért nem publikálható?</h3>
+              <h3 className={`font-bold text-base ${darkMode ? 'text-white' : 'text-gray-900'}`}>{market === 'de' ? 'Warum kann nicht veroeffentlicht werden?' : 'Miért nem publikálható?'}</h3>
               <button type="button" onClick={() => { setPublishBlockModal(null); setAutoFixResult(null); }} className={`h-8 w-8 flex items-center justify-center rounded-full text-lg font-bold ${darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>×</button>
             </div>
 
@@ -1228,9 +1238,9 @@ function PharmacyScheduleCalendar({
                 }`}
               >
                 {autoFixing ? (
-                  <><span className="animate-spin inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full" /><span>Javítás folyamatban...</span></>
+                  <><span className="animate-spin inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full" /><span>{market === 'de' ? 'Korrektur laeuft...' : 'Javítás folyamatban...'}</span></>
                 ) : (
-                  <><span>✨</span><span>Automatikus javítás</span></>
+                  <><span>✨</span><span>{market === 'de' ? 'Automatische Korrektur' : 'Automatikus javítás'}</span></>
                 )}
               </button>
             )}
@@ -1241,7 +1251,9 @@ function PharmacyScheduleCalendar({
                   ? (darkMode ? 'bg-emerald-900/40 text-emerald-300' : 'bg-emerald-50 text-emerald-700')
                   : (darkMode ? 'bg-amber-900/40 text-amber-300' : 'bg-amber-50 text-amber-700')
               }`}>
-                {autoFixResult.fixed > 0 ? `✅ ${autoFixResult.fixed} műszak javítva – ellenőrzés folyamatban...` : '⚠️ Nem találtam automatikusan javítható hibát. Kézzel ellenőrizd a beosztást.'}
+                {autoFixResult.fixed > 0
+                  ? (market === 'de' ? `✅ ${autoFixResult.fixed} Schichten korrigiert - Pruefung laeuft...` : `✅ ${autoFixResult.fixed} műszak javítva – ellenőrzés folyamatban...`)
+                  : (market === 'de' ? '⚠️ Es wurden keine automatisch korrigierbaren Fehler gefunden. Bitte den Dienstplan manuell pruefen.' : '⚠️ Nem találtam automatikusan javítható hibát. Kézzel ellenőrizd a beosztást.')}
               </div>
             )}
 
@@ -1281,7 +1293,7 @@ function PharmacyScheduleCalendar({
                 </div>
               );
             })()}
-            <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Javítsd a hibákat, majd próbáld újra a publikálást.</p>
+            <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{market === 'de' ? 'Bitte behebe die Fehler und versuche die Veroeffentlichung erneut.' : 'Javítsd a hibákat, majd próbáld újra a publikálást.'}</p>
           </div>
         </div>
       )}
@@ -1302,7 +1314,7 @@ function PharmacyScheduleCalendar({
           <button
             type="button"
             onClick={() => setShowSummary(true)}
-            title="Havi összefoglaló"
+            title={market === 'de' ? 'Monatsuebersicht' : 'Havi összefoglaló'}
             className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 text-white"
           >
             <Info className="h-4 w-4" />
@@ -1488,7 +1500,7 @@ function PharmacyScheduleCalendar({
               type="button"
               onClick={() => setShowSwapLog(false)}
               className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-medium ${darkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-800' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}
-            >Bezárás</button>
+            >{market === 'de' ? 'Schliessen' : 'Bezárás'}</button>
             <button
               type="button"
               disabled={publishChangesLoading}
@@ -1620,7 +1632,7 @@ function PharmacyScheduleCalendar({
               {dayScheds.length > 0 ? (
                 <div className="flex flex-col gap-1.5">
                   {dayScheds.map(s => {
-                    const st = getShiftType(s.shiftType || 'N');
+                    const st = getShiftType(s.shiftType || 'N', market);
                     const hrs = calcHours(s.startTime, s.endTime, market);
                     return (
                       <div
@@ -1663,7 +1675,7 @@ function PharmacyScheduleCalendar({
               {dayPrefs.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   {dayPrefs.map(p => {
-                    const st = getShiftType(p.shiftType || 'N');
+                    const st = getShiftType(p.shiftType || 'N', market);
                     return (
                       <span
                         key={p.id}
@@ -1749,7 +1761,7 @@ function PharmacyScheduleCalendar({
               ×
             </button>
             <div className="flex-1 text-center">
-              <span className="text-white font-bold text-base tracking-tight">{monthLabel} {year} – összefoglaló</span>
+              <span className="text-white font-bold text-base tracking-tight">{monthLabel} {year} {market === 'de' ? '– Uebersicht' : '– összefoglaló'}</span>
             </div>
           </div>
           {/* Body */}
@@ -1986,7 +1998,7 @@ function PharmacyScheduleCalendar({
 
               {employeeRows.map((row, idx) => {
                 const rowReadOnly = row.isPublished || row.locked;
-                const st = getShiftType(row.shiftType);
+                const st = getShiftType(row.shiftType, market);
                 const hrs = calcHours(row.from, row.to, market);
                 // Find this employee's draft preference for the selected day
                 const dayKey = selectedDay ? formatDateKey(year, month, selectedDay) : null;
@@ -2129,7 +2141,7 @@ function PharmacyScheduleCalendar({
                         <span className="flex-shrink-0 text-emerald-500 text-sm mt-0.5">👁</span>
                         <div className="flex-1 min-w-0">
                           <span className={`text-[11px] font-bold ${darkMode ? 'text-emerald-400' : 'text-emerald-700'}`}>
-                            {row.name} szeretné ezt a műszakot: {getShiftType(empPref.shiftType).title}
+                            {market === 'de' ? `${row.name} moechte diese Schicht:` : `${row.name} szeretné ezt a műszakot:`} {getShiftType(empPref.shiftType, market).title}
                           </span>
                           <div className="flex flex-wrap items-center gap-2 mt-0.5">
                             {empPref.startTime && empPref.endTime && (
@@ -2642,7 +2654,7 @@ function EmployeePreferenceCalendar({
                 )}
                 {dayOwn.map(p => {
                   const isSz = isOffShift(p.shiftType);
-                  const st = getShiftType(p.shiftType || 'N');
+                  const st = getShiftType(p.shiftType || 'N', market);
                   const hrs = calcHours(p.startTime, p.endTime, market);
                   // running hours up to this day
                   const runningHrs = plannedWorkPrefs
@@ -2682,7 +2694,7 @@ function EmployeePreferenceCalendar({
                   );
                 })}
                 {dayOthers.map(p => {
-                  const st = getShiftType(p.shiftType || 'N');
+                  const st = getShiftType(p.shiftType || 'N', market);
                   const hrs = calcHours(p.startTime, p.endTime, market);
                   return (
                     <div key={p.id} className={`flex items-center gap-2 rounded-xl px-3 py-2 border ${darkMode ? 'border-gray-700 bg-gray-800/60' : 'border-gray-200 bg-white/70'}`}>
@@ -2774,7 +2786,7 @@ function EmployeePreferenceCalendar({
                     <p className={`text-xs font-bold uppercase tracking-widest mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Kollégák erre a napra terveztek</p>
                     <div className="flex flex-col gap-1.5">
                       {dayOthers.map(p => {
-                        const st = getShiftType(p.shiftType || 'N');
+                        const st = getShiftType(p.shiftType || 'N', market);
                         const hrs = calcHours(p.startTime, p.endTime, market);
                         return (
                           <div key={p.id} className={`flex items-center gap-2 rounded-xl px-3 py-2 border ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'}`}>
@@ -8259,8 +8271,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         return (
           <div className={`rounded-xl border p-4 space-y-3 ${darkMode ? 'border-rose-800 bg-rose-900/20' : 'border-rose-200 bg-rose-50'}`}>
             <div className="flex items-center justify-between">
-              <p className={`font-semibold text-sm ${darkMode ? 'text-rose-300' : 'text-rose-800'}`}>🚫 {errors.length} piros figyelmeztetés – magyarázat és javaslatok</p>
-              <button type="button" onClick={() => setPlannerResult(null)} className={`text-xs underline ${darkMode ? 'text-rose-400' : 'text-rose-600'}`}>bezár</button>
+              <p className={`font-semibold text-sm ${darkMode ? 'text-rose-300' : 'text-rose-800'}`}>🚫 {market === 'de' ? `${errors.length} rote Warnungen - Erklaerung und Vorschlaege` : `${errors.length} piros figyelmeztetés – magyarázat és javaslatok`}</p>
+              <button type="button" onClick={() => setPlannerResult(null)} className={`text-xs underline ${darkMode ? 'text-rose-400' : 'text-rose-600'}`}>{market === 'de' ? 'schliessen' : 'bezár'}</button>
             </div>
             {uniqueCodes.map((err, i) => {
               const advice = getErrorAdvice(err.code, market);
@@ -8280,7 +8292,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                     {group.slice(0, 5).map((e2, j) => (
                       <p key={j} className={`text-xs pl-2 border-l-2 ${darkMode ? 'border-rose-700 text-rose-400' : 'border-rose-300 text-rose-600'}`}>{e2.message}</p>
                     ))}
-                    {group.length > 5 && <p className={`text-xs pl-2 ${darkMode ? 'text-rose-500' : 'text-rose-400'}`}>+ {group.length - 5} további eset</p>}
+                    {group.length > 5 && <p className={`text-xs pl-2 ${darkMode ? 'text-rose-500' : 'text-rose-400'}`}>+ {group.length - 5} {market === 'de' ? 'weitere Faelle' : 'további eset'}</p>}
                   </div>
                 </div>
               );
@@ -8297,7 +8309,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
       {loading ? (
         <div className={`rounded-2xl border p-8 text-center ${darkMode ? 'border-gray-700 bg-gray-900 text-gray-300' : 'border-[#E5E7EB] bg-white text-[#374151]'}`}>
-          Betöltés...
+          {market === 'de' ? 'Wird geladen...' : 'Betöltés...'}
         </div>
       ) : null}
 
@@ -8564,7 +8576,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                                 </div>
                                 <div className="flex flex-col gap-1">
                                   {sorted.map(p => {
-                                    const st = getShiftType(p.shiftType || 'N');
+                                    const st = getShiftType(p.shiftType || 'N', market);
                                     const hrs = calcHours(p.startTime, p.endTime, market);
                                     const dow = new Date(p.year, p.month - 1, p.day || parseInt(p.date.split('-')[2])).getDay();
                                     const DOW_SHORT = ['V','H','K','Sz','Cs','P','Szo'];
@@ -8916,8 +8928,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                           onClick={() => setShowIgnoredPrefsPanel(v => !v)}
                           className={`w-full text-left rounded-xl px-4 py-2.5 text-sm font-medium flex items-center justify-between transition-all ${darkMode ? 'bg-amber-900/30 text-amber-300 hover:bg-amber-900/50' : 'bg-amber-50 text-amber-700 hover:bg-amber-100'}`}
                         >
-                          <span>💬 {ignoredPrefs} dolgozói kérés van, amit még nem vettél figyelembe</span>
-                          <span className="ml-2 opacity-70 text-xs">{showIgnoredPrefsPanel ? '▲ Bezár' : '▼ Mutat'}</span>
+                          <span>{market === 'de' ? `💬 ${ignoredPrefs} Mitarbeitenden-Wuensche hast du noch nicht beruecksichtigt` : `💬 ${ignoredPrefs} dolgozói kérés van, amit még nem vettél figyelembe`}</span>
+                          <span className="ml-2 opacity-70 text-xs">{showIgnoredPrefsPanel ? (market === 'de' ? '▲ Schliessen' : '▲ Bezár') : (market === 'de' ? '▼ Anzeigen' : '▼ Mutat')}</span>
                         </button>
                         {showIgnoredPrefsPanel && (
                           <div className={`mt-1 rounded-xl border overflow-hidden ${darkMode ? 'border-amber-800 bg-amber-950/30' : 'border-amber-200 bg-amber-50'}`}>
