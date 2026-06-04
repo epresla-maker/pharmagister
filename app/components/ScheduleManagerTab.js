@@ -5616,25 +5616,27 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     // Pharmacy manager actions
     if (action === 'list_employees') {
       if (!isPharmacy) {
-        appendBettiMessage('Ez a funkcio csak a gyogyszertari nezet szamara erhelmes.');
+        appendBettiMessage(market === 'de' ? 'Diese Funktion ist nur in der Apothekenansicht verfuegbar.' : 'Ez a funkció csak a gyógyszertári nézet számára értelmes.');
         return;
       }
 
       const activeEmps = employees.filter((e) => e.status !== 'inactive').sort((a, b) => a.name.localeCompare(b.name, 'hu'));
       if (activeEmps.length === 0) {
-        appendBettiMessage('Jelenleg nincsenek aktiv alkalmazottaid.');
+        appendBettiMessage(market === 'de' ? 'Derzeit gibt es keine aktiven Mitarbeitenden.' : 'Jelenleg nincsenek aktív alkalmazottaid.');
         return;
       }
 
       const empList = activeEmps.slice(0, 15).map((e) => `${e.name}${e.role ? ` (${e.role})` : ''}`).join('\n- ');
-      const suffix = activeEmps.length > 15 ? `\n... es meg ${activeEmps.length - 15} alkalmazott` : '';
-      appendBettiMessage(`Alkalmazottaid (${activeEmps.length} db):\n- ${empList}${suffix}`);
+      const suffix = activeEmps.length > 15
+        ? (market === 'de' ? `\n... und noch ${activeEmps.length - 15} weitere` : `\n... és még ${activeEmps.length - 15} alkalmazott`)
+        : '';
+      appendBettiMessage(market === 'de' ? `Deine Mitarbeitenden (${activeEmps.length}):\n- ${empList}${suffix}` : `Alkalmazottaid (${activeEmps.length} db):\n- ${empList}${suffix}`);
       return;
     }
 
     if (action === 'show_vacation_requests') {
       if (!isPharmacy) {
-        appendBettiMessage('Ez a funkcio csak a gyogyszertari nezet szamara erhelmes.');
+        appendBettiMessage(market === 'de' ? 'Diese Funktion ist nur in der Apothekenansicht verfuegbar.' : 'Ez a funkció csak a gyógyszertári nézet számára értelmes.');
         return;
       }
 
@@ -5644,15 +5646,17 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       );
 
       if (monthVacationRequests.length === 0) {
-        appendBettiMessage(`A ${monthLabel} honapban nincsenek szabadsag igenyelt.`);
+        appendBettiMessage(market === 'de' ? `Im Monat ${monthLabel} gibt es keine Urlaubsanfragen.` : `A ${monthLabel} hónapban nincsenek szabadságigények.`);
         return;
       }
 
       const vacList = monthVacationRequests.slice(0, 10)
         .map((v) => `${v.employeeName}: ${v.startDate} - ${v.endDate}${v.status === 'pending' ? ' ⏳' : ' ✅'}`)
         .join('\n- ');
-      const suffix = monthVacationRequests.length > 10 ? `\n... es meg ${monthVacationRequests.length - 10} igeny` : '';
-      appendBettiMessage(`Szabadsag igenyelt (${monthLabel}):\n- ${vacList}${suffix}`);
+      const suffix = monthVacationRequests.length > 10
+        ? (market === 'de' ? `\n... und noch ${monthVacationRequests.length - 10} weitere` : `\n... és még ${monthVacationRequests.length - 10} igény`)
+        : '';
+      appendBettiMessage(market === 'de' ? `Urlaubsanfragen (${monthLabel}):\n- ${vacList}${suffix}` : `Szabadságigények (${monthLabel}):\n- ${vacList}${suffix}`);
       return;
     }
 
@@ -5698,10 +5702,10 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
     if (action === 'remove_employee') {
       if (!isPharmacy) {
-        appendBettiMessage('Ez a funkcio csak a gyogyszertari nezet szamara erhelmes.');
+        appendBettiMessage(market === 'de' ? 'Diese Funktion ist nur in der Apothekenansicht verfuegbar.' : 'Ez a funkció csak a gyógyszertári nézet számára értelmes.');
         return;
       }
-      appendBettiMessage('Valaszd ki az eltavolitando dolgozot a "Dolgozok" fuelken.');
+      appendBettiMessage(market === 'de' ? 'Waehle die zu entfernende Person im Tab Mitarbeitende aus.' : 'Válaszd ki az eltávolítandó dolgozót a "Dolgozók" fülön.');
       return;
     }
   }
@@ -5778,7 +5782,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       {
         id: 'demand_submit',
         type: 'local_demand_wizard_submit',
-        label: 'Igeny feladasa',
+        label: market === 'de' ? 'Anfrage senden' : 'Igény feladása',
       },
     ];
   }
@@ -6008,16 +6012,18 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         if (relevant.length === 0) {
           setBettiChatMessages((prev) => [...prev, {
             role: 'assistant',
-            text: 'Nincs aktiv helyettesitesi igenyed a kovetkezo idoszakra.',
+            text: market === 'de' ? 'Du hast keine aktive Vertretungsanfrage fuer den naechsten Zeitraum.' : 'Nincs aktív helyettesítési igényed a következő időszakra.',
             intent: 'local_my_demands_empty',
             ts: Date.now(),
-            uiCommands: [{ id: 'open_replacement_calendar', type: 'navigate_url', label: 'Igeny feladasa', url: '/pharmagister?tab=calendar' }],
+            uiCommands: [{ id: 'open_replacement_calendar', type: 'navigate_url', label: market === 'de' ? 'Anfrage senden' : 'Igény feladása', url: '/pharmagister?tab=calendar' }],
           }]);
           return;
         }
 
         const lines = relevant.map((d) => {
-          const posLabel = d.position === 'pharmacist' ? 'Gyogyszeresz' : 'Szakasszisztens';
+          const posLabel = d.position === 'pharmacist'
+            ? (market === 'de' ? 'Apotheker/in' : 'Gyógyszerész')
+            : (market === 'de' ? 'PTA/Assistent/in' : 'Szakasszisztens');
           const st = d.status === 'open' ? 'nyitott' : d.status === 'filled' ? 'betoltve' : d.status || 'ismeretlen';
           return `- ${formatHuDate(d.date)} · ${posLabel} · ${st}`;
         }).join('\n');
@@ -6343,7 +6349,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         targetMonth = d.getMonth() + 1;
         targetYear = d.getFullYear();
       }
-      const monthName = cmd.monthLabel || MONTHS_HU[targetMonth - 1];
+      const monthName = cmd.monthLabel || (market === 'de' ? MONTHS_DE[targetMonth - 1] : MONTHS_HU[targetMonth - 1]);
       const employeeNames = activeEmployees
         .map((emp) => String(emp?.name || '').trim())
         .filter(Boolean)
@@ -6351,7 +6357,9 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
       setBettiChatMessages((prev) => [...prev, {
         role: 'assistant',
-        text: `Rendben, kerlek valassz. A ${monthName.toLowerCase()}i tervezeshez osszeallitottam a csapatot.`,
+        text: market === 'de'
+          ? `Alles klar, bitte waehle eine Option. Ich habe das Team fuer die Planung im ${monthName} vorbereitet.`
+          : `Rendben, kérlek válassz. A ${monthName.toLowerCase()}i tervezéshez összeállítottam a csapatot.`,
         intent: 'local_schedule_wizard_started',
         ts: Date.now(),
         plannerCard: {
@@ -6378,7 +6386,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           {
             id: 'sw_auto',
             type: 'local_run_auto_planner',
-            label: `Automatikus tervezés – ${monthName}`,
+            label: market === 'de' ? `Automatische Planung - ${monthName}` : `Automatikus tervezés – ${monthName}`,
             monthNumber: targetMonth,
             monthOffset: null,
             monthLabel: monthName,
@@ -6386,7 +6394,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           {
             id: 'sw_manual',
             type: 'set_main_tab',
-            label: `Manuális szerkesztés – ${monthName}`,
+            label: market === 'de' ? `Manuelle Bearbeitung - ${monthName}` : `Manuális szerkesztés – ${monthName}`,
             tab: 'schedule',
             monthNumber: targetMonth,
             monthOffset: null,
@@ -6472,11 +6480,11 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
       setBettiChatMessages((prev) => [...prev, {
         role: 'assistant',
-        text: market === 'de' ? 'Waehle aus, wobei ich dir beim Dienstplan helfen soll.' : 'Valaszd ki, miben segitsek a beosztassal kapcsolatban.',
+        text: market === 'de' ? 'Waehle aus, wobei ich dir beim Dienstplan helfen soll.' : 'Válaszd ki, miben segítsek a beosztással kapcsolatban.',
         intent: 'local_schedule_control_panel',
         ts: Date.now(),
         scheduleControlCard: {
-          title: market === 'de' ? 'Dienstplan-Steuerung' : 'Beosztas kezelo panel',
+          title: market === 'de' ? 'Dienstplan-Steuerung' : 'Beosztás kezelő panel',
           monthName,
           year: targetYear,
           commands,
@@ -6507,7 +6515,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         targetYear = d.getFullYear();
       }
 
-      const monthName = cmd.monthLabel || MONTHS_HU[targetMonth - 1];
+      const monthName = cmd.monthLabel || (market === 'de' ? MONTHS_DE[targetMonth - 1] : MONTHS_HU[targetMonth - 1]);
       setMainTab('schedule');
       setYear(targetYear);
       setMonth(targetMonth);
@@ -6656,10 +6664,10 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       if (!userData?.pharmaProfileComplete) {
         setBettiChatMessages((prev) => [...prev, {
           role: 'assistant',
-          text: 'Igeny feladasa elott kerlek toltsd ki a gyogyszertari profilodat.',
+          text: market === 'de' ? 'Bitte vervollstaendige vor dem Absenden die Apothekenprofil-Daten.' : 'Igény feladása előtt kérlek töltsd ki a gyógyszertári profilodat.',
           intent: 'local_demand_wizard_profile_missing',
           ts: Date.now(),
-          uiCommands: [{ id: 'go_preferences', type: 'set_main_tab', label: 'Profil beallitasok', tab: 'preferences' }],
+          uiCommands: [{ id: 'go_preferences', type: 'set_main_tab', label: market === 'de' ? 'Profileinstellungen' : 'Profil beállítások', tab: 'preferences' }],
         }]);
         return;
       }
@@ -6899,11 +6907,13 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           targetMonth = d.getMonth() + 1;
           targetYear = d.getFullYear();
         }
-        const monthName = MONTHS_HU[targetMonth - 1] || 'honap';
+        const monthName = (market === 'de' ? MONTHS_DE[targetMonth - 1] : MONTHS_HU[targetMonth - 1]) || (market === 'de' ? 'Monat' : 'hónap');
         const empNames = activeEmployees.map((e) => String(e?.name || '').trim()).filter(Boolean).slice(0, 10);
         setBettiChatMessages((prev) => [...prev, {
           role: 'assistant',
-          text: `Rendben, kerlek valassz. A ${monthName.toLowerCase()}i tervezeshez osszeallitottam a csapatot.`,
+          text: market === 'de'
+            ? `Alles klar, bitte waehle eine Option. Ich habe das Team fuer die Planung im ${monthName} vorbereitet.`
+            : `Rendben, kérlek válassz. A ${monthName.toLowerCase()}i tervezéshez összeállítottam a csapatot.`,
           intent: 'local_schedule_wizard_started',
           ts: Date.now(),
           plannerCard: {
@@ -6927,13 +6937,13 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             },
           },
           uiCommands: [
-            { id: 'sw_auto', type: 'local_run_auto_planner', label: `Automatikus tervezes – ${monthName}`, monthNumber: targetMonth, monthOffset: null, monthLabel: monthName },
-            { id: 'sw_manual', type: 'set_main_tab', label: `Manualis szerkesztes – ${monthName}`, tab: 'schedule', monthNumber: targetMonth, monthOffset: null },
+            { id: 'sw_auto', type: 'local_run_auto_planner', label: market === 'de' ? `Automatische Planung - ${monthName}` : `Automatikus tervezés – ${monthName}`, monthNumber: targetMonth, monthOffset: null, monthLabel: monthName },
+            { id: 'sw_manual', type: 'set_main_tab', label: market === 'de' ? `Manuelle Bearbeitung - ${monthName}` : `Manuális szerkesztés – ${monthName}`, tab: 'schedule', monthNumber: targetMonth, monthOffset: null },
             {
               id: 'sw_missing',
               type: 'send_message',
-              label: market === 'de' ? 'Wer hat den Entwurf nicht gesendet?' : 'Ki nem kuldte be a tervezetet?',
-              utterance: market === 'de' ? `Wer hat den Entwurf fuer ${monthName} noch nicht gesendet?` : `Ki nem kuldte be meg a ${monthName.toLowerCase()}i tervezetet?`,
+              label: market === 'de' ? 'Wer hat den Entwurf nicht gesendet?' : 'Ki nem küldte be a tervezetét?',
+              utterance: market === 'de' ? `Wer hat den Entwurf fuer ${monthName} noch nicht gesendet?` : `Ki nem küldte be még a ${monthName.toLowerCase()}i tervezetét?`,
             },
           ],
         }]);
@@ -6941,7 +6951,11 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         await handleBettiAction(result.payload.action, result.payload.entities || {});
       }
     } catch (error) {
-      setBettiChatMessages((prev) => [...prev, { role: 'assistant', text: error.message || 'Betti: Nem sikerult ertelmezni a kerdest.', intent: 'error' }]);
+      setBettiChatMessages((prev) => [...prev, {
+        role: 'assistant',
+        text: error.message || (market === 'de' ? 'Betti: Die Anfrage konnte nicht interpretiert werden.' : 'Betti: Nem sikerült értelmezni a kérdést.'),
+        intent: 'error'
+      }]);
     } finally {
       setBettiChatLoading(false);
     }
@@ -6970,11 +6984,11 @@ export default function ScheduleManagerTab({ pharmaRole }) {
               👩‍⚕️
             </div>
             <div>
-              <p className={`font-bold text-base ${darkMode ? 'text-white' : 'text-gray-900'}`}>Szia, Betti vagyok!</p>
+              <p className={`font-bold text-base ${darkMode ? 'text-white' : 'text-gray-900'}`}>{market === 'de' ? 'Hallo, ich bin Betti!' : 'Szia, Betti vagyok!'}</p>
               <p className={`text-sm mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                 {isPharmacy
-                  ? 'Kérdezz bátran a beosztásról, túlórákról, helyettesítésről.'
-                  : 'Kérdezz a műszakjaidról, szabadságodról vagy szabadnapjaidról.'}
+                  ? (market === 'de' ? 'Frag mich gern zu Dienstplan, Ueberstunden oder Vertretung.' : 'Kérdezz bátran a beosztásról, túlórákról, helyettesítésről.')
+                  : (market === 'de' ? 'Frag zu deinen Schichten, Urlauben oder freien Tagen.' : 'Kérdezz a műszakjaidról, szabadságodról vagy szabadnapjaidról.')}
               </p>
             </div>
           </div>
@@ -7005,13 +7019,13 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                     darkMode ? 'bg-slate-800 border-slate-700 text-slate-100' : 'bg-sky-50 border-sky-200 text-slate-800'
                   }`}>
                     <p className={`text-xs font-bold uppercase tracking-wide ${darkMode ? 'text-sky-300' : 'text-sky-700'}`}>
-                      Beosztastervezes
+                      {market === 'de' ? 'Dienstplanung' : 'Beosztástervezés'}
                     </p>
                     <p className={`mt-1 text-sm font-semibold ${darkMode ? 'text-white' : 'text-slate-900'}`}>
                       {msg.plannerCard.monthName} {msg.plannerCard.year}
                     </p>
                     <p className={`mt-2 text-xs font-medium ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
-                      Dolgozok ({Array.isArray(msg.plannerCard.employeeNames) ? msg.plannerCard.employeeNames.length : 0}):
+                      {market === 'de' ? 'Mitarbeitende' : 'Dolgozók'} ({Array.isArray(msg.plannerCard.employeeNames) ? msg.plannerCard.employeeNames.length : 0}):
                     </p>
                     <div className="mt-1 flex flex-wrap gap-1.5">
                       {Array.isArray(msg.plannerCard.employeeNames) && msg.plannerCard.employeeNames.length > 0 ? (
@@ -7026,7 +7040,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                           </span>
                         ))
                       ) : (
-                        <span className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>Nincs aktiv dolgozo a listaban.</span>
+                        <span className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{market === 'de' ? 'Keine aktive Person in der Liste.' : 'Nincs aktív dolgozó a listában.'}</span>
                       )}
                     </div>
                     <div className="mt-3 grid grid-cols-2 gap-2">
@@ -9920,10 +9934,10 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                 <div className={`flex items-start gap-3 rounded-2xl border px-4 py-3 ${darkMode ? 'border-amber-700 bg-amber-900/20' : 'border-amber-300 bg-amber-50'}`}>
                   <AlertTriangle className={`flex-shrink-0 mt-0.5 h-5 w-5 ${darkMode ? 'text-amber-400' : 'text-amber-600'}`} />
                   <div className="flex-1">
-                    <p className={`text-sm font-semibold ${darkMode ? 'text-amber-300' : 'text-amber-800'}`}>Az alap adataid hiányoznak</p>
-                    <p className={`text-xs mt-0.5 ${darkMode ? 'text-amber-400/80' : 'text-amber-700/80'}`}>A szabadságnapok kiszámításához és a beosztás-tervező teljes funkcionalitásához add meg az adataidat.</p>
+                    <p className={`text-sm font-semibold ${darkMode ? 'text-amber-300' : 'text-amber-800'}`}>{market === 'de' ? 'Deine Basisdaten fehlen' : 'Az alap adataid hiányoznak'}</p>
+                    <p className={`text-xs mt-0.5 ${darkMode ? 'text-amber-400/80' : 'text-amber-700/80'}`}>{market === 'de' ? 'Fuer die Berechnung der Urlaubstage und die volle Dienstplan-Funktion gib bitte deine Daten an.' : 'A szabadságnapok kiszámításához és a beosztás-tervező teljes funkcionalitásához add meg az adataidat.'}</p>
                   </div>
-                  <button type="button" onClick={() => { setMainTab('preferences'); setShowProfileForm(true); }} className="flex-shrink-0 rounded-xl bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-600">Megadom</button>
+                  <button type="button" onClick={() => { setMainTab('preferences'); setShowProfileForm(true); }} className="flex-shrink-0 rounded-xl bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-600">{market === 'de' ? 'Jetzt angeben' : 'Megadom'}</button>
                 </div>
               )}
               {employeeProfile?.birthDate && (
