@@ -8,6 +8,7 @@ import PharmaNavbar from '@/app/components/PharmaNavbar';
 import { useBadges } from '@/context/BadgesContext';
 import { canAccessScheduleManager } from '@/lib/pharmagisterFeatures';
 import { getEffectivePharmagisterRole, hasPharmagisterProfileData, normalizePharmagisterRole } from '@/lib/pharmagisterProfile';
+import { getClientMarket, t } from '@/lib/marketI18n';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
@@ -22,6 +23,7 @@ function PharmagisterContent() {
   const [showScheduleDisclaimer, setShowScheduleDisclaimer] = useState(false);
   const [acceptingScheduleDisclaimer, setAcceptingScheduleDisclaimer] = useState(false);
   const [scheduleDisclaimerAcceptedLocal, setScheduleDisclaimerAcceptedLocal] = useState(false);
+  const market = getClientMarket();
   
   // ✅ Használjuk a közös badges hook-ot a duplikált listener helyett
   const { badges } = useBadges();
@@ -187,7 +189,7 @@ function PharmagisterContent() {
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
-                főoldal
+                {t('homeLowercase', market)}
               </button>
               <h1 className="absolute left-1/2 -translate-x-1/2 text-lg sm:text-xl font-bold flex items-center gap-1 flex-shrink-0">
                 <span className="text-green-600 text-lg sm:text-xl">Pharmagister</span>
@@ -224,9 +226,9 @@ function PharmagisterContent() {
           {!pharmaRole && userData?.status !== 'pending_validation' && (
             <div className="space-y-4">
               <div className="mb-6">
-                <h2 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'} mb-2`}>Válaszd ki a szerepköröd:</h2>
+                <h2 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'} mb-2`}>{t('chooseRole', market)}</h2>
                 <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-[#6B7280]'}`}>
-                  Kösd össze a gyógyszertárakat a helyettesítőkkel
+                  {t('connectRoles', market)}
                 </p>
               </div>
 
@@ -301,9 +303,9 @@ function PharmagisterContent() {
                   <div className="flex items-start gap-3">
                     <span className="text-2xl">⏳</span>
                     <div>
-                      <h3 className={`font-semibold ${darkMode ? 'text-yellow-300' : 'text-yellow-800'}`}>Profil hiányos</h3>
+                      <h3 className={`font-semibold ${darkMode ? 'text-yellow-300' : 'text-yellow-800'}`}>{t('profileIncomplete', market)}</h3>
                       <p className={`text-sm ${darkMode ? 'text-yellow-400' : 'text-yellow-700'} mt-1`}>
-                        Kérlek töltsd ki a profilodat a beállításokban, hogy használhasd a Pharmagister funkcióit.
+                        {t('profileIncompleteDesc', market)}
                       </p>
                     </div>
                   </div>
@@ -369,7 +371,7 @@ function PharmagisterContent() {
                 disabled={acceptingScheduleDisclaimer}
                 className={`px-4 py-2 rounded-lg border text-sm ${darkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-800' : 'border-gray-300 text-gray-700 hover:bg-gray-50'} disabled:opacity-60`}
               >
-                Nem fogadom el
+                {t('decline', market)}
               </button>
               <button
                 type="button"
@@ -377,7 +379,7 @@ function PharmagisterContent() {
                 disabled={acceptingScheduleDisclaimer}
                 className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700 disabled:opacity-60"
               >
-                {acceptingScheduleDisclaimer ? 'Mentés...' : 'Elfogadom és folytatom'}
+                {acceptingScheduleDisclaimer ? t('loadingSave', market) : t('acceptAndContinue', market)}
               </button>
             </div>
           </div>
@@ -418,12 +420,13 @@ function ScheduleManagerTab({ pharmaRole }) {
 
 // Wrapper with Suspense boundary
 export default function PharmagisterPage() {
+  const market = getClientMarket();
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-[#F9FAFB] dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#6B46C1] mx-auto mb-4"></div>
-          <p className="text-[#6B7280] dark:text-gray-400">Betöltés...</p>
+          <p className="text-[#6B7280] dark:text-gray-400">{t('loading', market)}</p>
         </div>
       </div>
     }>

@@ -4,6 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { Bell, Menu, Home } from 'lucide-react';
 import { useBadges } from '@/context/BadgesContext';
+import { getClientMarket, t } from '@/lib/marketI18n';
 
 export default function ChatBottomNavigation({ isVisible = true, onMenuOpen }) {
   const router = useRouter();
@@ -11,17 +12,18 @@ export default function ChatBottomNavigation({ isVisible = true, onMenuOpen }) {
   const { user, userData } = useAuth();
   const { badges } = useBadges();
   const { darkMode } = useTheme();
+  const market = getClientMarket();
 
   const navItems = [
     {
       icon: Home,
-      label: 'Főoldal',
+      label: t('navHome', market),
       path: '/',
       onClick: () => router.push('/')
     },
     {
       icon: Bell,
-      label: 'Értesítések',
+      label: t('navNotifications', market),
       path: '/notifications',
       badge: badges.notifications,
       onClick: () => router.push('/notifications')

@@ -6,6 +6,7 @@ import { useEffect, useState, useRef } from "react";
 import { collection, query, where, getDocs, doc, updateDoc, orderBy, deleteDoc, writeBatch } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import RouteGuard from "@/app/components/RouteGuard";
+import { getClientMarket, t } from '@/lib/marketI18n';
 
 const SCHEDULE_SWAP_NOTIFICATION_TYPES = new Set([
   'schedule_swap_request',
@@ -43,6 +44,7 @@ export default function NotificationsPage() {
   const { user } = useAuth();
   const { refreshBadges } = useBadges();
   const router = useRouter();
+  const market = getClientMarket();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const isLoadingRef = useRef(false); // Védi a dupla lekérdezéseket
@@ -242,26 +244,26 @@ export default function NotificationsPage() {
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
-              Vissza
+              {t('back', market)}
             </button>
-            <h1 className="text-3xl font-bold">Értesítések</h1>
+            <h1 className="text-3xl font-bold">{t('notificationsTitle', market)}</h1>
             <p className="text-gray-600 mt-2">
               {notifications.length > 0 
-                ? `${notifications.length} értesítésed van`
-                : 'Nincs értesítésed'}
+                ? `${notifications.length} ${t('notificationsCountSuffix', market)}`
+                : t('notificationsNone', market)}
             </p>
           </div>
 
           {/* Notifications list */}
           {loading ? (
             <div className="bg-white rounded-xl shadow-lg p-8 text-center">
-              <div className="text-gray-500">Betöltés...</div>
+              <div className="text-gray-500">{t('loading', market)}</div>
             </div>
           ) : notifications.length === 0 ? (
             <div className="bg-white rounded-xl shadow-lg p-8 text-center">
               <div className="text-6xl mb-4">📭</div>
-              <h2 className="text-xl font-semibold text-gray-700 mb-2">Nincs értesítésed</h2>
-              <p className="text-gray-500">Az új értesítések itt fognak megjelenni</p>
+              <h2 className="text-xl font-semibold text-gray-700 mb-2">{t('notificationsNone', market)}</h2>
+              <p className="text-gray-500">{t('notificationsNoneDesc', market)}</p>
             </div>
           ) : (
             <div className="space-y-4 pb-24">
@@ -284,14 +286,14 @@ export default function NotificationsPage() {
                         <h3 className="font-bold text-lg">{notification.title}</h3>
                         {!notification.read && (
                           <span className="bg-purple-600 text-white text-xs px-2 py-0.5 rounded-full font-medium">
-                            Új
+                            {t('new', market)}
                           </span>
                         )}
                       </div>
                       <p className="text-gray-700 mb-3">{notification.message || notification.body}</p>
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-gray-500">
-                          {notification.createdAt?.toLocaleString('hu-HU')}
+                          {notification.createdAt?.toLocaleString(market === 'de' ? 'de-DE' : 'hu-HU')}
                         </span>
                         <button
                           onClick={(e) => {
@@ -300,7 +302,7 @@ export default function NotificationsPage() {
                           }}
                           className="text-sm text-red-600 hover:text-red-800 font-medium px-3 py-1 rounded-lg hover:bg-red-50 transition-colors"
                         >
-                          Törlés
+                          {t('delete', market)}
                         </button>
                       </div>
                     </div>

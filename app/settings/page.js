@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+import { getClientMarket, t } from '@/lib/marketI18n';
 
 // Admin és Adminka szerepkörök
 const ADMIN_EMAILS = ['epresla@icloud.com'];
@@ -34,6 +35,7 @@ export default function SettingsPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteStep, setDeleteStep] = useState(0); // 0: initial, 1: confirming, 2: deleting, 3: done
   const [deleteError, setDeleteError] = useState('');
+  const market = getClientMarket();
 
   useEffect(() => {
     if (!loading && !user) {
@@ -93,25 +95,25 @@ export default function SettingsPage() {
 
   const settingsSections = [
     {
-      title: 'Fiók',
+      title: t('accountSection', market),
       items: [
         {
           icon: User,
-          label: 'Profil szerkesztése',
+          label: t('profileEdit', market),
           onClick: () => router.push('/pharmagister/setup?edit=true'),
           color: 'text-purple-600',
           bgColor: darkMode ? 'bg-purple-900/30' : 'bg-purple-100'
         },
         {
           icon: Lock,
-          label: 'Jelszó módosítása',
+          label: t('changePassword', market),
           onClick: () => router.push('/settings/password'),
           color: 'text-blue-600',
           bgColor: darkMode ? 'bg-blue-900/30' : 'bg-blue-100'
         },
         {
           icon: Trash2,
-          label: 'Fiók törlése',
+          label: t('deleteAccount', market),
           onClick: () => { setShowDeleteConfirm(true); setDeleteStep(0); setDeleteError(''); },
           color: 'text-red-600',
           bgColor: darkMode ? 'bg-red-900/30' : 'bg-red-100'
@@ -119,25 +121,25 @@ export default function SettingsPage() {
       ]
     },
     {
-      title: 'Alkalmazás',
+      title: t('appSection', market),
       items: [
         {
           icon: Languages,
-          label: 'Piac es nyelv (HU/DE)',
+          label: t('marketLanguage', market),
           onClick: () => router.push('/settings/market'),
           color: 'text-emerald-600',
           bgColor: darkMode ? 'bg-emerald-900/30' : 'bg-emerald-100'
         },
         {
           icon: Bell,
-          label: 'Értesítések',
+          label: t('notificationsSettings', market),
           onClick: () => router.push('/settings/notifications'),
           color: 'text-orange-600',
           bgColor: 'bg-orange-100'
         },
         {
           icon: Newspaper,
-          label: 'Hírfolyam beállítások',
+          label: t('feedSettings', market),
           onClick: () => router.push('/settings/feed'),
           color: 'text-purple-600',
           bgColor: darkMode ? 'bg-purple-900/30' : 'bg-purple-100'
@@ -145,39 +147,39 @@ export default function SettingsPage() {
       ]
     },
     {
-      title: 'Támogatás',
+      title: t('supportSection', market),
       items: [
         {
           icon: HelpCircle,
-          label: 'Súgó',
+          label: t('help', market),
           onClick: () => router.push('/help'),
           color: 'text-teal-600',
           bgColor: darkMode ? 'bg-teal-900/30' : 'bg-teal-100'
         },
         {
           icon: HelpCircle,
-          label: 'Támogatás / Support',
+          label: t('supportLabel', market),
           onClick: () => router.push('/support'),
           color: 'text-indigo-600',
           bgColor: darkMode ? 'bg-indigo-900/30' : 'bg-indigo-100'
         },
         {
           icon: Shield,
-          label: 'Adatvédelmi beállítások',
+          label: t('privacySettings', market),
           onClick: () => router.push('/privacy'),
           color: 'text-gray-600',
           bgColor: darkMode ? 'bg-gray-700' : 'bg-gray-100'
         },
         {
           icon: Shield,
-          label: 'Adatvédelmi irányelvek / Privacy Policy',
+          label: t('privacyPolicy', market),
           onClick: () => router.push('/privacy-policy'),
           color: 'text-blue-600',
           bgColor: darkMode ? 'bg-blue-900/30' : 'bg-blue-100'
         },
         {
           icon: ShieldCheck,
-          label: 'Child Safety Policy',
+          label: t('childSafetyPolicy', market),
           onClick: () => router.push('/child-safety'),
           color: 'text-green-600',
           bgColor: darkMode ? 'bg-green-900/30' : 'bg-green-100'
@@ -189,7 +191,7 @@ export default function SettingsPage() {
   // Admin menüpont hozzáadása ha admin user
   if (user && ADMIN_EMAILS.includes(user.email)) {
     settingsSections.push({
-      title: 'Adminisztráció',
+      title: t('adminSection', market),
       items: [
         {
           icon: SettingsIcon,
@@ -205,7 +207,7 @@ export default function SettingsPage() {
   // Adminka menüpont hozzáadása ha adminka user
   if (user && ADMINKA_EMAILS.includes(user.email)) {
     settingsSections.push({
-      title: 'Adminisztráció',
+      title: t('adminSection', market),
       items: [
         {
           icon: SettingsIcon,
@@ -229,7 +231,7 @@ export default function SettingsPage() {
           >
             <ArrowLeft className={`w-5 h-5 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`} />
           </button>
-          <h1 className={`text-lg font-semibold ml-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Beállítások</h1>
+          <h1 className={`text-lg font-semibold ml-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('settingsTitle', market)}</h1>
         </div>
       </div>
 
@@ -304,7 +306,7 @@ export default function SettingsPage() {
           <div className={`p-2 rounded-lg ${darkMode ? 'bg-blue-900/30' : 'bg-blue-100'}`}>
             <User className="w-5 h-5 text-blue-600" />
           </div>
-          <span className={`flex-1 text-left font-medium ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>Fiók hozzáadása</span>
+          <span className={`flex-1 text-left font-medium ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>{t('addAccount', market)}</span>
           <ChevronRight className={`w-5 h-5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`} />
         </button>
 
@@ -316,7 +318,7 @@ export default function SettingsPage() {
           <div className={`p-2 rounded-lg ${darkMode ? 'bg-red-900/30' : 'bg-red-100'}`}>
             <Trash2 className="w-5 h-5 text-red-600" />
           </div>
-          <span className="flex-1 text-left text-red-600 font-medium">Fiók törlése</span>
+          <span className="flex-1 text-left text-red-600 font-medium">{t('deleteAccount', market)}</span>
           <ChevronRight className={`w-5 h-5 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`} />
         </button>
 
@@ -328,7 +330,7 @@ export default function SettingsPage() {
           <div className={`p-2 rounded-lg ${darkMode ? 'bg-red-900/30' : 'bg-red-100'}`}>
             <LogOut className="w-5 h-5 text-red-600" />
           </div>
-          <span className="flex-1 text-left text-red-600 font-medium">Kijelentkezés</span>
+          <span className="flex-1 text-left text-red-600 font-medium">{t('logout', market)}</span>
         </button>
       </div>
 
@@ -341,20 +343,20 @@ export default function SettingsPage() {
       {showLogoutConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6 max-w-sm w-full`}>
-            <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'} mb-2`}>Kijelentkezés</h3>
-            <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-6`}>Biztosan ki szeretnél jelentkezni?</p>
+            <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'} mb-2`}>{t('logout', market)}</h3>
+            <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'} mb-6`}>{t('logoutConfirmQuestion', market)}</p>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowLogoutConfirm(false)}
                 className={`flex-1 px-4 py-2 border ${darkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'} rounded-lg transition-colors`}
               >
-                Mégse
+                {t('cancel', market)}
               </button>
               <button
                 onClick={handleLogout}
                 className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
               >
-                Kijelentkezés
+                {t('logout', market)}
               </button>
             </div>
           </div>
@@ -371,8 +373,8 @@ export default function SettingsPage() {
                   <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
                     <Trash2 className="w-6 h-6 text-green-600" />
                   </div>
-                  <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'} mb-2`}>Fiók törölve</h3>
-                  <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>A fiókod és minden adatod véglegesen törölve lett. Átirányítás...</p>
+                  <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'} mb-2`}>{t('deleteDoneTitle', market)}</h3>
+                  <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{t('deleteDoneText', market)}</p>
                 </div>
               </>
             ) : (
@@ -381,7 +383,7 @@ export default function SettingsPage() {
                   <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
                     <Trash2 className="w-5 h-5 text-red-600" />
                   </div>
-                  <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Fiók törlése</h3>
+                  <h3 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('deleteAccount', market)}</h3>
                 </div>
                 
                 {deleteStep === 0 && (
@@ -400,13 +402,13 @@ export default function SettingsPage() {
                         onClick={() => setShowDeleteConfirm(false)}
                         className={`flex-1 px-4 py-2 border ${darkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'} rounded-lg transition-colors`}
                       >
-                        Mégse
+                        {t('cancel', market)}
                       </button>
                       <button
                         onClick={() => setDeleteStep(1)}
                         className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
                       >
-                        Tovább
+                        {t('continue', market)}
                       </button>
                     </div>
                   </>
@@ -427,7 +429,7 @@ export default function SettingsPage() {
                         onClick={() => { setShowDeleteConfirm(false); setDeleteStep(0); }}
                         className={`flex-1 px-4 py-2 border ${darkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'} rounded-lg transition-colors`}
                       >
-                        Mégse
+                        {t('cancel', market)}
                       </button>
                       <button
                         onClick={handleDeleteAccount}
@@ -442,7 +444,7 @@ export default function SettingsPage() {
                 {deleteStep === 2 && (
                   <div className="text-center py-4">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-3"></div>
-                    <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>Fiók törlése folyamatban...</p>
+                    <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{t('deleteInProgress', market)}</p>
                   </div>
                 )}
               </>
