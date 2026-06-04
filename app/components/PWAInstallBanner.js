@@ -3,9 +3,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { X, Download, Smartphone } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
+import { getClientMarket } from '@/lib/marketI18n';
 
 export default function PWAInstallBanner() {
   const pathname = usePathname();
+  const market = getClientMarket();
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showBanner, setShowBanner] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
@@ -123,24 +125,24 @@ export default function PWAInstallBanner() {
           {/* Tartalom */}
           <div className="flex-1 pr-6">
             <h3 className="text-white font-bold text-lg mb-1">
-              Telepítsd az alkalmazást!
+              {market === 'de' ? 'Installiere die App!' : 'Telepítsd az alkalmazást!'}
             </h3>
             <p className="text-white/90 text-sm mb-3">
               {isIOS 
-                ? 'Gyors hozzáférés a kezdőképernyőről, értesítések és offline működés.'
-                : 'Egyetlen kattintás és eléred a kezdőképernyőről!'
+                ? (market === 'de' ? 'Schneller Zugriff vom Homescreen, Benachrichtigungen und Offline-Nutzung.' : 'Gyors hozzáférés a kezdőképernyőről, értesítések és offline működés.')
+                : (market === 'de' ? 'Ein Klick und du erreichst sie direkt vom Homescreen!' : 'Egyetlen kattintás és eléred a kezdőképernyőről!')
               }
             </p>
 
             {isIOS ? (
               // iOS utasítások
               <div className="bg-white/20 rounded-lg p-3">
-                <p className="text-white text-xs font-medium mb-2">📱 Telepítés iOS Safari-ban:</p>
+                <p className="text-white text-xs font-medium mb-2">{market === 'de' ? '📱 Installation in iOS Safari:' : '📱 Telepítés iOS Safari-ban:'}</p>
                 <ol className="text-white/90 text-xs space-y-1">
-                  <li>1. Koppints a <span className="font-bold">⋯ három pontra</span> alul</li>
-                  <li>2. Válaszd a <span className="font-bold">Megosztás</span> opciót</li>
-                  <li>3. Görgess és koppints a <span className="font-bold">Továbbiak</span> gombra</li>
-                  <li>4. Válaszd a <span className="font-bold">"Főképernyőhöz adás"</span> lehetőséget</li>
+                  <li>{market === 'de' ? '1. Tippe unten auf die' : '1. Koppints a'} <span className="font-bold">⋯ {market === 'de' ? 'drei Punkte' : 'három pontra'}</span> {market === 'de' ? '' : 'alul'}</li>
+                  <li>{market === 'de' ? '2. Waehle' : '2. Válaszd a'} <span className="font-bold">{market === 'de' ? 'Teilen' : 'Megosztás'}</span> {market === 'de' ? '' : 'opciót'}</li>
+                  <li>{market === 'de' ? '3. Scrolle und tippe auf' : '3. Görgess és koppints a'} <span className="font-bold">{market === 'de' ? 'Mehr' : 'Továbbiak'}</span> {market === 'de' ? '' : 'gombra'}</li>
+                  <li>{market === 'de' ? '4. Waehle die Option' : '4. Válaszd a'} <span className="font-bold">{market === 'de' ? '"Zum Home-Bildschirm"' : '"Főképernyőhöz adás"'}</span></li>
                 </ol>
               </div>
             ) : (
@@ -150,7 +152,7 @@ export default function PWAInstallBanner() {
                 className="w-full bg-white text-green-600 font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 hover:bg-green-50 transition-colors shadow-lg"
               >
                 <Download className="w-5 h-5" />
-                Telepítés most
+                {market === 'de' ? 'Jetzt installieren' : 'Telepítés most'}
               </button>
             )}
           </div>

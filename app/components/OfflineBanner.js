@@ -1,8 +1,10 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { WifiOff } from 'lucide-react';
+import { getClientMarket } from '@/lib/marketI18n';
 
 export default function OfflineBanner() {
+  const market = getClientMarket();
   const [isOnline, setIsOnline] = useState(true);
   const [showBanner, setShowBanner] = useState(false);
   const [justCameBack, setJustCameBack] = useState(false);
@@ -51,12 +53,12 @@ export default function OfflineBanner() {
       {justCameBack ? (
         <>
           <span>✓</span>
-          <span>Újra online</span>
+          <span>{market === 'de' ? 'Wieder online' : 'Újra online'}</span>
         </>
       ) : (
         <>
           <WifiOff size={16} />
-          <span>Nincs internetkapcsolat</span>
+          <span>{market === 'de' ? 'Keine Internetverbindung' : 'Nincs internetkapcsolat'}</span>
         </>
       )}
     </div>

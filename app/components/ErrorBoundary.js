@@ -1,5 +1,6 @@
 "use client";
 import React from 'react';
+import { getClientMarket } from '@/lib/marketI18n';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -21,6 +22,7 @@ class ErrorBoundary extends React.Component {
   };
 
   render() {
+    const market = typeof window === 'undefined' ? 'hu' : getClientMarket();
     if (this.state.hasError) {
       return (
         <div style={{
@@ -41,10 +43,12 @@ class ErrorBoundary extends React.Component {
           }}>
             <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⚠️</div>
             <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#111827', marginBottom: '0.5rem' }}>
-              Hiba történt
+              {market === 'de' ? 'Ein Fehler ist aufgetreten' : 'Hiba történt'}
             </h2>
             <p style={{ color: '#6b7280', marginBottom: '1.5rem', fontSize: '0.875rem' }}>
-              Az alkalmazás váratlan hibába ütközött. Kérjük próbálja újra.
+              {market === 'de'
+                ? 'Die Anwendung ist auf einen unerwarteten Fehler gestossen. Bitte versuche es erneut.'
+                : 'Az alkalmazás váratlan hibába ütközött. Kérjük próbálja újra.'}
             </p>
             <button
               onClick={this.handleReload}
@@ -59,7 +63,7 @@ class ErrorBoundary extends React.Component {
                 cursor: 'pointer'
               }}
             >
-              Újratöltés
+              {market === 'de' ? 'Neu laden' : 'Újratöltés'}
             </button>
           </div>
         </div>
