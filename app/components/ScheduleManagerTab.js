@@ -3179,7 +3179,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         setStatusError('');
         setAwaitingPharmacyAssignment(true);
       } else {
-        setStatusError('Hiba történt az adatok betöltésekor.');
+        setStatusError(market === 'de' ? 'Fehler beim Laden der Daten.' : 'Hiba történt az adatok betöltésekor.');
       }
     } finally {
       setLoading(false);
@@ -5042,7 +5042,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
   async function handleSavePreferences() {
     if (ownEmployeeRecords.length === 0) {
-      setStatusError('Ehhez a fiókhoz nincs kapcsolt dolgozói rekord.');
+      setStatusError(market === 'de' ? 'Zu diesem Konto ist kein Mitarbeiterdatensatz verknuepft.' : 'Ehhez a fiókhoz nincs kapcsolt dolgozói rekord.');
       return;
     }
     setPreferencesSaving(true);
@@ -5064,11 +5064,15 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       for (const rec of ownEmployeeRecords) {
         await updateDoc(doc(db, 'pharmacyEmployees', rec.id), payload);
       }
-      setStatusMessage('Preferenciák mentve. A következő automatikus tervezésnél figyelembe lesznek véve.');
+      setStatusMessage(
+        market === 'de'
+          ? 'Praeferenzen gespeichert. Sie werden bei der naechsten automatischen Planung beruecksichtigt.'
+          : 'Preferenciák mentve. A következő automatikus tervezésnél figyelembe lesznek véve.'
+      );
       await loadData();
     } catch (error) {
       console.error('Save preferences error:', error);
-      setStatusError('Nem sikerült menteni a preferenciákat.');
+      setStatusError(market === 'de' ? 'Praeferenzen konnten nicht gespeichert werden.' : 'Nem sikerült menteni a preferenciákat.');
     } finally {
       setPreferencesSaving(false);
     }
@@ -5114,11 +5118,11 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       setPlannerConfigForm(normalized);
       setPlannerLastSavedJson(JSON.stringify(normalized));
       setPlannerDraftSavedAt(new Date());
-      setStatusMessage('Tervezési szabályok mentve.');
+      setStatusMessage(market === 'de' ? 'Planungsregeln gespeichert.' : 'Tervezési szabályok mentve.');
       return true;
     } catch (error) {
       console.error('Save planner config error:', error);
-      setStatusError('Nem sikerült menteni a tervezési szabályokat.');
+      setStatusError(market === 'de' ? 'Planungsregeln konnten nicht gespeichert werden.' : 'Nem sikerült menteni a tervezési szabályokat.');
       return false;
     } finally {
       setPlannerConfigSaving(false);
@@ -5126,7 +5130,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
   }
 
   async function runAutoPlanner({ action = 'plan', sickEmployeeId = null, affectedDates = [] } = {}) {
-    if (!user) return { success: false, error: 'Nincs bejelentkezett felhasznalo.' };
+    if (!user) return { success: false, error: market === 'de' ? 'Kein angemeldeter Benutzer.' : 'Nincs bejelentkezett felhasznalo.' };
     setPlannerLoading(true);
     setStatusError('');
     setStatusMessage('');
@@ -5155,15 +5159,18 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
       const result = await response.json();
       if (!response.ok || !result?.success) {
-        throw new Error(result?.error || 'Automatikus tervezési hiba történt.');
+        throw new Error(result?.error || (market === 'de' ? 'Fehler bei der automatischen Planung.' : 'Automatikus tervezési hiba történt.'));
       }
 
       setPlannerResult(result);
       return { success: true, result };
     } catch (error) {
       console.error('Auto planner error:', error);
-      setStatusError(error.message || 'Nem sikerült lefuttatni az automatikus tervezést.');
-      return { success: false, error: error.message || 'Nem sikerült lefuttatni az automatikus tervezést.' };
+      setStatusError(error.message || (market === 'de' ? 'Automatische Planung konnte nicht ausgefuehrt werden.' : 'Nem sikerült lefuttatni az automatikus tervezést.'));
+      return {
+        success: false,
+        error: error.message || (market === 'de' ? 'Automatische Planung konnte nicht ausgefuehrt werden.' : 'Nem sikerült lefuttatni az automatikus tervezést.'),
+      };
     } finally {
       setPlannerLoading(false);
     }
@@ -7133,10 +7140,25 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
   function getBettiPresetQuestions() {
     if (isPharmacy || showCriteriaPage) {
+      if (market === 'de') {
+        return [
+          'Zeig mir die Ueberstunden',
+          'Plane nur den Montag neu',
+          'Wer koennte die morgige Spaetschicht uebernehmen?',
+        ];
+      }
       return [
         'Mutasd a tulorasokat',
         'Tervezd ujra csak a hetfot',
         'Ki tudna atvenni a holnapi estet?',
+      ];
+    }
+    if (market === 'de') {
+      return [
+        'Wann arbeite ich?',
+        'Wann bin ich im Urlaub?',
+        'Wann habe ich frei?',
+        'Ich moechte meinen Plan eintragen',
       ];
     }
     return [
@@ -7367,7 +7389,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       await loadData();
     } catch (err) {
       console.error('handleLockPreference error:', err);
-      setStatusError('Nem sikerült rögzíteni a kérést.');
+      setStatusError(market === 'de' ? 'Anfrage konnte nicht gespeichert werden.' : 'Nem sikerült rögzíteni a kérést.');
     } finally {
       setLockingPrefId(null);
     }
