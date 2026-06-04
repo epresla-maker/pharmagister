@@ -1576,7 +1576,7 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonCli
                 }`}
               >
                 <Flag className="w-4 h-4" />
-                Jelentés
+                {market === 'de' ? 'Melden' : 'Jelentés'}
               </button>
               {(isAdmin || post.userId === user?.uid) && (
                 <button
@@ -1586,7 +1586,7 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonCli
                   }`}
                 >
                   <Pencil className="w-4 h-4" />
-                  Szerkesztés
+                  {market === 'de' ? 'Bearbeiten' : 'Szerkesztés'}
                 </button>
               )}
               {(isAdmin || post.userId === user?.uid) && (
@@ -1595,7 +1595,7 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonCli
                   className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                 >
                   <Trash2 className="w-4 h-4" />
-                  Törlés
+                  {market === 'de' ? 'Loeschen' : 'Törlés'}
                 </button>
               )}
             </div>

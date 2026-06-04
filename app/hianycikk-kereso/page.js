@@ -34,11 +34,13 @@ import {
   HelpCircle,
   X
 } from 'lucide-react';
+import { getClientMarket, t } from '@/lib/marketI18n';
 
 // ============================================
 // KERESEK TAB - Search for shortage items
 // ============================================
 function KeresekTab({ darkMode }) {
+  const market = getClientMarket();
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedTerm, setDebouncedTerm] = useState('');
   const [results, setResults] = useState([]);
@@ -95,7 +97,7 @@ function KeresekTab({ darkMode }) {
       });
       setResults(items);
     } catch (error) {
-      console.error('Hiba a keresés során:', error);
+      console.error(market === 'de' ? 'Fehler bei der Suche:' : 'Hiba a keresés során:', error);
       setResults([]);
     } finally {
       setLoading(false);
@@ -129,7 +131,7 @@ function KeresekTab({ darkMode }) {
           type="text"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Gyógyszer neve..."
+          placeholder={market === 'de' ? 'Arzneimittelname...' : 'Gyógyszer neve...'}
           className={`w-full pl-10 pr-4 py-3 rounded-xl border transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
             darkMode
               ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-500'
@@ -143,7 +145,7 @@ function KeresekTab({ darkMode }) {
               darkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-400 hover:bg-gray-100'
             }`}
           >
-            Törlés
+            {t('delete', market)}
           </button>
         )}
       </div>
@@ -162,7 +164,7 @@ function KeresekTab({ darkMode }) {
         }`}>
           <Pill className={`w-10 h-10 mx-auto mb-3 ${darkMode ? 'text-gray-600' : 'text-gray-300'}`} />
           <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-            Jelenleg nincs aktív bejegyzés.
+            {market === 'de' ? 'Derzeit gibt es keine aktiven Eintraege.' : 'Jelenleg nincs aktív bejegyzés.'}
           </p>
         </div>
       )}
@@ -224,14 +226,14 @@ function KeresekTab({ darkMode }) {
                       className="ml-1 px-2.5 py-1 text-xs font-medium rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 transition-all flex items-center gap-1"
                     >
                       <Phone className="w-3 h-3" />
-                      Hívás
+                      {market === 'de' ? 'Anrufen' : 'Hívás'}
                     </a>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock className={`w-4 h-4 flex-shrink-0 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`} />
                   <span className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                    Feladva: {formatDate(item.createdAt)}
+                    {market === 'de' ? 'Eingereicht:' : 'Feladva:'} {formatDate(item.createdAt)}
                   </span>
                 </div>
               </div>
@@ -247,6 +249,7 @@ function KeresekTab({ darkMode }) {
 // ELERHETO NALUNK TAB - Post new shortage item
 // ============================================
 function ElerhetoNalunkTab({ darkMode, user, onSuccess }) {
+  const market = getClientMarket();
   const { showToast } = useToast();
   const [form, setForm] = useState({
     drugName: '',
@@ -281,7 +284,7 @@ function ElerhetoNalunkTab({ darkMode, user, onSuccess }) {
       });
       setMyItems(items);
     } catch (error) {
-      console.error('Saját bejegyzések betöltési hiba:', error);
+      console.error(market === 'de' ? 'Fehler beim Laden eigener Eintraege:' : 'Saját bejegyzések betöltési hiba:', error);
     } finally {
       setLoadingMyItems(false);
     }
@@ -296,10 +299,10 @@ function ElerhetoNalunkTab({ darkMode, user, onSuccess }) {
     try {
       await deleteDoc(doc(db, 'shortage_items', itemId));
       setMyItems((prev) => prev.filter((item) => item.id !== itemId));
-      showToast('Bejegyzés törölve!', 'success', 1500);
+      showToast(market === 'de' ? 'Eintrag geloescht!' : 'Bejegyzés törölve!', 'success', 1500);
     } catch (error) {
-      console.error('Törlési hiba:', error);
-      showToast('Hiba történt a törlés során.', 'error', 3000);
+      console.error(market === 'de' ? 'Loeschfehler:' : 'Törlési hiba:', error);
+      showToast(market === 'de' ? 'Beim Loeschen ist ein Fehler aufgetreten.' : 'Hiba történt a törlés során.', 'error', 3000);
     } finally {
       setDeletingId(null);
     }
@@ -330,7 +333,7 @@ function ElerhetoNalunkTab({ darkMode, user, onSuccess }) {
         }
       } catch (error) {
         // Silent – can't load previous data, user fills manually
-        console.error('Korábbi adatok betöltési hiba:', error);
+        console.error(market === 'de' ? 'Fehler beim Laden vorheriger Daten:' : 'Korábbi adatok betöltési hiba:', error);
       }
     };
 
@@ -339,10 +342,10 @@ function ElerhetoNalunkTab({ darkMode, user, onSuccess }) {
 
   const validate = () => {
     const newErrors = {};
-    if (!form.drugName.trim()) newErrors.drugName = 'Kötelező mező';
-    if (!form.pharmacyName.trim()) newErrors.pharmacyName = 'Kötelező mező';
-    if (!form.pharmacyAddress.trim()) newErrors.pharmacyAddress = 'Kötelező mező';
-    if (!form.pharmacyContact.trim()) newErrors.pharmacyContact = 'Kötelező mező';
+    if (!form.drugName.trim()) newErrors.drugName = market === 'de' ? 'Pflichtfeld' : 'Kötelező mező';
+    if (!form.pharmacyName.trim()) newErrors.pharmacyName = market === 'de' ? 'Pflichtfeld' : 'Kötelező mező';
+    if (!form.pharmacyAddress.trim()) newErrors.pharmacyAddress = market === 'de' ? 'Pflichtfeld' : 'Kötelező mező';
+    if (!form.pharmacyContact.trim()) newErrors.pharmacyContact = market === 'de' ? 'Pflichtfeld' : 'Kötelező mező';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -390,7 +393,7 @@ function ElerhetoNalunkTab({ darkMode, user, onSuccess }) {
       });
 
       if (activeDups.length > 0) {
-        showToast('Ez a gyógyszer már feladásra került ennél a patikánál.', 'error', 3000);
+        showToast(market === 'de' ? 'Dieses Arzneimittel wurde fuer diese Apotheke bereits gemeldet.' : 'Ez a gyógyszer már feladásra került ennél a patikánál.', 'error', 3000);
         setSubmitting(false);
         return;
       }
@@ -415,13 +418,13 @@ function ElerhetoNalunkTab({ darkMode, user, onSuccess }) {
 
       await addDoc(collection(db, 'shortage_items'), newDoc);
 
-      showToast('Bejegyzés sikeresen feladva!', 'success', 2000);
+      showToast(market === 'de' ? 'Eintrag erfolgreich erstellt!' : 'Bejegyzés sikeresen feladva!', 'success', 2000);
       setForm((f) => ({ ...f, drugName: '', quantity: '' }));
       loadMyItems();
       onSuccess();
     } catch (error) {
-      console.error('Hiba a feladás során:', error);
-      showToast('Hiba történt a feladás során. Próbáld újra.', 'error', 3000);
+      console.error(market === 'de' ? 'Fehler beim Absenden:' : 'Hiba a feladás során:', error);
+      showToast(market === 'de' ? 'Beim Absenden ist ein Fehler aufgetreten. Bitte versuche es erneut.' : 'Hiba történt a feladás során. Próbáld újra.', 'error', 3000);
     } finally {
       setSubmitting(false);
     }
@@ -453,7 +456,7 @@ function ElerhetoNalunkTab({ darkMode, user, onSuccess }) {
       {myItems.length > 0 && (
         <div>
           <h3 className={`text-sm font-semibold mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-            Saját aktív bejegyzéseid ({myItems.length})
+            {market === 'de' ? 'Deine aktiven Eintraege' : 'Saját aktív bejegyzéseid'} ({myItems.length})
           </h3>
           <div className="space-y-2">
             {myItems.map((item) => (
@@ -507,19 +510,19 @@ function ElerhetoNalunkTab({ darkMode, user, onSuccess }) {
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
         <h3 className={`text-sm font-semibold ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-          Új bejegyzés feladása
+          {market === 'de' ? 'Neuen Eintrag erstellen' : 'Új bejegyzés feladása'}
         </h3>
 
         {/* Drug Name */}
         <div>
           <label className={`block text-sm font-medium mb-1.5 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-            Gyógyszer neve <span className="text-red-500">*</span>
+            {market === 'de' ? 'Arzneimittelname' : 'Gyógyszer neve'} <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
             value={form.drugName}
             onChange={handleChange('drugName')}
-            placeholder="pl. Algoflex 400mg"
+            placeholder={market === 'de' ? 'z. B. Algoflex 400mg' : 'pl. Algoflex 400mg'}
             className={inputClass('drugName')}
           />
           {errors.drugName && (
@@ -532,13 +535,13 @@ function ElerhetoNalunkTab({ darkMode, user, onSuccess }) {
         {/* Quantity (optional) */}
         <div>
           <label className={`block text-sm font-medium mb-1.5 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-            Elérhető mennyiség <span className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>(opcionális)</span>
+            {market === 'de' ? 'Verfuegbare Menge' : 'Elérhető mennyiség'} <span className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{market === 'de' ? '(optional)' : '(opcionális)'}</span>
           </label>
           <input
             type="text"
             value={form.quantity}
             onChange={handleChange('quantity')}
-            placeholder="pl. 5 doboz, 20 db"
+            placeholder={market === 'de' ? 'z. B. 5 Packungen, 20 Stk' : 'pl. 5 doboz, 20 db'}
             className={inputClass('quantity')}
           />
         </div>
@@ -546,13 +549,13 @@ function ElerhetoNalunkTab({ darkMode, user, onSuccess }) {
       {/* Pharmacy Name */}
       <div>
         <label className={`block text-sm font-medium mb-1.5 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-          Patika neve <span className="text-red-500">*</span>
+          {market === 'de' ? 'Apothekenname' : 'Patika neve'} <span className="text-red-500">*</span>
         </label>
         <input
           type="text"
           value={form.pharmacyName}
           onChange={handleChange('pharmacyName')}
-          placeholder="pl. Galenus Gyógyszertár"
+          placeholder={market === 'de' ? 'z. B. Galenus Apotheke' : 'pl. Galenus Gyógyszertár'}
           className={inputClass('pharmacyName')}
         />
         {errors.pharmacyName && (
@@ -565,13 +568,13 @@ function ElerhetoNalunkTab({ darkMode, user, onSuccess }) {
       {/* Pharmacy Address */}
       <div>
         <label className={`block text-sm font-medium mb-1.5 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-          Patika címe <span className="text-red-500">*</span>
+          {market === 'de' ? 'Apothekenadresse' : 'Patika címe'} <span className="text-red-500">*</span>
         </label>
         <input
           type="text"
           value={form.pharmacyAddress}
           onChange={handleChange('pharmacyAddress')}
-          placeholder="pl. 1051 Budapest, Váci utca 10."
+          placeholder={market === 'de' ? 'z. B. 1051 Budapest, Vaci utca 10.' : 'pl. 1051 Budapest, Váci utca 10.'}
           className={inputClass('pharmacyAddress')}
         />
         {errors.pharmacyAddress && (
@@ -584,7 +587,7 @@ function ElerhetoNalunkTab({ darkMode, user, onSuccess }) {
       {/* Pharmacy Contact */}
       <div>
         <label className={`block text-sm font-medium mb-1.5 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-          Elérhetőség <span className="text-red-500">*</span>
+          {market === 'de' ? 'Kontakt' : 'Elérhetőség'} <span className="text-red-500">*</span>
         </label>
         <input
           type="text"
@@ -613,12 +616,12 @@ function ElerhetoNalunkTab({ darkMode, user, onSuccess }) {
         {submitting ? (
           <>
             <Loader2 className="w-5 h-5 animate-spin" />
-            Feladás...
+            {market === 'de' ? 'Wird gesendet...' : 'Feladás...'}
           </>
         ) : (
           <>
             <Plus className="w-5 h-5" />
-            Bejegyzés feladása
+            {market === 'de' ? 'Eintrag absenden' : 'Bejegyzés feladása'}
           </>
         )}
       </button>
@@ -635,6 +638,7 @@ export default function HianycikkKeresoPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
   const { darkMode } = useTheme();
+  const market = getClientMarket();
   const [activeTab, setActiveTab] = useState('keresek');
   const [showHowItWorks, setShowHowItWorks] = useState(false);
 
@@ -662,7 +666,7 @@ export default function HianycikkKeresoPage() {
             <ArrowLeft className={`w-5 h-5 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`} />
           </button>
           <h1 className={`text-lg font-semibold ml-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-            Hiánycikk kereső
+            {market === 'de' ? 'Arzneimittel-Engpasssuche' : 'Hiánycikk kereső'}
           </h1>
           <button
             onClick={() => setShowHowItWorks(!showHowItWorks)}
@@ -673,7 +677,7 @@ export default function HianycikkKeresoPage() {
             }`}
           >
             <HelpCircle className="w-3.5 h-3.5" />
-            Hogyan működik?
+            {market === 'de' ? 'Wie funktioniert das?' : 'Hogyan működik?'}
           </button>
         </div>
       </div>
@@ -695,9 +699,11 @@ export default function HianycikkKeresoPage() {
             <div className="flex gap-2">
               <HelpCircle className={`w-5 h-5 flex-shrink-0 mt-0.5 ${darkMode ? 'text-emerald-400' : 'text-emerald-600'}`} />
               <div>
-                <h3 className={`text-sm font-semibold mb-1 ${darkMode ? 'text-emerald-300' : 'text-emerald-800'}`}>Hogyan működik?</h3>
+                <h3 className={`text-sm font-semibold mb-1 ${darkMode ? 'text-emerald-300' : 'text-emerald-800'}`}>{market === 'de' ? 'Wie funktioniert das?' : 'Hogyan működik?'}</h3>
                 <p className={`text-xs leading-relaxed ${darkMode ? 'text-emerald-200/80' : 'text-emerald-700'}`}>
-                  Regisztrált felhasználók új tételt rögzíthetnek a köztudottan hiánycikknek számító termékekről, ezzel jelezhetik, ha az adott készítmény náluk elérhető.
+                  {market === 'de'
+                    ? 'Registrierte Nutzer koennen neue Eintraege zu bekannten Engpass-Produkten erfassen und damit anzeigen, dass das Praeparat bei ihnen verfuegbar ist.'
+                    : 'Regisztrált felhasználók új tételt rögzíthetnek a köztudottan hiánycikknek számító termékekről, ezzel jelezhetik, ha az adott készítmény náluk elérhető.'}
                 </p>
               </div>
             </div>
@@ -720,7 +726,7 @@ export default function HianycikkKeresoPage() {
           >
             <div className="flex items-center justify-center gap-1.5">
               <Search className="w-4 h-4" />
-              Keresek
+              {market === 'de' ? 'Ich suche' : 'Keresek'}
             </div>
             {activeTab === 'keresek' && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-600 rounded-full" />
@@ -744,7 +750,7 @@ export default function HianycikkKeresoPage() {
           >
             <div className="flex items-center justify-center gap-1.5">
               <Plus className="w-4 h-4" />
-              Elérhető nálunk
+              {market === 'de' ? 'Bei uns verfuegbar' : 'Elérhető nálunk'}
             </div>
             {activeTab === 'elerheto' && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-600 rounded-full" />
@@ -762,7 +768,9 @@ export default function HianycikkKeresoPage() {
             <div className="flex gap-2">
               <AlertCircle className={`w-4 h-4 flex-shrink-0 mt-0.5 ${darkMode ? 'text-amber-400' : 'text-amber-500'}`} />
               <p className={`text-xs leading-relaxed ${darkMode ? 'text-amber-200/80' : 'text-amber-700'}`}>
-                A Hiánycikk kereső kizárólag tájékoztató jellegű információmegosztást szolgál. Nem történik értékesítés vagy tranzakció. A Pharmagister nem vállal felelősséget a hiánycikkek elérhetőségéért. Indulás előtt mindenképpen vegye fel a kapcsolatot a gyógyszertárral a megadott elérhetőségek valamelyikén.
+                {market === 'de'
+                  ? 'Die Engpasssuche dient ausschliesslich dem informativen Austausch. Es findet kein Verkauf und keine Transaktion statt. Pharmagister uebernimmt keine Haftung fuer die Verfuegbarkeit. Bitte kontaktiere die Apotheke vorab ueber eine der angegebenen Kontaktmoeglichkeiten.'
+                  : 'A Hiánycikk kereső kizárólag tájékoztató jellegű információmegosztást szolgál. Nem történik értékesítés vagy tranzakció. A Pharmagister nem vállal felelősséget a hiánycikkek elérhetőségéért. Indulás előtt mindenképpen vegye fel a kapcsolatot a gyógyszertárral a megadott elérhetőségek valamelyikén.'}
               </p>
             </div>
           </div>
@@ -789,13 +797,13 @@ export default function HianycikkKeresoPage() {
           }`}>
             <AlertCircle className={`w-10 h-10 mx-auto mb-3 ${darkMode ? 'text-gray-600' : 'text-gray-300'}`} />
             <p className={`text-sm mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-              Bejelentkezés szükséges a bejegyzés feladásához.
+              {market === 'de' ? 'Zum Erstellen eines Eintrags ist eine Anmeldung erforderlich.' : 'Bejelentkezés szükséges a bejegyzés feladásához.'}
             </p>
             <button
               onClick={() => router.push('/login')}
               className="px-6 py-2 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-colors"
             >
-              Bejelentkezés
+              {market === 'de' ? 'Anmelden' : 'Bejelentkezés'}
             </button>
           </div>
         )}

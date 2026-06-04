@@ -24,6 +24,7 @@ import {
 } from "firebase/firestore";
 import ReportModal from "@/app/components/ReportModal";
 import BlockUserModal from "@/app/components/BlockUserModal";
+import { getClientMarket, t } from '@/lib/marketI18n';
 
 // --- Segédfüggvény az idő formázásához ---
 function formatChatTimestamp(date) {
@@ -89,7 +90,7 @@ async function fetchFriendData(friendIds) {
 // =================================================================
 // --- Megerősítő Modal a Törléshez ---
 // =================================================================
-function DeleteConfirmModal({ isOpen, onClose, onArchive, onDelete, onReport, onBlock, chatName, darkMode }) {
+function DeleteConfirmModal({ isOpen, onClose, onArchive, onDelete, onReport, onBlock, chatName, darkMode, market }) {
   if (!isOpen) return null;
   
   return (
@@ -99,10 +100,10 @@ function DeleteConfirmModal({ isOpen, onClose, onArchive, onDelete, onReport, on
         onClick={e => e.stopPropagation()}
       >
         <h3 className={`text-lg font-semibold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-          Beszélgetés törlése
+          {market === 'de' ? 'Chat entfernen' : 'Beszélgetés törlése'}
         </h3>
         <p className={`text-sm mb-6 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-          Mit szeretnél tenni a(z) <span className="font-medium">{chatName}</span> beszélgetéssel?
+          {market === 'de' ? 'Was moechtest du mit dem Chat' : 'Mit szeretnél tenni a(z)'} <span className="font-medium">{chatName}</span>{market === 'de' ? '?' : ' beszélgetéssel?'}
         </p>
         
         <div className="space-y-3">
@@ -117,7 +118,7 @@ function DeleteConfirmModal({ isOpen, onClose, onArchive, onDelete, onReport, on
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
               <path strokeLinecap="round" strokeLinejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" />
             </svg>
-            Lomtárba helyezés
+            {market === 'de' ? 'Archivieren' : 'Lomtárba helyezés'}
           </button>
           
           {/* Végleges törlés */}
@@ -131,7 +132,7 @@ function DeleteConfirmModal({ isOpen, onClose, onArchive, onDelete, onReport, on
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
               <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
             </svg>
-            Végleges törlés
+            {market === 'de' ? 'Endgueltig loeschen' : 'Végleges törlés'}
           </button>
           
           {/* Jelentés */}
@@ -145,7 +146,7 @@ function DeleteConfirmModal({ isOpen, onClose, onArchive, onDelete, onReport, on
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v1.5M3 21v-6m0 0 2.77-.693a9 9 0 0 1 6.208.682l.108.054a9 9 0 0 0 6.086.71l3.114-.732a48.524 48.524 0 0 1-.005-10.499l-3.11.732a9 9 0 0 1-6.085-.711l-.108-.054a9 9 0 0 0-6.208-.682L3 4.5M3 15V4.5" />
             </svg>
-            Felhasználó jelentése
+            {market === 'de' ? 'Benutzer melden' : 'Felhasználó jelentése'}
           </button>
           
           {/* Letiltás */}
@@ -159,7 +160,7 @@ function DeleteConfirmModal({ isOpen, onClose, onArchive, onDelete, onReport, on
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636" />
             </svg>
-            Felhasználó letiltása
+            {market === 'de' ? 'Benutzer blockieren' : 'Felhasználó letiltása'}
           </button>
           
           {/* Mégse */}
@@ -170,7 +171,7 @@ function DeleteConfirmModal({ isOpen, onClose, onArchive, onDelete, onReport, on
                 ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
           >
-            Mégse
+            {market === 'de' ? 'Abbrechen' : 'Mégse'}
           </button>
         </div>
       </div>
@@ -181,7 +182,7 @@ function DeleteConfirmModal({ isOpen, onClose, onArchive, onDelete, onReport, on
 // =================================================================
 // --- Chat Elem Komponens (törlés gombbal) ---
 // =================================================================
-function ChatItem({ chat, onArchive, onDelete, onNavigate, onReport, onBlock, isUnread, darkMode, demandInfo }) {
+function ChatItem({ chat, onArchive, onDelete, onNavigate, onReport, onBlock, isUnread, darkMode, demandInfo, market }) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   
   const handleDeleteClick = (e) => {
@@ -252,7 +253,7 @@ function ChatItem({ chat, onArchive, onDelete, onNavigate, onReport, onBlock, is
                 ? 'text-gray-500 hover:text-red-400 hover:bg-gray-800' 
                 : 'text-gray-400 hover:text-red-500 hover:bg-gray-100'
             }`}
-            title="Beszélgetés törlése"
+            title={market === 'de' ? 'Chat entfernen' : 'Beszélgetés törlése'}
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
               <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
@@ -277,6 +278,7 @@ function ChatItem({ chat, onArchive, onDelete, onNavigate, onReport, onBlock, is
         }}
         chatName={chat.otherUserName}
         darkMode={darkMode}
+        market={market}
       />
     </>
   );
@@ -289,6 +291,7 @@ function ChatItem({ chat, onArchive, onDelete, onNavigate, onReport, onBlock, is
 export default function ChatListPage() {
   const { user, userData, loading } = useAuth();
   const router = useRouter();
+  const market = getClientMarket();
   
   const [chats, setChats] = useState([]);
   const [isFetchingChats, setIsFetchingChats] = useState(true);
@@ -384,7 +387,7 @@ export default function ChatListPage() {
         
         let lastMessagePreview = chat.lastMessage;
         if (chat.lastMessageSenderId === user.uid) {
-          lastMessagePreview = `Te: ${chat.lastMessage}`;
+          lastMessagePreview = `${market === 'de' ? 'Du' : 'Te'}: ${chat.lastMessage}`;
         }
 
         // Ellenőrizzük hogy olvasatlan-e
@@ -396,7 +399,7 @@ export default function ChatListPage() {
         let demandInfo = null;
         if (chat.relatedDemandPosition && chat.relatedDemandDate) {
           const positionLabel = chat.relatedDemandPositionLabel || 
-            (chat.relatedDemandPosition === 'pharmacist' ? 'Gyógyszerész' : 'Szakasszisztens');
+            (chat.relatedDemandPosition === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'Gyógyszerész') : (market === 'de' ? 'Assistent/in' : 'Szakasszisztens'));
           const demandDate = new Date(chat.relatedDemandDate);
           const formattedDate = demandDate.toLocaleDateString('hu-HU', { 
             month: '2-digit', 
@@ -464,7 +467,7 @@ export default function ChatListPage() {
           // Fetch target user name first for display
           const targetUserDoc = await getDoc(doc(db, 'users', targetUserId));
           if (targetUserDoc.exists()) {
-            setAutoStartUserName(targetUserDoc.data().displayName || 'Felhasználó');
+            setAutoStartUserName(targetUserDoc.data().displayName || (market === 'de' ? 'Benutzer/in' : 'Felhasználó'));
           }
 
           // Először keresünk olyan chat-et ahol mindkét user tag
@@ -498,7 +501,7 @@ export default function ChatListPage() {
             const newChatRef = await addDoc(collection(db, "chats"), {
               members: [user.uid, targetUserId],
               createdAt: serverTimestamp(),
-              lastMessage: "Még nincs üzenet.",
+              lastMessage: market === 'de' ? 'Noch keine Nachricht.' : 'Még nincs üzenet.',
               lastMessageAt: serverTimestamp(),
               lastMessageSenderId: null,
               archivedBy: [],
@@ -555,7 +558,7 @@ export default function ChatListPage() {
         const newChatRef = await addDoc(collection(db, "chats"), {
           members: [user.uid, targetUserId],
           createdAt: serverTimestamp(),
-          lastMessage: "Még nincs üzenet.",
+          lastMessage: market === 'de' ? 'Noch keine Nachricht.' : 'Még nincs üzenet.',
           lastMessageAt: serverTimestamp(),
           lastMessageSenderId: null,
           archivedBy: [],
@@ -687,8 +690,9 @@ export default function ChatListPage() {
           </svg>
           <h2 className="text-2xl font-bold text-[#111827] mb-4">Privát üzenetek letiltva</h2>
           <p className="text-[#374151] mb-6">
-            Basic státuszú felhasználóknak nincs hozzáférése a privát üzenetekhez.
-            Várj a jóváhagyásra Full Tag státuszhoz.
+            {market === 'de'
+              ? 'Nutzer mit Basic-Status haben keinen Zugriff auf private Nachrichten. Bitte warte auf die Freigabe fuer den Full-Tag-Status.'
+              : 'Basic státuszú felhasználóknak nincs hozzáférése a privát üzenetekhez. Várj a jóváhagyásra Full Tag státuszhoz.'}
           </p>
         </div>
       </main>
@@ -702,7 +706,7 @@ export default function ChatListPage() {
       <main className="min-h-screen bg-[#F9FAFB] flex items-center justify-center pb-40">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-xl text-[#374151]">Beszélgetések betöltése...</p>
+          <p className="text-xl text-[#374151]">{market === 'de' ? 'Chats werden geladen...' : 'Beszélgetések betöltése...'}</p>
         </div>
       </main>
     );
@@ -717,7 +721,7 @@ export default function ChatListPage() {
         {/* Header */}
         <div className="mb-6">
           <h1 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-[#111827]'}`}>
-            Üzenetek
+            {t('messagesTitle', market)}
           </h1>
         </div>
         
@@ -727,10 +731,10 @@ export default function ChatListPage() {
             <div className="bg-gradient-to-br from-gray-800 to-gray-900 border-2 border-purple-500 rounded-2xl p-8 shadow-2xl max-w-md mx-4">
               <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-500 mx-auto mb-4"></div>
               <h3 className="text-2xl font-bold text-[#111827] mb-2 text-center">
-                Beszélgetés indítása
+                {market === 'de' ? 'Chat starten' : 'Beszélgetés indítása'}
               </h3>
               <p className="text-[#374151] text-center">
-                {autoStartUserName ? `${autoStartUserName}-val/vel...` : 'Betöltés...'}
+                {autoStartUserName ? `${autoStartUserName}...` : t('loading', market)}
               </p>
             </div>
           </div>
@@ -740,7 +744,7 @@ export default function ChatListPage() {
         <div className="mb-6 px-4">
           <input
             type="text"
-            placeholder="Keresés..."
+            placeholder={market === 'de' ? 'Suche...' : 'Keresés...'}
             value={searchTerm}
             onChange={(e) => handleSearch(e.target.value)}
             className={`w-full p-4 ${darkMode ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-[#E5E7EB] text-[#111827]'} border-2 rounded-2xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all`}
@@ -755,7 +759,7 @@ export default function ChatListPage() {
             {filteredFriends.length > 0 && (
               <>
                 <h3 className={`p-4 text-sm font-semibold ${darkMode ? 'text-gray-400 border-gray-700' : 'text-[#6B7280] border-[#E5E7EB]'} border-b`}>
-                  Ismerősök
+                  {market === 'de' ? 'Kontakte' : 'Ismerősök'}
                 </h3>
                 <div className={`divide-y ${darkMode ? 'divide-gray-700' : 'divide-gray-200'}`} style={{ opacity: isCreatingChat ? 0.5 : 1 }}>
                   {filteredFriends.map(friend => (
@@ -783,7 +787,7 @@ export default function ChatListPage() {
             {messageSearchResults.length > 0 && (
               <>
                 <h3 className={`p-4 text-sm font-semibold ${darkMode ? 'text-gray-400 border-gray-700' : 'text-[#6B7280] border-[#E5E7EB]'} border-b ${filteredFriends.length > 0 ? 'border-t' : ''}`}>
-                  Üzenetek ({messageSearchResults.length})
+                  {market === 'de' ? 'Nachrichten' : 'Üzenetek'} ({messageSearchResults.length})
                 </h3>
                 <div className={`divide-y ${darkMode ? 'divide-gray-700' : 'divide-gray-200'}`}>
                   {messageSearchResults.map((result, index) => (
@@ -821,7 +825,7 @@ export default function ChatListPage() {
 
             {/* Nincs találat */}
             {filteredFriends.length === 0 && messageSearchResults.length === 0 && (
-              <p className={`p-4 text-sm ${darkMode ? 'text-gray-400' : 'text-[#6B7280]'} text-center`}>Nincs találat.</p>
+              <p className={`p-4 text-sm ${darkMode ? 'text-gray-400' : 'text-[#6B7280]'} text-center`}>{market === 'de' ? 'Kein Treffer.' : 'Nincs találat.'}</p>
             )}
           </div>
         )}
@@ -848,6 +852,7 @@ export default function ChatListPage() {
                   isUnread={chat.isUnread}
                   darkMode={darkMode}
                   demandInfo={chat.demandInfo}
+                  market={market}
                 />
               ))}
             </div>
@@ -858,10 +863,10 @@ export default function ChatListPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
             <p className={`${darkMode ? 'text-white' : 'text-[#111827]'} font-semibold text-lg mb-2`}>
-              Nincsenek aktív beszélgetéseid
+              {market === 'de' ? 'Du hast keine aktiven Gespraeche' : 'Nincsenek aktív beszélgetéseid'}
             </p>
             <p className={`${darkMode ? 'text-gray-400' : 'text-[#6B7280]'}`}>
-              Keress rá egy ismerősödre fentebb a chat indításához!
+              {market === 'de' ? 'Suche oben nach einem Kontakt, um einen Chat zu starten.' : 'Keress rá egy ismerősödre fentebb a chat indításához!'}
             </p> 
           </div>
         )}
@@ -876,7 +881,7 @@ export default function ChatListPage() {
             {/* Menü fejléc */}
             <div className={`p-6 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
               <div className="flex items-center justify-between mb-2">
-                <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Menü</h2>
+                <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{market === 'de' ? 'Menue' : 'Menü'}</h2>
                 <button 
                   onClick={() => setIsMenuOpen(false)}
                   className={`${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}
@@ -902,7 +907,7 @@ export default function ChatListPage() {
                   />
                 )}
                 <div className="flex-1">
-                  <p className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{userData?.displayName || "Felhasználó"}</p>
+                  <p className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{userData?.displayName || (market === 'de' ? 'Benutzer/in' : 'Felhasználó')}</p>
                 </div>
               </div>
             </div>
@@ -920,7 +925,7 @@ export default function ChatListPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
                 </svg>
-                <span className="flex-1">Beállítások</span>
+                <span className="flex-1">{market === 'de' ? 'Einstellungen' : 'Beállítások'}</span>
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-gray-400">
                   <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
                 </svg>
@@ -936,7 +941,7 @@ export default function ChatListPage() {
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
                   <path strokeLinecap="round" strokeLinejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" />
                 </svg>
-                <span className="flex-1">Archivált üzenetek</span>
+                <span className="flex-1">{market === 'de' ? 'Archivierte Nachrichten' : 'Archivált üzenetek'}</span>
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-gray-400">
                   <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
                 </svg>

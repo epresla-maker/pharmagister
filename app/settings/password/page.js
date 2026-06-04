@@ -18,6 +18,7 @@ import {
 } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { getClientMarket, t } from '@/lib/marketI18n';
 
 export default function PasswordChangePage() {
   const router = useRouter();
@@ -33,6 +34,7 @@ export default function PasswordChangePage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [saving, setSaving] = useState(false);
+  const market = getClientMarket();
 
   const validatePassword = (password) => {
     const minLength = password.length >= 8;
@@ -50,17 +52,17 @@ export default function PasswordChangePage() {
     setError('');
     
     if (!currentPassword) {
-      setError('Add meg a jelenlegi jelszavad!');
+      setError(market === 'de' ? 'Bitte gib dein aktuelles Passwort ein.' : 'Add meg a jelenlegi jelszavad!');
       return;
     }
     
     if (!isPasswordValid) {
-      setError('A jelszó nem felel meg a követelményeknek!');
+      setError(market === 'de' ? 'Das Passwort erfuellt die Anforderungen nicht.' : 'A jelszó nem felel meg a követelményeknek!');
       return;
     }
     
     if (newPassword !== confirmPassword) {
-      setError('A két jelszó nem egyezik!');
+      setError(market === 'de' ? 'Die beiden Passwoerter stimmen nicht ueberein.' : 'A két jelszó nem egyezik!');
       return;
     }
 
@@ -96,11 +98,11 @@ export default function PasswordChangePage() {
     } catch (err) {
       console.error('Password change error:', err);
       if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-        setError('Hibás jelenlegi jelszó!');
+        setError(market === 'de' ? 'Falsches aktuelles Passwort.' : 'Hibás jelenlegi jelszó!');
       } else if (err.code === 'auth/too-many-requests') {
-        setError('Túl sok próbálkozás. Kérjük, próbáld újra később!');
+        setError(market === 'de' ? 'Zu viele Versuche. Bitte spaeter erneut versuchen.' : 'Túl sok próbálkozás. Kérjük, próbáld újra később!');
       } else {
-        setError('Hiba történt a jelszó módosítása során. Próbáld újra!');
+        setError(market === 'de' ? 'Beim Aendern des Passworts ist ein Fehler aufgetreten. Bitte versuche es erneut.' : 'Hiba történt a jelszó módosítása során. Próbáld újra!');
       }
     } finally {
       setSaving(false);
@@ -132,7 +134,7 @@ export default function PasswordChangePage() {
             <ArrowLeft className={`w-5 h-5 ${darkMode ? 'text-gray-200' : 'text-gray-700'}`} />
           </button>
           <h1 className={`text-lg font-semibold ml-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-            Jelszó módosítása
+            {market === 'de' ? 'Passwort aendern' : 'Jelszó módosítása'}
           </h1>
         </div>
       </div>
@@ -143,8 +145,8 @@ export default function PasswordChangePage() {
           <div className="mb-4 p-4 bg-green-100 border border-green-200 rounded-xl flex items-center gap-3">
             <Check className="w-5 h-5 text-green-600" />
             <div>
-              <p className="text-green-800 font-medium">Jelszó sikeresen módosítva!</p>
-              <p className="text-green-600 text-sm">Átirányítás...</p>
+              <p className="text-green-800 font-medium">{market === 'de' ? 'Passwort erfolgreich geaendert!' : 'Jelszó sikeresen módosítva!'}</p>
+              <p className="text-green-600 text-sm">{market === 'de' ? 'Weiterleitung...' : 'Átirányítás...'}</p>
             </div>
           </div>
         )}
@@ -165,10 +167,10 @@ export default function PasswordChangePage() {
             </div>
             <div>
               <h2 className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                Új jelszó beállítása
+                {market === 'de' ? 'Neues Passwort festlegen' : 'Új jelszó beállítása'}
               </h2>
               <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                Válassz egy erős, biztonságos jelszót
+                {market === 'de' ? 'Waehle ein starkes und sicheres Passwort' : 'Válassz egy erős, biztonságos jelszót'}
               </p>
             </div>
           </div>
@@ -179,7 +181,7 @@ export default function PasswordChangePage() {
           {/* Current Password */}
           <div>
             <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              Jelenlegi jelszó
+              {market === 'de' ? 'Aktuelles Passwort' : 'Jelenlegi jelszó'}
             </label>
             <div className="relative">
               <input
@@ -207,7 +209,7 @@ export default function PasswordChangePage() {
           {/* New Password */}
           <div>
             <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              Új jelszó
+              {market === 'de' ? 'Neues Passwort' : 'Új jelszó'}
             </label>
             <div className="relative">
               <input
@@ -236,19 +238,19 @@ export default function PasswordChangePage() {
               <div className="mt-2 space-y-1">
                 <div className={`flex items-center gap-2 text-xs ${passwordValidation.minLength ? 'text-green-600' : darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                   {passwordValidation.minLength ? <Check className="w-3 h-3" /> : <div className="w-3 h-3 rounded-full border" />}
-                  Legalább 8 karakter
+                  {market === 'de' ? 'Mindestens 8 Zeichen' : 'Legalább 8 karakter'}
                 </div>
                 <div className={`flex items-center gap-2 text-xs ${passwordValidation.hasUpperCase ? 'text-green-600' : darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                   {passwordValidation.hasUpperCase ? <Check className="w-3 h-3" /> : <div className="w-3 h-3 rounded-full border" />}
-                  Legalább egy nagybetű
+                  {market === 'de' ? 'Mindestens ein Grossbuchstabe' : 'Legalább egy nagybetű'}
                 </div>
                 <div className={`flex items-center gap-2 text-xs ${passwordValidation.hasLowerCase ? 'text-green-600' : darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                   {passwordValidation.hasLowerCase ? <Check className="w-3 h-3" /> : <div className="w-3 h-3 rounded-full border" />}
-                  Legalább egy kisbetű
+                  {market === 'de' ? 'Mindestens ein Kleinbuchstabe' : 'Legalább egy kisbetű'}
                 </div>
                 <div className={`flex items-center gap-2 text-xs ${passwordValidation.hasNumber ? 'text-green-600' : darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                   {passwordValidation.hasNumber ? <Check className="w-3 h-3" /> : <div className="w-3 h-3 rounded-full border" />}
-                  Legalább egy szám
+                  {market === 'de' ? 'Mindestens eine Zahl' : 'Legalább egy szám'}
                 </div>
               </div>
             )}
@@ -257,7 +259,7 @@ export default function PasswordChangePage() {
           {/* Confirm Password */}
           <div>
             <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              Új jelszó megerősítése
+              {market === 'de' ? 'Neues Passwort bestaetigen' : 'Új jelszó megerősítése'}
             </label>
             <div className="relative">
               <input
@@ -281,7 +283,7 @@ export default function PasswordChangePage() {
               </button>
             </div>
             {confirmPassword && newPassword !== confirmPassword && (
-              <p className="text-red-500 text-xs mt-1">A két jelszó nem egyezik!</p>
+              <p className="text-red-500 text-xs mt-1">{market === 'de' ? 'Die beiden Passwoerter stimmen nicht ueberein.' : 'A két jelszó nem egyezik!'}</p>
             )}
           </div>
 
@@ -295,7 +297,7 @@ export default function PasswordChangePage() {
                 : 'bg-purple-600 text-white hover:bg-purple-700'
             }`}
           >
-            {saving ? 'Mentés...' : 'Jelszó módosítása'}
+            {saving ? t('loadingSave', market) : (market === 'de' ? 'Passwort aendern' : 'Jelszó módosítása')}
           </button>
         </form>
       </div>

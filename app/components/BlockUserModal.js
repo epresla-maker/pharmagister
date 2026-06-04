@@ -5,6 +5,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
+import { getClientMarket } from '@/lib/marketI18n';
 
 export default function BlockUserModal({ 
   isOpen, 
@@ -16,6 +17,7 @@ export default function BlockUserModal({
 }) {
   const { darkMode } = useTheme();
   const { user } = useAuth();
+  const market = getClientMarket();
   const [loading, setLoading] = useState(false);
 
   const handleBlock = async () => {
@@ -45,7 +47,7 @@ export default function BlockUserModal({
       onClose();
     } catch (error) {
       console.error('Block error:', error);
-      alert('Hiba történt');
+      alert(market === 'de' ? 'Ein Fehler ist aufgetreten.' : 'Hiba történt');
     } finally {
       setLoading(false);
     }
@@ -61,7 +63,9 @@ export default function BlockUserModal({
           <div className="flex items-center gap-2">
             <Ban className="w-5 h-5 text-orange-600" />
             <h2 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              {isCurrentlyBlocked ? 'Tiltás feloldása' : 'Felhasználó letiltása'}
+              {isCurrentlyBlocked
+                ? (market === 'de' ? 'Blockierung aufheben' : 'Tiltás feloldása')
+                : (market === 'de' ? 'Benutzer blockieren' : 'Felhasználó letiltása')}
             </h2>
           </div>
           <button
@@ -76,19 +80,19 @@ export default function BlockUserModal({
           <p className={`mb-4 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
             {isCurrentlyBlocked ? (
               <>
-                Biztosan feloldod <strong>{targetUserName}</strong> tiltását?
+                {market === 'de' ? 'Moechtest du die Blockierung wirklich aufheben fuer' : 'Biztosan feloldod'} <strong>{targetUserName}</strong>{market === 'de' ? '?' : ' tiltását?'}
                 <br/><br/>
-                Újra látni fogod a tartalmait és üzeneteket küldhettek egymásnak.
+                {market === 'de' ? 'Ihr koennt danach wieder Inhalte sehen und euch Nachrichten senden.' : 'Újra látni fogod a tartalmait és üzeneteket küldhettek egymásnak.'}
               </>
             ) : (
               <>
-                Biztosan letiltod <strong>{targetUserName}</strong> felhasználót?
+                {market === 'de' ? 'Moechtest du den Benutzer wirklich blockieren:' : 'Biztosan letiltod'} <strong>{targetUserName}</strong>{market === 'de' ? '?' : ' felhasználót?'}
                 <br/><br/>
-                Ha letiltod:
+                {market === 'de' ? 'Nach der Blockierung:' : 'Ha letiltod:'}
                 <ul className="list-disc ml-6 mt-2 space-y-1">
-                  <li>Nem fog tudni üzenetet küldeni neked</li>
-                  <li>Nem fogod látni az igényeit</li>
-                  <li>Ő sem fogja látni a te igényeidet</li>
+                  <li>{market === 'de' ? 'Er/Sie kann dir keine Nachrichten mehr senden' : 'Nem fog tudni üzenetet küldeni neked'}</li>
+                  <li>{market === 'de' ? 'Du siehst seine/ihre Bedarfe nicht mehr' : 'Nem fogod látni az igényeit'}</li>
+                  <li>{market === 'de' ? 'Er/Sie sieht deine Bedarfe ebenfalls nicht' : 'Ő sem fogja látni a te igényeidet'}</li>
                 </ul>
               </>
             )}
@@ -103,7 +107,7 @@ export default function BlockUserModal({
                   : 'bg-gray-200 text-gray-900 hover:bg-gray-300'
               }`}
             >
-              Mégse
+              {market === 'de' ? 'Abbrechen' : 'Mégse'}
             </button>
             <button
               onClick={handleBlock}
@@ -116,7 +120,7 @@ export default function BlockUserModal({
                     : 'bg-orange-600 hover:bg-orange-700'
               }`}
             >
-              {loading ? '...' : (isCurrentlyBlocked ? 'Feloldás' : 'Letiltás')}
+              {loading ? '...' : (isCurrentlyBlocked ? (market === 'de' ? 'Aufheben' : 'Feloldás') : (market === 'de' ? 'Blockieren' : 'Letiltás'))}
             </button>
           </div>
         </div>

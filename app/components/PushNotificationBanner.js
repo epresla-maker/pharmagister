@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Bell, X } from 'lucide-react';
+import { getClientMarket } from '@/lib/marketI18n';
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 
@@ -26,6 +27,7 @@ function isPWA() {
 
 export default function PushNotificationBanner() {
   const { user } = useAuth();
+  const market = getClientMarket();
   const [showBanner, setShowBanner] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -167,7 +169,7 @@ export default function PushNotificationBanner() {
       const permission = await Notification.requestPermission();
       
       if (permission !== 'granted') {
-        alert('Az értesítések engedélyezése szükséges.');
+        alert(market === 'de' ? 'Benachrichtigungsberechtigung ist erforderlich.' : 'Az értesítések engedélyezése szükséges.');
         setLoading(false);
         return;
       }
@@ -200,7 +202,7 @@ export default function PushNotificationBanner() {
       }
     } catch (error) {
       console.error('Push subscription error:', error);
-      alert('Hiba történt: ' + error.message);
+      alert((market === 'de' ? 'Fehler: ' : 'Hiba történt: ') + error.message);
     } finally {
       setLoading(false);
     }
@@ -227,16 +229,16 @@ export default function PushNotificationBanner() {
           <Bell className="w-6 h-6" />
         </div>
         <div className="flex-1">
-          <h3 className="font-bold mb-1">Értesítések bekapcsolása</h3>
+          <h3 className="font-bold mb-1">{market === 'de' ? 'Benachrichtigungen aktivieren' : 'Értesítések bekapcsolása'}</h3>
           <p className="text-sm text-white/90 mb-3">
-            Ne maradj le az új igényekről és üzenetekről!
+            {market === 'de' ? 'Verpasse keine neuen Anfragen und Nachrichten!' : 'Ne maradj le az új igényekről és üzenetekről!'}
           </p>
           <button
             onClick={handleEnable}
             disabled={loading}
             className="w-full bg-white text-purple-600 font-semibold py-2 px-4 rounded-lg hover:bg-white/90 transition-colors disabled:opacity-50"
           >
-            {loading ? 'Engedélyezés...' : 'Engedélyezem'}
+            {loading ? (market === 'de' ? 'Wird aktiviert...' : 'Engedélyezés...') : (market === 'de' ? 'Aktivieren' : 'Engedélyezem')}
           </button>
         </div>
       </div>

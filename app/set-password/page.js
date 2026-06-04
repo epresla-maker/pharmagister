@@ -2,11 +2,13 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Eye, EyeOff, Check, AlertCircle, Lock } from 'lucide-react';
+import { getClientMarket } from '@/lib/marketI18n';
 
 function SetPasswordContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
+  const market = getClientMarket();
   
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -19,10 +21,10 @@ function SetPasswordContent() {
 
   useEffect(() => {
     if (!token) {
-      setError('Hiányzó token! Kérj új jelszó-visszaállító linket.');
+      setError(market === 'de' ? 'Token fehlt. Bitte fordere einen neuen Link zur Passwortzuruecksetzung an.' : 'Hiányzó token! Kérj új jelszó-visszaállító linket.');
       setTokenExpired(true);
     }
-  }, [token]);
+  }, [token, market]);
 
   const validatePassword = (password) => {
     const minLength = password.length >= 8;
@@ -40,12 +42,12 @@ function SetPasswordContent() {
     setError('');
     
     if (!isPasswordValid) {
-      setError('A jelszó nem felel meg a követelményeknek!');
+      setError(market === 'de' ? 'Das Passwort erfuellt die Anforderungen nicht.' : 'A jelszó nem felel meg a követelményeknek!');
       return;
     }
     
     if (newPassword !== confirmPassword) {
-      setError('A két jelszó nem egyezik!');
+      setError(market === 'de' ? 'Die beiden Passwoerter stimmen nicht ueberein.' : 'A két jelszó nem egyezik!');
       return;
     }
 
@@ -62,7 +64,7 @@ function SetPasswordContent() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Hiba történt');
+        throw new Error(data.error || (market === 'de' ? 'Ein Fehler ist aufgetreten.' : 'Hiba történt'));
       }
 
       // Send confirmation email
@@ -84,10 +86,10 @@ function SetPasswordContent() {
 
     } catch (err) {
       console.error('Password set error:', err);
-      const errorMessage = err.message || 'Hiba történt a jelszó beállítása során.';
+      const errorMessage = err.message || (market === 'de' ? 'Beim Festlegen des Passworts ist ein Fehler aufgetreten.' : 'Hiba történt a jelszó beállítása során.');
       setError(errorMessage);
       // Check if token expired or invalid
-      if (errorMessage.includes('lejárt') || errorMessage.includes('Érvénytelen')) {
+      if (errorMessage.includes('lejárt') || errorMessage.includes('Érvénytelen') || errorMessage.toLowerCase().includes('abgelaufen') || errorMessage.toLowerCase().includes('ungueltig')) {
         setTokenExpired(true);
       }
     } finally {
@@ -102,11 +104,11 @@ function SetPasswordContent() {
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Check className="w-8 h-8 text-green-600" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Sikeres beállítás!</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">{market === 'de' ? 'Erfolgreich gespeichert!' : 'Sikeres beállítás!'}</h1>
           <p className="text-gray-600 mb-4">
-            Az új jelszavad sikeresen be lett állítva. Küldtünk egy megerősítő emailt is.
+            {market === 'de' ? 'Dein neues Passwort wurde erfolgreich gespeichert. Wir haben dir auch eine Bestaetigungs-E-Mail gesendet.' : 'Az új jelszavad sikeresen be lett állítva. Küldtünk egy megerősítő emailt is.'}
           </p>
-          <p className="text-sm text-gray-500">Átirányítás a bejelentkezéshez...</p>
+          <p className="text-sm text-gray-500">{market === 'de' ? 'Weiterleitung zur Anmeldung...' : 'Átirányítás a bejelentkezéshez...'}</p>
         </div>
       </div>
     );
@@ -118,7 +120,7 @@ function SetPasswordContent() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-purple-800 mb-2">Pharmagister</h1>
-          <p className="text-gray-600">Új jelszó beállítása</p>
+          <p className="text-gray-600">{market === 'de' ? 'Neues Passwort festlegen' : 'Új jelszó beállítása'}</p>
         </div>
 
         {/* Card */}
@@ -136,7 +138,7 @@ function SetPasswordContent() {
                     onClick={() => router.push('/forgot-password')}
                     className="text-purple-600 hover:underline text-sm font-medium"
                   >
-                    Új jelszó igénylése →
+                    {market === 'de' ? 'Neues Passwort anfordern' : 'Új jelszó igénylése'} →
                   </button>
                 </div>
               )}
@@ -146,12 +148,12 @@ function SetPasswordContent() {
           {!token ? (
             <div className="text-center py-8">
               <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-              <p className="text-gray-600 mb-4">Érvénytelen link. Kérj új jelszó-visszaállító emailt!</p>
+              <p className="text-gray-600 mb-4">{market === 'de' ? 'Ungueltiger Link. Bitte fordere eine neue E-Mail zur Passwortzuruecksetzung an.' : 'Érvénytelen link. Kérj új jelszó-visszaállító emailt!'}</p>
               <button
                 onClick={() => router.push('/forgot-password')}
                 className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 font-medium"
               >
-                Új jelszó igénylése
+                {market === 'de' ? 'Neues Passwort anfordern' : 'Új jelszó igénylése'}
               </button>
             </div>
           ) : (
@@ -160,14 +162,14 @@ function SetPasswordContent() {
               <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg mb-4">
                 <Lock className="w-5 h-5 text-purple-600" />
                 <p className="text-sm text-purple-800">
-                  Állíts be egy új, biztonságos jelszót a fiókodhoz.
+                  {market === 'de' ? 'Lege ein neues, sicheres Passwort fuer dein Konto fest.' : 'Állíts be egy új, biztonságos jelszót a fiókodhoz.'}
                 </p>
               </div>
 
               {/* New Password */}
               <div>
                 <label className="block text-sm font-medium mb-2 text-gray-700">
-                  Új jelszó
+                  {market === 'de' ? 'Neues Passwort' : 'Új jelszó'}
                 </label>
                 <div className="relative">
                   <input
@@ -192,19 +194,19 @@ function SetPasswordContent() {
                   <div className="mt-2 space-y-1">
                     <div className={`flex items-center gap-2 text-xs ${passwordValidation.minLength ? 'text-green-600' : 'text-gray-500'}`}>
                       {passwordValidation.minLength ? <Check className="w-3 h-3" /> : <div className="w-3 h-3 rounded-full border" />}
-                      Legalább 8 karakter
+                      {market === 'de' ? 'Mindestens 8 Zeichen' : 'Legalább 8 karakter'}
                     </div>
                     <div className={`flex items-center gap-2 text-xs ${passwordValidation.hasUpperCase ? 'text-green-600' : 'text-gray-500'}`}>
                       {passwordValidation.hasUpperCase ? <Check className="w-3 h-3" /> : <div className="w-3 h-3 rounded-full border" />}
-                      Legalább egy nagybetű
+                      {market === 'de' ? 'Mindestens ein Grossbuchstabe' : 'Legalább egy nagybetű'}
                     </div>
                     <div className={`flex items-center gap-2 text-xs ${passwordValidation.hasLowerCase ? 'text-green-600' : 'text-gray-500'}`}>
                       {passwordValidation.hasLowerCase ? <Check className="w-3 h-3" /> : <div className="w-3 h-3 rounded-full border" />}
-                      Legalább egy kisbetű
+                      {market === 'de' ? 'Mindestens ein Kleinbuchstabe' : 'Legalább egy kisbetű'}
                     </div>
                     <div className={`flex items-center gap-2 text-xs ${passwordValidation.hasNumber ? 'text-green-600' : 'text-gray-500'}`}>
                       {passwordValidation.hasNumber ? <Check className="w-3 h-3" /> : <div className="w-3 h-3 rounded-full border" />}
-                      Legalább egy szám
+                      {market === 'de' ? 'Mindestens eine Zahl' : 'Legalább egy szám'}
                     </div>
                   </div>
                 )}
@@ -213,7 +215,7 @@ function SetPasswordContent() {
               {/* Confirm Password */}
               <div>
                 <label className="block text-sm font-medium mb-2 text-gray-700">
-                  Jelszó megerősítése
+                  {market === 'de' ? 'Passwort bestaetigen' : 'Jelszó megerősítése'}
                 </label>
                 <div className="relative">
                   <input
@@ -233,7 +235,7 @@ function SetPasswordContent() {
                   </button>
                 </div>
                 {confirmPassword && newPassword !== confirmPassword && (
-                  <p className="text-red-500 text-xs mt-1">A két jelszó nem egyezik!</p>
+                  <p className="text-red-500 text-xs mt-1">{market === 'de' ? 'Die beiden Passwoerter stimmen nicht ueberein.' : 'A két jelszó nem egyezik!'}</p>
                 )}
               </div>
 
@@ -247,7 +249,7 @@ function SetPasswordContent() {
                     : 'bg-purple-600 text-white hover:bg-purple-700'
                 }`}
               >
-                {saving ? 'Mentés...' : 'Jelszó beállítása'}
+                {saving ? (market === 'de' ? 'Speichern...' : 'Mentés...') : (market === 'de' ? 'Passwort speichern' : 'Jelszó beállítása')}
               </button>
             </form>
           )}
