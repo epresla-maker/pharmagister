@@ -8,6 +8,7 @@ import {
   Building2, ArrowLeft, Search, Bell, BellOff, Mail,
   MapPin, Clock, UserCheck, User, Phone
 } from "lucide-react";
+import { getClientMarket } from '@/lib/marketI18n';
 
 const ADMIN_EMAILS = ['epresla@icloud.com'];
 const ADMINKA_EMAILS = ['etinatina22@gmail.com'];
@@ -16,6 +17,7 @@ const ALL_ADMIN_EMAILS = [...ADMIN_EMAILS, ...ADMINKA_EMAILS];
 export default function AdminPharmaciesPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const market = getClientMarket();
   const [users, setUsers] = useState([]);
   const [pushSubs, setPushSubs] = useState([]);
   const [loadingData, setLoadingData] = useState(true);
@@ -46,8 +48,8 @@ export default function AdminPharmaciesPage() {
   const formatDate = (val) => {
     const d = parseDate(val);
     if (!d || isNaN(d.getTime())) return '-';
-    return d.toLocaleDateString('hu-HU', { year: 'numeric', month: '2-digit', day: '2-digit' }) + 
-      ' ' + d.toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' });
+    return d.toLocaleDateString(market === 'de' ? 'de-DE' : 'hu-HU', { year: 'numeric', month: '2-digit', day: '2-digit' }) + 
+      ' ' + d.toLocaleTimeString(market === 'de' ? 'de-DE' : 'hu-HU', { hour: '2-digit', minute: '2-digit' });
   };
 
   const loadData = async () => {
@@ -115,7 +117,7 @@ export default function AdminPharmaciesPage() {
   if (loading || !user || !ALL_ADMIN_EMAILS.includes(user.email)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Betöltés...</div>
+        <div className="text-xl">{market === 'de' ? 'Wird geladen...' : 'Betöltés...'}</div>
       </div>
     );
   }
@@ -126,16 +128,16 @@ export default function AdminPharmaciesPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">🏥 Gyógyszertárak</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">{market === 'de' ? '🏥 Apotheken' : '🏥 Gyógyszertárak'}</h1>
             <p className="text-gray-500 mt-1">
-              Összes: <strong>{users.length}</strong> | Találat: <strong>{sortedUsers.length}</strong>
+              {market === 'de' ? 'Gesamt' : 'Összes'}: <strong>{users.length}</strong> | {market === 'de' ? 'Treffer' : 'Találat'}: <strong>{sortedUsers.length}</strong>
             </p>
           </div>
           <button 
             onClick={() => router.push('/admin')} 
             className="flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
           >
-            <ArrowLeft size={18} /> Vissza
+            <ArrowLeft size={18} /> {market === 'de' ? 'Zurueck' : 'Vissza'}
           </button>
         </div>
 
@@ -145,7 +147,7 @@ export default function AdminPharmaciesPage() {
             <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Keresés név, város, kapcsolattartó vagy email alapján..."
+              placeholder={market === 'de' ? 'Suche nach Name, Stadt, Kontakt oder E-Mail...' : 'Keresés név, város, kapcsolattartó vagy email alapján...'}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
@@ -156,7 +158,7 @@ export default function AdminPharmaciesPage() {
         {loadingData ? (
           <div className="text-center py-16">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
-            <p className="mt-4 text-gray-500">Gyógyszertárak betöltése...</p>
+            <p className="mt-4 text-gray-500">{market === 'de' ? 'Apotheken werden geladen...' : 'Gyógyszertárak betöltése...'}</p>
           </div>
         ) : (
           <div className="bg-white rounded-xl shadow-lg overflow-hidden">
@@ -166,13 +168,13 @@ export default function AdminPharmaciesPage() {
                 <thead>
                   <tr className="bg-gray-50 text-left text-gray-500 border-b">
                     <th className="py-3 px-4 w-12 text-center">#</th>
-                    <th className="py-3 px-4">Gyógyszertár neve</th>
-                    <th className="py-3 px-4">Kapcsolattartó</th>
-                    <th className="py-3 px-4">Cím</th>
+                    <th className="py-3 px-4">{market === 'de' ? 'Apothekenname' : 'Gyógyszertár neve'}</th>
+                    <th className="py-3 px-4">{market === 'de' ? 'Kontaktperson' : 'Kapcsolattartó'}</th>
+                    <th className="py-3 px-4">{market === 'de' ? 'Adresse' : 'Cím'}</th>
                     <th className="py-3 px-4">Email</th>
-                    <th className="py-3 px-4">Utolsó belépés</th>
+                    <th className="py-3 px-4">{market === 'de' ? 'Letzte Anmeldung' : 'Utolsó belépés'}</th>
                     <th className="py-3 px-4 text-center">Push</th>
-                    <th className="py-3 px-4 text-center">Státusz</th>
+                    <th className="py-3 px-4 text-center">{market === 'de' ? 'Status' : 'Státusz'}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -187,7 +189,7 @@ export default function AdminPharmaciesPage() {
                           <div className="flex items-center gap-2">
                             <Building2 size={16} className="text-green-600 flex-shrink-0" />
                             <p className="font-medium text-gray-800">
-                              {u.pharmacyName || u.displayName || 'Nincs név'}
+                              {u.pharmacyName || u.displayName || (market === 'de' ? 'Ohne Namen' : 'Nincs név')}
                             </p>
                           </div>
                         </td>
@@ -215,9 +217,9 @@ export default function AdminPharmaciesPage() {
                             {u.lastLogin ? (
                               <span className="text-gray-500">{formatDate(u.lastLogin)}</span>
                             ) : u.lastSeen ? (
-                              <span className="text-gray-400" title="Utoljára aktív">{formatDate(u.lastSeen)} <span className="text-orange-400">(aktív)</span></span>
+                              <span className="text-gray-400" title={market === 'de' ? 'Zuletzt aktiv' : 'Utoljára aktív'}>{formatDate(u.lastSeen)} <span className="text-orange-400">{market === 'de' ? '(aktiv)' : '(aktív)'}</span></span>
                             ) : (
-                              <span className="text-red-400">Soha nem lépett be</span>
+                              <span className="text-red-400">{market === 'de' ? 'Nie angemeldet' : 'Soha nem lépett be'}</span>
                             )}
                           </div>
                         </td>
@@ -235,15 +237,15 @@ export default function AdminPharmaciesPage() {
                         <td className="py-3 px-4 text-center">
                           {hasLoggedIn ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                              <UserCheck size={12} /> Aktív
+                              <UserCheck size={12} /> {market === 'de' ? 'Aktiv' : 'Aktív'}
                             </span>
                           ) : isActivated ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
-                              Aktivált
+                              {market === 'de' ? 'Aktiviert' : 'Aktivált'}
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
-                              Inaktív
+                              {market === 'de' ? 'Inaktiv' : 'Inaktív'}
                             </span>
                           )}
                         </td>
@@ -269,7 +271,7 @@ export default function AdminPharmaciesPage() {
                           <div className="flex items-center gap-1.5">
                             <Building2 size={14} className="text-green-600" />
                             <p className="font-semibold text-gray-800">
-                              {u.pharmacyName || u.displayName || 'Nincs név'}
+                              {u.pharmacyName || u.displayName || (market === 'de' ? 'Ohne Namen' : 'Nincs név')}
                             </p>
                           </div>
                           <p className="text-xs text-gray-500 mt-0.5">{u.email || '-'}</p>
@@ -282,11 +284,11 @@ export default function AdminPharmaciesPage() {
                           <BellOff size={16} className="text-gray-300" />
                         )}
                         {hasLoggedIn ? (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Aktív</span>
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">{market === 'de' ? 'Aktiv' : 'Aktív'}</span>
                         ) : isActivated ? (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700">Aktivált</span>
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700">{market === 'de' ? 'Aktiviert' : 'Aktivált'}</span>
                         ) : (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">Inaktív</span>
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">{market === 'de' ? 'Inaktiv' : 'Inaktív'}</span>
                         )}
                       </div>
                     </div>
@@ -306,9 +308,9 @@ export default function AdminPharmaciesPage() {
                         {u.lastLogin ? (
                           formatDate(u.lastLogin)
                         ) : u.lastSeen ? (
-                          <span>{formatDate(u.lastSeen)} <span className="text-orange-400">(aktív)</span></span>
+                          <span>{formatDate(u.lastSeen)} <span className="text-orange-400">{market === 'de' ? '(aktiv)' : '(aktív)'}</span></span>
                         ) : (
-                          <span className="text-red-400">Soha</span>
+                          <span className="text-red-400">{market === 'de' ? 'Nie' : 'Soha'}</span>
                         )}
                       </span>
                     </div>
@@ -320,7 +322,7 @@ export default function AdminPharmaciesPage() {
             {sortedUsers.length === 0 && (
               <div className="text-center py-12 text-gray-500">
                 <Building2 size={48} className="mx-auto mb-3 text-gray-300" />
-                <p>Nincs találat a keresésre.</p>
+                <p>{market === 'de' ? 'Keine Treffer fuer die Suche.' : 'Nincs találat a keresésre.'}</p>
               </div>
             )}
           </div>

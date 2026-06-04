@@ -10,6 +10,7 @@ import {
   MessageSquare, Bell, ShieldCheck, BarChart3, ChevronDown, ChevronUp,
   Activity, Send, UserCheck, UserX
 } from "lucide-react";
+import { getClientMarket } from '@/lib/marketI18n';
 
 const ADMIN_EMAILS = ['epresla@icloud.com'];
 const ADMINKA_EMAILS = ['etinatina22@gmail.com'];
@@ -18,6 +19,7 @@ const ALL_ADMIN_EMAILS = [...ADMIN_EMAILS, ...ADMINKA_EMAILS];
 export default function StatsPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const market = getClientMarket();
   const [stats, setStats] = useState(null);
   const [loadingStats, setLoadingStats] = useState(true);
   const [expandedPharmacy, setExpandedPharmacy] = useState(null);
@@ -205,7 +207,7 @@ export default function StatsPage() {
   if (loading || !user || (!ADMIN_EMAILS.includes(user.email) && !ADMINKA_EMAILS.includes(user.email))) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Betöltés...</div>
+        <div className="text-xl">{market === 'de' ? 'Wird geladen...' : 'Betöltés...'}</div>
       </div>
     );
   }
@@ -234,18 +236,18 @@ export default function StatsPage() {
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">📊 Admin Statisztikák</h1>
-            <p className="text-gray-500 mt-1">Teljes platform áttekintés</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">{market === 'de' ? '📊 Admin-Statistiken' : '📊 Admin Statisztikák'}</h1>
+            <p className="text-gray-500 mt-1">{market === 'de' ? 'Gesamtueberblick ueber die Plattform' : 'Teljes platform áttekintés'}</p>
           </div>
           <button onClick={() => router.push(backUrl)} className="flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">
-            <ArrowLeft size={18} /> Vissza
+            <ArrowLeft size={18} /> {market === 'de' ? 'Zurueck' : 'Vissza'}
           </button>
         </div>
 
         {loadingStats || !stats ? (
           <div className="text-center py-16">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
-            <p className="mt-4 text-gray-500">Statisztikák betöltése...</p>
+            <p className="mt-4 text-gray-500">{market === 'de' ? 'Statistiken werden geladen...' : 'Statisztikák betöltése...'}</p>
           </div>
         ) : (
           <div className="space-y-8">
@@ -253,12 +255,12 @@ export default function StatsPage() {
             {/* 1. FELHASZNÁLÓK */}
             <section className="bg-white rounded-xl shadow-lg p-6">
               <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                <Users size={22} /> Felhasználók
+                <Users size={22} /> {market === 'de' ? 'Benutzer' : 'Felhasználók'}
               </h2>
               <div className="bg-gray-50 rounded-lg p-3 mb-4">
                 <p className="text-sm text-gray-600">
-                  Összes regisztráció: <span className="font-bold">{stats.users.totalAll}</span> &nbsp;|&nbsp;
-                  Aktív: <span className="font-bold text-green-600">{stats.users.active}</span>
+                  {market === 'de' ? 'Gesamtregistrierungen' : 'Összes regisztráció'}: <span className="font-bold">{stats.users.totalAll}</span> &nbsp;|&nbsp;
+                  {market === 'de' ? 'Aktiv' : 'Aktív'}: <span className="font-bold text-green-600">{stats.users.active}</span>
                 </p>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -274,12 +276,12 @@ export default function StatsPage() {
             {/* 2. AKTIVITÁS */}
             <section className="bg-white rounded-xl shadow-lg p-6">
               <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                <Activity size={22} /> Aktivitás (DAU / WAU / MAU)
+                <Activity size={22} /> {market === 'de' ? 'Aktivitaet (DAU / WAU / MAU)' : 'Aktivitás (DAU / WAU / MAU)'}
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
-                <BigCard icon={TrendingUp} label="DAU" value={stats.activity.dau.total} sub="Elmúlt 24 óra" color="text-blue-600" bg="bg-blue-50" />
-                <BigCard icon={TrendingUp} label="WAU" value={stats.activity.wau.total} sub="Elmúlt 7 nap" color="text-green-600" bg="bg-green-50" />
-                <BigCard icon={TrendingUp} label="MAU" value={stats.activity.mau.total} sub="Elmúlt 30 nap" color="text-purple-600" bg="bg-purple-50" />
+                <BigCard icon={TrendingUp} label="DAU" value={stats.activity.dau.total} sub={market === 'de' ? 'Letzte 24 Stunden' : 'Elmúlt 24 óra'} color="text-blue-600" bg="bg-blue-50" />
+                <BigCard icon={TrendingUp} label="WAU" value={stats.activity.wau.total} sub={market === 'de' ? 'Letzte 7 Tage' : 'Elmúlt 7 nap'} color="text-green-600" bg="bg-green-50" />
+                <BigCard icon={TrendingUp} label="MAU" value={stats.activity.mau.total} sub={market === 'de' ? 'Letzte 30 Tage' : 'Elmúlt 30 nap'} color="text-purple-600" bg="bg-purple-50" />
               </div>
               <div className="border-t pt-4">
                 <p className="text-xs font-semibold text-gray-500 mb-3 uppercase tracking-wider">Bontás szerepkörönként</p>
@@ -319,11 +321,11 @@ export default function StatsPage() {
             {/* 3. IGÉNYEK */}
             <section className="bg-white rounded-xl shadow-lg p-6">
               <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                <Calendar size={22} /> Helyettesítési igények
+                <Calendar size={22} /> {market === 'de' ? 'Vertretungsanfragen' : 'Helyettesítési igények'}
               </h2>
               <div className="grid grid-cols-2 sm:grid-cols-2 gap-6 mb-6">
-                <BigCard icon={BarChart3} label="Összes feladott igény" value={stats.demands.totalEver} sub="Valaha létrehozott (töröltekkel együtt)" color="text-purple-600" bg="bg-purple-50" />
-                <BigCard icon={FileText} label="Jelenleg aktív" value={stats.demands.active} sub="Nyitott, jövőbeli dátummal" color="text-blue-600" bg="bg-blue-50" />
+                <BigCard icon={BarChart3} label={market === 'de' ? 'Alle erstellten Anfragen' : 'Összes feladott igény'} value={stats.demands.totalEver} sub={market === 'de' ? 'Jemals erstellt (inkl. geloeschter)' : 'Valaha létrehozott (töröltekkel együtt)'} color="text-purple-600" bg="bg-purple-50" />
+                <BigCard icon={FileText} label={market === 'de' ? 'Aktuell aktiv' : 'Jelenleg aktív'} value={stats.demands.active} sub={market === 'de' ? 'Offen mit zukuenftigem Datum' : 'Nyitott, jövőbeli dátummal'} color="text-blue-600" bg="bg-blue-50" />
               </div>
               <div className="border-t pt-4">
                 <p className="text-xs font-semibold text-gray-500 mb-3 uppercase tracking-wider">Igények állapota</p>
@@ -499,7 +501,7 @@ export default function StatsPage() {
             {/* 5. PLATFORM EGÉSZSÉG */}
             <section className="bg-white rounded-xl shadow-lg p-6">
               <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                <ShieldCheck size={22} /> Platform egészség
+                <ShieldCheck size={22} /> {market === 'de' ? 'Plattform-Status' : 'Platform egészség'}
               </h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
                 <MiniCard icon={MessageSquare} label="Chat beszélgetés" value={stats.chat.total} color="text-indigo-600" bg="bg-indigo-50" />
@@ -509,9 +511,9 @@ export default function StatsPage() {
                 <MiniCard icon={ShieldCheck} label="NNK várakozó" value={stats.approvals.pending} color="text-amber-600" bg="bg-amber-50" />
               </div>
               <div className="bg-gray-50 rounded-lg p-3 mt-4 text-sm text-gray-600">
-                NNK státusz: <span className="text-green-600 font-semibold">{stats.approvals.approved} jóváhagyva</span> &nbsp;|&nbsp;
-                <span className="text-red-500 font-semibold">{stats.approvals.rejected} elutasítva</span> &nbsp;|&nbsp;
-                <span className="text-amber-600 font-semibold">{stats.approvals.pending} függőben</span>
+                {market === 'de' ? 'NNK-Status' : 'NNK státusz'}: <span className="text-green-600 font-semibold">{stats.approvals.approved} {market === 'de' ? 'freigegeben' : 'jóváhagyva'}</span> &nbsp;|&nbsp;
+                <span className="text-red-500 font-semibold">{stats.approvals.rejected} {market === 'de' ? 'abgelehnt' : 'elutasítva'}</span> &nbsp;|&nbsp;
+                <span className="text-amber-600 font-semibold">{stats.approvals.pending} {market === 'de' ? 'offen' : 'függőben'}</span>
               </div>
             </section>
 

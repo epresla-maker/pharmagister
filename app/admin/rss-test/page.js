@@ -6,6 +6,7 @@ import RouteGuard from '@/app/components/RouteGuard';
 import RSSFeedDisplay from '@/app/components/RSSFeedDisplay';
 import ModernServiceFeed from '@/app/components/ModernServiceFeed';
 import { ArrowLeft, TestTube, FileText } from 'lucide-react';
+import { getClientMarket } from '@/lib/marketI18n';
 
 // Admin e-mail címek
 const ADMIN_EMAILS = ['epresla@icloud.com'];
@@ -15,6 +16,7 @@ const ALL_ADMIN_EMAILS = [...ADMIN_EMAILS, ...ADMINKA_EMAILS];
 export default function RSSTestPage() {
   const { user, userData, loading } = useAuth();
   const router = useRouter();
+  const market = getClientMarket();
 
   // Hozzáférés ellenőrzés - csak admin/adminka
   useEffect(() => {
@@ -53,7 +55,7 @@ export default function RSSTestPage() {
               className="text-white hover:text-purple-200 flex items-center gap-2 mb-3 transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
-              <span className="font-medium">Vissza</span>
+              <span className="font-medium">{market === 'de' ? 'Zurueck' : 'Vissza'}</span>
             </button>
 
             {/* Cím */}
@@ -61,10 +63,10 @@ export default function RSSTestPage() {
               <div>
                 <h1 className="text-xl font-bold text-white flex items-center gap-2">
                   <TestTube className="w-6 h-6" />
-                  RSS Feed Teszt
+                  {market === 'de' ? 'RSS-Feed Test' : 'RSS Feed Teszt'}
                 </h1>
                 <p className="text-purple-200 text-sm mt-1">
-                  Tesztelési környezet - csak adminok látják
+                  {market === 'de' ? 'Testumgebung - nur fuer Admins sichtbar' : 'Tesztelési környezet - csak adminok látják'}
                 </p>
               </div>
               
@@ -73,7 +75,7 @@ export default function RSSTestPage() {
                 {userData?.photoURL ? (
                   <img 
                     src={userData.photoURL} 
-                    alt="Profile" 
+                    alt={market === 'de' ? 'Profil' : 'Profile'} 
                     className="w-full h-full object-cover"
                   />
                 ) : (
@@ -93,15 +95,15 @@ export default function RSSTestPage() {
               <span className="text-2xl">🧪</span>
               <div>
                 <h3 className="font-semibold text-yellow-800 dark:text-yellow-300">
-                  Tesztelési oldal
+                  {market === 'de' ? 'Testseite' : 'Tesztelési oldal'}
                 </h3>
                 <p className="text-sm text-yellow-700 dark:text-yellow-400 mt-1">
-                  Itt látod együtt az RSS híreket ÉS a saját posztjaidat is.
+                  {market === 'de' ? 'Hier siehst du RSS-News UND deine eigenen Posts zusammen.' : 'Itt látod együtt az RSS híreket ÉS a saját posztjaidat is.'}
                 </p>
                 <p className="text-xs text-yellow-600 dark:text-yellow-500 mt-2">
-                  ✓ Csak admin és adminka látja<br />
-                  ✓ RSS hírek + Saját posztok együtt<br />
-                  ✓ Biztonságos tesztelési környezet
+                  {market === 'de' ? '✓ Nur Admin und Adminka sehen es' : '✓ Csak admin és adminka látja'}<br />
+                  {market === 'de' ? '✓ RSS-News + eigene Posts zusammen' : '✓ RSS hírek + Saját posztok együtt'}<br />
+                  {market === 'de' ? '✓ Sichere Testumgebung' : '✓ Biztonságos tesztelési környezet'}
                 </p>
               </div>
             </div>
@@ -118,7 +120,7 @@ export default function RSSTestPage() {
           <div className="flex items-center gap-2 mb-4">
             <FileText className="w-5 h-5 text-green-600 dark:text-green-400" />
             <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
-              Saját Posztok
+              {market === 'de' ? 'Eigene Posts' : 'Saját Posztok'}
             </h2>
           </div>
           <ModernServiceFeed />

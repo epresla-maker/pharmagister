@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, deleteDoc, doc, setDoc, getDocs, updateDoc } from 'firebase/firestore';
 import { Trash2, Send, EyeOff, Eye, Palette, Type, Image, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { getClientMarket } from '@/lib/marketI18n';
 
 // Előre definiált színsémák
 const COLOR_PRESETS = [
@@ -36,6 +37,7 @@ const ALL_ADMIN_EMAILS = [...ADMIN_EMAILS, ...ADMINKA_EMAILS];
 export default function AdminPostsPage() {
   const { user, userData } = useAuth();
   const router = useRouter();
+  const market = getClientMarket();
   const isAdmin = user && ADMIN_EMAILS.includes(user.email);
   const [postText, setPostText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -159,17 +161,17 @@ export default function AdminPostsPage() {
       setStyle({ backgroundColor: '#ffffff', textColor: '#000000', fontSize: 16, fontFamily: 'sans' });
       setShowStylePanel(false);
       setShowPreview(false);
-      alert('✅ Poszt sikeresen létrehozva!');
+      alert(market === 'de' ? '✅ Beitrag erfolgreich erstellt!' : '✅ Poszt sikeresen létrehozva!');
     } catch (error) {
       console.error('Error creating post:', error);
-      alert('❌ Hiba történt a poszt létrehozásakor');
+      alert(market === 'de' ? '❌ Fehler beim Erstellen des Beitrags.' : '❌ Hiba történt a poszt létrehozásakor');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDelete = async (postId, postType, pharmaDemandId) => {
-    if (!confirm('Biztosan törölni szeretnéd ezt a posztot?')) return;
+    if (!confirm(market === 'de' ? 'Moechtest du diesen Beitrag wirklich loeschen?' : 'Biztosan törölni szeretnéd ezt a posztot?')) return;
 
     try {
       // Poszt törlése a serviceFeedPosts-ból
@@ -184,15 +186,15 @@ export default function AdminPostsPage() {
         });
       }
       
-      alert('✅ Poszt törölve!');
+      alert(market === 'de' ? '✅ Beitrag geloescht!' : '✅ Poszt törölve!');
     } catch (error) {
       console.error('Error deleting post:', error);
-      alert('❌ Hiba történt a törlés során: ' + error.message);
+      alert((market === 'de' ? '❌ Fehler beim Loeschen: ' : '❌ Hiba történt a törlés során: ') + error.message);
     }
   };
 
   const handleHideRssPost = async (rssPostId) => {
-    if (!confirm('Biztosan elrejted ezt az RSS hírt? Többé nem fog megjelenni senkinek.')) return;
+    if (!confirm(market === 'de' ? 'Moechtest du diese RSS-Nachricht wirklich ausblenden? Sie wird danach niemandem mehr angezeigt.' : 'Biztosan elrejted ezt az RSS hírt? Többé nem fog megjelenni senkinek.')) return;
 
     try {
       // RSS poszt ID hozzáadása a rejtett listához
@@ -204,10 +206,10 @@ export default function AdminPostsPage() {
       // Frissítjük a local state-et
       setHiddenRssIds(prev => new Set([...prev, rssPostId]));
       
-      alert('✅ RSS hír elrejtve!');
+      alert(market === 'de' ? '✅ RSS-Nachricht ausgeblendet!' : '✅ RSS hír elrejtve!');
     } catch (error) {
       console.error('Error hiding RSS post:', error);
-      alert('❌ Hiba történt az elrejtés során: ' + error.message);
+      alert((market === 'de' ? '❌ Fehler beim Ausblenden: ' : '❌ Hiba történt az elrejtés során: ') + error.message);
     }
   };
 
@@ -232,7 +234,7 @@ export default function AdminPostsPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Betöltés...</p>
+          <p className="mt-4 text-gray-600">{market === 'de' ? 'Wird geladen...' : 'Betöltés...'}</p>
         </div>
       </div>
     );
@@ -244,12 +246,12 @@ export default function AdminPostsPage() {
         {/* Header */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-2xl font-bold text-gray-900">Admin - Posztok kezelése</h1>
+            <h1 className="text-2xl font-bold text-gray-900">{market === 'de' ? 'Admin - Beitraege verwalten' : 'Admin - Posztok kezelése'}</h1>
             <button
               onClick={() => router.push('/admin')}
               className="text-sm text-gray-600 hover:text-gray-900"
             >
-              ← Vissza az Admin panelhez
+              {market === 'de' ? '← Zurueck zum Admin-Bereich' : '← Vissza az Admin panelhez'}
             </button>
           </div>
 
@@ -258,7 +260,7 @@ export default function AdminPostsPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="flex items-center justify-between">
               <label className="block text-sm font-medium text-gray-700">
-                Új poszt a hírfolyamba
+                {market === 'de' ? 'Neuer Beitrag im Feed' : 'Új poszt a hírfolyamba'}
               </label>
               <div className="flex gap-2">
                 <button
@@ -271,7 +273,7 @@ export default function AdminPostsPage() {
                   }`}
                 >
                   <Palette size={14} />
-                  Stílus
+                  {market === 'de' ? 'Stil' : 'Stílus'}
                   {hasCustomStyle && <span className="w-2 h-2 rounded-full bg-purple-500" />}
                 </button>
                 <button
@@ -284,7 +286,7 @@ export default function AdminPostsPage() {
                   }`}
                 >
                   <Eye size={14} />
-                  Előnézet
+                  {market === 'de' ? 'Vorschau' : 'Előnézet'}
                 </button>
               </div>
             </div>
@@ -506,7 +508,7 @@ export default function AdminPostsPage() {
                 className="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium transition-colors shadow-sm"
               >
                 <Send size={16} />
-                {isSubmitting ? 'Közzététel...' : 'Poszt közzététele'}
+                    {isSubmitting ? (market === 'de' ? 'Wird veroeffentlicht...' : 'Közzététel...') : (market === 'de' ? 'Beitrag veroeffentlichen' : 'Poszt közzététele')}
               </button>
               {hasCustomStyle && (
                 <span className="text-xs text-purple-600 flex items-center gap-1">
@@ -522,18 +524,20 @@ export default function AdminPostsPage() {
         {/* Létező posztok listája */}
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h2 className="text-xl font-bold text-gray-900 mb-4">
-            Összes poszt ({allPosts.length}) - User posztok: {posts.length}, RSS hírek: {rssPosts.filter(rss => !hiddenRssIds.has(rss.id)).length}
+            {market === 'de'
+              ? `Alle Beitraege (${allPosts.length}) - Benutzerbeitraege: ${posts.length}, RSS-Nachrichten: ${rssPosts.filter(rss => !hiddenRssIds.has(rss.id)).length}`
+              : `Összes poszt (${allPosts.length}) - User posztok: ${posts.length}, RSS hírek: ${rssPosts.filter(rss => !hiddenRssIds.has(rss.id)).length}`}
           </h2>
 
           {loading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
-              <p className="text-gray-500 mt-2">Betöltés...</p>
+              <p className="text-gray-500 mt-2">{market === 'de' ? 'Wird geladen...' : 'Betöltés...'}</p>
             </div>
           ) : (
             <div className="space-y-4">
               {allPosts.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">Még nincs poszt</p>
+                <p className="text-gray-500 text-center py-8">{market === 'de' ? 'Noch keine Beitraege' : 'Még nincs poszt'}</p>
               ) : (
                 allPosts.map((post) => (
                 <div
@@ -555,10 +559,10 @@ export default function AdminPostsPage() {
                       )}
                       <div>
                         <p className="font-semibold text-gray-900">
-                          {post.source === 'rss' ? 'semmelweis.hu' : (post.authorData?.displayName || 'Névtelen')}
+                          {post.source === 'rss' ? 'semmelweis.hu' : (post.authorData?.displayName || (market === 'de' ? 'Ohne Namen' : 'Névtelen'))}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {post.createdAt?.toDate().toLocaleString('hu-HU') || 'Most'}
+                          {post.createdAt?.toDate().toLocaleString(market === 'de' ? 'de-DE' : 'hu-HU') || (market === 'de' ? 'Jetzt' : 'Most')}
                         </p>
                       </div>
                     </div>
@@ -568,7 +572,7 @@ export default function AdminPostsPage() {
                           ? 'bg-purple-100 text-purple-700' 
                           : 'bg-green-100 text-green-700'
                       }`}>
-                        {post.source === 'rss' ? '📰 RSS Hír' : '💊 Gyógyszertári igény'}
+                        {post.source === 'rss' ? (market === 'de' ? '📰 RSS-Nachricht' : '📰 RSS Hír') : (market === 'de' ? '💊 Apothekenanfrage' : '💊 Gyógyszertári igény')}
                       </span>
                     )}
                   </div>
@@ -593,7 +597,7 @@ export default function AdminPostsPage() {
                           rel="noopener noreferrer"
                           className="text-purple-600 hover:text-purple-700 text-sm"
                         >
-                          Teljes cikk →
+                          {market === 'de' ? 'Voller Artikel →' : 'Teljes cikk →'}
                         </a>
                       )}
                     </>
@@ -628,7 +632,7 @@ export default function AdminPostsPage() {
                       className="flex items-center gap-2 text-orange-600 hover:text-orange-700 text-sm mt-2"
                     >
                       <EyeOff size={16} />
-                      RSS hír elrejtése (nem jelenik meg tovább)
+                      {market === 'de' ? 'RSS-Nachricht ausblenden (wird nicht mehr angezeigt)' : 'RSS hír elrejtése (nem jelenik meg tovább)'}
                     </button>
                   ) : (
                     <button
@@ -636,7 +640,7 @@ export default function AdminPostsPage() {
                       className="flex items-center gap-2 text-red-600 hover:text-red-700 text-sm mt-2"
                     >
                       <Trash2 size={16} />
-                      Poszt törlése
+                      {market === 'de' ? 'Beitrag loeschen' : 'Poszt törlése'}
                     </button>
                   )}
                   </>
