@@ -24,6 +24,7 @@ import { Star, MessageCircle, Share2, Send, MoreHorizontal, X, Heart, Laugh, Fro
 import { useRouter } from 'next/navigation';
 import { createNotificationWithPush } from '@/lib/notifications';
 import ReportModal from '@/app/components/ReportModal';
+import { getClientMarket } from '@/lib/marketI18n';
 
 const REACTIONS = [
   { type: 'like', emoji: '⭐', icon: Star, label: 'Tetszik', color: 'text-yellow-500' },
@@ -35,6 +36,8 @@ const REACTIONS = [
 ];
 
 export default function ModernServiceFeed() {
+  const market = getClientMarket();
+  const locale = market === 'de' ? 'de-DE' : 'hu-HU';
   // ✅ ÚJ: Optimalizált feed hook használata (onSnapshot helyett)
   const { user, userData } = useAuth();
   const {
@@ -290,7 +293,7 @@ export default function ModernServiceFeed() {
         imageUrl: imageUrl,
         createdAt: serverTimestamp(),
         authorData: {
-          displayName: userData?.displayName || user?.displayName || 'Névtelen',
+          displayName: userData?.displayName || user?.displayName || (market === 'de' ? 'Ohne Namen' : 'Névtelen'),
           photoURL: userData?.photoURL || user?.photoURL || null
         },
         style: postStyle.backgroundColor !== '#ffffff' || postStyle.textColor !== '#000000' || postStyle.fontSize !== 16 || postStyle.fontFamily !== 'default' 
@@ -312,7 +315,7 @@ export default function ModernServiceFeed() {
       });
     } catch (error) {
       console.error('Error creating post:', error);
-      alert('Hiba történt a poszt létrehozása során: ' + error.message);
+      alert((market === 'de' ? 'Fehler beim Erstellen des Beitrags: ' : 'Hiba történt a poszt létrehozása során: ') + error.message);
     } finally {
       setUploading(false);
     }
@@ -320,7 +323,7 @@ export default function ModernServiceFeed() {
 
   // Poszt törlése
   const handleDeletePost = async (postId) => {
-    if (!user || !window.confirm('Biztosan törölni szeretnéd ezt a posztot?')) return;
+    if (!user || !window.confirm(market === 'de' ? 'Moechtest du diesen Beitrag wirklich loeschen?' : 'Biztosan törölni szeretnéd ezt a posztot?')) return;
     
     setDeleting(postId);
     try {
@@ -331,7 +334,7 @@ export default function ModernServiceFeed() {
       refresh();
     } catch (error) {
       console.error('Error deleting post:', error);
-      alert('Hiba történt a poszt törlése során.');
+      alert(market === 'de' ? 'Fehler beim Loeschen des Beitrags.' : 'Hiba történt a poszt törlése során.');
     } finally {
       setDeleting(null);
     }
@@ -351,7 +354,7 @@ export default function ModernServiceFeed() {
       refresh();
     } catch (error) {
       console.error('Error editing post:', error);
-      alert('Hiba történt a poszt szerkesztése során.');
+      alert(market === 'de' ? 'Fehler beim Bearbeiten des Beitrags.' : 'Hiba történt a poszt szerkesztése során.');
     }
   };
 
@@ -394,11 +397,11 @@ export default function ModernServiceFeed() {
     const now = new Date();
     const diff = Math.floor((now - date) / 1000);
 
-    if (diff < 60) return 'most';
-    if (diff < 3600) return `${Math.floor(diff / 60)} perce`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)} órája`;
-    if (diff < 604800) return `${Math.floor(diff / 86400)} napja`;
-    return date.toLocaleDateString('hu-HU');
+    if (diff < 60) return market === 'de' ? 'gerade eben' : 'most';
+    if (diff < 3600) return market === 'de' ? `vor ${Math.floor(diff / 60)} Min.` : `${Math.floor(diff / 60)} perce`;
+    if (diff < 86400) return market === 'de' ? `vor ${Math.floor(diff / 3600)} Std.` : `${Math.floor(diff / 3600)} órája`;
+    if (diff < 604800) return market === 'de' ? `vor ${Math.floor(diff / 86400)} Tag.` : `${Math.floor(diff / 86400)} napja`;
+    return date.toLocaleDateString(locale);
   };
 
   // ✅ ÚJ: Loading state
@@ -414,12 +417,12 @@ export default function ModernServiceFeed() {
   if (error) {
     return (
       <div className="text-center py-12">
-        <p className="text-red-500 mb-4">Hiba történt: {error}</p>
+        <p className="text-red-500 mb-4">{market === 'de' ? 'Fehler: ' : 'Hiba történt: '}{error}</p>
         <button
           onClick={refresh}
           className="px-6 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600"
         >
-          Újrapróbálás
+          {market === 'de' ? 'Erneut versuchen' : 'Újrapróbálás'}
         </button>
       </div>
     );
@@ -436,7 +439,7 @@ export default function ModernServiceFeed() {
         >
           <div className="flex items-center justify-center gap-2">
             <RefreshCw className="w-5 h-5 animate-spin" />
-            <span className="font-semibold">Új bejegyzések érhetők el - Koppints a frissítéshez</span>
+            <span className="font-semibold">{market === 'de' ? 'Neue Beitraege verfuegbar - Tippe zum Aktualisieren' : 'Új bejegyzések érhetők el - Koppints a frissítéshez'}</span>
           </div>
         </div>
       )}
@@ -466,7 +469,7 @@ export default function ModernServiceFeed() {
       {/* Posts Feed */}
       {posts.length === 0 ? (
         <div className="bg-white dark:bg-gray-800 p-12 text-center">
-          <p className="text-gray-500 dark:text-gray-400">Jelenleg nincsenek megjeleníthető posztok.</p>
+          <p className="text-gray-500 dark:text-gray-400">{market === 'de' ? 'Derzeit sind keine Beitraege verfuegbar.' : 'Jelenleg nincsenek megjeleníthető posztok.'}</p>
         </div>
       ) : (
         posts.map((post) => {
@@ -562,7 +565,7 @@ export default function ModernServiceFeed() {
                     
                     {/* Pozíció badge */}
                     <div className={`px-3 py-1.5 rounded-full text-xs font-semibold ${colorScheme.badge}`}>
-                      {isPharmacist ? 'Gyógyszerész' : 'Szakasszisztens'}
+                      {isPharmacist ? (market === 'de' ? 'Apotheker/in' : 'Gyógyszerész') : (market === 'de' ? 'Assistent/in' : 'Szakasszisztens')}
                     </div>
 
                     {/* Jelentés menü */}
@@ -582,7 +585,7 @@ export default function ModernServiceFeed() {
                                 setReportModalData({
                                   reportType: 'pharmaDemandPost',
                                   reportedUserId: post.userId || null,
-                                  reportedUserName: post.pharmacyName || 'Felhasználó',
+                                  reportedUserName: post.pharmacyName || (market === 'de' ? 'Benutzer' : 'Felhasználó'),
                                   itemId: post.id,
                                   itemContent: post.pharmacyName || '',
                                 });
@@ -590,7 +593,7 @@ export default function ModernServiceFeed() {
                               className="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
                             >
                               <Flag size={16} />
-                              <span>Jelentés</span>
+                              <span>{market === 'de' ? 'Melden' : 'Jelentés'}</span>
                             </button>
                           </div>
                         )}
@@ -605,7 +608,7 @@ export default function ModernServiceFeed() {
                   <div className={`flex items-center gap-4 p-3 rounded-xl bg-gradient-to-r ${colorScheme.gradientLight} dark:${colorScheme.gradientDark} mb-4`}>
                     <div className={`w-14 h-14 ${colorScheme.bg} rounded-xl flex flex-col items-center justify-center text-white shadow-sm`}>
                       <span className="text-xs font-medium uppercase">
-                        {new Date(post.date).toLocaleDateString('hu-HU', { month: 'short' })}
+                        {new Date(post.date).toLocaleDateString(locale, { month: 'short' })}
                       </span>
                       <span className="text-xl font-bold">
                         {new Date(post.date).getDate()}
@@ -613,10 +616,10 @@ export default function ModernServiceFeed() {
                     </div>
                     <div>
                       <p className="font-semibold text-gray-900 dark:text-white">
-                        {new Date(post.date).toLocaleDateString('hu-HU', { weekday: 'long' })}
+                        {new Date(post.date).toLocaleDateString(locale, { weekday: 'long' })}
                       </p>
                       <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {new Date(post.date).toLocaleDateString('hu-HU', { year: 'numeric', month: 'long', day: 'numeric' })}
+                        {new Date(post.date).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' })}
                       </p>
                     </div>
                   </div>
@@ -626,7 +629,7 @@ export default function ModernServiceFeed() {
                     {post.workHours && (
                       <div className="flex items-center gap-2 p-2.5 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                         <div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">Munkaidő</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{market === 'de' ? 'Arbeitszeit' : 'Munkaidő'}</p>
                           <p className="text-sm font-medium text-gray-900 dark:text-white">{post.workHours}</p>
                         </div>
                       </div>
@@ -635,7 +638,7 @@ export default function ModernServiceFeed() {
                     {post.minExperience && (
                       <div className="flex items-center gap-2 p-2.5 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                         <div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">Tapasztalat</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{market === 'de' ? 'Erfahrung' : 'Tapasztalat'}</p>
                           <p className="text-sm font-medium text-gray-900 dark:text-white">{post.minExperience}</p>
                         </div>
                       </div>
@@ -644,7 +647,7 @@ export default function ModernServiceFeed() {
                     {post.maxHourlyRate && (
                       <div className="flex items-center gap-2 p-2.5 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                         <div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">Max. órabér</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{market === 'de' ? 'Max. Stundenlohn' : 'Max. órabér'}</p>
                           <p className="text-sm font-medium text-gray-900 dark:text-white">{post.maxHourlyRate} Ft</p>
                         </div>
                       </div>
@@ -655,7 +658,7 @@ export default function ModernServiceFeed() {
                   {post.requiredSoftware && post.requiredSoftware.length > 0 && (
                     <div className="mb-4">
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                        Elvárt szoftverismeret
+                        {market === 'de' ? 'Erforderliche Softwarekenntnisse' : 'Elvárt szoftverismeret'}
                       </p>
                       <div className="flex flex-wrap gap-1.5">
                         {post.requiredSoftware.map((software, idx) => (
@@ -683,7 +686,7 @@ export default function ModernServiceFeed() {
                     onClick={() => router.push(`/pharmagister/demand/${post.pharmaDemandId}`)}
                     className={`w-full ${colorScheme.bg} ${colorScheme.bgHover} text-white font-semibold py-3.5 px-4 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 shadow-sm hover:shadow-md`}
                   >
-                    <span>Részletek megtekintése</span>
+                    <span>{market === 'de' ? 'Details ansehen' : 'Részletek megtekintése'}</span>
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
@@ -710,10 +713,10 @@ export default function ModernServiceFeed() {
                         className="font-semibold text-gray-900 dark:text-white hover:underline cursor-pointer"
                         onClick={() => post.userId && router.push(`/profil/${post.userId}`)}
                       >
-                        {post.authorData?.displayName || 'Névtelen'}
+                        {post.authorData?.displayName || (market === 'de' ? 'Ohne Namen' : 'Névtelen')}
                       </span>
                       <span className="text-gray-600 dark:text-gray-400 text-sm">
-                        {post.reactionLabel || 'reagált'}
+                        {post.reactionLabel || (market === 'de' ? 'reagiert' : 'reagált')}
                       </span>
                       <span className="text-2xl">
                         {REACTIONS.find(r => r.type === post.reactionType)?.emoji || '👍'}
@@ -763,10 +766,10 @@ export default function ModernServiceFeed() {
                         className="font-semibold text-gray-900 dark:text-white hover:underline cursor-pointer"
                         onClick={() => post.userId && router.push(`/profil/${post.userId}`)}
                       >
-                        {post.authorData?.displayName || 'Névtelen'}
+                        {post.authorData?.displayName || (market === 'de' ? 'Ohne Namen' : 'Névtelen')}
                       </h3>
                       <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {post.serviceCategory || 'Szolgáltató'}
+                        {post.serviceCategory || (market === 'de' ? 'Dienstleister' : 'Szolgáltató')}
                       </p>
                     </div>
                     <div className="ml-auto flex items-center gap-2">
@@ -777,9 +780,9 @@ export default function ModernServiceFeed() {
                           ? 'bg-green-500 text-white'
                           : 'bg-blue-500 text-white'
                       }`}>
-                        {post.postType === 'newProvider' && '🎉 Új szolgáltató'}
-                        {post.postType === 'providerWorkPost' && '📸 Munka'}
-                        {post.postType === 'availableSlot' && '📅 Szabad időpont'}
+                        {post.postType === 'newProvider' && (market === 'de' ? '🎉 Neuer Dienstleister' : '🎉 Új szolgáltató')}
+                        {post.postType === 'providerWorkPost' && (market === 'de' ? '📸 Arbeit' : '📸 Munka')}
+                        {post.postType === 'availableSlot' && (market === 'de' ? '📅 Freier Termin' : '📅 Szabad időpont')}
                       </span>
 
                       {/* Jelentés menü */}
@@ -799,7 +802,7 @@ export default function ModernServiceFeed() {
                                   setReportModalData({
                                     reportType: 'serviceFeedPost',
                                     reportedUserId: post.userId || null,
-                                    reportedUserName: post.authorData?.displayName || 'Felhasználó',
+                                    reportedUserName: post.authorData?.displayName || (market === 'de' ? 'Benutzer' : 'Felhasználó'),
                                     itemId: post.id,
                                     itemContent: post.text || post.authorData?.displayName || '',
                                   });
@@ -807,7 +810,7 @@ export default function ModernServiceFeed() {
                                 className="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
                               >
                                 <Flag size={16} />
-                                <span>Jelentés</span>
+                                  <span>{market === 'de' ? 'Melden' : 'Jelentés'}</span>
                               </button>
                             </div>
                           )}
@@ -829,24 +832,24 @@ export default function ModernServiceFeed() {
                   {post.postType === 'newProvider' && (
                     <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 mb-3 space-y-2">
                       <div className="flex justify-between">
-                        <span className="text-gray-600 dark:text-gray-400 text-sm">Szolgáltatás</span>
+                        <span className="text-gray-600 dark:text-gray-400 text-sm">{market === 'de' ? 'Dienstleistung' : 'Szolgáltatás'}</span>
                         <span className="font-medium text-gray-900 dark:text-white text-sm">{post.serviceName}</span>
                       </div>
                       {post.servicePrice && (
                         <div className="flex justify-between">
-                          <span className="text-gray-600 dark:text-gray-400 text-sm">Ár</span>
+                          <span className="text-gray-600 dark:text-gray-400 text-sm">{market === 'de' ? 'Preis' : 'Ár'}</span>
                           <span className="font-medium text-gray-900 dark:text-white text-sm">{post.servicePrice} Ft</span>
                         </div>
                       )}
                       {post.serviceDuration && (
                         <div className="flex justify-between">
-                          <span className="text-gray-600 dark:text-gray-400 text-sm">Időtartam</span>
+                          <span className="text-gray-600 dark:text-gray-400 text-sm">{market === 'de' ? 'Dauer' : 'Időtartam'}</span>
                           <span className="font-medium text-gray-900 dark:text-white text-sm">{post.serviceDuration} perc</span>
                         </div>
                       )}
                       {post.serviceLocation && (
                         <div className="flex justify-between">
-                          <span className="text-gray-600 dark:text-gray-400 text-sm">Helyszín</span>
+                          <span className="text-gray-600 dark:text-gray-400 text-sm">{market === 'de' ? 'Ort' : 'Helyszín'}</span>
                           <span className="font-medium text-gray-900 dark:text-white text-sm">{post.serviceLocation}</span>
                         </div>
                       )}
@@ -857,20 +860,20 @@ export default function ModernServiceFeed() {
                   {post.postType === 'availableSlot' && post.slotDate && (
                     <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 mb-3 space-y-2">
                       <div className="flex justify-between">
-                        <span className="text-gray-600 dark:text-gray-400 text-sm">📅 Dátum</span>
+                        <span className="text-gray-600 dark:text-gray-400 text-sm">{market === 'de' ? '📅 Datum' : '📅 Dátum'}</span>
                         <span className="font-medium text-gray-900 dark:text-white text-sm">
-                          {new Date(post.slotDate).toLocaleDateString('hu-HU', { month: 'long', day: 'numeric', weekday: 'long' })}
+                          {new Date(post.slotDate).toLocaleDateString(locale, { month: 'long', day: 'numeric', weekday: 'long' })}
                         </span>
                       </div>
                       {post.slotTime && (
                         <div className="flex justify-between">
-                          <span className="text-gray-600 dark:text-gray-400 text-sm">🕐 Időpont</span>
+                          <span className="text-gray-600 dark:text-gray-400 text-sm">{market === 'de' ? '🕐 Uhrzeit' : '🕐 Időpont'}</span>
                           <span className="font-medium text-gray-900 dark:text-white text-sm">{post.slotTime}</span>
                         </div>
                       )}
                       {post.serviceName && (
                         <div className="flex justify-between">
-                          <span className="text-gray-600 dark:text-gray-400 text-sm">Szolgáltatás</span>
+                          <span className="text-gray-600 dark:text-gray-400 text-sm">{market === 'de' ? 'Dienstleistung' : 'Szolgáltatás'}</span>
                           <span className="font-medium text-gray-900 dark:text-white text-sm">{post.serviceName}</span>
                         </div>
                       )}
@@ -913,9 +916,9 @@ export default function ModernServiceFeed() {
                   <div className="px-4 pb-1.5 flex items-center text-sm text-gray-500">
                     <div className="flex-1 flex justify-end gap-3">
                       {commentsCount + totalReplies > 0 ? (
-                        <span>{commentsCount + totalReplies} hozzászólás</span>
+                        <span>{commentsCount + totalReplies} {market === 'de' ? 'Kommentare' : 'hozzászólás'}</span>
                       ) : (
-                        <span>Nincs még hozzászólás</span>
+                        <span>{market === 'de' ? 'Noch keine Kommentare' : 'Nincs még hozzászólás'}</span>
                       )}
                     </div>
                   </div>
@@ -928,14 +931,14 @@ export default function ModernServiceFeed() {
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
                   >
                     <MessageCircle size={16} />
-                    <span className="text-sm">Hozzászólás</span>
+                    <span className="text-sm">{market === 'de' ? 'Kommentar' : 'Hozzászólás'}</span>
                   </button>
                   {post.postType === 'availableSlot' && (
                     <button
                       onClick={() => router.push(`/szakember/${post.serviceId}?book=true`)}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-500 hover:bg-green-600 text-white font-medium text-sm"
                     >
-                      📅 Foglalás
+                      {market === 'de' ? '📅 Buchen' : '📅 Foglalás'}
                     </button>
                   )}
                 </div>
@@ -964,12 +967,12 @@ export default function ModernServiceFeed() {
                       className="font-semibold text-gray-900 dark:text-white hover:underline cursor-pointer"
                       onClick={() => post.userId && router.push(`/profil/${post.userId}`)}
                     >
-                      {post.authorData?.displayName || 'Névtelen'}
+                      {post.authorData?.displayName || (market === 'de' ? 'Ohne Namen' : 'Névtelen')}
                     </h3>
                     <div className="flex items-center gap-2">
                       <p className="text-xs text-gray-500">{formatTime(post.createdAt)}</p>
                       {post.editedAt && (
-                        <span className="text-xs text-gray-400">(szerkesztve)</span>
+                        <span className="text-xs text-gray-400">{market === 'de' ? '(bearbeitet)' : '(szerkesztve)'}</span>
                       )}
                     </div>
                   </div>
@@ -994,7 +997,7 @@ export default function ModernServiceFeed() {
                             setReportModalData({
                               reportType: 'serviceFeedPost',
                               reportedUserId: post.userId || null,
-                              reportedUserName: post.authorData?.displayName || 'Felhasználó',
+                              reportedUserName: post.authorData?.displayName || (market === 'de' ? 'Benutzer' : 'Felhasználó'),
                               itemId: post.id,
                               itemContent: post.title || post.text || '',
                             });
@@ -1002,7 +1005,7 @@ export default function ModernServiceFeed() {
                           className="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
                         >
                           <Flag size={16} />
-                          <span>Jelentés</span>
+                          <span>{market === 'de' ? 'Melden' : 'Jelentés'}</span>
                         </button>
                         {post.userId === user.uid && post.postType === 'userPost' && (
                           <>
@@ -1011,7 +1014,7 @@ export default function ModernServiceFeed() {
                               className="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
                             >
                               <Edit3 size={16} />
-                              <span>Szerkesztés</span>
+                              <span>{market === 'de' ? 'Bearbeiten' : 'Szerkesztés'}</span>
                             </button>
                             <button
                               onClick={() => handleDeletePost(post.id)}
@@ -1023,7 +1026,7 @@ export default function ModernServiceFeed() {
                               ) : (
                                 <Trash2 size={16} />
                               )}
-                              <span>Törlés</span>
+                              <span>{market === 'de' ? 'Loeschen' : 'Törlés'}</span>
                             </button>
                           </>
                         )}
@@ -1049,14 +1052,14 @@ export default function ModernServiceFeed() {
                         onClick={cancelEditing}
                         className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
                       >
-                        Mégse
+                        {market === 'de' ? 'Abbrechen' : 'Mégse'}
                       </button>
                       <button
                         onClick={handleSaveEdit}
                         disabled={!editText.trim()}
                         className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg disabled:opacity-50"
                       >
-                        Mentés
+                        {market === 'de' ? 'Speichern' : 'Mentés'}
                       </button>
                     </div>
                   </div>
@@ -1128,9 +1131,9 @@ export default function ModernServiceFeed() {
                     }}
                   >
                     {commentsCount + totalReplies > 0 ? (
-                      <span>{commentsCount + totalReplies} hozzászólás</span>
+                      <span>{commentsCount + totalReplies} {market === 'de' ? 'Kommentare' : 'hozzászólás'}</span>
                     ) : (
-                      <span>Nincs még hozzászólás</span>
+                      <span>{market === 'de' ? 'Noch keine Kommentare' : 'Nincs még hozzászólás'}</span>
                     )}
                   </div>
                 </div>
@@ -1143,7 +1146,7 @@ export default function ModernServiceFeed() {
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors"
                 >
                   <MessageCircle size={16} />
-                  <span className="text-sm">Hozzászólás</span>
+                  <span className="text-sm">{market === 'de' ? 'Kommentar' : 'Hozzászólás'}</span>
                 </button>
               </div>
 
@@ -1190,7 +1193,7 @@ export default function ModernServiceFeed() {
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Reakciók ({selectedPostReactions.length})
+                {market === 'de' ? 'Reaktionen' : 'Reakciók'} ({selectedPostReactions.length})
               </h3>
               <button
                 onClick={() => {
@@ -1219,12 +1222,12 @@ export default function ModernServiceFeed() {
                   >
                     <img
                       src={userData?.photoURL || '/default-avatar.svg'}
-                      alt={userData?.displayName || 'Felhasználó'}
+                      alt={userData?.displayName || (market === 'de' ? 'Benutzer' : 'Felhasználó')}
                       className="w-10 h-10 rounded-full object-cover"
                     />
                     <div className="flex-1">
                       <p className="font-semibold text-gray-900 dark:text-white">
-                        {userData?.displayName || 'Névtelen'}
+                        {userData?.displayName || (market === 'de' ? 'Ohne Namen' : 'Névtelen')}
                       </p>
                       {userData?.profession && (
                         <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -1255,7 +1258,7 @@ export default function ModernServiceFeed() {
       {/* ✅ ÚJ: End of Feed Message */}
       {!hasMore && posts.length > 0 && (
         <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-          Elérted a hírfolyam végét
+          {market === 'de' ? 'Du hast das Ende des Feeds erreicht' : 'Elérted a hírfolyam végét'}
         </div>
       )}
 
