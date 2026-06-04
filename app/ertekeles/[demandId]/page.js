@@ -5,6 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import RouteGuard from '@/app/components/RouteGuard';
 import { db } from '@/lib/firebase';
+import { getClientMarket } from '@/lib/marketI18n';
 import { doc, getDoc, collection, query, where, getDocs, addDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { ArrowLeft, Star, Info, Check, Loader2, AlertCircle } from 'lucide-react';
 
@@ -142,13 +143,121 @@ const RATING_CATEGORIES = [
   }
 ];
 
+const DE_CATEGORY_LABELS = {
+  megbizhatas: 'Zuverlaessigkeit',
+  szakmaiTudas: 'Fachwissen',
+  kommunikacio: 'Kommunikation'
+};
+
+const DE_CRITERION_LABELS = {
+  punctuality: 'Puenktliches Erscheinen',
+  endTime: 'Einhaltung der Arbeitszeit',
+  commitment: 'Verbindlichkeit',
+  medicineKnowledge: 'Arzneimittelkenntnisse',
+  prescriptionHandling: 'Rezeptbearbeitung',
+  independence: 'Selbststaendiges Arbeiten',
+  softwareUsage: 'Apothekensoftware',
+  patientCommunication: 'Kommunikation mit Patient/innen',
+  teamwork: 'Zusammenarbeit im Team',
+  askingQuestions: 'Nachfragen bei Unsicherheit'
+};
+
+const DE_CRITERION_DESCRIPTIONS = {
+  punctuality: {
+    1: 'Deutliche Verspaetung (30+ Min.) oder nicht erschienen',
+    2: 'Mehrfach 15-30 Minuten zu spaet',
+    3: 'Kleinere Verspaetungen (5-15 Minuten) kamen vor',
+    4: 'Fast immer puenktlich erschienen',
+    5: 'Immer puenktlich oder frueher erschienen'
+  },
+  endTime: {
+    1: 'Regelmaessig frueher gegangen',
+    2: 'Wollte manchmal frueher gehen',
+    3: 'Arbeitszeit grob eingehalten',
+    4: 'Schicht verlaesslich vollstaendig gearbeitet',
+    5: 'Bei Bedarf flexibel ueberstundenbereit'
+  },
+  commitment: {
+    1: 'In letzter Minute abgesagt',
+    2: 'Wollte den Termin mehrfach aendern',
+    3: 'Ein bis zwei kleinere Aenderungen kamen vor',
+    4: 'War an den vereinbarten Termin gebunden',
+    5: 'Maximal verlaesslich, Wort immer gehalten'
+  },
+  medicineKnowledge: {
+    1: 'Grundlegende Wissensluecken, Fehler',
+    2: 'Unsicher, brauchte viel Unterstuetzung',
+    3: 'Durchschnittliches Wissen, fuer Routine geeignet',
+    4: 'Gute Arzneimittelkenntnisse, selten Rueckfragen',
+    5: 'Exzellentes, aktuelles Fachwissen'
+  },
+  prescriptionHandling: {
+    1: 'Rezepte fehlerhaft bearbeitet',
+    2: 'Unsicher bei den Regeln',
+    3: 'Grundlegende Rezeptbearbeitung in Ordnung',
+    4: 'Praezise und korrekte Rezeptbearbeitung',
+    5: 'Einwandfrei, alle Rezepttypen sicher'
+  },
+  independence: {
+    1: 'Benoetigte staendige Aufsicht',
+    2: 'Fragte haeufig nach Hilfe',
+    3: 'Routineaufgaben selbststaendig erledigt',
+    4: 'Groesstenteils selbststaendig gearbeitet',
+    5: 'Vollstaendig selbststaendig und proaktiv'
+  },
+  softwareUsage: {
+    1: 'System nicht beherrscht',
+    2: 'Langsam und unsicher bedient',
+    3: 'Grundfunktionen beherrscht',
+    4: 'Software sicher genutzt',
+    5: 'Auf Profi-Niveau gearbeitet'
+  },
+  patientCommunication: {
+    1: 'Unhoeflich oder desinteressiert',
+    2: 'Oberflaechliche, schnelle Betreuung',
+    3: 'Angemessene, durchschnittliche Kommunikation',
+    4: 'Freundlich und geduldig mit Patient/innen',
+    5: 'Exzellent, bei Patient/innen sehr beliebt'
+  },
+  teamwork: {
+    1: 'Konflikte, schwierige Zusammenarbeit',
+    2: 'Zurueckhaltend, bot/fragte kaum Hilfe an',
+    3: 'Angemessene Zusammenarbeit',
+    4: 'Gute Teamarbeit',
+    5: 'Sehr gut ins Team integriert'
+  },
+  askingQuestions: {
+    1: 'Fragte nicht nach, machte eher Fehler',
+    2: 'Fragte selten nach, obwohl noetig',
+    3: 'Fragte gelegentlich nach',
+    4: 'Fragte angemessen nach bei Bedarf',
+    5: 'Klaerte Fragen proaktiv'
+  }
+};
+
+function getLocalizedRatingCategories(market) {
+  if (market !== 'de') return RATING_CATEGORIES;
+
+  return RATING_CATEGORIES.map((category) => ({
+    ...category,
+    label: DE_CATEGORY_LABELS[category.id] || category.label,
+    criteria: category.criteria.map((criterion) => ({
+      ...criterion,
+      label: DE_CRITERION_LABELS[criterion.id] || criterion.label,
+      descriptions: DE_CRITERION_DESCRIPTIONS[criterion.id] || criterion.descriptions
+    }))
+  }));
+}
+
 function StarRating({ value, onChange, criterion, darkMode, showInfo, setShowInfo }) {
+  const criterionLabel = criterion.label;
+
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'} truncate`}>
-            {criterion.label}
+            {criterionLabel}
           </span>
           <button
             type="button"
@@ -218,6 +327,7 @@ export default function RatingPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { darkMode } = useTheme();
+  const market = getClientMarket();
   const demandId = params.demandId;
 
   const [loading, setLoading] = useState(true);
@@ -231,6 +341,7 @@ export default function RatingPage() {
   const [application, setApplication] = useState(null);
   const [substituteData, setSubstituteData] = useState(null);
   const [existingRating, setExistingRating] = useState(null);
+  const ratingCategories = getLocalizedRatingCategories(market);
 
   // Rating form state - nested structure
   const [ratings, setRatings] = useState(getInitialRatings());
@@ -251,7 +362,7 @@ export default function RatingPage() {
       // 1. Load demand
       const demandDoc = await getDoc(doc(db, 'pharmaDemands', demandId));
       if (!demandDoc.exists()) {
-        setError('Az igény nem található.');
+        setError(market === 'de' ? 'Anfrage nicht gefunden.' : 'Az igény nem található.');
         return;
       }
       const demandData = { id: demandDoc.id, ...demandDoc.data() };
@@ -261,7 +372,7 @@ export default function RatingPage() {
       const isPharmacyOwner = demandData.pharmacyId === user.uid;
       
       if (!isPharmacyOwner) {
-        setError('Csak a gyógyszertár értékelheti a helyettesítőt.');
+        setError(market === 'de' ? 'Nur die Apotheke kann die Vertretung bewerten.' : 'Csak a gyógyszertár értékelheti a helyettesítőt.');
         return;
       }
 
@@ -274,7 +385,7 @@ export default function RatingPage() {
       const appSnapshot = await getDocs(appQuery);
       
       if (appSnapshot.empty) {
-        setError('Nincs elfogadott jelentkező ehhez az igényhez.');
+        setError(market === 'de' ? 'Keine angenommene Bewerbung zu dieser Anfrage.' : 'Nincs elfogadott jelentkező ehhez az igényhez.');
         return;
       }
 
@@ -308,7 +419,7 @@ export default function RatingPage() {
 
     } catch (err) {
       console.error('Error loading data:', err);
-      setError('Hiba történt az adatok betöltésekor.');
+      setError(market === 'de' ? 'Fehler beim Laden der Daten.' : 'Hiba történt az adatok betöltésekor.');
     } finally {
       setLoading(false);
     }
@@ -320,7 +431,7 @@ export default function RatingPage() {
     // Validation - check all criteria in all categories
     let allRated = true;
     let missingCategory = null;
-    RATING_CATEGORIES.forEach(category => {
+    ratingCategories.forEach(category => {
       category.criteria.forEach(criterion => {
         if (!ratings[category.id]?.[criterion.id] || ratings[category.id][criterion.id] === 0) {
           allRated = false;
@@ -330,11 +441,11 @@ export default function RatingPage() {
     });
 
     if (!allRated) {
-      setError(`Kérjük, értékelje az összes szempontot! (Hiányzik: ${missingCategory})`);
+      setError(market === 'de' ? `Bitte bewerte alle Kriterien. (Fehlt: ${missingCategory})` : `Kérjük, értékelje az összes szempontot! (Hiányzik: ${missingCategory})`);
       return;
     }
     if (wouldChooseAgain === null) {
-      setError('Kérjük, válassza ki, hogy újra választaná-e!');
+      setError(market === 'de' ? 'Bitte gib an, ob du die Person erneut waehlen wuerdest.' : 'Kérjük, válassza ki, hogy újra választaná-e!');
       return;
     }
 
@@ -400,7 +511,7 @@ export default function RatingPage() {
 
     } catch (err) {
       console.error('Error submitting rating:', err);
-      setError('Hiba történt az értékelés mentésekor.');
+      setError(market === 'de' ? 'Fehler beim Speichern der Bewertung.' : 'Hiba történt az értékelés mentésekor.');
     } finally {
       setSubmitting(false);
     }
@@ -476,7 +587,7 @@ export default function RatingPage() {
               onClick={() => router.back()}
               className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
             >
-              Vissza
+              {market === 'de' ? 'Zurueck' : 'Vissza'}
             </button>
           </div>
         </div>
@@ -493,10 +604,10 @@ export default function RatingPage() {
               <Check className="w-8 h-8 text-green-600" />
             </div>
             <p className={`${darkMode ? 'text-white' : 'text-gray-900'} font-medium text-lg mb-2`}>
-              Köszönjük az értékelést!
+              {market === 'de' ? 'Danke fuer deine Bewertung!' : 'Köszönjük az értékelést!'}
             </p>
             <p className={`${darkMode ? 'text-gray-400' : 'text-gray-500'} text-sm`}>
-              Visszairányítjuk az irányítópultra...
+              {market === 'de' ? 'Weiterleitung zum Dashboard...' : 'Visszairányítjuk az irányítópultra...'}
             </p>
           </div>
         </div>
@@ -515,15 +626,15 @@ export default function RatingPage() {
               className="text-white hover:text-purple-100 flex items-center gap-2 mb-2"
             >
               <ArrowLeft className="w-5 h-5" />
-              <span className="font-medium">Vissza</span>
+              <span className="font-medium">{market === 'de' ? 'Zurueck' : 'Vissza'}</span>
             </button>
-            <h1 className="text-xl font-bold text-white">Helyettesítő értékelése</h1>
+            <h1 className="text-xl font-bold text-white">{market === 'de' ? 'Bewertung der Vertretung' : 'Helyettesítő értékelése'}</h1>
             <p className="text-purple-100 text-sm mt-1">
-              {demand?.date && (demand.date.toDate ? demand.date.toDate() : new Date(demand.date)).toLocaleDateString('hu-HU', { 
+              {demand?.date && (demand.date.toDate ? demand.date.toDate() : new Date(demand.date)).toLocaleDateString(market === 'de' ? 'de-DE' : 'hu-HU', { 
                 year: 'numeric', 
                 month: 'long', 
                 day: 'numeric' 
-              })} - {substituteData?.displayName || substituteData?.name || 'Ismeretlen'}
+              })} - {substituteData?.displayName || substituteData?.name || (market === 'de' ? 'Unbekannt' : 'Ismeretlen')}
             </p>
           </div>
         </div>
@@ -537,11 +648,12 @@ export default function RatingPage() {
               <Info className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
               <div>
                 <p className={`font-medium ${darkMode ? 'text-blue-300' : 'text-blue-800'}`}>
-                  🔒 Anonim értékelés
+                  {market === 'de' ? '🔒 Anonyme Bewertung' : '🔒 Anonim értékelés'}
                 </p>
                 <p className={`text-sm mt-1 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>
-                  Az értékelés névtelen - a helyettesítő nem fogja tudni, hogy melyik gyógyszertár értékelte.
-                  Az értékelések 4 db összegyűjtése után jelennek meg a profilon.
+                  {market === 'de'
+                    ? 'Die Bewertung ist anonym. Die Vertretung sieht nicht, welche Apotheke bewertet hat. Bewertungen erscheinen im Profil nach 4 eingegangenen Bewertungen.'
+                    : 'Az értékelés névtelen - a helyettesítő nem fogja tudni, hogy melyik gyógyszertár értékelte. Az értékelések 4 db összegyűjtése után jelennek meg a profilon.'}
                 </p>
               </div>
             </div>
@@ -552,14 +664,14 @@ export default function RatingPage() {
               darkMode ? 'bg-yellow-900/30 border border-yellow-800' : 'bg-yellow-50 border border-yellow-200'
             }`}>
               <p className={`text-sm ${darkMode ? 'text-yellow-300' : 'text-yellow-700'}`}>
-                ✏️ Már értékelted ezt a helyettesítést. Az értékelés módosítható.
+                {market === 'de' ? '✏️ Du hast diese Vertretung bereits bewertet. Die Bewertung kann geaendert werden.' : '✏️ Már értékelted ezt a helyettesítést. Az értékelés módosítható.'}
               </p>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Rating categories */}
-            {RATING_CATEGORIES.map((category) => {
+            {ratingCategories.map((category) => {
               const isExpanded = expandedCategory === category.id;
               // Calculate category completion
               const criteriaCount = category.criteria.length;
@@ -587,7 +699,7 @@ export default function RatingPage() {
                           {category.label}
                         </h3>
                         <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                          {ratedCount}/{criteriaCount} értékelve
+                          {ratedCount}/{criteriaCount} {market === 'de' ? 'bewertet' : 'értékelve'}
                           {categoryAvg && <span className="ml-2 text-yellow-500">⭐ {categoryAvg}</span>}
                         </p>
                       </div>
@@ -642,7 +754,7 @@ export default function RatingPage() {
               darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'
             }`}>
               <p className={`font-medium mb-3 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                Újra választaná ezt a helyettesítőt?
+                {market === 'de' ? 'Wuerdest du diese Vertretung wieder waehlen?' : 'Újra választaná ezt a helyettesítőt?'}
               </p>
               <div className="flex gap-3">
                 <button
@@ -656,7 +768,7 @@ export default function RatingPage() {
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  ✅ Igen
+                  {market === 'de' ? '✅ Ja' : '✅ Igen'}
                 </button>
                 <button
                   type="button"
@@ -669,7 +781,7 @@ export default function RatingPage() {
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  ❌ Nem
+                  {market === 'de' ? '❌ Nein' : '❌ Nem'}
                 </button>
               </div>
             </div>
@@ -679,14 +791,14 @@ export default function RatingPage() {
               darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'
             }`}>
               <label className={`block font-medium mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-                Megjegyzés (opcionális)
+                {market === 'de' ? 'Kommentar (optional)' : 'Megjegyzés (opcionális)'}
               </label>
               <textarea
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 maxLength={500}
                 rows={3}
-                placeholder="Írjon bővebb véleményt a helyettesítőről..."
+                placeholder={market === 'de' ? 'Schreibe optional eine ausfuehrlichere Rueckmeldung...' : 'Írjon bővebb véleményt a helyettesítőről...'}
                 className={`w-full px-3 py-2 rounded-lg border resize-none transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 ${
                   darkMode
                     ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-500'
@@ -694,7 +806,7 @@ export default function RatingPage() {
                 }`}
               />
               <p className={`text-xs mt-1 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                {comment.length}/500 karakter
+                {comment.length}/500 {market === 'de' ? 'Zeichen' : 'karakter'}
               </p>
             </div>
 
@@ -714,12 +826,12 @@ export default function RatingPage() {
               {submitting ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Mentés...
+                  {market === 'de' ? 'Speichern...' : 'Mentés...'}
                 </>
               ) : existingRating ? (
-                'Értékelés módosítása'
+                market === 'de' ? 'Bewertung aktualisieren' : 'Értékelés módosítása'
               ) : (
-                'Értékelés elküldése'
+                market === 'de' ? 'Bewertung absenden' : 'Értékelés elküldése'
               )}
             </button>
           </form>
