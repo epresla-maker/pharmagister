@@ -1,13 +1,9 @@
 import { NextResponse } from 'next/server';
 import {
   MARKET_COOKIE,
-  getMarketDomains,
   getMarketFromHost as resolveMarketFromHost,
   normalizeMarket,
 } from './lib/market';
-
-// Domain konfiguráció
-const { hu: HU_DOMAIN, de: DE_DOMAIN } = getMarketDomains();
 
 // Karbantartási mód konfiguráció
 const MAINTENANCE_MODE = false; // Kikapcsolva - ne töröld!
@@ -52,20 +48,14 @@ export function proxy(request) {
     );
   }
 
-  // preview/vercel hostok átirányítása a választott market domainre
+  // Vercel preview és a normál domain is ugyanazon hoston marad, csak a market cookie változik
   if (hostWithoutPort.includes('.vercel.app')) {
-    const newUrl = new URL(request.url);
-    newUrl.hostname = selectedMarket === 'de' ? DE_DOMAIN : HU_DOMAIN;
-    newUrl.port = '';
-    return setMarketCookie(
-      NextResponse.redirect(newUrl, { status: 302 }),
-      selectedMarket
-    );
+    return setMarketCookie(NextResponse.next(), selectedMarket);
   }
 
   // Ha nincs karbantartási mód, engedjük át
   if (!MAINTENANCE_MODE) {
-    return setMarketCookie(NextResponse.next(), resolveMarketFromHost(hostWithoutPort));
+    return setMarketCookie(NextResponse.next(), selectedMarket || resolveMarketFromHost(hostWithoutPort));
   }
 
   // Ha már lejárt a karbantartás ideje
@@ -76,20 +66,20 @@ export function proxy(request) {
   // Ellenőrizzük az engedélyezett útvonalakat
   const isAllowedPath = ALLOWED_PATHS.some(path => pathname.startsWith(path));
   if (isAllowedPath) {
-    return setMarketCookie(NextResponse.next(), resolveMarketFromHost(hostWithoutPort));
+    return setMarketCookie(NextResponse.next(), selectedMarket || resolveMarketFromHost(hostWithoutPort));
   }
 
   // Ellenőrizzük a bypass cookie-t (admin hozzáférés)
   const bypassCookie = request.cookies.get('maintenance_bypass');
   if (bypassCookie?.value === 'true') {
-    return setMarketCookie(NextResponse.next(), resolveMarketFromHost(hostWithoutPort));
+    return setMarketCookie(NextResponse.next(), selectedMarket || resolveMarketFromHost(hostWithoutPort));
   }
 
   // Minden más kérést átirányítunk a maintenance oldalra
   const maintenanceUrl = new URL('/maintenance', request.url);
   return setMarketCookie(
     NextResponse.redirect(maintenanceUrl),
-    resolveMarketFromHost(hostWithoutPort)
+    selectedMarket || resolveMarketFromHost(hostWithoutPort)
   );
 }
 

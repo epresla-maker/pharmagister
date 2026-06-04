@@ -1,9 +1,9 @@
 // app/layout.js
 import { Inter } from "next/font/google";
-import { headers } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import "./globals.css";
 import ClientProviders from "@/app/components/ClientProviders";
-import { getMarketFromHost, marketToLang } from '@/lib/market';
+import { MARKET_COOKIE, getMarketFromHost, marketToLang } from '@/lib/market';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -25,9 +25,11 @@ export const viewport = {
 };
 
 export default async function RootLayout({ children }) {
+  const cookieStore = await cookies();
   const headersList = await headers();
   const host = headersList.get('host') || '';
-  const lang = marketToLang(getMarketFromHost(host));
+  const market = cookieStore.get(MARKET_COOKIE)?.value || getMarketFromHost(host);
+  const lang = marketToLang(market);
 
   return (
     <html lang={lang}>
