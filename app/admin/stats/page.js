@@ -81,13 +81,6 @@ export default function StatsPage() {
       const profileIncomplete = activeUsers.filter(u => !u.pharmaProfileComplete);
       const noRole = activeUsers.filter(u => !u.pharmagisterRole);
 
-      // ===== DE PIAC =====
-      const deUsers = users.filter(u => u.market === 'de');
-      const dePharmacies = deUsers.filter(u => u.pharmagisterRole === 'pharmacy' || u.pharmagisterRole === 'gyógyszertár');
-      const dePharmacists = deUsers.filter(u => u.pharmagisterRole === 'pharmacist' || u.pharmagisterRole === 'gyógyszerész');
-      const deAssistants = deUsers.filter(u => u.pharmagisterRole === 'assistant' || u.pharmagisterRole === 'szakasszisztens');
-      const deNoRole = deUsers.filter(u => !u.pharmagisterRole);
-
       // ===== AKTIVITÁS =====
       const getActiveInPeriod = (since) => activeUsers.filter(u => {
         const ll = parseDate(u.lastLogin);
@@ -151,25 +144,6 @@ export default function StatsPage() {
 
       setStats({
         users: { totalAll: users.length, active: activeUsers.length, pharmacists: pharmacists.length, pharmacies: pharmaciesArr.length, assistants: assistants.length, profileComplete: profileComplete.length, profileIncomplete: profileIncomplete.length, noRole: noRole.length },
-        de: {
-          total: deUsers.length,
-          pharmacies: dePharmacies.length,
-          pharmacists: dePharmacists.length,
-          assistants: deAssistants.length,
-          noRole: deNoRole.length,
-          list: deUsers.map(u => ({
-            id: u.id,
-            name: u.displayName || u.name || '-',
-            email: u.email || '-',
-            role: u.pharmagisterRole || null,
-            createdAt: u.createdAt || null,
-            pharmaProfileComplete: u.pharmaProfileComplete || false,
-          })).sort((a, b) => {
-            const ta = a.createdAt?.seconds || 0;
-            const tb = b.createdAt?.seconds || 0;
-            return tb - ta;
-          }),
-        },
         activity: { dau: { total: dau.length, ...countRoles(dau) }, wau: { total: wau.length, ...countRoles(wau) }, mau: { total: mau.length, ...countRoles(mau) } },
         demands: { total: demands.length, totalEver: totalEverCreated, active: activeDemands.length, filled: filledDemands.length, rejected: demandsAllRejected.length, waiting: demandsWaitingResponse.length },
         chat: { total: chats.length, active: activeChats.length },
@@ -437,89 +411,6 @@ export default function StatsPage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-4">
-                          <div className="text-right">
-                            <p className="text-lg font-bold text-purple-600">{pharmacy.demands.length}</p>
-                            <p className="text-xs text-gray-500">igény</p>
-                          </div>
-                          {expandedPharmacy === pharmacy.pharmacyId 
-                            ? <ChevronUp size={20} className="text-gray-400" />
-                            : <ChevronDown size={20} className="text-gray-400" />}
-                        </div>
-                      </button>
-                      {expandedPharmacy === pharmacy.pharmacyId && (
-                        <div className="p-4 border-t">
-                          <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
-                              <thead>
-                                <tr className="text-left text-gray-500 border-b">
-                                  <th className="py-2 pr-3">Dátum</th>
-                                  <th className="py-2 px-3">Pozíció</th>
-                                  <th className="py-2 px-3 text-center">Jelentkezők</th>
-                                  <th className="py-2 px-3">Állapot</th>
-                                  <th className="py-2 pl-3">Létrehozva</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {pharmacy.demands
-                                  .sort((a, b) => (a.date > b.date ? -1 : 1))
-                                  .map((d) => (
-                                  <React.Fragment key={d.id}>
-                                  <tr className="border-b last:border-0">
-                                    <td className="py-2 pr-3 font-medium">{d.date}</td>
-                                    <td className="py-2 px-3">{d.position}</td>
-                                    <td className="py-2 px-3 text-center">
-                                      <span className={`font-semibold ${d.applicantCount > 0 ? 'text-blue-600' : 'text-gray-400'}`}>
-                                        {d.applicantCount}
-                                      </span>
-                                    </td>
-                                    <td className="py-2 px-3">
-                                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                                        d.demandStatus === 'Betöltve' ? 'bg-green-100 text-green-700' :
-                                        d.demandStatus === 'Mindenkit elutasították' ? 'bg-red-100 text-red-700' :
-                                        d.demandStatus === 'Vár válaszra' ? 'bg-yellow-100 text-yellow-700' :
-                                        'bg-gray-100 text-gray-600'
-                                      }`}>
-                                        {d.demandStatus === 'Betöltve' && <CheckCircle size={12} />}
-                                        {d.demandStatus === 'Mindenkit elutasították' && <XCircle size={12} />}
-                                        {d.demandStatus === 'Vár válaszra' && <Clock size={12} />}
-                                        {d.demandStatus}
-                                      </span>
-                                    </td>
-                                    <td className="py-2 pl-3 text-xs text-gray-400">
-                                      {d.createdAt 
-                                        ? (typeof d.createdAt === 'string' 
-                                            ? new Date(d.createdAt).toLocaleDateString('hu-HU') 
-                                            : d.createdAt.seconds 
-                                              ? new Date(d.createdAt.seconds * 1000).toLocaleDateString('hu-HU')
-                                              : '-')
-                                        : '-'}
-                                    </td>
-                                  </tr>
-                                  {d.applicants && d.applicants.length > 0 && (
-                                    <tr>
-                                      <td colSpan={5} className="pb-3 pt-0 px-2">
-                                        <div className="ml-4 bg-blue-50 rounded-lg p-3">
-                                          <p className="text-xs font-semibold text-blue-700 mb-2">👤 Jelentkezők:</p>
-                                          <div className="space-y-1.5">
-                                            {d.applicants.map(app => {
-                                              const formatDate = (val) => {
-                                                if (!val) return '-';
-                                                if (typeof val === 'string') return new Date(val).toLocaleDateString('hu-HU');
-                                                if (val.seconds) return new Date(val.seconds * 1000).toLocaleDateString('hu-HU');
-                                                return '-';
-                                              };
-                                              return (
-                                                <div key={app.id} className="flex items-center justify-between text-xs bg-white rounded-md px-3 py-1.5">
-                                                  <div className="flex items-center gap-2">
-                                                    <span className="font-medium text-gray-800">{app.name}</span>
-                                                    <span className="text-gray-400">({app.role})</span>
-                                                  </div>
-                                                  <div className="flex items-center gap-3">
-                                                    <span className="text-gray-400">Jelentkezett: {formatDate(app.appliedAt)}</span>
-                                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium ${
-                                                      app.status === 'accepted' ? 'bg-green-100 text-green-700' :
-                                                      app.status === 'rejected' ? 'bg-red-100 text-red-700' :
-                                                      'bg-yellow-100 text-yellow-700'
                                                     }`}>
                                                       {app.status === 'accepted' && <><CheckCircle size={10} /> Elfogadva</>}
                                                       {app.status === 'rejected' && <><XCircle size={10} /> Elutasítva</>}

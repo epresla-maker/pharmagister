@@ -226,7 +226,7 @@ export default function AdminPage() {
             </button>
             {isAdmin && (
               <button
-                onClick={() => router.push('/admin/stats#de-market')}
+                onClick={() => router.push('/admin/de-registrations')}
                 className="bg-blue-700 text-white px-3 py-2 rounded-lg hover:bg-blue-800 text-xs sm:text-sm w-full"
               >
                 🇩🇪 Német regisztrációk
