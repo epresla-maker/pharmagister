@@ -283,7 +283,7 @@ export default function StatsPage() {
 
             {/* DE PIAC - csak epresla@icloud.com admin látja */}
             {ADMIN_EMAILS.includes(user.email) && stats.de && (
-              <section className="bg-white rounded-xl shadow-lg p-6 border-2 border-blue-200">
+              <section id="de-market" className="bg-white rounded-xl shadow-lg p-6 border-2 border-blue-200">
                 <h2 className="text-lg font-bold text-gray-800 mb-1 flex items-center gap-2">
                   <span className="text-2xl">🇩🇪</span> Német piac (DE) regisztrációk
                 </h2>

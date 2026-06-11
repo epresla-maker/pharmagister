@@ -224,6 +224,14 @@ export default function AdminPage() {
             >
               {market === 'de' ? '📊 Statistiken' : '📊 Statisztikák'}
             </button>
+            {isAdmin && (
+              <button
+                onClick={() => router.push('/admin/stats#de-market')}
+                className="bg-blue-700 text-white px-3 py-2 rounded-lg hover:bg-blue-800 text-xs sm:text-sm w-full"
+              >
+                🇩🇪 Német regisztrációk
+              </button>
+            )}
             <button
               onClick={() => router.push('/admin/rss-test')}
               className="bg-yellow-600 text-white px-3 py-2 rounded-lg hover:bg-yellow-700 text-xs sm:text-sm w-full"
