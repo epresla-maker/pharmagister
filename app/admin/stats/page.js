@@ -81,6 +81,13 @@ export default function StatsPage() {
       const profileIncomplete = activeUsers.filter(u => !u.pharmaProfileComplete);
       const noRole = activeUsers.filter(u => !u.pharmagisterRole);
 
+      // ===== DE PIAC =====
+      const deUsers = users.filter(u => u.market === 'de');
+      const dePharmacies = deUsers.filter(u => u.pharmagisterRole === 'pharmacy' || u.pharmagisterRole === 'gyógyszertár');
+      const dePharmacists = deUsers.filter(u => u.pharmagisterRole === 'pharmacist' || u.pharmagisterRole === 'gyógyszerész');
+      const deAssistants = deUsers.filter(u => u.pharmagisterRole === 'assistant' || u.pharmagisterRole === 'szakasszisztens');
+      const deNoRole = deUsers.filter(u => !u.pharmagisterRole);
+
       // ===== AKTIVITÁS =====
       const getActiveInPeriod = (since) => activeUsers.filter(u => {
         const ll = parseDate(u.lastLogin);
@@ -144,6 +151,7 @@ export default function StatsPage() {
 
       setStats({
         users: { totalAll: users.length, active: activeUsers.length, pharmacists: pharmacists.length, pharmacies: pharmaciesArr.length, assistants: assistants.length, profileComplete: profileComplete.length, profileIncomplete: profileIncomplete.length, noRole: noRole.length },
+        de: { total: deUsers.length, pharmacies: dePharmacies.length, pharmacists: dePharmacists.length, assistants: deAssistants.length, noRole: deNoRole.length },
         activity: { dau: { total: dau.length, ...countRoles(dau) }, wau: { total: wau.length, ...countRoles(wau) }, mau: { total: mau.length, ...countRoles(mau) } },
         demands: { total: demands.length, totalEver: totalEverCreated, active: activeDemands.length, filled: filledDemands.length, rejected: demandsAllRejected.length, waiting: demandsWaitingResponse.length },
         chat: { total: chats.length, active: activeChats.length },
@@ -272,6 +280,38 @@ export default function StatsPage() {
                 <MiniCard icon={AlertCircle} label="Nincs szerepkör" value={stats.users.noRole} color="text-gray-500" bg="bg-gray-100" />
               </div>
             </section>
+
+            {/* DE PIAC - csak epresla@icloud.com admin látja */}
+            {ADMIN_EMAILS.includes(user.email) && stats.de && (
+              <section className="bg-white rounded-xl shadow-lg p-6 border-2 border-blue-200">
+                <h2 className="text-lg font-bold text-gray-800 mb-1 flex items-center gap-2">
+                  <span className="text-2xl">🇩🇪</span> Német piac (DE) regisztrációk
+                </h2>
+                <p className="text-sm text-gray-500 mb-4">Csak azok a felhasználók, akiknél <code className="bg-gray-100 px-1 rounded">market === 'de'</code></p>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                  <div className="bg-blue-50 rounded-xl p-4 text-center col-span-2 sm:col-span-1">
+                    <p className="text-3xl font-bold text-blue-700">{stats.de.total}</p>
+                    <p className="text-xs text-gray-600 mt-1">Összes DE regisztráció</p>
+                  </div>
+                  <div className="bg-green-50 rounded-xl p-4 text-center">
+                    <p className="text-2xl font-bold text-green-700">{stats.de.pharmacies}</p>
+                    <p className="text-xs text-gray-600 mt-1">Gyógyszertár</p>
+                  </div>
+                  <div className="bg-indigo-50 rounded-xl p-4 text-center">
+                    <p className="text-2xl font-bold text-indigo-700">{stats.de.pharmacists}</p>
+                    <p className="text-xs text-gray-600 mt-1">Gyógyszerész</p>
+                  </div>
+                  <div className="bg-orange-50 rounded-xl p-4 text-center">
+                    <p className="text-2xl font-bold text-orange-700">{stats.de.assistants}</p>
+                    <p className="text-xs text-gray-600 mt-1">Szakasszisztens</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-xl p-4 text-center">
+                    <p className="text-2xl font-bold text-gray-500">{stats.de.noRole}</p>
+                    <p className="text-xs text-gray-600 mt-1">Nincs szerepkör</p>
+                  </div>
+                </div>
+              </section>
+            )}
 
             {/* 2. AKTIVITÁS */}
             <section className="bg-white rounded-xl shadow-lg p-6">
