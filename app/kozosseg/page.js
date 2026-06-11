@@ -59,6 +59,7 @@ import {
 import ReportModal from '@/app/components/ReportModal';
 import { getEffectivePharmagisterRole } from '@/lib/pharmagisterProfile';
 import { getClientMarket, getCategoryLabel, getReactionLabel, t } from '@/lib/marketI18n';
+import { isDocInMarket } from '@/lib/market';
 
 // ============================================
 // CONSTANTS
@@ -107,6 +108,46 @@ const FONT_OPTIONS = [
 
 const FONT_SIZE_OPTIONS = [14, 16, 18, 20, 24, 28];
 
+function looksHungarianText(value) {
+  const text = String(value || '').toLowerCase();
+  if (!text) return false;
+  if (/[áéíóöőúüű]/.test(text)) return true;
+
+  const huSignals = [
+    'gyogyszer', 'helyettesites', 'helyettesitest', 'hiany', 'beosztas',
+    'szakasszisztens', 'jelentkezes', 'patika', 'budapesten'
+  ];
+  return huSignals.some((signal) => text.includes(signal));
+}
+
+function stripInvalidUnicodeSurrogates(value) {
+  const input = String(value || '');
+  let out = '';
+
+  for (let i = 0; i < input.length; i += 1) {
+    const code = input.charCodeAt(i);
+
+    // High surrogate
+    if (code >= 0xd800 && code <= 0xdbff) {
+      const next = input.charCodeAt(i + 1);
+      if (next >= 0xdc00 && next <= 0xdfff) {
+        out += input[i] + input[i + 1];
+        i += 1;
+      }
+      continue;
+    }
+
+    // Drop lone low surrogate
+    if (code >= 0xdc00 && code <= 0xdfff) {
+      continue;
+    }
+
+    out += input[i];
+  }
+
+  return out;
+}
+
 const getFontFamilyCSS = (family) => {
   switch (family) {
     case 'serif': return 'Georgia, serif';
@@ -138,18 +179,60 @@ function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [imageUploading, setImageUploading] = useState(false);
+  const [submitError, setSubmitError] = useState('');
   const textareaRef = useRef(null);
   const imageInputRef = useRef(null);
+
+  const sanitizePostText = (value) => stripInvalidUnicodeSurrogates(String(value || ''))
+    .normalize('NFKC')
+    .replace(/\r\n?/g, '\n')
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    .replace(/\u00A0/g, ' ')
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+
+  const handleTextChange = (value) => {
+    setText(sanitizePostText(value));
+  };
+
+  const handleTextPaste = (e) => {
+    const pastedText = e.clipboardData?.getData?.('text/plain');
+    if (!pastedText) {
+      // Safari can provide empty clipboardData for context-menu paste.
+      // In that case let the browser handle native paste.
+      return;
+    }
+
+    e.preventDefault();
+    const sanitizedPaste = sanitizePostText(pastedText);
+    const target = e.target;
+    const start = target.selectionStart ?? text.length;
+    const end = target.selectionEnd ?? text.length;
+    const nextValue = text.slice(0, start) + sanitizedPaste + text.slice(end);
+    setText(sanitizePostText(nextValue));
+  };
+
+  const withTimeout = async (promise, ms, timeoutMessage) => {
+    let timeoutId;
+    const timeoutPromise = new Promise((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error(timeoutMessage)), ms);
+    });
+
+    try {
+      return await Promise.race([promise, timeoutPromise]);
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  };
 
   const handleImageSelect = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      alert('Csak képfájlok engedélyezettek.');
+      alert(market === 'de' ? 'Nur Bilddateien sind erlaubt.' : 'Csak képfájlok engedélyezettek.');
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      alert('Maximum 5MB méretű kép engedélyezett.');
+      alert(market === 'de' ? 'Maximal 5 MB Bildgroesse erlaubt.' : 'Maximum 5MB méretű kép engedélyezett.');
       return;
     }
     setImageFile(file);
@@ -174,9 +257,12 @@ function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
   };
 
   const handleSubmit = async () => {
-    if ((!text.trim() && !imageFile) || submitting) return;
+    const rawText = textareaRef.current?.value || text;
+    const normalizedText = sanitizePostText(rawText).trim();
+    if ((!normalizedText && !imageFile) || submitting) return;
 
     setSubmitting(true);
+    setSubmitError('');
     try {
       let imageUrl = null;
 
@@ -199,11 +285,11 @@ function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
           if (uploadRes.ok && uploadData.url) {
             imageUrl = uploadData.url;
           } else {
-            throw new Error(uploadData.error || 'Kép feltöltés sikertelen');
+            throw new Error(uploadData.error || (market === 'de' ? 'Bild-Upload fehlgeschlagen' : 'Kép feltöltés sikertelen'));
           }
         } catch (uploadError) {
           console.error('Image upload error:', uploadError);
-          alert('Hiba a kép feltöltésekor: ' + uploadError.message);
+          alert((market === 'de' ? 'Fehler beim Bild-Upload: ' : 'Hiba a kép feltöltésekor: ') + uploadError.message);
           setSubmitting(false);
           setImageUploading(false);
           return;
@@ -212,9 +298,10 @@ function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
       }
 
       const postData = {
-        text: text.trim(),
+        text: normalizedText,
         category,
         tags,
+        market,
         userId: user.uid,
         isAnonymous,
         style: hasCustomStyle ? style : null,
@@ -228,17 +315,53 @@ function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
 
       // Mindig mentsük el a szerző adatait (admin használja anonim posztoknál)
       postData.authorData = {
-        displayName: userData?.displayName || user.displayName || 'Felhasználó',
+        displayName: userData?.displayName || user.displayName || (market === 'de' ? 'Nutzer/in' : 'Felhasználó'),
         photoURL: userData?.photoURL || user.photoURL || null,
       };
 
-      await addDoc(collection(db, 'communityPosts'), postData);
+      const token = await user.getIdToken();
+      const payload = new FormData();
+      payload.append('text', postData.text || '');
+      payload.append('category', postData.category || 'altalanos');
+      payload.append('tags', JSON.stringify(postData.tags || []));
+      payload.append('market', postData.market || market);
+      payload.append('isAnonymous', String(Boolean(postData.isAnonymous)));
+      payload.append('imageUrl', postData.imageUrl || '');
+      payload.append('style', JSON.stringify(postData.style || null));
+
+      const createResponse = await withTimeout(
+        fetch('/api/community-posts', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+          body: payload,
+        }),
+        20000,
+        market === 'de' ? 'Zeitueberschreitung beim Veroeffentlichen des Beitrags.' : 'Időtúllépés a poszt közzététele közben.'
+      );
+
+      if (!createResponse.ok) {
+        const errorBody = await createResponse.json().catch(() => ({}));
+        throw new Error(errorBody?.error || (market === 'de' ? 'Beitrag konnte nicht gespeichert werden.' : 'A poszt mentése sikertelen.'));
+      }
 
       onSuccess();
       onClose();
     } catch (error) {
       console.error('Error creating community post:', error);
-      alert(market === 'de' ? 'Beim Erstellen des Beitrags ist ein Fehler aufgetreten.' : 'Hiba történt a poszt létrehozásakor.');
+      window.__pmLastPostError = {
+        message: error?.message || 'unknown',
+        code: error?.code || null,
+        at: new Date().toISOString(),
+      };
+      if (error?.code === 'permission-denied') {
+        setSubmitError(market === 'de'
+          ? 'Der Beitrag konnte wegen fehlender Berechtigung nicht gespeichert werden. Bitte Seite neu laden und erneut versuchen.'
+          : 'A poszt mentése jogosultsági hiba miatt nem sikerült. Frissítsd az oldalt, majd próbáld újra.');
+      } else {
+        setSubmitError((market === 'de' ? 'Fehler beim Erstellen des Beitrags: ' : 'Hiba a poszt létrehozásakor: ') + (error?.message || 'ismeretlen hiba'));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -462,7 +585,9 @@ function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
           <textarea
             ref={textareaRef}
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(e) => handleTextChange(e.target.value)}
+            onInput={(e) => handleTextChange(e.currentTarget.value)}
+            onPaste={handleTextPaste}
             onFocus={handleTextareaFocus}
             placeholder={market === 'de' ? 'Schreibe deine Gedanken...' : 'Írd meg a gondolataidat...'}
             rows={4}
@@ -564,13 +689,19 @@ function CreatePostModal({ darkMode, user, userData, onClose, onSuccess }) {
           </p>
           <button
             onClick={handleSubmit}
-            disabled={(!text.trim() && !imageFile) || submitting || imageUploading}
+            disabled={submitting || imageUploading}
             className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl font-medium text-sm transition-colors"
           >
             <Send className="w-4 h-4" />
             {imageUploading ? (market === 'de' ? 'Bild wird hochgeladen...' : 'Kép feltöltése...') : submitting ? (market === 'de' ? 'Wird veroeffentlicht...' : 'Közzététel...') : (market === 'de' ? 'Veroeffentlichen' : 'Közzététel')}
           </button>
         </div>
+
+        {submitError && (
+          <div className={`mx-4 mb-3 rounded-lg border px-3 py-2 text-xs ${darkMode ? 'border-red-900/60 bg-red-950/40 text-red-200' : 'border-red-200 bg-red-50 text-red-700'}`}>
+            {submitError}
+          </div>
+        )}
         </div>{/* end modal card */}
 
         {/* Bottom spacer for keyboard */}
@@ -777,15 +908,19 @@ function CommentThread({ postId, postText, postUserId, postIsAnonymous, darkMode
 
       if (postUserId && postUserId !== user.uid) {
         const commenterName = isAnonComment
-          ? 'Anonim felhasználó'
-          : (userData?.displayName || user.displayName || 'Felhasználó');
-        const postOwnerLabel = postIsAnonymous ? 'anonim posztodhoz' : 'posztodhoz';
+          ? (market === 'de' ? 'Anonymer Nutzer' : 'Anonim felhasználó')
+          : (userData?.displayName || user.displayName || (market === 'de' ? 'Nutzer/in' : 'Felhasználó'));
+        const postOwnerLabel = postIsAnonymous
+          ? (market === 'de' ? 'deinem anonymen Beitrag' : 'anonim posztodhoz')
+          : (market === 'de' ? 'deinem Beitrag' : 'posztodhoz');
         try {
           await createNotificationWithPush({
             userId: postUserId,
             type: 'community_post_comment',
-            title: 'Új hozzászólás érkezett',
-            message: `${commenterName} hozzászólt a ${postOwnerLabel}.`,
+            title: market === 'de' ? 'Neuer Kommentar' : 'Új hozzászólás érkezett',
+            message: market === 'de'
+              ? `${commenterName} hat ${postOwnerLabel} kommentiert.`
+              : `${commenterName} hozzászólt a ${postOwnerLabel}.`,
             data: {
               postId,
               commenterUserId: user.uid,
@@ -812,14 +947,16 @@ function CommentThread({ postId, postText, postUserId, postIsAnonymous, darkMode
 
           if (parentCommentUserId && parentCommentUserId !== user.uid) {
             const commenterName = isAnonComment
-              ? 'Anonim felhasználó'
-              : (userData?.displayName || user.displayName || 'Felhasználó');
+              ? (market === 'de' ? 'Anonymer Nutzer' : 'Anonim felhasználó')
+              : (userData?.displayName || user.displayName || (market === 'de' ? 'Nutzer/in' : 'Felhasználó'));
 
             await createNotificationWithPush({
               userId: parentCommentUserId,
               type: 'community_comment_reply',
-              title: 'Új válasz érkezett',
-              message: `${commenterName} válaszolt a hozzászólásodra.`,
+              title: market === 'de' ? 'Neue Antwort' : 'Új válasz érkezett',
+              message: market === 'de'
+                ? `${commenterName} hat auf deinen Kommentar geantwortet.`
+                : `${commenterName} válaszolt a hozzászólásodra.`,
               data: {
                 postId,
                 parentCommentId: savedReplyTo,
@@ -1403,13 +1540,15 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonCli
 
         if (post.userId && post.userId !== user.uid) {
           const reactionLabel = REACTIONS.find(r => r.type === type)?.label || 'reakciót';
-          const reactorName = userData?.displayName || user.displayName || 'Valaki';
+          const reactorName = userData?.displayName || user.displayName || (market === 'de' ? 'Jemand' : 'Valaki');
           try {
             await createNotificationWithPush({
               userId: post.userId,
               type: 'community_post_reaction',
-              title: 'Új reakció érkezett',
-              message: `${reactorName} reagált a posztodra.`,
+              title: market === 'de' ? 'Neue Reaktion' : 'Új reakció érkezett',
+              message: market === 'de'
+                ? `${reactorName} hat auf deinen Beitrag reagiert.`
+                : `${reactorName} reagált a posztodra.`,
               data: {
                 postId: post.id,
                 reactorUserId: user.uid,
@@ -1953,6 +2092,8 @@ export default function KozossegPage() {
 
   // Filter posts client-side: blocked users + anonymous
   const filteredPosts = posts.filter(p => {
+    if (!isDocInMarket(p, market)) return false;
+    if (market === 'de' && looksHungarianText(p.text)) return false;
     if (blockedUserIds.includes(p.userId)) return false;
     if (hideAnonymous && p.isAnonymous) return false;
     return true;
@@ -2069,7 +2210,7 @@ export default function KozossegPage() {
               className="px-5 py-2.5 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700"
             >
               <Plus className="w-4 h-4 inline mr-1" />
-              Poszt létrehozása
+              {market === 'de' ? 'Beitrag erstellen' : 'Poszt létrehozása'}
             </button>
           </div>
         ) : (

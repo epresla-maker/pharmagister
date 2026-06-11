@@ -24,7 +24,7 @@ import {
 } from "firebase/firestore";
 import ReportModal from "@/app/components/ReportModal";
 import BlockUserModal from "@/app/components/BlockUserModal";
-import { getClientMarket, t } from '@/lib/marketI18n';
+import { getClientMarket, getLocalizedDemandPositionLabel, t } from '@/lib/marketI18n';
 
 // --- Segédfüggvény az idő formázásához ---
 function formatChatTimestamp(date) {
@@ -398,8 +398,11 @@ export default function ChatListPage() {
         // Pozíció és dátum külön mezőben
         let demandInfo = null;
         if (chat.relatedDemandPosition && chat.relatedDemandDate) {
-          const positionLabel = chat.relatedDemandPositionLabel || 
-            (chat.relatedDemandPosition === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'Gyógyszerész') : (market === 'de' ? 'Assistent/in' : 'Szakasszisztens'));
+          const positionLabel = getLocalizedDemandPositionLabel(
+            chat.relatedDemandPosition,
+            market,
+            chat.relatedDemandPositionLabel
+          );
           const demandDate = new Date(chat.relatedDemandDate);
           const formattedDate = demandDate.toLocaleDateString('hu-HU', { 
             month: '2-digit', 

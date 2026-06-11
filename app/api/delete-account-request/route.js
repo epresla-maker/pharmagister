@@ -1,24 +1,83 @@
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { escapeHtml } from '@/lib/sanitize';
+import { resolveMarketFromRequest } from '@/lib/market';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 import { checkRateLimit, getClientIp } from '@/lib/rateLimit';
 
+function getDeleteAccountRequestCopy(market) {
+  if (market === 'de') {
+    return {
+      tooManyRequests: 'Zu viele Anfragen. Bitte versuche es spaeter erneut.',
+      emailRequired: 'E-Mail-Adresse ist erforderlich',
+      success: 'Anfrage zur Kontoloeschung gesendet',
+      genericError: 'Fehler bei der Verarbeitung der Anfrage',
+      emailSubject: '🗑️ Neue Kontoloeschungsanfrage - Pharmagister',
+      headerTitle: '🗑️ Kontoloeschungsanfrage',
+      intro: 'Eine neue Anfrage zur Kontoloeschung ist auf Pharmagister eingegangen.',
+      emailLabel: 'E-Mail-Adresse',
+      timeLabel: 'Zeitpunkt',
+      reasonLabel: 'Loeschgrund',
+      actionTitle: '⚠️ Schritte:',
+      gdprLabel: 'DSGVO-Frist',
+      gdprText: '30 Tage ab Bestaetigung',
+      footerTitle: 'Pharmagister Admin-Benachrichtigung',
+      locale: 'de-DE',
+      step1: 'Pruefe, ob der Benutzer in Firebase existiert',
+      step2: 'Sende eine Bestaetigungs-E-Mail an den Benutzer',
+      step3Lead: 'Nach Bestaetigung bitte loeschen:',
+      subStepAuth: 'Firebase Authentication Konto',
+      subStepUserDoc: 'Firestore users Dokument',
+      subStepRelated: 'Zugehoerige demands, applications und chats',
+      subStepCloudinary: 'Cloudinary Bilder (falls vorhanden)',
+      step4: 'Loeschung dokumentieren (DSGVO-Compliance)',
+    };
+  }
+
+  return {
+    tooManyRequests: 'Túl sok kérés. Kérjük próbálja újra később.',
+    emailRequired: 'Email cím kötelező',
+    success: 'Fiók törlési kérelem elküldve',
+    genericError: 'Hiba történt a kérés feldolgozása során',
+    emailSubject: '🗑️ Új fiók törlési kérelem - Pharmagister',
+    headerTitle: '🗑️ Fiók törlési kérelem',
+    intro: 'Új fiók törlési kérelem érkezett a Pharmagister platformon.',
+    emailLabel: 'Email cím',
+    timeLabel: 'Időpont',
+    reasonLabel: 'Törlés oka',
+    actionTitle: '⚠️ Teendők:',
+    gdprLabel: 'GDPR határidő',
+    gdprText: '30 nap a megerősítéstől számítva',
+    footerTitle: 'Pharmagister Admin Értesítés',
+    locale: 'hu-HU',
+    step1: 'Ellenőrizd a felhasználó létezését a Firebase-ben',
+    step2: 'Küldj megerősítő emailt a felhasználónak',
+    step3Lead: 'Megerősítés után töröld:',
+    subStepAuth: 'Firebase Authentication fiók',
+    subStepUserDoc: 'Firestore users dokumentum',
+    subStepRelated: 'Kapcsolódó demands, applications, chats',
+    subStepCloudinary: 'Cloudinary képek (ha vannak)',
+    step4: 'Dokumentáld a törlést (GDPR compliance)',
+  };
+}
+
 export async function POST(request) {
   try {
+    const requestMarket = resolveMarketFromRequest(request);
+    const copy = getDeleteAccountRequestCopy(requestMarket);
     // Rate limit: 3 requests per 15 minutes
     const ip = getClientIp(request);
     const { allowed } = checkRateLimit(`delete-account:${ip}`, 3, 15 * 60 * 1000);
     if (!allowed) {
-      return NextResponse.json({ error: 'Túl sok kérés. Kérjük próbálja újra később.' }, { status: 429 });
+      return NextResponse.json({ error: copy.tooManyRequests }, { status: 429 });
     }
 
     const { email, reason, timestamp } = await request.json();
 
     if (!email) {
       return NextResponse.json(
-        { error: 'Email cím kötelező' },
+        { error: copy.emailRequired },
         { status: 400 }
       );
     }
@@ -27,7 +86,7 @@ export async function POST(request) {
     const mailOptions = {
       from: 'Pharmagister <noreply@pharmagister.hu>',
       to: process.env.ADMIN_EMAIL || 'epresla@icloud.com',
-      subject: '🗑️ Új fiók törlési kérelem - Pharmagister',
+      subject: copy.emailSubject,
       html: `
         <!DOCTYPE html>
         <html>
@@ -47,38 +106,38 @@ export async function POST(request) {
         <body>
           <div class="container">
             <div class="header">
-              <h2 style="margin: 0;">🗑️ Fiók törlési kérelem</h2>
+              <h2 style="margin: 0;">${copy.headerTitle}</h2>
             </div>
             <div class="content">
-              <p>Új fiók törlési kérelem érkezett a Pharmagister platformon.</p>
+              <p>${copy.intro}</p>
               
               <div class="info-box">
-                <p><span class="label">Email cím:</span><br>${escapeHtml(email)}</p>
-                <p><span class="label">Időpont:</span><br>${new Date(timestamp).toLocaleString('hu-HU')}</p>
-                ${reason ? `<p><span class="label">Törlés oka:</span><br>${escapeHtml(reason)}</p>` : ''}
+                <p><span class="label">${copy.emailLabel}:</span><br>${escapeHtml(email)}</p>
+                <p><span class="label">${copy.timeLabel}:</span><br>${new Date(timestamp).toLocaleString(copy.locale)}</p>
+                ${reason ? `<p><span class="label">${copy.reasonLabel}:</span><br>${escapeHtml(reason)}</p>` : ''}
               </div>
 
               <div class="action-box">
-                <strong>⚠️ Teendők:</strong>
+                <strong>${copy.actionTitle}</strong>
                 <ol style="margin: 10px 0 0 0; padding-left: 20px;">
-                  <li>Ellenőrizd a felhasználó létezését a Firebase-ben</li>
-                  <li>Küldj megerősítő emailt a felhasználónak (${escapeHtml(email)})</li>
-                  <li>Megerősítés után töröld:
+                  <li>${copy.step1}</li>
+                  <li>${copy.step2} (${escapeHtml(email)})</li>
+                  <li>${copy.step3Lead}
                     <ul style="margin: 5px 0;">
-                      <li>Firebase Authentication fiók</li>
-                      <li>Firestore users dokumentum</li>
-                      <li>Kapcsolódó demands, applications, chats</li>
-                      <li>Cloudinary képek (ha vannak)</li>
+                      <li>${copy.subStepAuth}</li>
+                      <li>${copy.subStepUserDoc}</li>
+                      <li>${copy.subStepRelated}</li>
+                      <li>${copy.subStepCloudinary}</li>
                     </ul>
                   </li>
-                  <li>Dokumentáld a törlést (GDPR compliance)</li>
+                  <li>${copy.step4}</li>
                 </ol>
               </div>
 
-              <p style="margin-top: 20px;"><strong>GDPR határidő:</strong> 30 nap a megerősítéstől számítva</p>
+              <p style="margin-top: 20px;"><strong>${copy.gdprLabel}:</strong> ${copy.gdprText}</p>
             </div>
             <div class="footer">
-              <p>Pharmagister Admin Értesítés<br>
+              <p>${copy.footerTitle}<br>
               <a href="https://pharmagister.hu">pharmagister.hu</a></p>
             </div>
           </div>
@@ -91,13 +150,14 @@ export async function POST(request) {
 
     return NextResponse.json({ 
       success: true, 
-      message: 'Fiók törlési kérelem elküldve' 
+      message: copy.success 
     });
 
   } catch (error) {
     console.error('Delete account request error:', error);
+    const copy = getDeleteAccountRequestCopy(resolveMarketFromRequest(request));
     return NextResponse.json(
-      { error: 'Hiba történt a kérés feldolgozása során' },
+      { error: copy.genericError },
       { status: 500 }
     );
   }

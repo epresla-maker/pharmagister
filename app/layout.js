@@ -3,14 +3,14 @@ import { Inter } from "next/font/google";
 import { cookies, headers } from 'next/headers';
 import "./globals.css";
 import ClientProviders from "@/app/components/ClientProviders";
-import { MARKET_COOKIE, getMarketFromHost, marketToLang } from '@/lib/market';
+import { MARKET_COOKIE, getMarketFromAcceptLanguage, getMarketFromHost, marketToLang, normalizeMarket } from '@/lib/market';
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
   title: "Pharmagister - Pharmacy Shift Coverage",
   description: "Pharmacy shift coverage platform",
-  manifest: "/manifest.json",
+  manifest: "https://pharmagister.hu/manifest.json",
   appleWebAppCapable: "yes",
   appleWebAppStatusBarStyle: "default",
 };
@@ -28,7 +28,10 @@ export default async function RootLayout({ children }) {
   const cookieStore = await cookies();
   const headersList = await headers();
   const host = headersList.get('host') || '';
-  const market = cookieStore.get(MARKET_COOKIE)?.value || getMarketFromHost(host);
+  const marketCookie = cookieStore.get(MARKET_COOKIE)?.value;
+  const market = marketCookie
+    ? normalizeMarket(marketCookie)
+    : getMarketFromAcceptLanguage(headersList.get('accept-language') || '') || getMarketFromHost(host);
   const lang = marketToLang(market);
 
   return (

@@ -2,13 +2,32 @@ import { NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 import { v4 as uuidv4 } from 'uuid';
 import { verifyAdmin } from '@/lib/apiAuth';
+import { resolveMarketFromRequest } from '@/lib/market';
+
+function getGenerateInactiveTokensCopy(market) {
+  if (market === 'de') {
+    return {
+      noAdminPermission: 'Keine Admin-Berechtigung',
+      genericError: 'Fehler bei der Token-Erstellung',
+      fallbackUserName: 'Nutzer/in',
+    };
+  }
+
+  return {
+    noAdminPermission: 'Nincs admin jogosultság',
+    genericError: 'Token generálási hiba',
+    fallbackUserName: 'Felhasználó',
+  };
+}
 
 export async function POST(request) {
   try {
+    const requestMarket = resolveMarketFromRequest(request);
+    const copy = getGenerateInactiveTokensCopy(requestMarket);
     // Verify admin access
     const adminUser = await verifyAdmin(request);
     if (!adminUser) {
-      return NextResponse.json({ error: 'Nincs admin jogosultság' }, { status: 403 });
+      return NextResponse.json({ error: copy.noAdminPermission }, { status: 403 });
     }
 
     const admin = getFirebaseAdmin();
@@ -51,7 +70,7 @@ export async function POST(request) {
         token: keepToken,
         userId: user.id,
         email: user.email,
-        name: user.name || user.displayName || 'Felhasználó',
+        name: user.name || user.displayName || copy.fallbackUserName,
         action: 'keep',
         createdAt: new Date(),
         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 nap
@@ -66,7 +85,7 @@ export async function POST(request) {
         token: deleteToken,
         userId: user.id,
         email: user.email,
-        name: user.name || user.displayName || 'Felhasználó',
+        name: user.name || user.displayName || copy.fallbackUserName,
         action: 'delete',
         createdAt: new Date(),
         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 nap
@@ -78,7 +97,7 @@ export async function POST(request) {
       tokens.push({
         userId: user.id,
         email: user.email,
-        name: user.name || user.displayName || 'Felhasználó',
+        name: user.name || user.displayName || copy.fallbackUserName,
         keepToken,
         deleteToken,
         keepLink: `${appUrl}/account-action/${keepToken}`,
@@ -95,8 +114,9 @@ export async function POST(request) {
     });
   } catch (error) {
     console.error('Token generálási hiba:', error);
+    const copy = getGenerateInactiveTokensCopy(resolveMarketFromRequest(request));
     return NextResponse.json(
-      { error: 'Token generálási hiba', details: error.message },
+      { error: copy.genericError, details: error.message },
       { status: 500 }
     );
   }

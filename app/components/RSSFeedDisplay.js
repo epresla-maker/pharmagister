@@ -1,14 +1,13 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRSSFeed } from '@/hooks/useRSSFeed';
 import { useAuth } from '@/context/AuthContext';
 import { ExternalLink, Calendar, User, AlertCircle, MessageCircle, Send, MoreHorizontal, Flag } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { de, hu } from 'date-fns/locale';
-import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, getDocs } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { useEffect } from 'react';
 import { createNotificationWithPush } from '@/lib/notifications';
 import ReportModal from '@/app/components/ReportModal';
 import { getClientMarket } from '@/lib/marketI18n';
@@ -38,24 +37,29 @@ function RSSComments({ postId }) {
     }
   };
 
-  useEffect(() => {
+  const loadComments = useCallback(async () => {
     if (!postId) return;
-
     const q = query(
       collection(db, 'rssComments', postId, 'comments'),
       orderBy('createdAt', 'desc')
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    try {
+      const snapshot = await getDocs(q);
       const commentsData = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
       setComments(commentsData);
-    });
-
-    return () => unsubscribe();
+    } catch (error) {
+      console.error('RSS comments load error:', error);
+    }
   }, [postId]);
+
+  useEffect(() => {
+    if (!showComments) return;
+    loadComments();
+  }, [showComments, loadComments]);
 
   const handleSubmitComment = async (e) => {
     e.preventDefault();
@@ -71,6 +75,7 @@ function RSSComments({ postId }) {
         createdAt: serverTimestamp(),
       });
       setNewComment('');
+      await loadComments();
     } catch (error) {
       console.error('Comment error:', error);
       alert(market === 'de' ? 'Fehler beim Senden des Kommentars.' : 'Hiba történt a komment küldésekor');

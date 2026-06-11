@@ -3,12 +3,53 @@ import { NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/apiAuth';
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 import { requireSchedulePharmacyAccess } from '@/lib/scheduleAccess';
+import { resolveMarketFromRequest } from '@/lib/market';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const runtime = 'nodejs';
 
-function buildHtml({ employeeName, pharmacyName, pharmacyEmail }) {
+function getNotifyEmployeeApiCopy(market) {
+  if (market === 'de') {
+    return {
+      unauthorized: 'Keine Berechtigung',
+      employeeEmailRequired: 'E-Mail-Adresse der Mitarbeiterin/des Mitarbeiters ist erforderlich',
+      emailSendErrorPrefix: 'Fehler beim E-Mail-Versand: ',
+      subject: 'Pharmagister - Du wurdest als Apothekenmitarbeiter/in hinzugefuegt',
+      fallbackEmployeeName: 'Mitarbeiter/in',
+      fallbackContact: 'nicht angegeben',
+      greeting: 'Hallo',
+      intro: 'Wir informieren dich, dass die Apotheke',
+      introSuffix: 'dich in Pharmagister als Mitarbeitende/n hinzugefuegt hat.',
+      pharmacyLabel: 'Apotheke',
+      contactLabel: 'Kontakt',
+      scheduleInfo: 'Wenn du bereits ein Pharmagister-Konto hast, koennen deine Dienstplaene spaeter automatisch angezeigt werden.',
+      mistakenInfo: 'Wenn du diese Nachricht irrtuemlich erhalten hast, kontaktiere bitte die Apotheke oder antworte auf diese E-Mail.',
+      footerLine1: 'Diese Nachricht wurde vom Pharmagister-System gesendet.',
+      footerLine2: '© 2026 Pharmagister - Alle Rechte vorbehalten',
+    };
+  }
+
+  return {
+    unauthorized: 'Nincs jogosultsag',
+    employeeEmailRequired: 'A dolgozó email címe kötelező',
+    emailSendErrorPrefix: 'Hiba történt az email küldés során: ',
+    subject: 'Pharmagister - Felvettek egy gyógyszertár dolgozói közé',
+    fallbackEmployeeName: 'Dolgozó',
+    fallbackContact: 'nincs megadva',
+    greeting: 'Kedves',
+    intro: 'Értesítünk, hogy a(z)',
+    introSuffix: 'gyógyszertár felvett a Pharmagister rendszerben a dolgozói közé.',
+    pharmacyLabel: 'Gyógyszertár',
+    contactLabel: 'Kapcsolat',
+    scheduleInfo: 'Ha már rendelkezel Pharmagister fiókkal, a beosztásaid a későbbiekben automatikusan megjelenhetnek a felületeden.',
+    mistakenInfo: 'Ha ezt tévedésből kaptad, kérjük jelezd a gyógyszertárnak vagy válaszolj erre az emailre.',
+    footerLine1: 'Ez az üzenet a Pharmagister rendszerből érkezett.',
+    footerLine2: '© 2026 Pharmagister - Minden jog fenntartva',
+  };
+}
+
+function buildHtml({ employeeName, pharmacyName, pharmacyEmail, copy }) {
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -30,24 +71,24 @@ function buildHtml({ employeeName, pharmacyName, pharmacyEmail }) {
       <h1>Pharmagister</h1>
     </div>
     <div class="content">
-      <p>Kedves ${employeeName || 'Dolgozó'}!</p>
+      <p>${copy.greeting} ${employeeName || copy.fallbackEmployeeName}!</p>
       <p>
-        Értesítünk, hogy a(z) <strong>${pharmacyName}</strong> gyógyszertár felvett a Pharmagister rendszerben a dolgozói közé.
+        ${copy.intro} <strong>${pharmacyName}</strong> ${copy.introSuffix}
       </p>
       <div class="card">
-        <p style="margin:0 0 8px 0;"><strong>Gyógyszertár:</strong> ${pharmacyName}</p>
-        <p style="margin:0;"><strong>Kapcsolat:</strong> ${pharmacyEmail || 'nincs megadva'}</p>
+        <p style="margin:0 0 8px 0;"><strong>${copy.pharmacyLabel}:</strong> ${pharmacyName}</p>
+        <p style="margin:0;"><strong>${copy.contactLabel}:</strong> ${pharmacyEmail || copy.fallbackContact}</p>
       </div>
       <p>
-        Ha már rendelkezel Pharmagister fiókkal, a beosztásaid a későbbiekben automatikusan megjelenhetnek a felületeden.
+        ${copy.scheduleInfo}
       </p>
       <p>
-        Ha ezt tévedésből kaptad, kérjük jelezd a gyógyszertárnak vagy válaszolj erre az emailre.
+        ${copy.mistakenInfo}
       </p>
     </div>
     <div class="footer">
-      <p>Ez az üzenet a Pharmagister rendszerből érkezett.</p>
-      <p>© 2026 Pharmagister - Minden jog fenntartva</p>
+      <p>${copy.footerLine1}</p>
+      <p>${copy.footerLine2}</p>
     </div>
   </div>
 </body>
@@ -56,9 +97,11 @@ function buildHtml({ employeeName, pharmacyName, pharmacyEmail }) {
 
 export async function POST(request) {
   try {
+    const requestMarket = resolveMarketFromRequest(request);
+    const copy = getNotifyEmployeeApiCopy(requestMarket);
     const authUser = await verifyAuth(request);
     if (!authUser) {
-      return NextResponse.json({ error: 'Nincs jogosultsag' }, { status: 401 });
+      return NextResponse.json({ error: copy.unauthorized }, { status: 401 });
     }
 
     const admin = getFirebaseAdmin();
@@ -68,15 +111,15 @@ export async function POST(request) {
     const { employeeEmail, employeeName, pharmacyName, pharmacyEmail } = await request.json();
 
     if (!employeeEmail) {
-      return NextResponse.json({ error: 'A dolgozó email címe kötelező' }, { status: 400 });
+      return NextResponse.json({ error: copy.employeeEmailRequired }, { status: 400 });
     }
 
     try {
       await resend.emails.send({
         from: 'Pharmagister <noreply@pharmagister.hu>',
         to: employeeEmail,
-        subject: 'Pharmagister - Felvettek egy gyógyszertár dolgozói közé',
-        html: buildHtml({ employeeName, pharmacyName, pharmacyEmail })
+        subject: copy.subject,
+        html: buildHtml({ employeeName, pharmacyName, pharmacyEmail, copy })
       });
     } catch (mailError) {
       console.error('Employee added notification email send failed:', mailError);
@@ -90,8 +133,9 @@ export async function POST(request) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Employee added notification email error:', error);
+    const copy = getNotifyEmployeeApiCopy(resolveMarketFromRequest(request));
     return NextResponse.json(
-      { error: 'Hiba történt az email küldés során: ' + error.message },
+      { error: copy.emailSendErrorPrefix + error.message },
       { status: error.status || 500 }
     );
   }

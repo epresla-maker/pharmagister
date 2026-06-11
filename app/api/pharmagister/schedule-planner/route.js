@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/apiAuth';
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 import { requireSchedulePharmacyAccess } from '@/lib/scheduleAccess';
+import { resolveMarketFromRequest } from '@/lib/market';
 import {
   buildPlannerSuggestions,
   computePlannerStats,
@@ -14,11 +15,29 @@ import { buildProactiveWarnings } from '@/lib/suggestionEngine';
 
 export const runtime = 'nodejs';
 
+function getSchedulePlannerApiCopy(market) {
+  if (market === 'de') {
+    return {
+      unauthorized: 'Keine Berechtigung',
+      missingYearOrMonth: 'Jahr oder Monat fehlt',
+      planningError: 'Planungsfehler aufgetreten',
+    };
+  }
+
+  return {
+    unauthorized: 'Nincs jogosultság',
+    missingYearOrMonth: 'Hiányzó év vagy hónap',
+    planningError: 'Tervezési hiba történt',
+  };
+}
+
 export async function POST(request) {
   try {
+    const requestMarket = resolveMarketFromRequest(request);
+    const copy = getSchedulePlannerApiCopy(requestMarket);
     const authUser = await verifyAuth(request);
     if (!authUser) {
-      return NextResponse.json({ error: 'Nincs jogosultság' }, { status: 401 });
+      return NextResponse.json({ error: copy.unauthorized }, { status: 401 });
     }
 
     const admin = getFirebaseAdmin();
@@ -39,7 +58,7 @@ export async function POST(request) {
     } = await request.json();
 
     if (!year || !month) {
-      return NextResponse.json({ error: 'Hiányzó év vagy hónap' }, { status: 400 });
+      return NextResponse.json({ error: copy.missingYearOrMonth }, { status: 400 });
     }
 
     let plannerResult;
@@ -115,6 +134,7 @@ export async function POST(request) {
     });
   } catch (error) {
     console.error('Schedule planner API error:', error);
-    return NextResponse.json({ error: error.message || 'Tervezési hiba történt' }, { status: error.status || 500 });
+    const copy = getSchedulePlannerApiCopy(resolveMarketFromRequest(request));
+    return NextResponse.json({ error: error.message || copy.planningError }, { status: error.status || 500 });
   }
 }

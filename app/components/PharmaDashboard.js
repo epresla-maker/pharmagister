@@ -8,7 +8,8 @@ import { db } from '@/lib/firebase';
 import { createNotificationWithPush } from '@/lib/notifications';
 import { Loader2, Search, ChevronDown, ChevronUp, MapPin, Clock, CheckCircle, XCircle, MessageCircle, User, Calendar, Edit2, Trash2, Eye, CalendarDays, Filter } from 'lucide-react';
 import ResponseRateBar from '@/app/components/ResponseRateBar';
-import { getClientMarket } from '@/lib/marketI18n';
+import { getClientMarket, getLocalizedDemandPositionLabel } from '@/lib/marketI18n';
+import { isDocInMarket } from '@/lib/market';
 
 export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
   const { user, userData } = useAuth();
@@ -27,7 +28,7 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
   useEffect(() => {
     console.log('🔄 PharmaDashboard useEffect triggered - user:', user?.uid, 'pharmaRole:', pharmaRole);
     loadData();
-  }, [user, pharmaRole]);
+  }, [user, pharmaRole, market]);
 
   // Update expanded demand when expandDemandId prop changes
   useEffect(() => {
@@ -83,6 +84,9 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
         ...doc.data()
       }))
       .filter(demand => {
+        if (!isDocInMarket(demand, market)) {
+          return false;
+        }
         // Csak olyan igényeket tartunk meg, amelyek dátuma ma vagy jövőbeli és nem töröltek
         return demand.date >= todayStr && demand.status !== 'deleted';
       });
@@ -131,6 +135,9 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
           where('__name__', '==', application.demandId)
         ));
         const demand = demandDoc.docs[0]?.data();
+        if (demand && !isDocInMarket(demand, market)) {
+          return { ...application, demand: null };
+        }
         return { ...application, demand };
       })
     );
@@ -157,6 +164,9 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
         ...doc.data()
       }))
       .filter(demand => {
+        if (!isDocInMarket(demand, market)) {
+          return false;
+        }
         // Csak olyan igényeket tartunk meg, amelyek dátuma ma vagy jövőbeli
         return demand.date >= todayStr2;
       });
@@ -305,9 +315,7 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
           relatedDemandId: demand.id,
           relatedDemandDate: demand.date,
           relatedDemandPosition: demand.position,
-          relatedDemandPositionLabel: demand.position === 'pharmacist'
-            ? (market === 'de' ? 'Apotheker/in' : 'Gyógyszerész')
-            : (market === 'de' ? 'Assistent/in' : 'Szakasszisztens'),
+          relatedDemandPositionLabel: getLocalizedDemandPositionLabel(demand.position, market),
           archivedBy: [],
           deletedBy: [],
           readBy: []
@@ -375,7 +383,7 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
     if (newOtherSoftware === null) return;
     
     // Max órabér
-    const newMaxHourlyRate = prompt(market === 'de' ? 'Maximaler Stundenlohn (Ft):' : 'Maximum órabér (Ft):', demand.maxHourlyRate || '');
+    const newMaxHourlyRate = prompt(market === 'de' ? 'Maximaler Stundenlohn (EUR):' : 'Maximum órabér (Ft):', demand.maxHourlyRate || '');
     if (newMaxHourlyRate === null) return;
     
     // Egyéb követelmények
@@ -413,6 +421,10 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
       // Get demand details to send notification to pharmacy
       const demandDoc = await getDoc(doc(db, 'pharmaDemands', demandId));
       const demandData = demandDoc.data();
+      if (!isDocInMarket(demandData, market)) {
+        alert(market === 'de' ? 'Diese Anfrage ist in deinem Markt nicht verfuegbar.' : 'Ez az igény a piacodon nem elérhető.');
+        return;
+      }
       
       // Szerepkör ellenőrzés - KRITIKUS!
       if (!userData.pharmagisterRole || userData.pharmagisterRole === 'pharmacy') {
@@ -425,8 +437,8 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
       const demandPosition = demandData.position; // 'pharmacist' vagy 'assistant'
       
       if (userRole !== demandPosition) {
-        const userRoleLabel = userRole === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'gyógyszerész') : (market === 'de' ? 'Assistent/in' : 'szakasszisztens');
-        const demandPositionLabel = demandPosition === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'gyógyszerész') : (market === 'de' ? 'Assistent/in' : 'szakasszisztens');
+        const userRoleLabel = userRole === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'gyógyszerész') : userRole === 'pka' ? 'PKA' : (market === 'de' ? 'PTA' : 'szakasszisztens');
+        const demandPositionLabel = demandPosition === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'gyógyszerész') : demandPosition === 'pka' ? 'PKA' : (market === 'de' ? 'PTA' : 'szakasszisztens');
         alert(market === 'de'
           ? `Fuer diese Anfrage koennen sich nur ${demandPositionLabel} bewerben. Du bist als ${userRoleLabel} registriert.`
           : `Erre az igényre csak ${demandPositionLabel}ek jelentkezhetnek! Te ${userRoleLabel}ként vagy regisztrálva.`);
@@ -554,7 +566,7 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <h4 className={`font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'} text-sm`}>
-                            {demand.position === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'Gyógyszerész') : (market === 'de' ? 'Assistent/in' : 'Szakasszisztens')}
+                            {demand.position === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'Gyógyszerész') : demand.position === 'pka' ? 'PKA' : (market === 'de' ? 'PTA' : 'Szakasszisztens')}
                           </h4>
                           <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                             demand.status === 'open' ? (darkMode ? 'bg-green-900/50 text-green-300' : 'bg-green-100 text-green-700') :

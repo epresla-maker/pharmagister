@@ -8,7 +8,8 @@ import { db } from '@/lib/firebase';
 import { createNotificationWithPush } from '@/lib/notifications';
 import { ChevronLeft, ChevronRight, Plus, X, Loader2, Clock, MapPin, MessageCircle, Send } from 'lucide-react';
 import ResponseRateBar from '@/app/components/ResponseRateBar';
-import { getClientMarket } from '@/lib/marketI18n';
+import { getClientMarket, getLocalizedDemandPositionLabel } from '@/lib/marketI18n';
+import { isDocInMarket } from '@/lib/market';
 
 // Magyar ünnepek (fix dátumok)
 const HUNGARIAN_HOLIDAYS = {
@@ -118,7 +119,7 @@ export default function PharmaCalendar({ pharmaRole }) {
   // Load demands
   useEffect(() => {
     loadDemands();
-  }, [user]);
+  }, [user, pharmaRole, market]);
 
   const loadDemands = async () => {
     if (!user || !pharmaRole) {
@@ -160,6 +161,9 @@ export default function PharmaCalendar({ pharmaRole }) {
           ...doc.data()
         }))
         .filter(demand => {
+          if (!isDocInMarket(demand, market)) {
+            return false;
+          }
           // Csak olyan igényeket tartunk meg, amelyek dátuma ma vagy jövőbeli
           return demand.date >= todayStr;
         });
@@ -476,7 +480,7 @@ function DateModal({ date, demands, pharmaRole, darkMode, onClose, onDemandDelet
                             <div className="flex items-center gap-2 mb-2">
 
                               <span className={`font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'}`}>
-                                {demand.position === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'Gyógyszerész') : (market === 'de' ? 'Assistent/in' : 'Szakasszisztens')}
+                                {demand.position === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'Gyógyszerész') : demand.position === 'pka' ? 'PKA' : (market === 'de' ? 'PTA' : 'Szakasszisztens')}
                               </span>
                               <span className={`px-3 py-1 rounded-lg text-xs font-medium ${
                                 demand.position === 'pharmacist'
@@ -597,6 +601,7 @@ function CreateDemandForm({ date, darkMode, market, locale, onSuccess, onCancel 
       
       const demandData = {
         pharmacyId: user.uid,
+        market,
         pharmacyName: userData.pharmacyName || (market === 'de' ? 'Apotheke' : 'Gyógyszertár'),
         pharmacyCity: userData.pharmacyCity || '',
         pharmacyZipCode: userData.pharmacyZipCode || '',
@@ -633,6 +638,7 @@ function CreateDemandForm({ date, darkMode, market, locale, onSuccess, onCancel 
       await addDoc(collection(db, 'serviceFeedPosts'), {
         postType: 'pharmaDemand',
         module: 'pharmagister',
+        market,
         pharmaDemandId: demandRef.id,
         pharmacyId: user.uid,
         pharmacyName: userData.pharmacyName || 'Gyógyszertár',
@@ -644,7 +650,7 @@ function CreateDemandForm({ date, darkMode, market, locale, onSuccess, onCancel 
         pharmacyFullAddress: fullAddress,
         pharmacyPhotoURL: userData.photoURL || userData.pharmaPhotoURL || '',
         position: formData.position,
-        positionLabel: formData.position === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'Gyógyszerész') : (market === 'de' ? 'Assistent/in' : 'Szakasszisztens'),
+        positionLabel: formData.position === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'Gyógyszerész') : formData.position === 'pka' ? 'PKA' : (market === 'de' ? 'PTA' : 'Szakasszisztens'),
         workHours: formData.workHours,
         minExperience: formData.minExperience,
         requiredSoftware: formData.requiredSoftware,
@@ -712,7 +718,8 @@ function CreateDemandForm({ date, darkMode, market, locale, onSuccess, onCancel 
           required
         >
           <option value="pharmacist">{market === 'de' ? 'Apotheker/in' : 'Gyógyszerész'}</option>
-          <option value="assistant">{market === 'de' ? 'Assistent/in' : 'Szakasszisztens'}</option>
+          <option value="assistant">{market === 'de' ? 'PTA' : 'Szakasszisztens'}</option>
+          {market === 'de' && <option value="pka">PKA</option>}
         </select>
       </div>
 
@@ -780,7 +787,7 @@ function CreateDemandForm({ date, darkMode, market, locale, onSuccess, onCancel 
 
       <div>
         <label className={`block text-sm font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'} mb-2`}>
-          {market === 'de' ? 'Maximaler Stundenlohn (Ft)' : 'Maximum órabér (Ft)'}
+          {market === 'de' ? 'Maximaler Stundenlohn (EUR)' : 'Maximum órabér (Ft)'}
         </label>
         <input
           type="number"
@@ -865,8 +872,8 @@ function DemandCard({ demand, pharmaRole, darkMode, market, locale }) {
     const demandPosition = demand.position; // 'pharmacist' vagy 'assistant'
     
     if (userRole !== demandPosition) {
-      const userRoleLabel = userRole === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'gyógyszerész') : (market === 'de' ? 'Assistent/in' : 'szakasszisztens');
-      const demandPositionLabel = demandPosition === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'gyógyszerész') : (market === 'de' ? 'Assistent/in' : 'szakasszisztens');
+      const userRoleLabel = userRole === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'gyógyszerész') : userRole === 'pka' ? 'PKA' : (market === 'de' ? 'PTA' : 'szakasszisztens');
+      const demandPositionLabel = demandPosition === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'gyógyszerész') : demandPosition === 'pka' ? 'PKA' : (market === 'de' ? 'PTA' : 'szakasszisztens');
       alert(market === 'de'
         ? `Fuer diese Anfrage koennen sich nur ${demandPositionLabel} bewerben. Du bist als ${userRoleLabel} registriert.`
         : `Erre az igényre csak ${demandPositionLabel}ek jelentkezhetnek! Te ${userRoleLabel}ként vagy regisztrálva.`);
@@ -979,7 +986,7 @@ function DemandCard({ demand, pharmaRole, darkMode, market, locale }) {
           relatedDemandId: demand.id,
           relatedDemandDate: demand.date,
           relatedDemandPosition: demand.position,
-          relatedDemandPositionLabel: demand.position === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'Gyógyszerész') : (market === 'de' ? 'Assistent/in' : 'Szakasszisztens'),
+          relatedDemandPositionLabel: getLocalizedDemandPositionLabel(demand.position, market),
           archivedBy: [],
           deletedBy: [],
           readBy: []
@@ -1025,7 +1032,7 @@ function DemandCard({ demand, pharmaRole, darkMode, market, locale }) {
               )}
               {demand.maxHourlyRate && (
                 <p className={`text-sm ${darkMode ? 'text-white' : 'text-[#111827]'}`}>
-                  <strong>{market === 'de' ? 'Maximaler Stundenlohn:' : 'Maximum órabér:'}</strong> {demand.maxHourlyRate} Ft
+                  <strong>{market === 'de' ? 'Maximaler Stundenlohn:' : 'Maximum órabér:'}</strong> {demand.maxHourlyRate} {market === 'de' ? 'EUR' : 'Ft'}
                 </p>
               )}
             </>
@@ -1051,7 +1058,7 @@ function DemandCard({ demand, pharmaRole, darkMode, market, locale }) {
               )}
               {demand.maxHourlyRate && (
                 <p className={`text-sm ${darkMode ? 'text-white' : 'text-[#111827]'} mb-1`}>
-                  <strong>{market === 'de' ? 'Maximaler Stundenlohn:' : 'Maximum órabér:'}</strong> {demand.maxHourlyRate} Ft
+                  <strong>{market === 'de' ? 'Maximaler Stundenlohn:' : 'Maximum órabér:'}</strong> {demand.maxHourlyRate} {market === 'de' ? 'EUR' : 'Ft'}
                 </p>
               )}
               {demand.additionalRequirements && (
@@ -1084,7 +1091,7 @@ function DemandCard({ demand, pharmaRole, darkMode, market, locale }) {
           </>
         ) : (
           <div className={`flex-1 px-3 py-2 rounded-xl text-sm font-medium text-center ${darkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
-            {demand.position === 'pharmacist' ? (market === 'de' ? 'Nur fuer Apotheker/innen' : 'Csak gyógyszerészeknek') : (market === 'de' ? 'Nur fuer Assistent/innen' : 'Csak szakasszisztenseknek')}
+            {demand.position === 'pharmacist' ? (market === 'de' ? 'Nur fuer Apotheker/innen' : 'Csak gyógyszerészeknek') : demand.position === 'pka' ? (market === 'de' ? 'Nur fuer PKA' : 'Csak PKA') : (market === 'de' ? 'Nur fuer PTA' : 'Csak szakasszisztenseknek')}
           </div>
         )}
         <button 

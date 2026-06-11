@@ -315,7 +315,7 @@ export default function PharmaProfileEditor({ pharmaRole }) {
               <div>
                 <label className="block text-sm font-semibold text-[#6B7280] mb-1">{market === 'de' ? 'Registrierungstyp:' : 'Regisztráció típusa:'}</label>
                 <p className="text-[#111827] font-medium text-lg">
-                  {pharmaRole === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'Gyógyszerész') : (market === 'de' ? 'Assistent/in' : 'Szakasszisztens')}
+                  {pharmaRole === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'Gyógyszerész') : pharmaRole === 'pka' ? 'PKA' : (market === 'de' ? 'PTA' : 'Szakasszisztens')}
                 </p>
               </div>
               
@@ -326,7 +326,7 @@ export default function PharmaProfileEditor({ pharmaRole }) {
               
               <div>
                 <label className="block text-sm font-semibold text-[#6B7280] mb-1">{market === 'de' ? 'Stundenlohn' : 'Órabér'}</label>
-                <p className="text-[#111827] font-medium text-lg">{formData.pharmaHourlyRate ? `${formData.pharmaHourlyRate} Ft` : '-'}</p>
+                <p className="text-[#111827] font-medium text-lg">{formData.pharmaHourlyRate ? `${formData.pharmaHourlyRate} ${market === 'de' ? 'EUR' : 'Ft'}` : '-'}</p>
               </div>
               
               <div>
@@ -531,7 +531,7 @@ export default function PharmaProfileEditor({ pharmaRole }) {
 
           <div>
             <label className="block text-sm font-semibold text-[#6B7280] mb-2">
-              {market === 'de' ? 'Stundenlohn (Ft)' : 'Órabér (Ft)'} <span className="text-red-500">*</span>
+              {market === 'de' ? 'Stundenlohn (EUR)' : 'Órabér (Ft)'} <span className="text-red-500">*</span>
             </label>
             <input
               type="number"

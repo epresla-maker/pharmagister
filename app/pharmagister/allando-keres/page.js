@@ -24,6 +24,7 @@ import {
 import { Star, Send, MoreHorizontal, X, Heart, Laugh, Frown, Angry, Zap, ImagePlus, RefreshCw, Trash2, Edit3, Flag } from 'lucide-react';
 import ReportModal from '@/app/components/ReportModal';
 import { getClientMarket } from '@/lib/marketI18n';
+import { isDocInMarket } from '@/lib/market';
 
 const PAGE_SIZE = 20;
 
@@ -95,7 +96,7 @@ function AllandoKeresContent() {
       const newPosts = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
-      }));
+      })).filter((post) => isDocInMarket(post, market));
 
       if (snapshot.docs.length > 0) {
         lastDocRef.current = snapshot.docs[snapshot.docs.length - 1];
@@ -114,10 +115,14 @@ function AllandoKeresContent() {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, []);
+  }, [market]);
 
   // Initial fetch
   useEffect(() => {
+    lastDocRef.current = null;
+    setPosts([]);
+    setHasMore(true);
+    setLoading(true);
     fetchPosts();
   }, [fetchPosts]);
 
@@ -247,6 +252,7 @@ function AllandoKeresContent() {
 
       await addDoc(collection(db, 'allandoKeresPosts'), {
         postType: 'allandoKeres',
+        market,
         userId: user.uid,
         text: newPostText.trim(),
         imageUrl: imageUrl,
@@ -611,7 +617,7 @@ function AllandoKeresContent() {
                                   ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300'
                                   : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300'
                               }`}>
-                                {post.pharmaRole === 'pharmacy' ? (market === 'de' ? 'Apotheke' : 'Gyógyszertár') : post.pharmaRole === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'Gyógyszerész') : (market === 'de' ? 'Assistent/in' : 'Szakasszisztens')}
+                                {post.pharmaRole === 'pharmacy' ? (market === 'de' ? 'Apotheke' : 'Gyógyszertár') : post.pharmaRole === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'Gyógyszerész') : post.pharmaRole === 'pka' ? 'PKA' : (market === 'de' ? 'PTA' : 'Szakasszisztens')}
                               </span>
                             )}
                           </div>

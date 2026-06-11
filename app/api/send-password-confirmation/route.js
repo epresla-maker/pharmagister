@@ -2,17 +2,57 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { escapeHtml } from '@/lib/sanitize';
+import { resolveMarketFromRequest } from '@/lib/market';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+function getPasswordConfirmationApiCopy(market) {
+  if (market === 'de') {
+    return {
+      emailRequired: 'E-Mail-Adresse ist erforderlich',
+      sendError: 'Fehler beim Senden der E-Mail',
+      fallbackUserName: 'Nutzer/in',
+      subject: '✅ Pharmagister - Passwort erfolgreich gesetzt',
+      successTitle: 'Passwort erfolgreich gesetzt!',
+      greeting: 'Hallo',
+      intro: 'Dein neues Passwort wurde erfolgreich gesetzt. Ab jetzt kannst du dich damit bei Pharmagister anmelden.',
+      loginEmailLabel: 'Anmelde-E-Mail',
+      loginButton: 'Bei Pharmagister anmelden',
+      warning: 'Falls du dieses Passwort nicht selbst gesetzt hast, kontaktiere uns bitte sofort.',
+      regards: 'Viele Gruesse,<br><strong>Dein Pharmagister Team</strong>',
+      autoMessage: 'Dies ist eine automatische Nachricht aus dem Pharmagister-System.',
+      rightsReserved: '© 2026 Pharmagister - Alle Rechte vorbehalten',
+    };
+  }
+
+  return {
+    emailRequired: 'Email megadása kötelező',
+    sendError: 'Hiba történt az email küldésekor',
+    fallbackUserName: 'Felhasználó',
+    subject: '✅ Pharmagister - Jelszó sikeresen beállítva',
+    successTitle: 'Jelszó sikeresen beállítva!',
+    greeting: 'Kedves',
+    intro: 'Az új jelszavad sikeresen be lett állítva. Mostantól ezzel tudsz belépni a Pharmagister rendszerbe.',
+    loginEmailLabel: 'Belépési email',
+    loginButton: 'Belépés a Pharmagister-be',
+    warning: 'Ha nem te állítottad be ezt a jelszót, kérjük azonnal vedd fel velünk a kapcsolatot!',
+    regards: 'Üdvözlettel,<br><strong>A Pharmagister csapata</strong>',
+    autoMessage: 'Ez egy automatikus üzenet a Pharmagister rendszerből.',
+    rightsReserved: '© 2026 Pharmagister - Minden jog fenntartva',
+  };
+}
+
 export async function POST(request) {
   try {
+    const requestMarket = resolveMarketFromRequest(request);
+    const copy = getPasswordConfirmationApiCopy(requestMarket);
     const { email, displayName } = await request.json();
 
     if (!email) {
-      return NextResponse.json({ error: 'Email megadása kötelező' }, { status: 400 });
+      return NextResponse.json({ error: copy.emailRequired }, { status: 400 });
     }
 
+    const userName = displayName || copy.fallbackUserName;
     const htmlContent = `
 <!DOCTYPE html>
 <html>
@@ -39,28 +79,28 @@ export async function POST(request) {
     <div class="content">
       <div class="success-box">
         <div class="success-icon">✅</div>
-        <h2 style="color: #059669; margin: 10px 0;">Jelszó sikeresen beállítva!</h2>
+        <h2 style="color: #059669; margin: 10px 0;">${copy.successTitle}</h2>
       </div>
       
-      <p>Kedves <strong>${escapeHtml(displayName || 'Felhasználó')}</strong>!</p>
+      <p>${copy.greeting} <strong>${escapeHtml(userName)}</strong>!</p>
       
-      <p>Az új jelszavad sikeresen be lett állítva. Mostantól ezzel tudsz belépni a Pharmagister rendszerbe.</p>
+      <p>${copy.intro}</p>
       
       <div class="info-box">
-        <p style="margin: 0;"><strong>Belépési email:</strong> ${escapeHtml(email)}</p>
+        <p style="margin: 0;"><strong>${copy.loginEmailLabel}:</strong> ${escapeHtml(email)}</p>
       </div>
       
       <p style="text-align: center;">
-        <a href="https://pharmagister.hu/login" class="button">Belépés a Pharmagister-be</a>
+        <a href="https://pharmagister.hu/login" class="button">${copy.loginButton}</a>
       </p>
       
-      <p>Ha nem te állítottad be ezt a jelszót, kérjük azonnal vedd fel velünk a kapcsolatot!</p>
+      <p>${copy.warning}</p>
       
-      <p>Üdvözlettel,<br><strong>A Pharmagister csapata</strong></p>
+      <p>${copy.regards}</p>
     </div>
     <div class="footer">
-      <p>Ez egy automatikus üzenet a Pharmagister rendszerből.</p>
-      <p>© 2026 Pharmagister - Minden jog fenntartva</p>
+      <p>${copy.autoMessage}</p>
+      <p>${copy.rightsReserved}</p>
     </div>
   </div>
 </body>
@@ -70,7 +110,7 @@ export async function POST(request) {
     await resend.emails.send({
       from: 'Pharmagister <noreply@pharmagister.hu>',
       to: email,
-      subject: '✅ Pharmagister - Jelszó sikeresen beállítva',
+      subject: copy.subject,
       html: htmlContent,
     });
 
@@ -78,6 +118,7 @@ export async function POST(request) {
 
   } catch (error) {
     console.error('Email send error:', error);
-    return NextResponse.json({ error: 'Hiba történt az email küldésekor' }, { status: 500 });
+    const copy = getPasswordConfirmationApiCopy(resolveMarketFromRequest(request));
+    return NextResponse.json({ error: copy.sendError }, { status: 500 });
   }
 }

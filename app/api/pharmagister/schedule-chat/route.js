@@ -23,6 +23,27 @@ import {
   normalizeChatRole,
   detectConversationalMood,
 } from '@/lib/bettiPipeline';
+import { resolveMarketFromRequest } from '@/lib/market';
+
+function getScheduleChatApiCopy(market) {
+  if (market === 'de') {
+    return {
+      unauthorized: 'Keine Berechtigung',
+      noScheduleAccess: 'Keine Berechtigung fuer den Dienstplan-Manager',
+      missingTrainingResponse: 'Nach xx gib bitte an, was ich antworten soll. Beispiel: "xx Zeig mir die Ueberstunden"',
+      noTrainablePattern: 'Ich habe kein trainierbares Frage-Muster gefunden. Stell zuerst eine Frage, dann schreibe: "xx ..."',
+      genericFailure: 'Betti konnte die Anfrage gerade nicht verarbeiten. Bitte versuche es kuerzer erneut.',
+    };
+  }
+
+  return {
+    unauthorized: 'Nincs jogosultsag',
+    noScheduleAccess: 'Nincs jogosultsag a beosztaskezelohoz',
+    missingTrainingResponse: 'Az xx utan add meg, mit valaszoljak. Pelda: "xx Mutasd a tulorasokat"',
+    noTrainablePattern: 'Nem talaltam tanithato kerdesmintat. Elobb kerdezz valamit, aztan ird: "xx ..."',
+    genericFailure: 'Betti most nem tudta ertelmezni a kerest. Probald meg ujra rovidebben.',
+  };
+}
 
 const UNKNOWN_SUGGESTIONS = [
   { key: 'show_overtime', label: 'Mutasd a tulorasokat', utterance: 'Mutasd a tulorasokat' },
@@ -2573,16 +2594,18 @@ export const runtime = 'nodejs';
 
 export async function POST(request) {
   try {
+    const requestMarket = resolveMarketFromRequest(request);
+    const copy = getScheduleChatApiCopy(requestMarket);
     const authUser = await verifyAuth(request);
     if (!authUser) {
-      return NextResponse.json({ error: 'Nincs jogosultsag' }, { status: 401 });
+      return NextResponse.json({ error: copy.unauthorized }, { status: 401 });
     }
 
     const admin = getFirebaseAdmin();
     const db = admin.firestore();
     const access = await getScheduleManagerAccess(authUser, db);
     if (!access.canAccess) {
-      return NextResponse.json({ error: 'Nincs jogosultsag a beosztaskezelohoz' }, { status: 403 });
+      return NextResponse.json({ error: copy.noScheduleAccess }, { status: 403 });
     }
 
     const body = await request.json();
@@ -2682,7 +2705,7 @@ export async function POST(request) {
       if (!training.trainingResponse) {
         return NextResponse.json({
           success: false,
-          error: 'Az xx utan add meg, mit valaszoljak. Pelda: "xx Mutasd a tulorasokat"',
+          error: copy.missingTrainingResponse,
         }, { status: 400 });
       }
       const originalQuestion = context.lastUserMessage && context.lastUserMessage !== originalMessage
@@ -2693,7 +2716,7 @@ export async function POST(request) {
       if (!pattern.pattern) {
         return NextResponse.json({
           success: false,
-          error: 'Nem talaltam tanithato kerdesmintat. Elobb kerdezz valamit, aztan ird: "xx ..."',
+          error: copy.noTrainablePattern,
         }, { status: 400 });
       }
       const saveResult = await saveTrainingPattern(uid, pattern);
@@ -3113,10 +3136,11 @@ export async function POST(request) {
       },
     });
   } catch (error) {
+    const copy = getScheduleChatApiCopy(resolveMarketFromRequest(request));
     return NextResponse.json(
       {
         success: false,
-        error: 'Betti most nem tudta ertelmezni a kerest. Probald meg ujra rovidebben.',
+        error: copy.genericFailure,
         details: error.message,
       },
       { status: 500 }

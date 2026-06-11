@@ -7,7 +7,6 @@ import {
   ArrowLeft, 
   User, 
   Bell, 
-  Languages,
   Shield, 
   ShieldCheck,
   HelpCircle, 
@@ -21,6 +20,7 @@ import {
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { getClientMarket, t } from '@/lib/marketI18n';
+import { normalizeMarket } from '@/lib/market';
 
 // Admin és Adminka szerepkörök
 const ADMIN_EMAILS = ['epresla@icloud.com'];
@@ -35,7 +35,14 @@ export default function SettingsPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteStep, setDeleteStep] = useState(0); // 0: initial, 1: confirming, 2: deleting, 3: done
   const [deleteError, setDeleteError] = useState('');
-  const market = getClientMarket();
+  const market = normalizeMarket(getClientMarket());
+  const isPrimaryAdmin = String(user?.email || '').toLowerCase() === 'epresla@icloud.com';
+
+  const switchMarket = (targetMarket) => {
+    if (typeof window === 'undefined') return;
+    const next = encodeURIComponent(window.location.pathname + window.location.search + window.location.hash);
+    window.location.href = `/api/market/switch?market=${targetMarket}&next=${next}`;
+  };
 
   useEffect(() => {
     if (!loading && !user) {
@@ -123,13 +130,6 @@ export default function SettingsPage() {
     {
       title: t('appSection', market),
       items: [
-        {
-          icon: Languages,
-          label: t('marketLanguage', market),
-          onClick: () => router.push('/settings/market'),
-          color: 'text-emerald-600',
-          bgColor: darkMode ? 'bg-emerald-900/30' : 'bg-emerald-100'
-        },
         {
           icon: Bell,
           label: t('notificationsSettings', market),
@@ -233,6 +233,42 @@ export default function SettingsPage() {
           </button>
           <h1 className={`text-lg font-semibold ml-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t('settingsTitle', market)}</h1>
         </div>
+        <div className="px-4 pb-3">
+          {isPrimaryAdmin ? (
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => switchMarket('hu')}
+                className={`rounded-xl border px-3 py-2.5 text-sm font-semibold transition-colors ${
+                  market === 'hu'
+                    ? 'bg-emerald-600 text-white border-emerald-600'
+                    : darkMode
+                      ? 'bg-gray-700 text-gray-100 border-gray-600 hover:bg-gray-600'
+                      : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                🇭🇺 {market === 'de' ? 'Ungarisch' : 'Magyar'}
+              </button>
+              <button
+                onClick={() => switchMarket('de')}
+                className={`rounded-xl border px-3 py-2.5 text-sm font-semibold transition-colors ${
+                  market === 'de'
+                    ? 'bg-emerald-600 text-white border-emerald-600'
+                    : darkMode
+                      ? 'bg-gray-700 text-gray-100 border-gray-600 hover:bg-gray-600'
+                      : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                🇩🇪 {market === 'de' ? 'Deutsch' : 'Német'}
+              </button>
+            </div>
+          ) : (
+            <div className={`rounded-xl border px-3 py-2.5 text-sm ${darkMode ? 'border-gray-700 bg-gray-900 text-gray-200' : 'border-gray-200 bg-gray-50 text-gray-700'}`}>
+              {market === 'de'
+                ? 'Aktive Sprache: Deutsch. Die Sprache wird bei der Registrierung festgelegt und kann spaeter nicht geaendert werden.'
+                : 'Aktív nyelv: Magyar. A nyelv regisztrációkor kerül rögzítésre, később nem módosítható.'}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* User Info */}
@@ -256,7 +292,7 @@ export default function SettingsPage() {
             <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{user.email}</p>
             {userData?.role && (
               <span className={`inline-block mt-1 px-2 py-0.5 ${darkMode ? 'bg-emerald-900/30 text-emerald-400' : 'bg-emerald-100 text-emerald-700'} text-xs rounded-full`}>
-                {userData.role === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'Gyógyszerész') : userData.role === 'assistant' ? (market === 'de' ? 'Assistent/in' : 'Szakasszisztens') : userData.role}
+                {userData.role === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'Gyógyszerész') : userData.role === 'assistant' ? (market === 'de' ? 'PTA' : 'Szakasszisztens') : userData.role === 'pka' ? 'PKA' : userData.role}
               </span>
             )}
           </div>

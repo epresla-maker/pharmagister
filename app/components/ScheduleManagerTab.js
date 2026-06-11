@@ -5,7 +5,8 @@ import { Capacitor } from '@capacitor/core';
 import { Keyboard } from '@capacitor/keyboard';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
-import { getClientMarket } from '@/lib/marketI18n';
+import { getClientMarket, getLocalizedDemandPositionLabel } from '@/lib/marketI18n';
+import { isDocInMarket } from '@/lib/market';
 import {
   addDoc,
   collection,
@@ -416,7 +417,8 @@ function normalizeEmail(email) {
 
 function prettyRole(role, market = 'hu') {
   if (role === 'pharmacist') return market === 'de' ? 'Apotheker/in' : 'Gyógyszerész';
-  if (role === 'assistant') return market === 'de' ? 'Pharmazeutisch-technische Assistenz' : 'Szakasszisztens';
+  if (role === 'assistant') return market === 'de' ? 'PTA' : 'Szakasszisztens';
+  if (role === 'pka') return 'PKA';
   return market === 'de' ? 'Andere' : 'Egyéb';
 }
 
@@ -424,6 +426,7 @@ function normalizeRoleFromProfile(role) {
   const normalized = String(role || '').trim().toLowerCase();
   if (normalized === 'pharmacist' || normalized === 'gyógyszerész') return 'pharmacist';
   if (normalized === 'assistant' || normalized === 'szakasszisztens') return 'assistant';
+  if (normalized === 'pka') return 'pka';
   if (normalized === 'other' || normalized === 'egyéb') return 'other';
   return null;
 }
@@ -470,25 +473,6 @@ function SegmentedTabs({ tabs, active, onChange }) {
       ))}
     </div>
   );
-}
-            <span className="text-white font-bold text-base flex-1">{market === 'de' ? 'Gespeicherte Aenderungen' : 'Rögzített változtatások'}</span>
-            <span className="text-white/70 text-xs">{market === 'de' ? `${swapLog.length} Tausche` : `${swapLog.length} csere`}</span>
-  if (isOwn) {
-    return 'bg-emerald-600 text-white border border-emerald-500';
-  }
-  if (item.role === 'pharmacist') {
-    return darkMode
-      ? 'bg-sky-900/60 text-sky-100 border border-sky-700'
-      : 'bg-sky-100 text-sky-800 border border-sky-200';
-  }
-  if (item.role === 'assistant') {
-    return darkMode
-      ? 'bg-amber-900/50 text-amber-100 border border-amber-700'
-      : 'bg-amber-100 text-amber-800 border border-amber-200';
-  }
-  return darkMode
-    ? 'bg-fuchsia-900/50 text-fuchsia-100 border border-fuchsia-700'
-    : 'bg-fuchsia-100 text-fuchsia-800 border border-fuchsia-200';
 }
 
 function MonthCalendar({ year, month, selectedDate, schedules, ownScheduleIds, onSelectDate, darkMode, filterOwn, pendingSwapRequests, onOpenSwaps, market = 'hu' }) {
@@ -652,10 +636,53 @@ const SHIFT_TYPES = [
   { key: 'Sz', label: 'Sz', title: 'Szabadság', bg: 'bg-orange-400',  text: 'text-white', border: 'border-orange-500' },
   { key: 'P', label: 'P', title: 'Pihenő',    bg: 'bg-sky-400',      text: 'text-white', border: 'border-sky-500' },
 ];
-function isOffShift(shiftType) { return shiftType === 'Sz' || shiftType === 'P'; }
+const LEGACY_SHIFT_TYPE_MAP = {
+  nappali: 'N',
+  tagdienst: 'N',
+  day: 'N',
+  ejszakai: 'É',
+  'éjszakai': 'É',
+  nachtdienst: 'É',
+  nachtschicht: 'É',
+  night: 'É',
+  ugyelet: 'Ü',
+  'ügyelet': 'Ü',
+  bereitschaft: 'Ü',
+  'on-call': 'Ü',
+  'on call': 'Ü',
+  beteg: 'B',
+  krank: 'B',
+  sick: 'B',
+  szabadsag: 'Sz',
+  'szabadság': 'Sz',
+  urlaub: 'Sz',
+  vacation: 'Sz',
+  piheno: 'P',
+  'pihenő': 'P',
+  ruhetag: 'P',
+  restday: 'P',
+  'rest day': 'P',
+};
+
+function normalizeShiftTypeKey(shiftType) {
+  const raw = String(shiftType || '').trim();
+  if (!raw) return 'N';
+  if (SHIFT_TYPES.some((item) => item.key === raw)) return raw;
+  const normalized = raw.toLowerCase();
+  if (LEGACY_SHIFT_TYPE_MAP[normalized]) return LEGACY_SHIFT_TYPE_MAP[normalized];
+  if (normalized === 'e') return 'É';
+  if (normalized === 'u') return 'Ü';
+  return 'N';
+}
+
+function isOffShift(shiftType) {
+  const normalized = normalizeShiftTypeKey(shiftType);
+  return normalized === 'Sz' || normalized === 'P';
+}
 
 function getShiftType(key, market = 'hu') {
-  const base = SHIFT_TYPES.find(t => t.key === key) || SHIFT_TYPES[0];
+  const normalizedKey = normalizeShiftTypeKey(key);
+  const base = SHIFT_TYPES.find(t => t.key === normalizedKey) || SHIFT_TYPES[0];
   if (market !== 'de') return base;
   const titleMapDe = {
     N: 'Tagdienst',
@@ -860,6 +887,8 @@ function PharmacyScheduleCalendar({
   plannerLoading,
   applyingPlanner: isApplying,
 }) {
+  // Prefer client-side market detection to avoid stale prop values in mode switches.
+  market = market === 'de' || getClientMarket() === 'de' ? 'de' : 'hu';
   const isGenerating = plannerLoading || isApplying;
   const [selectedDay, setSelectedDay] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -1329,14 +1358,14 @@ function PharmacyScheduleCalendar({
                 className={`px-3 py-1.5 text-xs font-bold transition-colors ${
                   ownView ? 'bg-white text-violet-700' : 'bg-white/15 text-white hover:bg-white/25'
                 }`}
-              >Saját</button>
+              >{market === 'de' ? 'Eigene' : 'Saját'}</button>
               <button
                 type="button"
                 onClick={() => setOwnView(false)}
                 className={`px-3 py-1.5 text-xs font-bold transition-colors ${
                   !ownView ? 'bg-white text-violet-700' : 'bg-white/15 text-white hover:bg-white/25'
                 }`}
-              >Összes</button>
+              >{market === 'de' ? 'Alle' : 'Összes'}</button>
             </div>
           )}
           {/* Actions — hidden in readOnly mode */}
@@ -1697,7 +1726,7 @@ function PharmacyScheduleCalendar({
                         key={p.id}
                         className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium border ${darkMode ? 'bg-emerald-900/30 border-emerald-700/40 text-emerald-300' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`}
                       >
-                        <span className={`inline-flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-black ${st.bg} ${st.text}`}>{p.shiftType}</span>
+                        <span className={`inline-flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-black ${st.bg} ${st.text}`}>{st.label}</span>
                         {p.employeeName}
                         {!isOffShift(p.shiftType) && p.startTime && p.endTime && <span className="opacity-70">{p.startTime}–{p.endTime}</span>}
                       </span>
@@ -1760,7 +1789,9 @@ function PharmacyScheduleCalendar({
                   }}
                   className="flex-1 rounded-xl px-4 py-2.5 text-sm font-bold bg-rose-600 hover:bg-rose-700 text-white"
                 >
-                  {deleteMonthConfirm === 1 ? 'Folytatás →' : '🗑️ Végleges törlés'}
+                  {deleteMonthConfirm === 1
+                    ? (market === 'de' ? 'Weiter →' : 'Folytatás →')
+                    : (market === 'de' ? '🗑️ Endgueltig loeschen' : '🗑️ Végleges törlés')}
                 </button>
               </div>
             </div>
@@ -1800,8 +1831,8 @@ function PharmacyScheduleCalendar({
                   (s.employeeEmail && emp.email && s.employeeEmail.toLowerCase() === emp.email.toLowerCase())
                 );
                 const workScheds = empScheds.filter(s => !isOffShift(s.shiftType));
-                const szScheds   = empScheds.filter(s => s.shiftType === 'Sz');
-                const pScheds    = empScheds.filter(s => s.shiftType === 'P');
+                const szScheds   = empScheds.filter(s => normalizeShiftTypeKey(s.shiftType) === 'Sz');
+                const pScheds    = empScheds.filter(s => normalizeShiftTypeKey(s.shiftType) === 'P');
 
                 // Hours from schedules
                 const scheduledHours = workScheds.reduce((sum, s) => {
@@ -1816,7 +1847,7 @@ function PharmacyScheduleCalendar({
                   p.employeeId === emp.id ||
                   (p.employeeEmail && emp.email && p.employeeEmail.toLowerCase() === emp.email.toLowerCase())
                 );
-                const prefSzDates = new Set(empPrefs.filter(p => p.shiftType === 'Sz').map(p => p.date));
+                const prefSzDates = new Set(empPrefs.filter(p => normalizeShiftTypeKey(p.shiftType) === 'Sz').map(p => p.date));
                 const schedSzDates = new Set(szScheds.map(s => s.date));
                 const allSzDates = new Set([...schedSzDates, ...prefSzDates]);
                 const szDays = allSzDates.size;
@@ -1899,14 +1930,14 @@ function PharmacyScheduleCalendar({
                               ? (darkMode ? 'text-sky-400' : 'text-sky-600')
                               : (darkMode ? 'text-rose-400' : 'text-rose-600')
                           }`}>
-                            Maradék: {Math.max(0, vacAfter)} nap
+                            {market === 'de' ? 'Rest:' : 'Maradék:'} {Math.max(0, vacAfter)} {market === 'de' ? 'Tage' : 'nap'}
                           </p>
                         )}
                       </div>
 
                       {/* Working days */}
                       <div className={`rounded-xl p-3 ${darkMode ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
-                        <p className={`text-xs font-medium mb-0.5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Munkanapok</p>
+                        <p className={`text-xs font-medium mb-0.5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{market === 'de' ? 'Arbeitstage' : 'Munkanapok'}</p>
                         <p className={`text-xl font-black tabular-nums ${darkMode ? 'text-white' : 'text-gray-900'}`}>
                           {workScheds.length}<span className={`text-xs font-medium ml-0.5 ${darkMode ? 'text-gray-400' : 'text-gray-400'}`}>/ {daysInMonth}</span>
                         </p>
@@ -1914,7 +1945,7 @@ function PharmacyScheduleCalendar({
 
                       {/* Off days */}
                       <div className={`rounded-xl p-3 ${darkMode ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
-                        <p className={`text-xs font-medium mb-0.5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Távollétek</p>
+                        <p className={`text-xs font-medium mb-0.5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{market === 'de' ? 'Abwesenheiten' : 'Távollétek'}</p>
                         <div className="flex items-center gap-2 mt-0.5">
                           {szDays > 0 && (
                             <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-orange-400 text-white`}>
@@ -1966,7 +1997,7 @@ function PharmacyScheduleCalendar({
               {/* Opening hours */}
               <div className="mt-4 flex flex-wrap items-end gap-3">
                 <div className="flex flex-col gap-1">
-                  <span className="text-violet-200 text-xs font-medium">Nyitvatartás:</span>
+                  <span className="text-violet-200 text-xs font-medium">{market === 'de' ? 'Oeffnungszeiten:' : 'Nyitvatartás:'}</span>
                   <div className="flex items-center gap-2">
                     <input
                       type="time"
@@ -1986,7 +2017,7 @@ function PharmacyScheduleCalendar({
                       onClick={applyOpeningHours}
                       className="rounded-xl bg-white/20 hover:bg-white/30 border border-white/30 px-3 py-1.5 text-xs font-semibold text-white transition-colors"
                     >
-                      Alkalmaz mindenkire
+                      {market === 'de' ? 'Auf alle anwenden' : 'Alkalmaz mindenkire'}
                     </button>
                   </div>
                 </div>
@@ -2064,7 +2095,7 @@ function PharmacyScheduleCalendar({
                         : (darkMode ? 'text-gray-100' : 'text-gray-800')
                     }`}>
                       {row.name}
-                      {row.isPublished && <span className="ml-2 text-[10px] font-normal text-amber-600">zárolt</span>}
+                      {row.isPublished && <span className="ml-2 text-[10px] font-normal text-amber-600">{market === 'de' ? 'gesperrt' : 'zárolt'}</span>}
                       {!row.isPublished && row.locked && <span className="ml-2 text-[10px] font-normal text-sky-600">locked</span>}
                     </span>
 
@@ -2075,9 +2106,11 @@ function PharmacyScheduleCalendar({
                         className={`rounded-lg px-2 py-1 text-[10px] font-semibold border ${row.locked
                           ? (darkMode ? 'border-sky-500 bg-sky-700/50 text-sky-100' : 'border-sky-300 bg-sky-100 text-sky-700')
                           : (darkMode ? 'border-gray-600 bg-gray-800 text-gray-300' : 'border-gray-300 bg-white text-gray-600')}`}
-                        title="Kézi lock: a tervező nem módosítja"
+                        title={market === 'de' ? 'Manuelle Sperre: Planer aendert nicht' : 'Kézi lock: a tervező nem módosítja'}
                       >
-                        {row.locked ? 'Lock: BE' : 'Lock: KI'}
+                        {row.locked
+                          ? (market === 'de' ? 'Lock: AN' : 'Lock: BE')
+                          : (market === 'de' ? 'Lock: AUS' : 'Lock: KI')}
                       </button>
                     )}
 
@@ -2499,7 +2532,7 @@ function EmployeePreferenceCalendar({
   const monthlyRequiredHours = contractHours ? calcMonthlyRequiredHours(contractHours, year, month) : 0;
   // Sum up planned working hours (non-off prefs)
   const plannedWorkPrefs = ownPrefs.filter(p => !isOffShift(p.shiftType));
-  const plannedSzPrefs = ownPrefs.filter(p => p.shiftType === 'Sz');
+  const plannedSzPrefs = ownPrefs.filter(p => normalizeShiftTypeKey(p.shiftType) === 'Sz');
   const plannedHoursTotal = plannedWorkPrefs.reduce((sum, p) => {
     if (!p.startTime || !p.endTime) return sum + contractHours;
     const [sh, sm] = p.startTime.split(':').map(Number);
@@ -3865,7 +3898,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             role: emp?.role || 'other',
             startTime: row.from,
             endTime: row.to,
-            shiftType: row.shiftType || 'N',
+            shiftType: normalizeShiftTypeKey(row.shiftType),
             notes: row.notes || '',
             locked: Boolean(row.locked),
             status: 'active',
@@ -4836,7 +4869,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         let keepId;
         if (pref) {
           // Prefer the shift whose shiftType or times match the employee's request
-          const byType = shifts.find(s => s.shiftType === pref.shiftType);
+          const byType = shifts.find(s => normalizeShiftTypeKey(s.shiftType) === normalizeShiftTypeKey(pref.shiftType));
           const byTime = shifts.find(s => s.startTime === pref.startTime && s.endTime === pref.endTime);
           keepId = (byTime || byType || shifts[0]).id;
         } else {
@@ -5945,8 +5978,9 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
         const relevant = snap.docs
           .map((d) => ({ id: d.id, ...d.data() }))
+          .filter((d) => isDocInMarket(d, market))
           .filter((d) => d.date >= todayStr)
-          .filter((d) => (userRole === 'pharmacist' || userRole === 'assistant') ? d.position === userRole : true)
+          .filter((d) => (userRole === 'pharmacist' || userRole === 'assistant' || userRole === 'pka') ? d.position === userRole : true)
           .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')))
           .slice(0, 5);
 
@@ -6005,6 +6039,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
         const relevant = snap.docs
           .map((d) => ({ id: d.id, ...d.data() }))
+          .filter((d) => isDocInMarket(d, market))
           .filter((d) => d.status !== 'deleted' && d.date >= todayStr)
           .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')))
           .slice(0, 5);
@@ -6678,6 +6713,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
         const demandData = {
           pharmacyId: user.uid,
+          market,
           pharmacyName: userData.pharmacyName || 'Gyogyszertar',
           pharmacyCity: userData.pharmacyCity || '',
           pharmacyZipCode: userData.pharmacyZipCode || '',
@@ -6710,6 +6746,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         await addDoc(collection(db, 'serviceFeedPosts'), {
           postType: 'pharmaDemand',
           module: 'pharmagister',
+          market,
           pharmaDemandId: demandRef.id,
           pharmacyId: user.uid,
           pharmacyName: userData.pharmacyName || 'Gyogyszertar',
@@ -6720,7 +6757,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           pharmacyFullAddress: fullAddress,
           pharmacyPhotoURL: userData.photoURL || userData.pharmaPhotoURL || '',
           position: draft.position,
-          positionLabel: draft.position === 'pharmacist' ? 'Gyogyszeresz' : 'Szakasszisztens',
+          positionLabel: getLocalizedDemandPositionLabel(draft.position, market),
           workHours: draft.workHours,
           minExperience: '',
           requiredSoftware: [],
@@ -6867,7 +6904,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
       const result = await response.json();
       if (!response.ok || !result?.success) {
-        throw new Error(result?.error || 'Betti most nem elerheto.');
+        throw new Error(result?.error || (market === 'de' ? 'Betti ist gerade nicht erreichbar.' : 'Betti most nem elerheto.'));
       }
 
       setBettiChatMessages((prev) => [...prev, {
@@ -7066,8 +7103,6 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                         type="button"
                         onClick={() => {
                           const cancelCmd = msg?.plannerCard?.cancelCommand || {
-                      <span className="text-white font-bold text-base flex-1">{market === 'de' ? 'Gespeicherte Aenderungen' : 'Rögzített változtatások'}</span>
-                      <span className="text-white/70 text-xs">{market === 'de' ? `${swapLog.length} Tausche` : `${swapLog.length} csere`}</span>
                             originalType: 'local_schedule_wizard_start',
                           };
                           void executeBettiUiCommand(cancelCmd, msg);
@@ -7602,7 +7637,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         role: pref.role || employee?.role || 'other',
         startTime: pref.startTime,
         endTime: pref.endTime,
-        shiftType: pref.shiftType || 'N',
+        shiftType: normalizeShiftTypeKey(pref.shiftType),
         onCall: false,
         notes: 'Dolgozói kérés alapján rögzítve',
         locked: true,
@@ -8469,10 +8504,10 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           {/* ── Always-visible employee list ─────────────────────────── */}
           <div className={`rounded-2xl border p-5 space-y-3 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
             <p className={`text-sm font-bold uppercase tracking-widest ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-              Aktív dolgozók ({activeEmployees.length})
+              {market === 'de' ? `Aktive Mitarbeitende (${activeEmployees.length})` : `Aktív dolgozók (${activeEmployees.length})`}
             </p>
             {activeEmployees.length === 0 ? (
-              <p className="text-sm text-gray-500">Még nincs aktív dolgozó.</p>
+              <p className="text-sm text-gray-500">{market === 'de' ? 'Noch keine aktiven Mitarbeitenden.' : 'Még nincs aktív dolgozó.'}</p>
             ) : (
               <div className="flex flex-col gap-2">
                 {activeEmployees.map(employee => {
@@ -8513,7 +8548,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                         <div className="flex items-center gap-2 flex-shrink-0">
                           {empPrefs.length > 0 && (
                             <span className={`text-[11px] font-semibold rounded-full px-2 py-0.5 ${darkMode ? 'bg-emerald-900/50 text-emerald-300' : 'bg-emerald-100 text-emerald-700'}`}>
-                              {empPrefs.length} {market === 'de' ? 'eingereichte Entwuerfe' : 'beküldött tervezet'}
+                                  {empPrefs.length} {market === 'de' ? 'eingereichte Entwuerfe' : 'beküldött tervezet'}
                             </span>
                           )}
                           {workerTab === 'remove' && (
@@ -8558,7 +8593,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                         <div className={`px-4 pb-4 pt-1 border-t space-y-4 ${darkMode ? 'border-gray-700' : 'border-gray-100'}`}>
                           {/* Basic data section */}
                           <div className={`rounded-xl p-3 space-y-3 ${darkMode ? 'bg-gray-800' : 'bg-gray-50'}`}>
-                            <p className={`text-xs font-bold uppercase tracking-widest ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Alapadatok</p>
+                            <p className={`text-xs font-bold uppercase tracking-widest ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{market === 'de' ? 'Grunddaten' : 'Alapadatok'}</p>
                             <div className="grid grid-cols-2 gap-2">
 
                               {/* contractHours */}
@@ -8625,31 +8660,31 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
                               {/* phone */}
                               <div className="col-span-2 flex flex-col gap-1">
-                                <label className={`text-[11px] font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Telefonszám</label>
+                                <label className={`text-[11px] font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{market === 'de' ? 'Telefonnummer' : 'Telefonszám'}</label>
                                 <input
                                   type="text"
                                   value={ef.phone}
                                   onChange={e => setWorkerEditForms(prev => ({ ...prev, [employee.id]: { ...ef, phone: e.target.value } }))}
                                   className={`w-full rounded-lg border px-3 py-1.5 text-sm bg-transparent ${darkMode ? 'border-gray-600 text-gray-100' : 'border-gray-300 text-gray-800'}`}
-                                  placeholder="+36 ..."
+                                  placeholder={market === 'de' ? '+49 ...' : '+36 ...'}
                                 />
                               </div>
 
                               {/* address */}
                               <div className="col-span-2 flex flex-col gap-1">
-                                <label className={`text-[11px] font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Cím</label>
+                                <label className={`text-[11px] font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{market === 'de' ? 'Adresse' : 'Cím'}</label>
                                 <input
                                   type="text"
                                   value={ef.address}
                                   onChange={e => setWorkerEditForms(prev => ({ ...prev, [employee.id]: { ...ef, address: e.target.value } }))}
                                   className={`w-full rounded-lg border px-3 py-1.5 text-sm bg-transparent ${darkMode ? 'border-gray-600 text-gray-100' : 'border-gray-300 text-gray-800'}`}
-                                  placeholder="Utca, város..."
+                                  placeholder={market === 'de' ? 'Strasse, Stadt...' : 'Utca, város...'}
                                 />
                               </div>
 
                               {/* notes */}
                               <div className="col-span-2 flex flex-col gap-1">
-                                <label className={`text-[11px] font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Megjegyzés</label>
+                                <label className={`text-[11px] font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{market === 'de' ? 'Notiz' : 'Megjegyzés'}</label>
                                 <input
                                   type="text"
                                   value={ef.notes}
@@ -8662,15 +8697,15 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                             {/* Calculated preview */}
                             {(totalVac !== null || reqHours !== null) && (
                               <div className={`rounded-lg border px-3 py-2 space-y-1 ${darkMode ? 'border-emerald-800 bg-emerald-950/30' : 'border-emerald-200 bg-emerald-50'}`}>
-                                <p className={`text-[10px] font-bold uppercase tracking-wide ${darkMode ? 'text-emerald-400' : 'text-emerald-700'}`}>Kiszámított értékek ({thisYear})</p>
+                                <p className={`text-[10px] font-bold uppercase tracking-wide ${darkMode ? 'text-emerald-400' : 'text-emerald-700'}`}>{market === 'de' ? `Berechnete Werte (${thisYear})` : `Kiszámított értékek (${thisYear})`}</p>
                                 {totalVac !== null && (
                                   <>
-                                    <p className={`text-xs ${darkMode ? 'text-emerald-200' : 'text-emerald-800'}`}>Járó szabadság: <strong>{totalVac} nap</strong></p>
-                                    <p className={`text-xs ${darkMode ? 'text-emerald-200' : 'text-emerald-800'}`}>Maradék: <strong>{remaining} nap</strong> ({totalVac}+{carryOver}−{taken})</p>
+                                    <p className={`text-xs ${darkMode ? 'text-emerald-200' : 'text-emerald-800'}`}>{market === 'de' ? 'Urlaubsanspruch:' : 'Járó szabadság:'} <strong>{totalVac} {market === 'de' ? 'Tage' : 'nap'}</strong></p>
+                                    <p className={`text-xs ${darkMode ? 'text-emerald-200' : 'text-emerald-800'}`}>{market === 'de' ? 'Rest:' : 'Maradék:'} <strong>{remaining} {market === 'de' ? 'Tage' : 'nap'}</strong> ({totalVac}+{carryOver}−{taken})</p>
                                   </>
                                 )}
                                 {reqHours !== null && (
-                                  <p className={`text-xs ${darkMode ? 'text-emerald-200' : 'text-emerald-800'}`}>{MONTHS_HU[month-1]} kötelező munkaóra: <strong>{reqHours} h</strong></p>
+                                  <p className={`text-xs ${darkMode ? 'text-emerald-200' : 'text-emerald-800'}`}>{(market === 'de' ? MONTHS_DE : MONTHS_HU)[month - 1]} {market === 'de' ? 'Sollstunden:' : 'kötelező munkaóra:'} <strong>{reqHours} h</strong></p>
                                 )}
                               </div>
                             )}
@@ -8742,23 +8777,23 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           {workerTab === 'add' && (
             <form onSubmit={handleAddEmployee} className={`rounded-2xl border p-5 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-white'}`}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Field label="Email cím" required hint="Csak regisztrált Pharmagister email adható meg. A szerepkört automatikusan a profilból vesszük át.">
-                  <input type="email" value={employeeForm.email} onChange={e => setEmployeeForm(prev => ({ ...prev, email: e.target.value }))} className="w-full rounded-xl border px-3 py-2 bg-transparent" placeholder="nev@email.hu" />
+                <Field label={market === 'de' ? 'E-Mail-Adresse' : 'Email cím'} required hint={market === 'de' ? 'Es kann nur eine registrierte Pharmagister-E-Mail-Adresse hinzugefuegt werden. Die Rolle wird automatisch aus dem Profil uebernommen.' : 'Csak regisztrált Pharmagister email adható meg. A szerepkört automatikusan a profilból vesszük át.'}>
+                  <input type="email" value={employeeForm.email} onChange={e => setEmployeeForm(prev => ({ ...prev, email: e.target.value }))} className="w-full rounded-xl border px-3 py-2 bg-transparent" placeholder={market === 'de' ? 'name@email.de' : 'nev@email.hu'} />
                 </Field>
-                <Field label="Telefonszám">
+                <Field label={market === 'de' ? 'Telefonnummer' : 'Telefonszám'}>
                   <input type="text" value={employeeForm.phone} onChange={e => setEmployeeForm(prev => ({ ...prev, phone: e.target.value }))} className="w-full rounded-xl border px-3 py-2 bg-transparent" />
                 </Field>
-                <Field label="Cím">
+                <Field label={market === 'de' ? 'Adresse' : 'Cím'}>
                   <input type="text" value={employeeForm.address} onChange={e => setEmployeeForm(prev => ({ ...prev, address: e.target.value }))} className="w-full rounded-xl border px-3 py-2 bg-transparent" />
                 </Field>
-                <Field label="Megjegyzés">
+                <Field label={market === 'de' ? 'Notiz' : 'Megjegyzés'}>
                   <input type="text" value={employeeForm.notes} onChange={e => setEmployeeForm(prev => ({ ...prev, notes: e.target.value }))} className="w-full rounded-xl border px-3 py-2 bg-transparent" />
                 </Field>
               </div>
               <div className="flex justify-end">
                 <button type="submit" disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-[#16a34a] px-4 py-2 font-medium text-white disabled:opacity-60">
                   <UserPlus className="h-4 w-4" />
-                  Dolgozó hozzáadása
+                  {market === 'de' ? 'Mitarbeitende hinzufuegen' : 'Dolgozó hozzáadása'}
                 </button>
               </div>
             </form>
@@ -8890,7 +8925,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
               <div className={`rounded-2xl border overflow-hidden ${darkMode ? 'border-gray-700 bg-gray-900/40' : 'border-gray-200 bg-white'}`}>
                 {alerts.length === 0 ? (
                   <div className="px-4 py-3 text-center">
-                    <span className={`text-[11px] ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>Üdvözöl a Pharmagister</span>
+                    <span className={`text-[11px] ${darkMode ? 'text-gray-600' : 'text-gray-400'}`}>{market === 'de' ? 'Willkommen bei Pharmagister' : 'Üdvözöl a Pharmagister'}</span>
                   </div>
                 ) : (
                   <div className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -8941,23 +8976,23 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                     {/* Hónap navigáció fejléc */}
                     <div className={`flex items-center justify-between px-4 py-3 border-b ${darkMode ? 'border-violet-800 bg-violet-900/40' : 'border-violet-200 bg-violet-100'}`}>
                       <button type="button" onClick={goPrev} className={`h-9 w-9 flex items-center justify-center rounded-xl font-bold text-xl ${darkMode ? 'bg-violet-800/60 text-violet-200 hover:bg-violet-700' : 'bg-white text-violet-600 hover:bg-violet-50 shadow-sm border border-violet-200'}`}>‹</button>
-                      <span className={`font-bold text-base ${darkMode ? 'text-white' : 'text-violet-800'}`}>{MONTHS_HU[month-1]} {year}</span>
+                      <span className={`font-bold text-base ${darkMode ? 'text-white' : 'text-violet-800'}`}>{(market === 'de' ? MONTHS_DE : MONTHS_HU)[month - 1]} {year}</span>
                       <button type="button" onClick={goNext} className={`h-9 w-9 flex items-center justify-center rounded-xl font-bold text-xl ${darkMode ? 'bg-violet-800/60 text-violet-200 hover:bg-violet-700' : 'bg-white text-violet-600 hover:bg-violet-50 shadow-sm border border-violet-200'}`}>›</button>
                     </div>
                     {/* Info adatok */}
                     <div className="p-4 flex flex-wrap gap-x-5 gap-y-2">
                       <div className="flex items-center gap-2">
                         <span className="text-lg">👥</span>
-                        <span className={`text-sm font-semibold ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>{activeEmployees.length} dolgozó</span>
+                        <span className={`text-sm font-semibold ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>{activeEmployees.length} {market === 'de' ? 'Mitarbeitende' : 'dolgozó'}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-lg">📅</span>
-                        <span className={`text-sm font-semibold ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>{filledDays}/{totalDays} nap kitöltve</span>
+                        <span className={`text-sm font-semibold ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>{filledDays}/{totalDays} {market === 'de' ? 'Tage ausgefuellt' : 'nap kitöltve'}</span>
                       </div>
                       {ignoredPrefs > 0 && (
                         <div className="flex items-center gap-2">
                           <span className="text-lg">⚠️</span>
-                          <span className="text-sm font-semibold text-amber-600">{ignoredPrefs} preferencia figyelmen kívül</span>
+                          <span className="text-sm font-semibold text-amber-600">{market === 'de' ? `${ignoredPrefs} Praeferenzen ignoriert` : `${ignoredPrefs} preferencia figyelmen kívül`}</span>
                         </div>
                       )}
                       {pendingPrefs > 0 && ignoredPrefs === 0 && (
@@ -8967,7 +9002,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                           className="flex items-center gap-2 text-left"
                         >
                           <span className="text-lg">💬</span>
-                          <span className={`text-sm font-semibold underline underline-offset-2 ${darkMode ? 'text-emerald-300' : 'text-emerald-700'}`}>{pendingPrefs} dolgozói kérés →</span>
+                          <span className={`text-sm font-semibold underline underline-offset-2 ${darkMode ? 'text-emerald-300' : 'text-emerald-700'}`}>{market === 'de' ? `${pendingPrefs} Mitarbeitenden-Wuensche →` : `${pendingPrefs} dolgozói kérés →`}</span>
                         </button>
                       )}
                       {currentMonthDraftPublishSummary.missingCount > 0 && (
@@ -9074,7 +9109,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                               const empName = p.employeeName || activeEmployees.find(e => e.id === p.employeeId)?.name || 'Ismeretlen';
                               const dt = new Date(`${p.date}T00:00:00`);
                               const dateLabel = dt.toLocaleDateString(locale, { month: 'long', day: 'numeric', weekday: 'short' });
-                              const shiftLabel = p.startTime && p.endTime ? `${p.startTime}–${p.endTime}` : (p.shiftType || 'N');
+                              const shiftLabel = p.startTime && p.endTime ? `${p.startTime}–${p.endTime}` : getShiftType(p.shiftType || 'N', market).title;
                               const isLocking = lockingPrefId === p.id;
                               return (
                                 <div key={p.id || i} className={`flex items-center justify-between gap-3 px-4 py-3 ${i > 0 ? (darkMode ? 'border-t border-amber-800' : 'border-t border-amber-200') : ''}`}>
@@ -9088,7 +9123,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                                     onClick={() => handleLockPreference(p)}
                                     className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${darkMode ? 'bg-amber-700 text-amber-100 hover:bg-amber-600 disabled:opacity-50' : 'bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-50'}`}
                                   >
-                                    {isLocking ? '...' : '📌 Rögzítés'}
+                                    {isLocking ? '...' : (market === 'de' ? '📌 Fixieren' : '📌 Rögzítés')}
                                   </button>
                                 </div>
                               );
@@ -9107,7 +9142,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   <div>
                     <p className={`text-xs font-bold uppercase tracking-widest mb-2 px-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{thisYear}</p>
                     <div className="grid grid-cols-4 gap-2">
-                      {MONTHS_HU.map((label, i) => {
+                      {(market === 'de' ? MONTHS_DE : MONTHS_HU).map((label, i) => {
                         const m = i + 1;
                         const isActive = year === thisYear && m === month;
                         const isCurrentMonth = m === thisMonth;
@@ -9146,7 +9181,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                             <span className={`font-bold text-sm whitespace-nowrap ${textClass}`}>{label}</span>
                             {hasPublished && (
                               <span className={`mt-1 text-[10px] font-semibold rounded-full px-2 py-0.5 ${badgeClass}`}>
-                                Publikálva
+                                {market === 'de' ? 'Veroeffentlicht' : 'Publikálva'}
                               </span>
                             )}
                           </button>
@@ -10501,7 +10536,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
             // Collect all own Sz (vacation) preferences across all months
             const ownSzPrefs = schedulePreferences.filter(p =>
               p.status !== 'deleted' &&
-              p.shiftType === 'Sz' &&
+              normalizeShiftTypeKey(p.shiftType) === 'Sz' &&
               (p.linkedUserId === user?.uid || (p.employeeEmail && user?.email && p.employeeEmail.toLowerCase() === user.email.toLowerCase()))
             ).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
 

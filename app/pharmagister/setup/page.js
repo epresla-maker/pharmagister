@@ -248,8 +248,9 @@ function PharmagisterSetupContent() {
             <p className="text-gray-600 mt-1">
               {step === 1 ? t('chooseRole', market) : 
                selectedRole === 'pharmacy' ? (market === 'de' ? '🏢 Apothekendaten' : '🏢 Gyógyszertár adatok') :
-               selectedRole === 'pharmacist' ? (market === 'de' ? 'Apothekendaten (Vertreter)' : 'Gyógyszerész adatok') :
-               (market === 'de' ? 'Assistenten-Daten' : 'Szakasszisztens adatok')}
+               selectedRole === 'pharmacist' ? (market === 'de' ? 'Apothekerdaten (Vertretung)' : 'Gyógyszerész adatok') :
+               selectedRole === 'pka' ? (market === 'de' ? 'PKA-Daten' : 'PKA adatok') :
+               (market === 'de' ? 'PTA-Daten' : 'Szakasszisztens adatok')}
             </p>
           </div>
 
@@ -295,11 +296,28 @@ function PharmagisterSetupContent() {
                     <Users className="w-7 h-7 text-green-600" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">{market === 'de' ? 'PKA/PTA-Assistent/in' : 'Szakasszisztens'}</h3>
-                    <p className="text-sm text-gray-500">{market === 'de' ? 'Ich arbeite als Vertretung (Assistent/in)' : 'Helyettesítést vállalok asszisztensként'}</p>
+                    <h3 className="text-lg font-semibold text-gray-900">{market === 'de' ? 'PTA' : 'Szakasszisztens'}</h3>
+                    <p className="text-sm text-gray-500">{market === 'de' ? 'Pharmazeutisch-technische/r Assistent/in' : 'Helyettesítést vállalok szakasszisztensként'}</p>
                   </div>
                 </div>
               </button>
+
+              {market === 'de' && (
+                <button
+                  onClick={() => handleRoleSelect('pka')}
+                  className="w-full bg-white border-2 border-gray-200 hover:border-orange-400 rounded-xl p-6 transition-all text-left group"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 bg-orange-100 rounded-xl flex items-center justify-center group-hover:bg-orange-200 transition-colors">
+                      <Users className="w-7 h-7 text-orange-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">PKA</h3>
+                      <p className="text-sm text-gray-500">Pharmazeutisch-kaufmännische/r Angestellte/r</p>
+                    </div>
+                  </div>
+                </button>
+              )}
             </div>
           )}
 
@@ -399,7 +417,7 @@ function PharmagisterSetupContent() {
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                       className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      placeholder="+36 30 123 4567"
+                      placeholder={market === 'de' ? '+49 151 23456789' : '+36 30 123 4567'}
                     />
                   </div>
 
@@ -413,7 +431,7 @@ function PharmagisterSetupContent() {
                         value={formData.city}
                         onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                         className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        placeholder="Budapest"
+                        placeholder={market === 'de' ? 'Berlin' : 'Budapest'}
                         required
                       />
                     </div>
@@ -442,7 +460,7 @@ function PharmagisterSetupContent() {
                         value={formData.street}
                         onChange={(e) => setFormData({ ...formData, street: e.target.value })}
                         className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        placeholder="Kossuth Lajos utca"
+                        placeholder={market === 'de' ? 'Friedrichstrasse' : 'Kossuth Lajos utca'}
                         required
                       />
                     </div>
@@ -500,7 +518,7 @@ function PharmagisterSetupContent() {
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                       className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      placeholder="+36 30 123 4567"
+                      placeholder={market === 'de' ? '+49 151 23456789' : '+36 30 123 4567'}
                     />
                   </div>
 
@@ -544,7 +562,7 @@ function PharmagisterSetupContent() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {market === 'de' ? 'Stundensatz (HUF)' : 'Órabér (Ft)'} <span className="text-gray-400 text-xs">{market === 'de' ? '(optional)' : '(opcionális)'}</span>
+                      {market === 'de' ? 'Stundensatz (EUR)' : 'Órabér (Ft)'} <span className="text-gray-400 text-xs">{market === 'de' ? '(optional)' : '(opcionális)'}</span>
                     </label>
                     <input
                       type="number"

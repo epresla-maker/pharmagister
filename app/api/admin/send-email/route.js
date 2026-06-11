@@ -2,29 +2,56 @@ import { Resend } from 'resend';
 import { NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 import { verifyAdmin } from '@/lib/apiAuth';
+import { resolveMarketFromRequest } from '@/lib/market';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+function getAdminSendEmailCopy(market) {
+  if (market === 'de') {
+    return {
+      noAdminPermission: 'Keine Admin-Berechtigung',
+      recipientsRequired: 'Mindestens ein Empfaenger ist erforderlich',
+      subjectRequired: 'Betreff ist erforderlich',
+      bodyRequired: 'Nachricht ist erforderlich',
+      sendErrorPrefix: 'Fehler beim E-Mail-Versand: ',
+      footerLine1: 'Diese Nachricht wurde vom Pharmagister-System gesendet.',
+      footerLine2: '© 2026 Pharmagister - Alle Rechte vorbehalten',
+    };
+  }
+
+  return {
+    noAdminPermission: 'Nincs admin jogosultság',
+    recipientsRequired: 'Legalább egy címzett megadása kötelező',
+    subjectRequired: 'Tárgy megadása kötelező',
+    bodyRequired: 'Üzenet megadása kötelező',
+    sendErrorPrefix: 'Hiba történt az email küldés során: ',
+    footerLine1: 'Ez az üzenet a Pharmagister rendszerből érkezett.',
+    footerLine2: '© 2026 Pharmagister - Minden jog fenntartva',
+  };
+}
 
 export const runtime = 'nodejs';
 
 export async function POST(request) {
   try {
+    const requestMarket = resolveMarketFromRequest(request);
+    const copy = getAdminSendEmailCopy(requestMarket);
     // Verify admin access
     const adminUser = await verifyAdmin(request);
     if (!adminUser) {
-      return NextResponse.json({ error: 'Nincs admin jogosultság' }, { status: 403 });
+      return NextResponse.json({ error: copy.noAdminPermission }, { status: 403 });
     }
 
     const { to, subject, body, isHtml } = await request.json();
 
     if (!to || !to.length) {
-      return NextResponse.json({ error: 'Legalább egy címzett megadása kötelező' }, { status: 400 });
+      return NextResponse.json({ error: copy.recipientsRequired }, { status: 400 });
     }
     if (!subject) {
-      return NextResponse.json({ error: 'Tárgy megadása kötelező' }, { status: 400 });
+      return NextResponse.json({ error: copy.subjectRequired }, { status: 400 });
     }
     if (!body) {
-      return NextResponse.json({ error: 'Üzenet megadása kötelező' }, { status: 400 });
+      return NextResponse.json({ error: copy.bodyRequired }, { status: 400 });
     }
 
     const results = [];
@@ -37,7 +64,7 @@ export async function POST(request) {
           from: 'Pharmagister <noreply@pharmagister.hu>',
           to: recipient,
           subject: subject,
-          html: isHtml ? generateHtmlEmail(subject, body) : generateHtmlEmail(subject, body.replace(/\n/g, '<br>')),
+          html: isHtml ? generateHtmlEmail(subject, body, copy) : generateHtmlEmail(subject, body.replace(/\n/g, '<br>'), copy),
         });
         results.push({ email: recipient, success: true });
       } catch (err) {
@@ -73,8 +100,9 @@ export async function POST(request) {
     });
   } catch (error) {
     console.error('Email send error:', error);
+    const copy = getAdminSendEmailCopy(resolveMarketFromRequest(request));
     return NextResponse.json(
-      { error: 'Hiba történt az email küldés során: ' + error.message },
+      { error: copy.sendErrorPrefix + error.message },
       { status: 500 }
     );
   }
@@ -88,7 +116,7 @@ function autoLinkUrls(html) {
   );
 }
 
-function generateHtmlEmail(subject, bodyHtml) {
+function generateHtmlEmail(subject, bodyHtml, copy) {
   // URL-ek automatikus kattinthatóvá tétele
   const linkedBody = autoLinkUrls(bodyHtml);
   
@@ -116,8 +144,8 @@ function generateHtmlEmail(subject, bodyHtml) {
       ${linkedBody}
     </div>
     <div class="footer">
-      <p>Ez az üzenet a Pharmagister rendszerből érkezett.</p>
-      <p>© 2026 Pharmagister - Minden jog fenntartva</p>
+      <p>${copy.footerLine1}</p>
+      <p>${copy.footerLine2}</p>
     </div>
   </div>
 </body>

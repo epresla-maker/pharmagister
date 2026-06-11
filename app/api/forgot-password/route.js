@@ -6,6 +6,49 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 import { randomBytes } from 'crypto';
 import { escapeHtml } from '@/lib/sanitize';
 import { checkRateLimit, getClientIp } from '@/lib/rateLimit';
+import { resolveMarketFromRequest } from '@/lib/market';
+
+function getForgotPasswordCopy(market) {
+  if (market === 'de') {
+    return {
+      tooManyRequests: 'Zu viele Anfragen. Bitte versuche es spaeter erneut.',
+      emailRequired: 'E-Mail-Adresse ist erforderlich',
+      genericSuccess: 'Wenn die E-Mail-Adresse im System existiert, haben wir einen Link zum Zuruecksetzen des Passworts gesendet.',
+      fallbackUserName: 'Nutzer/in',
+      genericError: 'Fehler. Bitte versuche es spaeter erneut.',
+      subject: 'Pharmagister - Passwort zuruecksetzen',
+      greeting: 'Hallo',
+      intro: 'Wir haben eine Anfrage zum Zuruecksetzen deines Passworts erhalten.',
+      ctaText: 'Neues Passwort setzen',
+      accountEmailLabel: 'Konto-E-Mail',
+      expiryText: 'Der Link ist 24 Stunden gueltig.',
+      fallbackLinkText: 'Falls der Button nicht funktioniert, kopiere diesen Link in deinen Browser:',
+      ignoreText: 'Wenn du diese Anfrage nicht gestellt hast, ignoriere diese E-Mail bitte.',
+      regards: 'Viele Gruesse,<br><strong>Dein Pharmagister Team</strong>',
+      autoMessage: 'Dies ist eine automatische Nachricht aus dem Pharmagister-System.',
+      rightsReserved: '© 2026 Pharmagister - Alle Rechte vorbehalten',
+    };
+  }
+
+  return {
+    tooManyRequests: 'Túl sok kérés. Kérjük próbálja újra később.',
+    emailRequired: 'Email cím megadása kötelező',
+    genericSuccess: 'Ha az email cím létezik a rendszerben, küldtünk egy jelszó-visszaállító linket.',
+    fallbackUserName: 'Felhasználó',
+    genericError: 'Hiba történt. Kérlek próbáld újra később.',
+    subject: 'Pharmagister - Jelszó visszaállítás',
+    greeting: 'Kedves',
+    intro: 'Jelszó-visszaállítási kérelmet kaptunk a fiókodhoz.',
+    ctaText: 'Új jelszó beállítása',
+    accountEmailLabel: 'Fiók email',
+    expiryText: 'A link 24 óráig érvényes.',
+    fallbackLinkText: 'Ha a gomb nem működik, másold be ezt a linket a böngésződbe:',
+    ignoreText: 'Ha nem te kérted a jelszó-visszaállítást, kérlek hagyd figyelmen kívül ezt az emailt.',
+    regards: 'Üdvözlettel,<br><strong>A Pharmagister csapata</strong>',
+    autoMessage: 'Ez egy automatikus üzenet a Pharmagister rendszerből.',
+    rightsReserved: '© 2026 Pharmagister - Minden jog fenntartva',
+  };
+}
 
 // Initialize Firebase Admin
 if (!admin.apps.length) {
@@ -21,7 +64,7 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 
 // Email sablon
-function generateEmailHtml(name, email, resetLink) {
+function generateEmailHtml(name, email, resetLink, copy) {
   return `
 <!DOCTYPE html>
 <html>
@@ -44,33 +87,33 @@ function generateEmailHtml(name, email, resetLink) {
       <h1>Pharmagister</h1>
     </div>
     <div class="content">
-      <p>Kedves <strong>${escapeHtml(name)}</strong>!</p>
+      <p>${copy.greeting} <strong>${escapeHtml(name)}</strong>!</p>
       
-      <p>Jelszó-visszaállítási kérelmet kaptunk a fiókodhoz.</p>
+      <p>${copy.intro}</p>
       
-      <p>Kattints az alábbi gombra az új jelszavad beállításához:</p>
+      <p>${copy.ctaText}:</p>
       
       <p style="text-align: center;">
-        <a href="${resetLink}" class="button">Új jelszó beállítása</a>
+        <a href="${resetLink}" class="button">${copy.ctaText}</a>
       </p>
       
       <div class="info-box">
-        <p style="margin: 0;"><strong>Fiók email:</strong> ${escapeHtml(email)}</p>
-        <p style="margin: 10px 0 0 0; font-size: 14px; color: #6b7280;">A link 24 óráig érvényes.</p>
+        <p style="margin: 0;"><strong>${copy.accountEmailLabel}:</strong> ${escapeHtml(email)}</p>
+        <p style="margin: 10px 0 0 0; font-size: 14px; color: #6b7280;">${copy.expiryText}</p>
       </div>
       
-      <p>Ha a gomb nem működik, másold be ezt a linket a böngésződbe:</p>
+      <p>${copy.fallbackLinkText}</p>
       <p style="font-size: 12px; word-break: break-all; color: #6b7280;">${resetLink}</p>
       
       <p style="color: #6b7280; font-size: 14px; margin-top: 20px;">
-        Ha nem te kérted a jelszó-visszaállítást, kérlek hagyd figyelmen kívül ezt az emailt.
+        ${copy.ignoreText}
       </p>
       
-      <p>Üdvözlettel,<br><strong>A Pharmagister csapata</strong></p>
+      <p>${copy.regards}</p>
     </div>
     <div class="footer">
-      <p>Ez egy automatikus üzenet a Pharmagister rendszerből.</p>
-      <p>© 2026 Pharmagister - Minden jog fenntartva</p>
+      <p>${copy.autoMessage}</p>
+      <p>${copy.rightsReserved}</p>
     </div>
   </div>
 </body>
@@ -80,17 +123,19 @@ function generateEmailHtml(name, email, resetLink) {
 
 export async function POST(request) {
   try {
+    const requestMarket = resolveMarketFromRequest(request);
+    const copy = getForgotPasswordCopy(requestMarket);
     // Rate limit: 5 requests per 15 minutes
     const ip = getClientIp(request);
     const { allowed } = checkRateLimit(`forgot-password:${ip}`, 5, 15 * 60 * 1000);
     if (!allowed) {
-      return NextResponse.json({ error: 'Túl sok kérés. Kérjük próbálja újra később.' }, { status: 429 });
+      return NextResponse.json({ error: copy.tooManyRequests }, { status: 429 });
     }
 
     const { email } = await request.json();
 
     if (!email) {
-      return NextResponse.json({ error: 'Email cím megadása kötelező' }, { status: 400 });
+      return NextResponse.json({ error: copy.emailRequired }, { status: 400 });
     }
 
     // Find user by email
@@ -104,7 +149,7 @@ export async function POST(request) {
       console.log('Forgot password requested for non-existent email:', email);
       return NextResponse.json({ 
         success: true, 
-        message: 'Ha az email cím létezik a rendszerben, küldtünk egy jelszó-visszaállító linket.' 
+        message: copy.genericSuccess 
       });
     }
 
@@ -128,28 +173,29 @@ export async function POST(request) {
     // Create reset link
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://pharmagister.hu';
     const resetLink = `${baseUrl}/set-password?token=${resetToken}`;
-    const userName = userData.name || userData.displayName || 'Felhasználó';
+    const userName = userData.name || userData.displayName || copy.fallbackUserName;
 
     // Send email via Resend
     await resend.emails.send({
       from: 'Pharmagister <noreply@pharmagister.hu>',
       to: email,
-      subject: 'Pharmagister - Jelszó visszaállítás',
-      html: generateEmailHtml(userName, email, resetLink),
+      subject: copy.subject,
+      html: generateEmailHtml(userName, email, resetLink, copy),
     });
 
     console.log('Password reset email sent to:', email);
 
     return NextResponse.json({ 
       success: true, 
-      message: 'Ha az email cím létezik a rendszerben, küldtünk egy jelszó-visszaállító linket.' 
+      message: copy.genericSuccess 
     });
 
   } catch (error) {
     console.error('Forgot password error:', error);
     console.error('Error details:', error.message, error.stack);
+    const copy = getForgotPasswordCopy(resolveMarketFromRequest(request));
     return NextResponse.json({ 
-      error: 'Hiba történt. Kérlek próbáld újra később.',
+      error: copy.genericError,
       details: error.message 
     }, { status: 500 });
   }

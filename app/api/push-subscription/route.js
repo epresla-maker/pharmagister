@@ -7,12 +7,38 @@ function isLikelyApnsToken(token) {
   return typeof token === 'string' && /^[0-9a-fA-F]{64}$/.test(token);
 }
 
+function getSubscriptionStatusMessage(kind, market) {
+  if (kind === 'updated') {
+    return market === 'de' ? 'Abonnement aktualisiert' : 'Feliratkozás frissítve';
+  }
+  return market === 'de' ? 'Abonnement mentve' : 'Feliratkozás mentve';
+}
+
+function getPushSubscriptionApiCopy(market) {
+  if (market === 'de') {
+    return {
+      unauthorized: 'Keine Berechtigung',
+      userIdRequired: 'userId ist erforderlich',
+      userIdAndSubscriptionRequired: 'userId und subscription sind erforderlich',
+      forbidden: 'Keine Berechtigung fuer dieses Abonnement',
+    };
+  }
+
+  return {
+    unauthorized: 'Nincs jogosultság',
+    userIdRequired: 'A userId megadása kötelező',
+    userIdAndSubscriptionRequired: 'A userId és subscription megadása kötelező',
+    forbidden: 'Nincs jogosultság ehhez a feliratkozáshoz',
+  };
+}
+
 export async function GET(request) {
   try {
     const requestMarket = resolveMarketFromRequest(request);
+    const copy = getPushSubscriptionApiCopy(requestMarket);
     const authUser = await verifyAuth(request);
     if (!authUser) {
-      return Response.json({ error: 'Nincs jogosultság' }, { status: 401 });
+      return Response.json({ error: copy.unauthorized }, { status: 401 });
     }
 
     const admin = getFirebaseAdmin();
@@ -22,11 +48,11 @@ export async function GET(request) {
     const userId = searchParams.get('userId');
 
     if (!userId) {
-      return Response.json({ error: 'userId is required' }, { status: 400 });
+      return Response.json({ error: copy.userIdRequired }, { status: 400 });
     }
 
     if (userId !== authUser.uid && !isAdminEmail(authUser.email)) {
-      return Response.json({ error: 'Nincs jogosultság ehhez a feliratkozáshoz' }, { status: 403 });
+      return Response.json({ error: copy.forbidden }, { status: 403 });
     }
 
     const snapshot = await db.collection('pushSubscriptions')
@@ -54,9 +80,10 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     const requestMarket = resolveMarketFromRequest(request);
+    const copy = getPushSubscriptionApiCopy(requestMarket);
     const authUser = await verifyAuth(request);
     if (!authUser) {
-      return Response.json({ error: 'Nincs jogosultság' }, { status: 401 });
+      return Response.json({ error: copy.unauthorized }, { status: 401 });
     }
 
     const admin = getFirebaseAdmin();
@@ -65,11 +92,11 @@ export async function POST(request) {
     const { userId, subscription } = await request.json();
 
     if (!userId || !subscription) {
-      return Response.json({ error: 'userId and subscription are required' }, { status: 400 });
+      return Response.json({ error: copy.userIdAndSubscriptionRequired }, { status: 400 });
     }
 
     if (userId !== authUser.uid && !isAdminEmail(authUser.email)) {
-      return Response.json({ error: 'Nincs jogosultság ehhez a feliratkozáshoz' }, { status: 403 });
+      return Response.json({ error: copy.forbidden }, { status: 403 });
     }
 
     // Check if subscription already exists
@@ -107,7 +134,11 @@ export async function POST(request) {
         await batch.commit();
       }
 
-      return Response.json({ success: true, message: 'Subscription updated', id: docId });
+      return Response.json({
+        success: true,
+        message: getSubscriptionStatusMessage('updated', requestMarket),
+        id: docId
+      });
     }
 
     // Create new subscription
@@ -135,7 +166,11 @@ export async function POST(request) {
       await batch.commit();
     }
 
-    return Response.json({ success: true, message: 'Subscription saved', id: docRef.id });
+    return Response.json({
+      success: true,
+      message: getSubscriptionStatusMessage('saved', requestMarket),
+      id: docRef.id
+    });
 
   } catch (error) {
     console.error('Save subscription error:', error);
@@ -146,9 +181,10 @@ export async function POST(request) {
 export async function DELETE(request) {
   try {
     const requestMarket = resolveMarketFromRequest(request);
+    const copy = getPushSubscriptionApiCopy(requestMarket);
     const authUser = await verifyAuth(request);
     if (!authUser) {
-      return Response.json({ error: 'Nincs jogosultság' }, { status: 401 });
+      return Response.json({ error: copy.unauthorized }, { status: 401 });
     }
 
     const admin = getFirebaseAdmin();
@@ -157,11 +193,11 @@ export async function DELETE(request) {
     const { userId, endpoint } = await request.json();
 
     if (!userId) {
-      return Response.json({ error: 'userId is required' }, { status: 400 });
+      return Response.json({ error: copy.userIdRequired }, { status: 400 });
     }
 
     if (userId !== authUser.uid && !isAdminEmail(authUser.email)) {
-      return Response.json({ error: 'Nincs jogosultság ehhez a feliratkozáshoz' }, { status: 403 });
+      return Response.json({ error: copy.forbidden }, { status: 403 });
     }
 
     let query = db.collection('pushSubscriptions').where('userId', '==', userId);

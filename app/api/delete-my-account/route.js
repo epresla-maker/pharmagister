@@ -1,15 +1,36 @@
 import { NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
+import { resolveMarketFromRequest } from '@/lib/market';
+
+function getDeleteMyAccountCopy(market) {
+  if (market === 'de') {
+    return {
+      unauthorized: 'Keine Berechtigung',
+      invalidToken: 'Ungueltiger Token',
+      success: 'Konto und alle Daten erfolgreich geloescht',
+      deleteError: 'Fehler beim Loeschen',
+    };
+  }
+
+  return {
+    unauthorized: 'Nincs jogosultság',
+    invalidToken: 'Érvénytelen token',
+    success: 'Fiók és összes adat sikeresen törölve',
+    deleteError: 'Törlési hiba történt',
+  };
+}
 
 export async function POST(request) {
   try {
+    const requestMarket = resolveMarketFromRequest(request);
+    const copy = getDeleteMyAccountCopy(requestMarket);
     const admin = getFirebaseAdmin();
     const db = admin.firestore();
 
     // Verify Firebase ID token from Authorization header
     const authHeader = request.headers.get('Authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Nincs jogosultság' }, { status: 401 });
+      return NextResponse.json({ error: copy.unauthorized }, { status: 401 });
     }
 
     const idToken = authHeader.split('Bearer ')[1];
@@ -17,7 +38,7 @@ export async function POST(request) {
     try {
       decodedToken = await admin.auth().verifyIdToken(idToken);
     } catch (tokenError) {
-      return NextResponse.json({ error: 'Érvénytelen token' }, { status: 401 });
+      return NextResponse.json({ error: copy.invalidToken }, { status: 401 });
     }
 
     const userId = decodedToken.uid;
@@ -153,14 +174,15 @@ export async function POST(request) {
 
     return NextResponse.json({
       success: true,
-      message: 'Fiók és összes adat sikeresen törölve',
+      message: copy.success,
       details: deletionResults
     });
 
   } catch (error) {
     console.error('❌ Fiók törlési hiba:', error);
+    const copy = getDeleteMyAccountCopy(resolveMarketFromRequest(request));
     return NextResponse.json({
-      error: 'Törlési hiba történt',
+      error: copy.deleteError,
       details: error.message
     }, { status: 500 });
   }

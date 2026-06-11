@@ -1,21 +1,58 @@
 export const dynamic = "force-dynamic";
 import { Resend } from 'resend';
 import { NextResponse } from 'next/server';
+import { normalizeMarket, resolveMarketFromRequest } from '@/lib/market';
 
 export const runtime = 'nodejs';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+function getVerificationSmtpApiSuccess(market) {
+  return market === 'de' ? 'Bestaetigungs-E-Mail gesendet' : 'Megerősítő email elküldve';
+}
+
+function getVerificationSmtpEmailCopy(market) {
+  if (market === 'de') {
+    return {
+      subject: 'Bestaetige deine E-Mail-Adresse - Pharmagister',
+      tagline: 'Vertretungsplattform fuer Apotheken',
+      heading: 'Willkommen!',
+      intro: 'Danke fuer deine Registrierung bei Pharmagister!',
+      actionPrompt: 'Klicke auf den Button unten, um deine E-Mail-Adresse zu bestaetigen:',
+      button: '✉️ E-Mail-Adresse bestaetigen',
+      fallbackPrompt: 'Wenn der Button nicht funktioniert, kopiere diesen Link in deinen Browser:',
+      expiryNote: 'Dieser Link laeuft innerhalb von 24 Stunden ab.',
+      ignoreNote: 'Wenn du dich nicht registriert hast, kannst du diese E-Mail ignorieren.',
+      rightsReserved: 'Alle Rechte vorbehalten',
+    };
+  }
+
+  return {
+    subject: 'Erősítsd meg az email címedet - Pharmagister',
+    tagline: 'Gyógyszertári helyettesítés platform',
+    heading: 'Üdvözlünk!',
+    intro: 'Köszönjük, hogy regisztráltál a Pharmagister platformon!',
+    actionPrompt: 'Az email címed megerősítéséhez kattints az alábbi gombra:',
+    button: '✉️ Email cím megerősítése',
+    fallbackPrompt: 'Ha a gomb nem működik, másold be ezt a linket a böngésződbe:',
+    expiryNote: 'Ez a link 24 órán belül lejár.',
+    ignoreNote: 'Ha nem te regisztráltál, nyugodtan hagyd figyelmen kívül ezt az emailt.',
+    rightsReserved: 'Minden jog fenntartva',
+  };
+}
+
 export async function POST(request) {
   try {
-    const { email, displayName, verificationToken } = await request.json();
+    const { email, displayName, verificationToken, market } = await request.json();
+    const requestMarket = normalizeMarket(market || resolveMarketFromRequest(request));
+    const emailCopy = getVerificationSmtpEmailCopy(requestMarket);
     
-    const verificationLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://pharmagister.vercel.app'}/verify-email?token=${verificationToken}`;
+    const verificationLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://pharmagister.vercel.app'}/verify-email?token=${verificationToken}&market=${requestMarket}`;
 
     const mailOptions = {
       from: 'Pharmagister <noreply@pharmagister.hu>',
       to: email,
-      subject: 'Erősítsd meg az email címedet - Pharmagister',
+      subject: emailCopy.subject,
       html: `
         <!DOCTYPE html>
         <html>
@@ -76,33 +113,33 @@ export async function POST(request) {
             <div class="container">
               <div class="header">
                 <div class="logo">Pharmagister</div>
-                <p style="color: #666; margin: 0;">Gyógyszertári helyettesítés platform</p>
+                <p style="color: #666; margin: 0;">${emailCopy.tagline}</p>
               </div>
               
-              <h2 style="color: #333; margin-bottom: 20px;">Üdvözlünk!</h2>
+              <h2 style="color: #333; margin-bottom: 20px;">${emailCopy.heading}</h2>
               
-              <p>Köszönjük, hogy regisztráltál a Pharmagister platformon!</p>
+              <p>${emailCopy.intro}</p>
               
-              <p>Az email címed megerősítéséhez kattints az alábbi gombra:</p>
+              <p>${emailCopy.actionPrompt}</p>
               
               <div style="text-align: center;">
                 <a href="${verificationLink}" class="button" style="color: white;">
-                  ✉️ Email cím megerősítése
+                  ${emailCopy.button}
                 </a>
               </div>
               
               <p style="font-size: 14px; color: #666;">
-                Ha a gomb nem működik, másold be ezt a linket a böngésződbe:<br>
+                ${emailCopy.fallbackPrompt}<br>
                 <a href="${verificationLink}" class="link">${verificationLink}</a>
               </p>
               
               <p style="font-size: 14px; color: #666;">
-                Ez a link 24 órán belül lejár.
+                ${emailCopy.expiryNote}
               </p>
               
               <div class="footer">
-                <p>Ha nem te regisztráltál, nyugodtan hagyd figyelmen kívül ezt az emailt.</p>
-                <p>© ${new Date().getFullYear()} Pharmagister - Minden jog fenntartva</p>
+                <p>${emailCopy.ignoreNote}</p>
+                <p>© ${new Date().getFullYear()} Pharmagister - ${emailCopy.rightsReserved}</p>
               </div>
             </div>
           </body>
@@ -112,7 +149,7 @@ export async function POST(request) {
 
     await resend.emails.send(mailOptions);
 
-    return NextResponse.json({ success: true, message: 'Verification email sent' });
+    return NextResponse.json({ success: true, message: getVerificationSmtpApiSuccess(requestMarket) });
   } catch (error) {
     console.error('Email sending error:', error);
     return NextResponse.json(

@@ -6,7 +6,7 @@ import { useRouter, useParams, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
-import { getClientMarket } from '@/lib/marketI18n';
+import { getClientMarket, getLocalizedDemandPositionLabel } from '@/lib/marketI18n';
 import {
   doc,
   getDoc,
@@ -231,7 +231,11 @@ export default function ChatRoomPage() {
           if (chatData.relatedDemandPosition && chatData.relatedDemandDate) {
             setChatDemandInfo({
               position: chatData.relatedDemandPosition,
-              positionLabel: chatData.relatedDemandPositionLabel || (chatData.relatedDemandPosition === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'Gyógyszerész') : (market === 'de' ? 'Assistent/in' : 'Szakasszisztens')),
+              positionLabel: getLocalizedDemandPositionLabel(
+                chatData.relatedDemandPosition,
+                market,
+                chatData.relatedDemandPositionLabel
+              ),
               date: chatData.relatedDemandDate
             });
           }

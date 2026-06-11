@@ -128,6 +128,7 @@ export default function NotificationsSettingsPage() {
         // Alapértelmezetten a saját szerepkörünket kapcsoljuk be
         demandPositions: userData.notificationSettings.demandPositions || 
           (pharmaRole === 'pharmacist' ? ['pharmacist'] : 
+           pharmaRole === 'pka' ? ['pka'] :
            pharmaRole === 'assistant' ? ['assistant'] : [])
       }));
     } else if (pharmaRole && pharmaRole !== 'pharmacy') {
@@ -135,6 +136,7 @@ export default function NotificationsSettingsPage() {
       setSettings(prev => ({
         ...prev,
         demandPositions: pharmaRole === 'pharmacist' ? ['pharmacist'] : 
+                         pharmaRole === 'pka' ? ['pka'] :
                          pharmaRole === 'assistant' ? ['assistant'] : []
       }));
     }
@@ -294,7 +296,7 @@ export default function NotificationsSettingsPage() {
               await checkPushSubscription(); // Újra lekérdezés
               alert(market === 'de' ? '✅ Push-Benachrichtigungen erfolgreich aktiviert!' : '✅ Push értesítések sikeresen bekapcsolva!');
             } else {
-              throw new Error(result.error || 'Server error');
+              throw new Error(result.error || (market === 'de' ? 'Serverfehler' : 'Szerverhiba'));
             }
           } catch (error) {
             console.error('🔔 [NATIVE] Error saving token:', error);
@@ -368,7 +370,7 @@ export default function NotificationsSettingsPage() {
           await checkPushSubscription(); // Újra lekérdezés
           alert(market === 'de' ? '✅ Push-Benachrichtigungen erfolgreich aktiviert!' : '✅ Push értesítések sikeresen bekapcsolva!');
         } else {
-          throw new Error(result.error || 'Server error');
+          throw new Error(result.error || (market === 'de' ? 'Serverfehler' : 'Szerverhiba'));
         }
       } catch (error) {
         console.error('🔔 [WEB] Push subscription error:', error);
@@ -492,6 +494,7 @@ export default function NotificationsSettingsPage() {
 
   const handleAddZipCode = async () => {
     const zip = newZipCode.trim();
+    const zipRegex = market === 'de' ? /^\d{5}$/ : /^\d{4}$/;
     
     // Validáció
     if (!zip) {
@@ -499,8 +502,8 @@ export default function NotificationsSettingsPage() {
       return;
     }
     
-    if (!/^\d{4}$/.test(zip)) {
-      setZipCodeError(market === 'de' ? 'Die Postleitzahl muss 4-stellig sein' : 'Az irányítószám 4 számjegyű kell legyen');
+    if (!zipRegex.test(zip)) {
+      setZipCodeError(market === 'de' ? 'Die Postleitzahl muss 5-stellig sein' : 'Az irányítószám 4 számjegyű kell legyen');
       return;
     }
     
@@ -719,7 +722,7 @@ export default function NotificationsSettingsPage() {
           </div>
 
           {/* Igény értesítés szűrők - csak helyettesítőknek */}
-          {(pharmaRole === 'pharmacist' || pharmaRole === 'assistant') && settings.newDemand && (
+          {(pharmaRole === 'pharmacist' || pharmaRole === 'assistant' || pharmaRole === 'pka') && settings.newDemand && (
             <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-sm overflow-hidden`}>
               <div className={`px-4 py-2 ${darkMode ? 'bg-gray-700/50 border-gray-700' : 'bg-gray-50 border-gray-100'} border-b`}>
                 <h3 className={`text-xs font-semibold ${darkMode ? 'text-gray-400' : 'text-gray-500'} uppercase tracking-wider`}>
@@ -759,8 +762,22 @@ export default function NotificationsSettingsPage() {
                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
                     >
-                      {market === 'de' ? 'Assistent/in' : 'Szakasszisztens'}
+                      {market === 'de' ? 'PTA' : 'Szakasszisztens'}
                     </button>
+                    {market === 'de' && (
+                      <button
+                        onClick={() => handlePositionToggle('pka')}
+                        className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                          settings.demandPositions?.includes('pka')
+                            ? 'bg-purple-600 text-white'
+                            : darkMode 
+                              ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        PKA
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -782,11 +799,11 @@ export default function NotificationsSettingsPage() {
                       type="text"
                       value={newZipCode}
                       onChange={(e) => {
-                        setNewZipCode(e.target.value.replace(/\D/g, '').slice(0, 4));
+                        setNewZipCode(e.target.value.replace(/\D/g, '').slice(0, market === 'de' ? 5 : 4));
                         setZipCodeError('');
                       }}
-                      placeholder={market === 'de' ? 'z. B. 1013' : 'Pl. 1013'}
-                      maxLength={4}
+                      placeholder={market === 'de' ? 'z. B. 10115' : 'Pl. 1013'}
+                      maxLength={market === 'de' ? 5 : 4}
                       className={`flex-1 px-3 py-2 rounded-lg border text-sm ${
                         darkMode 
                           ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 

@@ -3,6 +3,51 @@ import { verifyAuth } from '@/lib/apiAuth';
 import webpush from 'web-push';
 import { resolveMarketFromRequest, isDocInMarket, normalizeMarket } from '@/lib/market';
 
+function getPositionLabelByMarket(position, market) {
+  if (market === 'de') return position === 'pharmacist' ? 'Apotheker/in' : position === 'pka' ? 'PKA' : 'PTA';
+  return position === 'pharmacist' ? 'gyógyszerész' : position === 'pka' ? 'PKA' : 'szakasszisztens';
+}
+
+function buildDemandNotificationCopy({ market, pharmacyName, position, date }) {
+  const locale = market === 'de' ? 'de-DE' : 'hu-HU';
+  const dateStr = date
+    ? new Date(date).toLocaleDateString(locale, { month: 'short', day: 'numeric' })
+    : '';
+  const positionLabel = getPositionLabelByMarket(position, market);
+
+  if (market === 'de') {
+    const title = 'Neue Vertretungsanfrage';
+    const body = `${pharmacyName || 'Eine Apotheke'} sucht ${positionLabel} fuer Vertretung${dateStr ? ` (${dateStr})` : ''}.`;
+    return { title, body };
+  }
+
+  const title = 'Új helyettesítési igény';
+  const body = `${pharmacyName || 'Egy gyógyszertár'} ${positionLabel} helyettest keres${dateStr ? ` (${dateStr})` : ''}.`;
+  return { title, body };
+}
+
+function getNotifySummaryMessage(market) {
+  return market === 'de' ? 'Keine passenden Nutzer zum Benachrichtigen' : 'Nincs értesíthető, megfelelő felhasználó';
+}
+
+function getNotifyNewDemandApiCopy(market) {
+  if (market === 'de') {
+    return {
+      unauthorized: 'Keine Berechtigung',
+      requiredFields: 'demandId und position sind erforderlich',
+      demandNotFound: 'Anfrage nicht gefunden',
+      forbidden: 'Keine Berechtigung fuer diese Anfrage',
+    };
+  }
+
+  return {
+    unauthorized: 'Nincs jogosultság',
+    requiredFields: 'A demandId és position megadása kötelező',
+    demandNotFound: 'Az igeny nem talalhato',
+    forbidden: 'Nincs jogosultsag ehhez az igenyhez',
+  };
+}
+
 function configureWebpush() {
   let VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   let VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
@@ -16,10 +61,11 @@ function configureWebpush() {
 export async function POST(request) {
   try {
     const requestMarket = resolveMarketFromRequest(request);
+    const copy = getNotifyNewDemandApiCopy(requestMarket);
     // Verify authenticated user
     const authUser = await verifyAuth(request);
     if (!authUser) {
-      return Response.json({ error: 'Nincs jogosultság' }, { status: 401 });
+      return Response.json({ error: copy.unauthorized }, { status: 401 });
     }
 
     const admin = getFirebaseAdmin();
@@ -30,10 +76,21 @@ export async function POST(request) {
     console.log('📢 New demand notification request:', { demandId, pharmacyZipCode, position, pharmacyName, date });
     
     if (!demandId || !position) {
-      return Response.json({ error: 'demandId and position are required' }, { status: 400 });
+      return Response.json({ error: copy.requiredFields }, { status: 400 });
     }
     
     const ADMIN_UID = 'AcBMMwkqMvWAjrodNPPBjFdjjhw2';
+    const demandDoc = await db.collection('pharmaDemands').doc(demandId).get();
+    if (!demandDoc.exists) {
+      return Response.json({ error: copy.demandNotFound }, { status: 404 });
+    }
+
+    const demandData = demandDoc.data() || {};
+    if (authUser.uid !== demandData.pharmacyId && authUser.uid !== ADMIN_UID) {
+      return Response.json({ error: copy.forbidden }, { status: 403 });
+    }
+
+    const targetMarket = normalizeMarket(demandData.market || requestMarket);
     
     // Keressük meg azokat a felhasználókat, akik:
     // 1. pharmacist vagy assistant szerepkörűek (nem pharmacy)
@@ -52,7 +109,7 @@ export async function POST(request) {
     
     usersSnapshot.forEach(doc => {
       const userData = doc.data();
-      if (!isDocInMarket(userData, requestMarket)) {
+      if (!isDocInMarket(userData, targetMarket)) {
         return;
       }
       const settings = userData.notificationSettings || {};
@@ -83,7 +140,8 @@ export async function POST(request) {
       
       usersToNotify.push({
         id: doc.id,
-        displayName: userData.displayName
+        displayName: userData.displayName,
+        market: normalizeMarket(userData.market)
       });
     });
     
@@ -92,36 +150,40 @@ export async function POST(request) {
       // Admin nincs benne a listában (mert pl. pharmacy role-ja van) - hozzáadjuk
       const adminDoc = adminAlreadyIncluded ? null : await db.collection('users').doc(ADMIN_UID).get();
       const adminName = adminAlreadyIncluded ? 'Admin' : (adminDoc?.exists ? adminDoc.data()?.displayName : 'Admin');
-      usersToNotify.push({ id: ADMIN_UID, displayName: adminName || 'Admin' });
+      usersToNotify.push({
+        id: ADMIN_UID,
+        displayName: adminName || 'Admin',
+        market: normalizeMarket(adminDoc?.exists ? adminDoc.data()?.market : targetMarket)
+      });
       console.log('📌 Admin added to notification list (bypass filters)');
     }
     
     console.log(`📬 Users to notify: ${usersToNotify.length}`);
     
     if (usersToNotify.length === 0) {
-      return Response.json({ success: true, notified: 0, message: 'No matching users to notify' });
+      return Response.json({ success: true, notified: 0, message: getNotifySummaryMessage(targetMarket) });
     }
-    
-    // Formázzuk a dátumot
-    const dateStr = date ? new Date(date).toLocaleDateString('hu-HU', { 
-      month: 'short', 
-      day: 'numeric' 
-    }) : '';
-    
-    const positionLabel = position === 'pharmacist' ? 'gyógyszerész' : 'szakasszisztens';
     
     // Küldünk értesítést minden érintett felhasználónak
     const results = [];
     
     for (const userInfo of usersToNotify) {
       try {
+        const userMarket = normalizeMarket(userInfo.market || targetMarket);
+        const copy = buildDemandNotificationCopy({
+          market: userMarket,
+          pharmacyName,
+          position,
+          date,
+        });
+
         // App értesítés létrehozása
         await db.collection('notifications').add({
           userId: userInfo.id,
-          market: requestMarket,
+          market: userMarket,
           type: 'new_demand',
-          title: 'Új helyettesítési igény!',
-          message: `${pharmacyName || 'Egy gyógyszertár'} ${positionLabel} helyettest keres ${dateStr ? `(${dateStr})` : ''}.`,
+          title: copy.title,
+          message: copy.body,
           read: false,
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
           data: {
@@ -137,12 +199,12 @@ export async function POST(request) {
             .where('userId', '==', userInfo.id)
             .get();
 
-          const marketSubs = subsSnapshot.docs.filter((doc) => isDocInMarket(doc.data(), requestMarket));
+          const marketSubs = subsSnapshot.docs.filter((doc) => isDocInMarket(doc.data(), userMarket));
           
           if (marketSubs.length > 0) {
             const webPayload = JSON.stringify({
-              title: 'Új helyettesítési igény',
-              body: `${pharmacyName || 'Egy gyógyszertár'} ${positionLabel} helyettest keres${dateStr ? ` (${dateStr})` : ''}.`,
+              title: copy.title,
+              body: copy.body,
               icon: '/icons/icon-192x192.png',
               badge: '/icons/icon-72x72.png',
               tag: `new-demand-${demandId}`,
@@ -159,8 +221,8 @@ export async function POST(request) {
                   await admin.messaging().send({
                     token: subscription.token,
                     notification: {
-                      title: 'Új helyettesítési igény',
-                      body: `${pharmacyName || 'Egy gyógyszertár'} ${positionLabel} helyettest keres${dateStr ? ` (${dateStr})` : ''}.`,
+                      title: copy.title,
+                      body: copy.body,
                     },
                     data: {
                       url: `/pharmagister/demand/${demandId}`,
@@ -170,8 +232,8 @@ export async function POST(request) {
                       payload: {
                         aps: {
                           alert: {
-                            title: 'Új helyettesítési igény',
-                            body: `${pharmacyName || 'Egy gyógyszertár'} ${positionLabel} helyettest keres${dateStr ? ` (${dateStr})` : ''}.`,
+                            title: copy.title,
+                            body: copy.body,
                           },
                           badge: 1,
                           sound: 'default'
@@ -188,7 +250,7 @@ export async function POST(request) {
                     pushErr.code === 'messaging/registration-token-not-registered' ||
                     pushErr.code === 'messaging/invalid-registration-token') {
                   const subMarket = normalizeMarket(subDoc.data()?.market);
-                  if (subMarket === requestMarket) {
+                  if (subMarket === userMarket) {
                     await db.collection('pushSubscriptions').doc(subDoc.id).delete();
                   }
                 }

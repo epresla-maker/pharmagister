@@ -265,7 +265,8 @@ export default function ApprovalsPage() {
                     <p className="text-lg">
                       {approval.role === 'pharmacy' && (market === 'de' ? 'Apotheke' : 'Gyógyszertár')}
                       {approval.role === 'pharmacist' && (market === 'de' ? 'Apotheker/in' : 'Gyógyszerész')}
-                      {approval.role === 'assistant' && (market === 'de' ? 'Assistent/in' : 'Szakasszisztens')}
+                      {approval.role === 'assistant' && (market === 'de' ? 'PTA' : 'Szakasszisztens')}
+                      {approval.role === 'pka' && 'PKA'}
                     </p>
                   </div>
                   <div>
@@ -291,7 +292,7 @@ export default function ApprovalsPage() {
                   </div>
                 )}
 
-                {(approval.role === 'pharmacist' || approval.role === 'assistant') && (
+                {(approval.role === 'pharmacist' || approval.role === 'assistant' || approval.role === 'pka') && (
                   <div className="bg-gray-50 p-4 rounded-lg mb-4">
                     <h4 className="font-semibold mb-2">Helyettesítő adatok:</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">

@@ -79,7 +79,7 @@ export default function ProfileEditPage() {
       
       if (!response.ok) {
         console.error('Cloudinary error:', data);
-        throw new Error(data.error?.message || 'Upload failed');
+        throw new Error(data.error?.message || (market === 'de' ? 'Upload fehlgeschlagen' : 'Feltöltés sikertelen'));
       }
 
       const imageUrl = data.secure_url;
@@ -238,7 +238,7 @@ export default function ProfileEditPage() {
                     ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' 
                     : 'bg-white border-[#E5E7EB] text-[#111827]'
                 }`}
-                placeholder="+36 XX XXX XXXX"
+                placeholder={market === 'de' ? '+49 XXX XXXXXXX' : '+36 XX XXX XXXX'}
               />
             </div>
 

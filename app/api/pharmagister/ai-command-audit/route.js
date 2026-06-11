@@ -1,14 +1,33 @@
 import { NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/apiAuth';
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
+import { resolveMarketFromRequest } from '@/lib/market';
 
 export const runtime = 'nodejs';
 
+function getAuditApiCopy(market) {
+  if (market === 'de') {
+    return {
+      unauthorized: 'Keine Berechtigung',
+      missingEventType: 'eventType fehlt',
+      saveFailed: 'Audit-Speicherung fehlgeschlagen',
+    };
+  }
+
+  return {
+    unauthorized: 'Nincs jogosultsag',
+    missingEventType: 'Hianyzo eventType',
+    saveFailed: 'Audit mentes sikertelen',
+  };
+}
+
 export async function POST(request) {
   try {
+    const requestMarket = resolveMarketFromRequest(request);
+    const copy = getAuditApiCopy(requestMarket);
     const authUser = await verifyAuth(request);
     if (!authUser) {
-      return NextResponse.json({ error: 'Nincs jogosultsag' }, { status: 401 });
+      return NextResponse.json({ error: copy.unauthorized }, { status: 401 });
     }
 
     const body = await request.json();
@@ -17,7 +36,7 @@ export async function POST(request) {
     const context = body?.context && typeof body.context === 'object' ? body.context : {};
 
     if (!eventType) {
-      return NextResponse.json({ error: 'Hianyzo eventType' }, { status: 400 });
+      return NextResponse.json({ error: copy.missingEventType }, { status: 400 });
     }
 
     const admin = getFirebaseAdmin();
@@ -35,6 +54,7 @@ export async function POST(request) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('[ai-command-audit] failed:', error);
-    return NextResponse.json({ success: false, error: 'Audit mentes sikertelen' }, { status: 500 });
+    const copy = getAuditApiCopy(resolveMarketFromRequest(request));
+    return NextResponse.json({ success: false, error: copy.saveFailed }, { status: 500 });
   }
 }

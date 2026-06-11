@@ -2,9 +2,38 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 import { randomBytes } from 'crypto';
+import { resolveMarketFromRequest } from '@/lib/market';
+
+function getAccountActionCopy(market) {
+  if (market === 'de') {
+    return {
+      missingToken: 'Token fehlt',
+      invalidToken: 'Ungueltiger Token',
+      alreadyUsed: 'Dieser Link wurde bereits verwendet',
+      expired: 'Dieser Link ist abgelaufen',
+      keepSuccess: 'Dein Konto wurde behalten. Danke!',
+      deleteSuccess: 'Dein Konto und alle Daten wurden geloescht. Auf Wiedersehen!',
+      unknownAction: 'Unbekannte Aktion',
+      serverError: 'Serverfehler',
+    };
+  }
+
+  return {
+    missingToken: 'Token hiányzik',
+    invalidToken: 'Érvénytelen token',
+    alreadyUsed: 'Ez a link már fel lett használva',
+    expired: 'Ez a link lejárt',
+    keepSuccess: 'A fiókod meg lett tartva. Köszönjük!',
+    deleteSuccess: 'A fiókod és minden adatod törölve lett. Viszlát!',
+    unknownAction: 'Ismeretlen művelet',
+    serverError: 'Szerver hiba',
+  };
+}
 
 export async function POST(request) {
   try {
+    const requestMarket = resolveMarketFromRequest(request);
+    const copy = getAccountActionCopy(requestMarket);
     const admin = getFirebaseAdmin();
     const db = admin.firestore();
     const auth = admin.auth();
@@ -12,7 +41,7 @@ export async function POST(request) {
 
     if (!token) {
       return NextResponse.json(
-        { error: 'Token hiányzik' },
+        { error: copy.missingToken },
         { status: 400 }
       );
     }
@@ -22,7 +51,7 @@ export async function POST(request) {
 
     if (!tokenDoc.exists) {
       return NextResponse.json(
-        { error: 'Érvénytelen token', code: 'INVALID_TOKEN' },
+        { error: copy.invalidToken, code: 'INVALID_TOKEN' },
         { status: 404 }
       );
     }
@@ -32,14 +61,14 @@ export async function POST(request) {
     // Ellenőrzések
     if (tokenData.used) {
       return NextResponse.json(
-        { error: 'Ez a link már fel lett használva', code: 'ALREADY_USED' },
+        { error: copy.alreadyUsed, code: 'ALREADY_USED' },
         { status: 400 }
       );
     }
 
     if (new Date() > tokenData.expiresAt.toDate()) {
       return NextResponse.json(
-        { error: 'Ez a link lejárt', code: 'EXPIRED' },
+        { error: copy.expired, code: 'EXPIRED' },
         { status: 400 }
       );
     }
@@ -78,7 +107,7 @@ export async function POST(request) {
       return NextResponse.json({
         success: true,
         action: 'keep',
-        message: 'A fiókod meg lett tartva. Köszönjük!',
+        message: copy.keepSuccess,
         passwordSetUrl: `${appUrl}/set-password?token=${passwordResetToken}`
       });
 
@@ -113,12 +142,12 @@ export async function POST(request) {
       return NextResponse.json({
         success: true,
         action: 'delete',
-        message: 'A fiókod és minden adatod törölve lett. Viszlát!'
+        message: copy.deleteSuccess
       });
 
     } else {
       return NextResponse.json(
-        { error: 'Ismeretlen művelet' },
+        { error: copy.unknownAction },
         { status: 400 }
       );
     }
@@ -126,7 +155,7 @@ export async function POST(request) {
   } catch (error) {
     console.error('Account action hiba:', error);
     return NextResponse.json(
-      { error: 'Szerver hiba', details: error.message },
+      { error: getAccountActionCopy(resolveMarketFromRequest(request)).serverError, details: error.message },
       { status: 500 }
     );
   }
@@ -135,6 +164,8 @@ export async function POST(request) {
 // GET endpoint - token információ lekérése
 export async function GET(request) {
   try {
+    const requestMarket = resolveMarketFromRequest(request);
+    const copy = getAccountActionCopy(requestMarket);
     const admin = getFirebaseAdmin();
     const db = admin.firestore();
     const { searchParams } = new URL(request.url);
@@ -142,7 +173,7 @@ export async function GET(request) {
 
     if (!token) {
       return NextResponse.json(
-        { error: 'Token hiányzik' },
+        { error: copy.missingToken },
         { status: 400 }
       );
     }
@@ -151,7 +182,7 @@ export async function GET(request) {
 
     if (!tokenDoc.exists) {
       return NextResponse.json(
-        { error: 'Érvénytelen token', code: 'INVALID_TOKEN' },
+        { error: copy.invalidToken, code: 'INVALID_TOKEN' },
         { status: 404 }
       );
     }
@@ -160,14 +191,14 @@ export async function GET(request) {
 
     if (tokenData.used) {
       return NextResponse.json(
-        { error: 'Ez a link már fel lett használva', code: 'ALREADY_USED' },
+        { error: copy.alreadyUsed, code: 'ALREADY_USED' },
         { status: 400 }
       );
     }
 
     if (new Date() > tokenData.expiresAt.toDate()) {
       return NextResponse.json(
-        { error: 'Ez a link lejárt', code: 'EXPIRED' },
+        { error: copy.expired, code: 'EXPIRED' },
         { status: 400 }
       );
     }
@@ -182,7 +213,7 @@ export async function GET(request) {
   } catch (error) {
     console.error('Token lekérési hiba:', error);
     return NextResponse.json(
-      { error: 'Szerver hiba', details: error.message },
+      { error: getAccountActionCopy(resolveMarketFromRequest(request)).serverError, details: error.message },
       { status: 500 }
     );
   }

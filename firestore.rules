@@ -16,7 +16,7 @@ service cloud.firestore {
     }
 
     function hasPharmagisterRole() {
-      return isAuthenticated() && currentUserRole() in ['pharmacy', 'pharmacist', 'assistant', 'employee'];
+      return isAuthenticated() && currentUserRole() in ['pharmacy', 'pharmacist', 'assistant', 'pka', 'employee'];
     }
 
     function canAccessScheduleManager() {

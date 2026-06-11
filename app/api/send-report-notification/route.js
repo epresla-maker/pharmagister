@@ -9,16 +9,77 @@ import { resolveMarketFromRequest, isDocInMarket } from '@/lib/market';
 
 const ADMIN_UID = 'AcBMMwkqMvWAjrodNPPBjFdjjhw2';
 
+function getReportNotificationTitle(market) {
+  return market === 'de' ? 'Neue Meldung eingegangen' : 'Új bejelentés érkezett';
+}
+
+function getReportApiCopy(market) {
+  if (market === 'de') {
+    return {
+      unauthorized: 'Keine Berechtigung',
+      sendError: 'Benachrichtigung konnte nicht gesendet werden',
+    };
+  }
+
+  return {
+    unauthorized: 'Nincs jogosultság',
+    sendError: 'Nem sikerült elküldeni az értesítést',
+  };
+}
+
+function getReportEmailCopy(market) {
+  if (market === 'de') {
+    return {
+      headerTitle: '⚠️ Neue Meldung eingegangen',
+      sectionTitle: 'Pharmagister - Inhaltsmeldung',
+      typeLabel: 'Typ',
+      reportedLabel: 'Gemeldet',
+      reasonLabel: 'Grund',
+      detailsLabel: 'Details',
+      timeLabel: 'Zeitpunkt',
+      actionLabel: 'Aufgabe',
+      actionText: 'Bitte pruefe den gemeldeten Inhalt in der Firebase Console und leite die erforderlichen Massnahmen ein.',
+      footer: 'Pharmagister Admin-Benachrichtigung',
+      subjectPrefix: '⚠️ Neue Meldung',
+      reportTypeUser: 'Nutzer/in',
+      reportTypeMessage: 'Nachricht',
+      reportTypeDemand: 'Anfrage',
+      locale: 'de-DE',
+    };
+  }
+
+  return {
+    headerTitle: '⚠️ Új jelentés érkezett',
+    sectionTitle: 'Pharmagister - Tartalom jelentés',
+    typeLabel: 'Típus',
+    reportedLabel: 'Jelentett',
+    reasonLabel: 'Ok',
+    detailsLabel: 'Részletek',
+    timeLabel: 'Időpont',
+    actionLabel: 'Teendő',
+    actionText: 'Kérjük, ellenőrizd a jelentett tartalmat a Firebase Console-ban és hozd meg a szükséges intézkedéseket.',
+    footer: 'Pharmagister Admin Értesítés',
+    subjectPrefix: '⚠️ Új jelentés',
+    reportTypeUser: 'Felhasználó',
+    reportTypeMessage: 'Üzenet',
+    reportTypeDemand: 'Igény',
+    locale: 'hu-HU',
+  };
+}
+
 export async function POST(request) {
   try {
     const requestMarket = resolveMarketFromRequest(request);
+    const apiCopy = getReportApiCopy(requestMarket);
     // Verify authenticated user
     const authUser = await verifyAuth(request);
     if (!authUser) {
-      return NextResponse.json({ error: 'Nincs jogosultság' }, { status: 401 });
+      return NextResponse.json({ error: apiCopy.unauthorized }, { status: 401 });
     }
 
     const { reportType, reportedUserName, reason, details } = await request.json();
+    const reportTitle = getReportNotificationTitle(requestMarket);
+    const emailCopy = getReportEmailCopy(requestMarket);
 
     // === 1. In-app notification Firestore-ba ===
     try {
@@ -29,7 +90,7 @@ export async function POST(request) {
         userId: ADMIN_UID,
         market: requestMarket,
         type: 'content_report',
-        title: 'Új bejelentés érkezett',
+        title: reportTitle,
         message: notifMessage,
         read: false,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -64,7 +125,7 @@ export async function POST(request) {
             await admin.messaging().send({
               token: fcmToken,
               notification: {
-                title: 'Új bejelentés érkezett',
+                title: reportTitle,
                 body: notifMessage
               },
               data: {
@@ -74,7 +135,7 @@ export async function POST(request) {
               apns: {
                 payload: {
                   aps: {
-                    alert: { title: 'Új bejelentés érkezett', body: notifMessage },
+                    alert: { title: reportTitle, body: notifMessage },
                     badge: 1,
                     sound: 'default'
                   }
@@ -110,7 +171,7 @@ export async function POST(request) {
             );
 
             const payload = JSON.stringify({
-              title: 'Új bejelentés érkezett',
+              title: reportTitle,
               body: notifMessage,
               icon: '/icons/icon-192x192.png',
               badge: '/icons/icon-72x72.png',
@@ -157,42 +218,42 @@ export async function POST(request) {
       <body>
         <div class="container">
           <div class="header">
-            <h1 style="margin: 0;">⚠️ Új jelentés érkezett</h1>
+            <h1 style="margin: 0;">${emailCopy.headerTitle}</h1>
           </div>
           
           <div class="content">
-            <h2>Pharmagister - Tartalom jelentés</h2>
+            <h2>${emailCopy.sectionTitle}</h2>
             
             <div class="info-row">
-              <span class="info-label">Típus:</span> ${reportType === 'user' ? 'Felhasználó' : reportType === 'message' ? 'Üzenet' : 'Igény'}
+              <span class="info-label">${emailCopy.typeLabel}:</span> ${reportType === 'user' ? emailCopy.reportTypeUser : reportType === 'message' ? emailCopy.reportTypeMessage : emailCopy.reportTypeDemand}
             </div>
             
             <div class="info-row">
-              <span class="info-label">Jelentett:</span> ${escapeHtml(reportedUserName)}
+              <span class="info-label">${emailCopy.reportedLabel}:</span> ${escapeHtml(reportedUserName)}
             </div>
             
             <div class="info-row">
-              <span class="info-label">Ok:</span> ${escapeHtml(reason)}
+              <span class="info-label">${emailCopy.reasonLabel}:</span> ${escapeHtml(reason)}
             </div>
             
             ${details ? `
             <div class="info-row">
-              <span class="info-label">Részletek:</span><br/>
+              <span class="info-label">${emailCopy.detailsLabel}:</span><br/>
               ${escapeHtml(details)}
             </div>
             ` : ''}
             
             <div class="info-row">
-              <span class="info-label">Időpont:</span> ${new Date().toLocaleString('hu-HU')}
+              <span class="info-label">${emailCopy.timeLabel}:</span> ${new Date().toLocaleString(emailCopy.locale)}
             </div>
             
             <p style="margin-top: 25px;">
-              <strong>Teendő:</strong> Kérjük, ellenőrizd a jelentett tartalmat a Firebase Console-ban és hozd meg a szükséges intézkedéseket.
+              <strong>${emailCopy.actionLabel}:</strong> ${emailCopy.actionText}
             </p>
           </div>
           
           <div class="footer">
-            Pharmagister Admin Értesítés
+            ${emailCopy.footer}
           </div>
         </div>
       </body>
@@ -202,15 +263,16 @@ export async function POST(request) {
     await resend.emails.send({
       from: 'Pharmagister <noreply@pharmagister.hu>',
       to: process.env.ADMIN_EMAIL || 'epresla@icloud.com',
-      subject: `⚠️ Új jelentés: ${reportedUserName}`,
+      subject: `${emailCopy.subjectPrefix}: ${reportedUserName}`,
       html: emailHTML,
     });
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Report notification error:', error);
+    const apiCopy = getReportApiCopy(resolveMarketFromRequest(request));
     return NextResponse.json(
-      { error: 'Failed to send notification' },
+      { error: apiCopy.sendError },
       { status: 500 }
     );
   }

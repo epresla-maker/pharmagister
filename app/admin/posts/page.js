@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, deleteDoc, doc, setDoc, getDocs, updateDoc } from 'firebase/firestore';
 import { Trash2, Send, EyeOff, Eye, Palette, Type, Image, ChevronDown, ChevronUp, X } from 'lucide-react';
-import { getClientMarket } from '@/lib/marketI18n';
+import { getClientMarket, getLocalizedDemandPositionLabel } from '@/lib/marketI18n';
+import { isDocInMarket } from '@/lib/market';
 
 // Előre definiált színsémák
 const COLOR_PRESETS = [
@@ -87,7 +88,7 @@ export default function AdminPostsPage() {
       const postsData = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
-      }));
+      })).filter((post) => isDocInMarket(post, market));
       setPosts(postsData);
     });
 
@@ -128,6 +129,7 @@ export default function AdminPostsPage() {
     try {
       const postData = {
         userId: user.uid,
+        market,
         text: postText,
         postType: 'adminPost',
         createdAt: serverTimestamp(),
@@ -613,7 +615,7 @@ export default function AdminPostsPage() {
                             <strong>Gyógyszertár:</strong> {post.pharmacyName} - {post.pharmacyCity}
                           </p>
                           <p className="text-sm text-gray-700">
-                            <strong>Pozíció:</strong> {post.positionLabel}
+                            <strong>Pozíció:</strong> {getLocalizedDemandPositionLabel(post.position, market, post.positionLabel)}
                           </p>
                           <p className="text-sm text-gray-700">
                             <strong>Dátum:</strong> {new Date(post.date).toLocaleDateString('hu-HU')}

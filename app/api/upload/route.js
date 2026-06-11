@@ -1,12 +1,39 @@
 import { NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/apiAuth';
+import { resolveMarketFromRequest } from '@/lib/market';
+
+function getUploadApiCopy(market) {
+  if (market === 'de') {
+    return {
+      unauthorized: 'Keine Berechtigung',
+      missingFile: 'Keine Datei',
+      imageOnly: 'Nur Bilddateien sind erlaubt',
+      fileTooLarge: 'Maximal 5 MB Dateigroesse erlaubt',
+      serverConfigError: 'Server-Konfigurationsfehler',
+      uploadFailed: 'Upload fehlgeschlagen',
+      uploadError: 'Upload-Fehler',
+    };
+  }
+
+  return {
+    unauthorized: 'Nincs jogosultság',
+    missingFile: 'Nincs fájl',
+    imageOnly: 'Csak képfájlok engedélyezettek',
+    fileTooLarge: 'Maximum 5MB méretű fájl engedélyezett',
+    serverConfigError: 'Szerver konfigurációs hiba',
+    uploadFailed: 'Feltöltés sikertelen',
+    uploadError: 'Feltöltési hiba',
+  };
+}
 
 export async function POST(request) {
   try {
+    const requestMarket = resolveMarketFromRequest(request);
+    const copy = getUploadApiCopy(requestMarket);
     // Verify authenticated user
     const authUser = await verifyAuth(request);
     if (!authUser) {
-      return NextResponse.json({ error: 'Nincs jogosultság' }, { status: 401 });
+      return NextResponse.json({ error: copy.unauthorized }, { status: 401 });
     }
 
     const formData = await request.formData();
@@ -14,24 +41,24 @@ export async function POST(request) {
     const userId = formData.get('userId') || authUser.uid;
 
     if (!file) {
-      return NextResponse.json({ error: 'Nincs fájl' }, { status: 400 });
+      return NextResponse.json({ error: copy.missingFile }, { status: 400 });
     }
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      return NextResponse.json({ error: 'Csak képfájlok engedélyezettek' }, { status: 400 });
+      return NextResponse.json({ error: copy.imageOnly }, { status: 400 });
     }
 
     // Max 5MB
     if (file.size > 5 * 1024 * 1024) {
-      return NextResponse.json({ error: 'Maximum 5MB méretű fájl engedélyezett' }, { status: 400 });
+      return NextResponse.json({ error: copy.fileTooLarge }, { status: 400 });
     }
 
     const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
 
     if (!cloudName) {
       console.error('Cloudinary configuration missing');
-      return NextResponse.json({ error: 'Szerver konfigurációs hiba' }, { status: 500 });
+      return NextResponse.json({ error: copy.serverConfigError }, { status: 500 });
     }
 
     // Upload to Cloudinary with unsigned upload preset
@@ -57,7 +84,7 @@ export async function POST(request) {
     if (!response.ok) {
       console.error('Cloudinary upload error:', result);
       return NextResponse.json({ 
-        error: result.error?.message || 'Feltöltés sikertelen' 
+        error: result.error?.message || copy.uploadFailed 
       }, { status: 500 });
     }
 
@@ -68,6 +95,7 @@ export async function POST(request) {
 
   } catch (error) {
     console.error('Upload error:', error);
-    return NextResponse.json({ error: 'Feltöltési hiba' }, { status: 500 });
+    const copy = getUploadApiCopy(resolveMarketFromRequest(request));
+    return NextResponse.json({ error: copy.uploadError }, { status: 500 });
   }
 }

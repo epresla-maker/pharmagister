@@ -1,15 +1,21 @@
 import { NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 import { verifyAdmin } from '@/lib/apiAuth';
+import { resolveMarketFromRequest } from '@/lib/market';
+
+function getAdminSentEmailsCopy(market) {
+  return market === 'de' ? 'Keine Admin-Berechtigung' : 'Nincs admin jogosultság';
+}
 
 export const runtime = 'nodejs';
 
 export async function GET(request) {
   try {
+    const requestMarket = resolveMarketFromRequest(request);
     // Verify admin access
     const adminUser = await verifyAdmin(request);
     if (!adminUser) {
-      return NextResponse.json({ error: 'Nincs admin jogosultság' }, { status: 403 });
+      return NextResponse.json({ error: getAdminSentEmailsCopy(requestMarket) }, { status: 403 });
     }
 
     const admin = getFirebaseAdmin();

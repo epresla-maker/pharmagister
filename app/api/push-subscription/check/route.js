@@ -3,12 +3,29 @@ import { verifyAuth } from '@/lib/apiAuth';
 import { isAdminEmail } from '@/lib/scheduleAccess';
 import { resolveMarketFromRequest, isDocInMarket } from '@/lib/market';
 
+function getPushSubscriptionCheckCopy(market) {
+  if (market === 'de') {
+    return {
+      unauthorized: 'Keine Berechtigung',
+      requiredFields: 'userId und endpoint sind erforderlich',
+      forbidden: 'Keine Berechtigung fuer dieses Abonnement',
+    };
+  }
+
+  return {
+    unauthorized: 'Nincs jogosultság',
+    requiredFields: 'A userId és endpoint megadása kötelező',
+    forbidden: 'Nincs jogosultság ehhez a feliratkozáshoz',
+  };
+}
+
 export async function POST(request) {
   try {
     const requestMarket = resolveMarketFromRequest(request);
+    const copy = getPushSubscriptionCheckCopy(requestMarket);
     const authUser = await verifyAuth(request);
     if (!authUser) {
-      return Response.json({ error: 'Nincs jogosultság' }, { status: 401 });
+      return Response.json({ error: copy.unauthorized }, { status: 401 });
     }
 
     const admin = getFirebaseAdmin();
@@ -17,11 +34,11 @@ export async function POST(request) {
     const { userId, endpoint } = await request.json();
 
     if (!userId || !endpoint) {
-      return Response.json({ error: 'userId and endpoint are required' }, { status: 400 });
+      return Response.json({ error: copy.requiredFields }, { status: 400 });
     }
 
     if (userId !== authUser.uid && !isAdminEmail(authUser.email)) {
-      return Response.json({ error: 'Nincs jogosultság ehhez a feliratkozáshoz' }, { status: 403 });
+      return Response.json({ error: copy.forbidden }, { status: 403 });
     }
 
     // Check if subscription exists for this user with this endpoint

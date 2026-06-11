@@ -1,8 +1,8 @@
 import ScheduleManagerCampaignClient from './ScheduleManagerCampaignClient';
 
 export const metadata = {
-  title: 'Dienstplan-Info | Pharmagister',
-  description: 'Informationen zur kostenlosen Pharmagister-Dienstplanfunktion.',
+  title: 'Beosztáskezelő tájékoztató | Pharmagister',
+  description: 'Tájékoztató a díjmentes Pharmagister beosztáskezelő funkcióról.',
 };
 
 export default function ScheduleManagerCampaignPage() {

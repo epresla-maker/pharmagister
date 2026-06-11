@@ -2,34 +2,82 @@ import { Resend } from 'resend';
 import { NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 import { verifyAdmin } from '@/lib/apiAuth';
+import { resolveMarketFromRequest } from '@/lib/market';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+function getBulkTokenEmailApiCopy(market) {
+  if (market === 'de') {
+    return {
+      noAdminPermission: 'Keine Admin-Berechtigung',
+      missingTokenData: 'Keine Token-Daten zum Senden',
+      sendErrorPrefix: 'Fehler beim Massen-E-Mail-Versand: ',
+      subjectSingle: 'Kontoloeschung - Entscheidung erforderlich',
+      greeting: 'Hallo',
+      intro: 'Wir haben bemerkt, dass du dich bei Pharmagister registriert hast, dein Konto aber noch nicht aktiviert und noch nicht genutzt wurde.',
+      selectPrompt: 'Bitte waehle eine der folgenden Optionen:',
+      keepTitle: '✅ KONTO BEHALTEN',
+      keepText: 'Wenn du dein Konto behalten moechtest, nutze diesen Link:',
+      deleteTitle: '❌ KONTO LOESCHEN',
+      deleteText: 'Wenn du dein Konto samt Daten loeschen moechtest, nutze diesen Link:',
+      autoDeleteInfo: 'Wenn du innerhalb von 30 Tagen keine Auswahl triffst, wird dein Konto automatisch geloescht.',
+      linkValidityInfo: 'Die Links sind 30 Tage gueltig und koennen nur einmal verwendet werden.',
+      signoff: 'Viele Gruesse,\nPharmagister Team',
+      footerLine1: 'Diese Nachricht wurde vom Pharmagister-System gesendet.',
+      footerLine2: '© 2026 Pharmagister - Alle Rechte vorbehalten',
+      logSubject: 'Kontoloeschung - Entscheidung erforderlich (Massenversand)',
+      logBodyPrefix: 'Massenversand von Token-E-Mails an',
+      logBodySuffix: 'Benutzer/innen (Batch)',
+    };
+  }
+
+  return {
+    noAdminPermission: 'Nincs admin jogosultság',
+    missingTokenData: 'Nincs küldendő token adat',
+    sendErrorPrefix: 'Hiba történt a tömeges email küldés során: ',
+    subjectSingle: 'Fiók törlése - döntés szükséges',
+    greeting: 'Kedves',
+    intro: 'Észrevettük, hogy regisztráltál a Pharmagister oldalunkon, de még nem aktiváltad a fiókodat és nem is léptél be.',
+    selectPrompt: 'Kérjük, válaszd ki az alábbi opciók egyikét:',
+    keepTitle: '✅ FIÓK MEGTARTÁSA',
+    keepText: 'Ha szeretnéd megtartani a fiókodat, kattints erre a linkre:',
+    deleteTitle: '❌ FIÓK TÖRLÉSE',
+    deleteText: 'Ha törölni szeretnéd a fiókodat és minden adatodat, kattints erre a linkre:',
+    autoDeleteInfo: 'Ha 30 napon belül nem választasz, a fiókod automatikusan törlésre kerül.',
+    linkValidityInfo: 'A linkek 30 napig érvényesek és csak egyszer használhatók fel.',
+    signoff: 'Üdvözlettel,\nPharmagister csapat',
+    footerLine1: 'Ez az üzenet a Pharmagister rendszerből érkezett.',
+    footerLine2: '© 2026 Pharmagister - Minden jog fenntartva',
+    logSubject: 'Fiók törlése - döntés szükséges (tömeges)',
+    logBodyPrefix: 'Tömeges token email küldés',
+    logBodySuffix: 'felhasználónak (batch)',
+  };
+}
 
 export const runtime = 'nodejs';
 
 // Email sablon generálása egy adott felhasználónak
-function generateEmailBody(name, keepLink, deleteLink) {
-  const subject = 'Fiók törlése - döntés szükséges';
-  const body = `Kedves ${name}!
+function generateEmailBody(name, keepLink, deleteLink, copy) {
+  const subject = copy.subjectSingle;
+  const body = `${copy.greeting} ${name}!
 
-Észrevettük, hogy regisztráltál a Pharmagister oldalunkon, de még nem aktiváltad a fiókodat és nem is léptél be.
+${copy.intro}
 
-Kérjük, válaszd ki az alábbi opciók egyikét:
+${copy.selectPrompt}
 
-✅ FIÓK MEGTARTÁSA
-Ha szeretnéd megtartani a fiókodat, kattints erre a linkre:
+${copy.keepTitle}
+${copy.keepText}
 ${keepLink}
 
-❌ FIÓK TÖRLÉSE
-Ha törölni szeretnéd a fiókodat és minden adatodat, kattints erre a linkre:
+${copy.deleteTitle}
+${copy.deleteText}
 ${deleteLink}
 
-Ha 30 napon belül nem választasz, a fiókod automatikusan törlésre kerül.
+${copy.autoDeleteInfo}
 
-A linkek 30 napig érvényesek és csak egyszer használhatók fel.
+${copy.linkValidityInfo}
 
-Üdvözlettel,
-Pharmagister csapat`;
+${copy.signoff}`;
 
   return { subject, body };
 }
@@ -42,7 +90,7 @@ function autoLinkUrls(html) {
   );
 }
 
-function generateHtmlEmail(subject, bodyHtml) {
+function generateHtmlEmail(subject, bodyHtml, copy) {
   const linkedBody = autoLinkUrls(bodyHtml);
   
   return `<!DOCTYPE html>
@@ -69,8 +117,8 @@ function generateHtmlEmail(subject, bodyHtml) {
       ${linkedBody}
     </div>
     <div class="footer">
-      <p>Ez az üzenet a Pharmagister rendszerből érkezett.</p>
-      <p>© 2026 Pharmagister - Minden jog fenntartva</p>
+      <p>${copy.footerLine1}</p>
+      <p>${copy.footerLine2}</p>
     </div>
   </div>
 </body>
@@ -79,16 +127,18 @@ function generateHtmlEmail(subject, bodyHtml) {
 
 export async function POST(request) {
   try {
+    const requestMarket = resolveMarketFromRequest(request);
+    const copy = getBulkTokenEmailApiCopy(requestMarket);
     // Verify admin access
     const adminUser = await verifyAdmin(request);
     if (!adminUser) {
-      return NextResponse.json({ error: 'Nincs admin jogosultság' }, { status: 403 });
+      return NextResponse.json({ error: copy.noAdminPermission }, { status: 403 });
     }
 
     const { tokens } = await request.json();
 
     if (!tokens || !Array.isArray(tokens) || tokens.length === 0) {
-      return NextResponse.json({ error: 'Nincs küldendő token adat' }, { status: 400 });
+      return NextResponse.json({ error: copy.missingTokenData }, { status: 400 });
     }
 
     // Max 10 email per request a Vercel timeout elkerüléséhez
@@ -105,14 +155,15 @@ export async function POST(request) {
         const { subject, body } = generateEmailBody(
           tokenData.name,
           tokenData.keepLink,
-          tokenData.deleteLink
+          tokenData.deleteLink,
+          copy
         );
 
         await resend.emails.send({
           from: 'Pharmagister <noreply@pharmagister.hu>',
           to: tokenData.email,
           subject,
-          html: generateHtmlEmail(subject, body.replace(/\n/g, '<br>')),
+          html: generateHtmlEmail(subject, body.replace(/\n/g, '<br>'), copy),
         });
         results.push({ 
           email: tokenData.email, 
@@ -141,8 +192,8 @@ export async function POST(request) {
       await db.collection('sentEmails').add({
         to: results.map(r => r.email),
         failedTo: errors.map(e => e.email),
-        subject: 'Fiók törlése - döntés szükséges (tömeges)',
-        body: `Tömeges token email küldés ${batch.length} felhasználónak (batch)`,
+        subject: copy.logSubject,
+        body: `${copy.logBodyPrefix} ${batch.length} ${copy.logBodySuffix}`,
         sentAt: admin.firestore.FieldValue.serverTimestamp(),
         sentCount: results.length,
         failedCount: errors.length,
@@ -163,8 +214,9 @@ export async function POST(request) {
     });
   } catch (error) {
     console.error('Bulk email send error:', error);
+    const copy = getBulkTokenEmailApiCopy(resolveMarketFromRequest(request));
     return NextResponse.json(
-      { error: 'Hiba történt a tömeges email küldés során: ' + error.message },
+      { error: copy.sendErrorPrefix + error.message },
       { status: 500 }
     );
   }

@@ -7,6 +7,7 @@ import { collection, query, where, getDocs, doc, updateDoc, orderBy, deleteDoc, 
 import { db } from "@/lib/firebase";
 import RouteGuard from "@/app/components/RouteGuard";
 import { getClientMarket, t } from '@/lib/marketI18n';
+import { isDocInMarket } from '@/lib/market';
 
 const SCHEDULE_SWAP_NOTIFICATION_TYPES = new Set([
   'schedule_swap_request',
@@ -76,6 +77,7 @@ export default function NotificationsPage() {
           ...doc.data(),
           createdAt: doc.data().createdAt?.toDate()
         }))
+        .filter(n => isDocInMarket(n, market))
         .filter(n => n.type !== 'new_message'); // Üzenet értesítések kiszűrése - azok az Üzenetek ikonon jelennek meg
       
       console.log('📧 Értesítések:', notificationsData);

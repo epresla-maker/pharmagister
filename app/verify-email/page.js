@@ -2,13 +2,23 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getClientMarket } from '@/lib/marketI18n';
+import { MARKET_COOKIE, normalizeMarket } from '@/lib/market';
 
 function VerifyEmailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const market = getClientMarket();
+  const urlMarket = searchParams.get('market');
+  const market = normalizeMarket(urlMarket || getClientMarket());
   const [status, setStatus] = useState('loading'); // loading, success, error, expired
   const [message, setMessage] = useState(market === 'de' ? 'E-Mail-Adresse wird bestaetigt...' : 'Email cím ellenőrzése...');
+
+  useEffect(() => {
+    document.cookie = `${MARKET_COOKIE}=${market}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
+  }, [market]);
+
+  useEffect(() => {
+    setMessage(market === 'de' ? 'E-Mail-Adresse wird bestaetigt...' : 'Email cím ellenőrzése...');
+  }, [market]);
 
   useEffect(() => {
     const verifyEmail = async () => {
@@ -27,7 +37,7 @@ function VerifyEmailContent() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ token }),
+          body: JSON.stringify({ token, market }),
         });
 
         const data = await response.json();

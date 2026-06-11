@@ -2,16 +2,49 @@ import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { sanitizeUrl } from '@/lib/sanitize';
 import { checkRateLimit, getClientIp } from '@/lib/rateLimit';
+import { resolveMarketFromRequest } from '@/lib/market';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+function getCustomVerificationApiCopy(market) {
+  if (market === 'de') {
+    return {
+      tooManyRequests: 'Zu viele Anfragen. Bitte versuche es spaeter erneut.',
+      emailSendError: 'E-Mail-Sendefehler',
+      genericError: 'Fehler aufgetreten',
+      subject: 'Bestaetige deine E-Mail-Adresse - Pharmagister',
+      welcomeTitle: 'Willkommen!',
+      intro: 'Danke fuer deine Registrierung! Es fehlt nur noch ein Schritt.',
+      ctaLead: 'Bitte bestaetige deine E-Mail-Adresse ueber den folgenden Button:',
+      ctaButton: 'E-Mail-Adresse bestaetigen',
+      fallbackLead: 'Falls der Button nicht funktioniert, kopiere diesen Link in deinen Browser:',
+      footerAuto: 'Diese E-Mail wurde automatisch erstellt. Bitte antworte nicht darauf.',
+    };
+  }
+
+  return {
+    tooManyRequests: 'Túl sok kérés. Kérjük próbálja újra később.',
+    emailSendError: 'Email küldési hiba',
+    genericError: 'Hiba történt',
+    subject: 'Erősítsd meg az email címedet - Pharmagister',
+    welcomeTitle: 'Üdvözlünk!',
+    intro: 'Köszönjük a regisztrációt! Már csak egy lépés van hátra.',
+    ctaLead: 'Kérjük, erősítsd meg az email címedet az alábbi gombra kattintva:',
+    ctaButton: 'Email cím megerősítése',
+    fallbackLead: 'Ha a gomb nem működik, másold be ezt a linket a böngésződbe:',
+    footerAuto: 'Ez az email automatikusan lett generálva. Kérjük ne válaszolj rá.',
+  };
+}
+
 export async function POST(request) {
   try {
+    const requestMarket = resolveMarketFromRequest(request);
+    const copy = getCustomVerificationApiCopy(requestMarket);
     // Rate limit: 5 requests per 15 minutes
     const ip = getClientIp(request);
     const { allowed } = checkRateLimit(`verification:${ip}`, 5, 15 * 60 * 1000);
     if (!allowed) {
-      return NextResponse.json({ error: 'Túl sok kérés. Kérjük próbálja újra később.' }, { status: 429 });
+      return NextResponse.json({ error: copy.tooManyRequests }, { status: 429 });
     }
 
     const { email, verificationToken } = await request.json();
@@ -25,7 +58,7 @@ export async function POST(request) {
     const { data, error } = await resend.emails.send({
       from: 'Pharmagister VF <noreply@valifriend.com>',
       to: [email],
-      subject: 'Erősítsd meg az email címedet - Pharmagister',
+      subject: copy.subject,
       html: `
         <!DOCTYPE html>
         <html>
@@ -81,27 +114,27 @@ export async function POST(request) {
             <div class="container">
               <div class="logo">Pharmagister</div>
               
-              <h2 style="color: #333; margin-bottom: 20px;">Üdvözlünk!</h2>
+              <h2 style="color: #333; margin-bottom: 20px;">${copy.welcomeTitle}</h2>
               
-              <p>Köszönjük a regisztrációt! Már csak egy lépés van hátra.</p>
+              <p>${copy.intro}</p>
               
-              <p>Kérjük, erősítsd meg az email címedet az alábbi gombra kattintva:</p>
+              <p>${copy.ctaLead}</p>
               
               <div style="text-align: center; margin: 30px 0;">
                 <a href="${verificationUrl}" class="button">
-                  ✅ Email cím megerősítése
+                  ✅ ${copy.ctaButton}
                 </a>
               </div>
               
               <p style="font-size: 14px; color: #666;">
-                Ha a gomb nem működik, másold be ezt a linket a böngésződbe:
+                ${copy.fallbackLead}
               </p>
               <p style="font-size: 12px; word-break: break-all; background: #f5f5f5; padding: 10px; border-radius: 4px;">
                 ${verificationUrl}
               </p>
               
               <div class="footer">
-                <p>Ez az email automatikusan lett generálva. Kérjük ne válaszolj rá.</p>
+                <p>${copy.footerAuto}</p>
                 <p>© ${new Date().getFullYear()} Pharmagister</p>
               </div>
             </div>
@@ -112,7 +145,7 @@ export async function POST(request) {
 
     if (error) {
       console.error('❌ Resend error:', error);
-      return NextResponse.json({ error: 'Email küldési hiba', details: error }, { status: 500 });
+      return NextResponse.json({ error: copy.emailSendError, details: error }, { status: 500 });
     }
 
     console.log('✅ Verification email sent via Resend:', data.id);
@@ -121,8 +154,9 @@ export async function POST(request) {
   } catch (error) {
     console.error('❌ Error in send-custom-verification:', error);
     console.error('Error stack:', error.stack);
+    const copy = getCustomVerificationApiCopy(resolveMarketFromRequest(request));
     return NextResponse.json({ 
-      error: 'Hiba történt', 
+      error: copy.genericError, 
       details: error.message 
     }, { status: 500 });
   }

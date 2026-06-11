@@ -6,7 +6,7 @@ import RouteGuard from '@/app/components/RouteGuard';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { ArrowLeft, Send, Loader2 } from 'lucide-react';
-import { getClientMarket } from '@/lib/marketI18n';
+import { getClientMarket, getLocalizedDemandPositionLabel } from '@/lib/marketI18n';
 
 function NewChatContent() {
   const { user, userData } = useAuth();
@@ -26,6 +26,7 @@ function NewChatContent() {
   const demandDate = searchParams.get('demandDate');
   const demandPosition = searchParams.get('demandPosition');
   const demandPositionLabel = searchParams.get('demandPositionLabel');
+  const localizedDemandPositionLabel = getLocalizedDemandPositionLabel(demandPosition, market, demandPositionLabel);
 
   // Load dark mode setting
   useEffect(() => {
@@ -91,7 +92,7 @@ function NewChatContent() {
           relatedDemandId: demandId,
           relatedDemandDate: demandDate,
           relatedDemandPosition: demandPosition,
-          relatedDemandPositionLabel: demandPositionLabel,
+          relatedDemandPositionLabel: localizedDemandPositionLabel,
           archivedBy: [],
           deletedBy: []
         });
@@ -169,7 +170,7 @@ function NewChatContent() {
                 </h2>
                 {demandDate && (
                   <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    {demandPositionLabel} • {new Date(demandDate).toLocaleDateString(market === 'de' ? 'de-DE' : 'hu-HU')}
+                    {localizedDemandPositionLabel} • {new Date(demandDate).toLocaleDateString(market === 'de' ? 'de-DE' : 'hu-HU')}
                   </p>
                 )}
               </div>

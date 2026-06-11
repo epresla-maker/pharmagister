@@ -3,7 +3,10 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { onAuthStateChanged, signOut as authSignOut } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
-import { doc, onSnapshot, updateDoc, serverTimestamp } from "firebase/firestore";
+import { doc, updateDoc, serverTimestamp, getDoc } from "firebase/firestore";
+import { MARKET_COOKIE, normalizeMarket } from "@/lib/market";
+
+const MARKET_OVERRIDE_ADMIN_EMAILS = new Set(['epresla@icloud.com']);
 
 const AuthContext = createContext();
 
@@ -13,34 +16,36 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true); 
 
   useEffect(() => {
-    let unsubscribeSnapshot = null;
+    const applyUserDoc = (nextUserData, firebaseUser) => {
+      setUserData(nextUserData);
+      const normalizedEmail = String(nextUserData?.email || firebaseUser?.email || '').trim().toLowerCase();
+      const cookieMatch = typeof document !== 'undefined'
+        ? document.cookie.match(/(?:^|; )pm_market=([^;]+)/)
+        : null;
+      const cookieMarket = cookieMatch?.[1] ? normalizeMarket(decodeURIComponent(cookieMatch[1])) : null;
+      const normalizedMarket = MARKET_OVERRIDE_ADMIN_EMAILS.has(normalizedEmail)
+        ? (cookieMarket || normalizeMarket(nextUserData?.market))
+        : normalizeMarket(nextUserData?.market);
+      document.cookie = `${MARKET_COOKIE}=${normalizedMarket}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
+    };
 
-    const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
-      if (unsubscribeSnapshot) {
-        unsubscribeSnapshot();
-        unsubscribeSnapshot = null;
-      }
+    const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
 
       if (firebaseUser) {
         setUser(firebaseUser);
         const userDocRef = doc(db, "users", firebaseUser.uid);
-
-        unsubscribeSnapshot = onSnapshot(
-          userDocRef,
-          (docSnap) => {
-            if (docSnap.exists()) {
-              setUserData(docSnap.data());
-              // NE frissítsük itt a lastSeen-t - végtelen ciklust okoz!
-            } else {
-              setUserData(null);
-            }
-            setLoading(false); 
-          },
-          (error) => {
+        try {
+          const userSnap = await getDoc(userDocRef);
+          if (userSnap.exists()) {
+            applyUserDoc(userSnap.data(), firebaseUser);
+          } else {
             setUserData(null);
-            setLoading(false); 
           }
-        );
+        } catch (error) {
+          console.error('AuthContext getDoc failed:', error);
+        } finally {
+          setLoading(false);
+        }
       } else {
         setUser(null);
         setUserData(null);
@@ -50,7 +55,6 @@ export const AuthProvider = ({ children }) => {
 
     return () => {
       unsubscribeAuth();
-      if (unsubscribeSnapshot) unsubscribeSnapshot();
     };
   }, []);
 

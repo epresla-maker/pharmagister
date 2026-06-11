@@ -79,7 +79,8 @@ export default function AdminUsersPage() {
   const getRoleLabel = (role) => {
     if (role === 'pharmacist' || role === 'gyógyszerész') return market === 'de' ? 'Apotheker/in' : 'Gyógyszerész';
     if (role === 'pharmacy' || role === 'gyógyszertár') return market === 'de' ? 'Apotheke' : 'Gyógyszertár';
-    if (role === 'assistant' || role === 'szakasszisztens') return market === 'de' ? 'Assistent/in' : 'Szakasszisztens';
+    if (role === 'assistant' || role === 'szakasszisztens') return market === 'de' ? 'PTA' : 'Szakasszisztens';
+    if (role === 'pka') return 'PKA';
     return market === 'de' ? 'Keine' : 'Nincs';
   };
 
@@ -87,6 +88,7 @@ export default function AdminUsersPage() {
     if (role === 'pharmacist' || role === 'gyógyszerész') return Pill;
     if (role === 'pharmacy' || role === 'gyógyszertár') return Building2;
     if (role === 'assistant' || role === 'szakasszisztens') return UserCog;
+    if (role === 'pka') return UserCog;
     return AlertCircle;
   };
 
@@ -94,6 +96,7 @@ export default function AdminUsersPage() {
     if (role === 'pharmacist' || role === 'gyógyszerész') return 'text-blue-600 bg-blue-50';
     if (role === 'pharmacy' || role === 'gyógyszertár') return 'text-green-600 bg-green-50';
     if (role === 'assistant' || role === 'szakasszisztens') return 'text-orange-600 bg-orange-50';
+    if (role === 'pka') return 'text-amber-600 bg-amber-50';
     return 'text-gray-500 bg-gray-100';
   };
 

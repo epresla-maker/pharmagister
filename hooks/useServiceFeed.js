@@ -14,9 +14,25 @@ import {
   getDocsFromServer
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { isDocInMarket } from '@/lib/market';
 
 const PAGE_SIZE = 20;
 const POLL_INTERVAL = 30000; // 30 seconds
+
+function looksHungarianText(value) {
+  const text = String(value || '').toLowerCase();
+  if (!text) return false;
+
+  // Hungarian accented characters are a strong indicator.
+  if (/[áéíóöőúüű]/.test(text)) return true;
+
+  // Fallback for legacy posts written without accents.
+  const huSignals = [
+    'gyogyszer', 'helyettesites', 'helyettesitest', 'hiany', 'beosztas',
+    'szakasszisztens', 'jelentkezes', 'patika', 'budapesten'
+  ];
+  return huSignals.some((signal) => text.includes(signal));
+}
 
 /**
  * Optimized Service Feed Hook
@@ -27,7 +43,7 @@ const POLL_INTERVAL = 30000; // 30 seconds
  * - Module-based filtering (pharmagister, tutomagister, etc.)
  * - NO real-time onSnapshot listeners
  */
-export function useServiceFeed({ userData }) {
+export function useServiceFeed({ userData, market = 'hu' }) {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -60,8 +76,20 @@ export function useServiceFeed({ userData }) {
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     
     return postsToFilter.filter(post => {
+      // Hard market isolation for all feed entries.
+      if (!isDocInMarket(post, market)) {
+        return false;
+      }
+
       // Filter out reactionActivity posts
       if (post.postType === 'reactionActivity') return false;
+
+      // Defensive isolation for legacy/mis-tagged free-text content.
+      if (market === 'de' && (post.postType === 'userPost' || post.postType === 'adminPost')) {
+        if (looksHungarianText(post.text)) {
+          return false;
+        }
+      }
       
       // Filter out accepted/filled demands - they should not appear in the feed
       if (post.status === 'accepted' || post.status === 'filled') return false;
@@ -92,7 +120,7 @@ export function useServiceFeed({ userData }) {
       // Default: visible
       return true;
     });
-  }, [getUserModules]);
+  }, [getUserModules, market]);
 
   // Fetch posts - Cache first, then server
   const fetchPosts = useCallback(async (isInitial = true) => {
@@ -232,17 +260,21 @@ export function useServiceFeed({ userData }) {
       const q = query(
         collection(db, 'serviceFeedPosts'),
         where('createdAt', '>', newestTimestampRef.current),
-        limit(1)
+        limit(PAGE_SIZE)
       );
       const snapshot = await getDocs(q);
       
-      if (!snapshot.empty && isMountedRef.current) {
+      const hasVisibleNewPost = snapshot.docs.some((docSnap) =>
+        isDocInMarket(docSnap.data(), market)
+      );
+
+      if (hasVisibleNewPost && isMountedRef.current) {
         setHasNewPosts(true);
       }
     } catch (err) {
       console.warn('[useServiceFeed] Error checking for new posts:', err);
     }
-  }, []);
+  }, [market]);
 
   // Manual refresh
   const refresh = useCallback(async () => {
@@ -279,7 +311,7 @@ export function useServiceFeed({ userData }) {
     return () => {
       isMountedRef.current = false;
     };
-  }, [userData]); // Re-fetch when userData changes
+  }, [userData, market, fetchPosts]); // Re-fetch when user or market changes
 
   // Background polling
   useEffect(() => {

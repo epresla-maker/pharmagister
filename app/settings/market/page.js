@@ -1,45 +1,14 @@
 "use client";
 
-import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Languages } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 import { getClientMarket } from '@/lib/marketI18n';
 
-function buildSwitchUrl(market, currentPath) {
-  const encodedPath = encodeURIComponent(currentPath || '/');
-  return `/api/market/switch?market=${market}&next=${encodedPath}`;
-}
-
 export default function MarketSettingsPage() {
   const router = useRouter();
   const { darkMode } = useTheme();
   const market = getClientMarket();
-
-  const currentPath = typeof window !== 'undefined'
-    ? window.location.pathname + window.location.search + window.location.hash
-    : '/';
-
-  const options = useMemo(() => ([
-    {
-      key: 'hu',
-      title: market === 'de' ? 'Ungarisch (HU)' : 'Magyar nyelv (HU)',
-      subtitle: market === 'de' ? 'Ungarischer Inhalt auf derselben Domain' : 'Magyar tartalom ugyanazon a domainen',
-      target: buildSwitchUrl('hu', currentPath),
-      flag: 'HU'
-    },
-    {
-      key: 'de',
-      title: market === 'de' ? 'Deutsch (DE)' : 'Német nyelv (DE)',
-      subtitle: market === 'de' ? 'Die Website bleibt auf derselben Domain' : 'A weboldal ugyanazon a domainen marad',
-      target: buildSwitchUrl('de', currentPath),
-      flag: 'DE'
-    }
-  ]), [currentPath, market]);
-
-  const goToMarket = (target) => {
-    window.location.href = target;
-  };
 
   return (
     <div className={`min-h-screen pb-24 ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
@@ -62,30 +31,23 @@ export default function MarketSettingsPage() {
           <div className="flex items-center gap-2 mb-3">
             <Languages className="w-5 h-5 text-emerald-500" />
             <h2 className={`text-base font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              {market === 'de' ? 'Ausgewaehlter Markt bleibt auf derselben Domain' : 'Kivalasztott piac ugyanazon a domainen marad'}
+              {market === 'de' ? 'Sprache bei Registrierung festgelegt' : 'Nyelv regisztrációkor rögzítve'}
             </h2>
           </div>
 
           <p className={`text-sm mb-4 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-            {market === 'de' ? 'Die Domain bleibt gleich, nur Sprache und Market-Cookie aendern sich.' : 'A választás ugyanazon a domainen marad, csak a megjelenő nyelv és market cookie változik.'}
+            {market === 'de'
+              ? 'Die Lokalisierung wird bei der Registrierung gespeichert und kann in den Einstellungen nicht geaendert werden.'
+              : 'A lokalizáció regisztrációkor kerül mentésre, és a beállításokban nem módosítható.'}
           </p>
 
-          <div className="space-y-3">
-            {options.map((opt) => (
-              <button
-                key={opt.key}
-                onClick={() => goToMarket(opt.target)}
-                className={`w-full text-left rounded-lg border px-4 py-3 transition-colors ${darkMode ? 'border-gray-700 bg-gray-900 hover:bg-gray-700' : 'border-gray-200 bg-gray-50 hover:bg-gray-100'}`}
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <div className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>{opt.title}</div>
-                    <div className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{opt.subtitle}</div>
-                  </div>
-                  <div className="text-xs px-2 py-1 rounded bg-emerald-600 text-white">{opt.flag}</div>
-                </div>
-              </button>
-            ))}
+          <div className={`rounded-lg border px-4 py-3 ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-gray-50'}`}>
+            <div className={`font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+              {market === 'de' ? 'Aktive Sprache: Deutsch' : 'Aktív nyelv: Magyar'}
+            </div>
+            <div className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              {market === 'de' ? 'Falls eine andere Sprache noetig ist, neues Konto mit der gewuenschten Sprache erstellen.' : 'Ha másik nyelvre van szükség, új fiókot kell regisztrálni a kívánt nyelvvel.'}
+            </div>
           </div>
         </div>
       </div>

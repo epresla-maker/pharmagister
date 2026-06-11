@@ -8,6 +8,41 @@ import { useAuth } from '@/context/AuthContext';
 import { ArrowLeft, MessageCircle, Send, MoreHorizontal, Calendar, Clock, MapPin, Briefcase, User } from 'lucide-react';
 import { getClientMarket } from '@/lib/marketI18n';
 
+function normalizePostShiftTypeLabel(shiftType, market = 'hu') {
+  const raw = String(shiftType || '').trim();
+  if (!raw) return '';
+  const normalized = raw.toLowerCase();
+  const map = {
+    n: { hu: 'Nappali', de: 'Tagdienst' },
+    nappali: { hu: 'Nappali', de: 'Tagdienst' },
+    tagdienst: { hu: 'Nappali', de: 'Tagdienst' },
+    'é': { hu: 'Éjszakai', de: 'Nachtdienst' },
+    e: { hu: 'Éjszakai', de: 'Nachtdienst' },
+    ejszakai: { hu: 'Éjszakai', de: 'Nachtdienst' },
+    'éjszakai': { hu: 'Éjszakai', de: 'Nachtdienst' },
+    nachtdienst: { hu: 'Éjszakai', de: 'Nachtdienst' },
+    'ü': { hu: 'Ügyelet', de: 'Bereitschaft' },
+    u: { hu: 'Ügyelet', de: 'Bereitschaft' },
+    ugyelet: { hu: 'Ügyelet', de: 'Bereitschaft' },
+    'ügyelet': { hu: 'Ügyelet', de: 'Bereitschaft' },
+    bereitschaft: { hu: 'Ügyelet', de: 'Bereitschaft' },
+    b: { hu: 'Beteg', de: 'Krank' },
+    beteg: { hu: 'Beteg', de: 'Krank' },
+    krank: { hu: 'Beteg', de: 'Krank' },
+    sz: { hu: 'Szabadság', de: 'Urlaub' },
+    szabadsag: { hu: 'Szabadság', de: 'Urlaub' },
+    'szabadság': { hu: 'Szabadság', de: 'Urlaub' },
+    urlaub: { hu: 'Szabadság', de: 'Urlaub' },
+    p: { hu: 'Pihenő', de: 'Ruhetag' },
+    piheno: { hu: 'Pihenő', de: 'Ruhetag' },
+    'pihenő': { hu: 'Pihenő', de: 'Ruhetag' },
+    ruhetag: { hu: 'Pihenő', de: 'Ruhetag' },
+  };
+  const item = map[normalized];
+  if (!item) return raw;
+  return market === 'de' ? item.de : item.hu;
+}
+
 function CommentItem({ comment, postId, depth = 0, onReply, replyingTo, setReplyingTo, userData, user, formatTime, currentMarket }) {
   const maxDepth = 5;
   const isHighlighted = replyingTo?.commentId === comment.id;
@@ -316,7 +351,7 @@ export default function PostDetailPage() {
                 {post.shiftType && (
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-                    <span className="text-sm text-gray-900 dark:text-white">{post.shiftType}</span>
+                    <span className="text-sm text-gray-900 dark:text-white">{normalizePostShiftTypeLabel(post.shiftType, currentMarket)}</span>
                   </div>
                 )}
                 {post.pharmacyName && (

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import {
   MARKET_COOKIE,
+  getMarketFromAcceptLanguage,
   getMarketFromHost as resolveMarketFromHost,
   normalizeMarket,
 } from './lib/market';
@@ -34,7 +35,10 @@ export function proxy(request) {
   const { pathname } = request.nextUrl;
   const hostname = request.headers.get('host') || '';
   const hostWithoutPort = hostname.toLowerCase().split(':')[0];
-  const selectedMarket = normalizeMarket(request.cookies.get(MARKET_COOKIE)?.value);
+  const cookieMarket = request.cookies.get(MARKET_COOKIE)?.value;
+  const selectedMarket = cookieMarket ? normalizeMarket(cookieMarket) : null;
+  const localeMarket = getMarketFromAcceptLanguage(request.headers.get('accept-language') || '');
+  const resolvedMarket = selectedMarket || localeMarket || resolveMarketFromHost(hostWithoutPort);
 
   // www → non-www (HU/DE domain megtartásával)
   if (hostWithoutPort.startsWith('www.')) {
@@ -50,12 +54,19 @@ export function proxy(request) {
 
   // Vercel preview és a normál domain is ugyanazon hoston marad, csak a market cookie változik
   if (hostWithoutPort.includes('.vercel.app')) {
-    return setMarketCookie(NextResponse.next(), selectedMarket);
+    const newUrl = new URL(request.url);
+    newUrl.protocol = 'https:';
+    newUrl.hostname = 'pharmagister.hu';
+    newUrl.port = '';
+    return setMarketCookie(
+      NextResponse.redirect(newUrl, { status: 308 }),
+      resolvedMarket
+    );
   }
 
   // Ha nincs karbantartási mód, engedjük át
   if (!MAINTENANCE_MODE) {
-    return setMarketCookie(NextResponse.next(), selectedMarket || resolveMarketFromHost(hostWithoutPort));
+    return setMarketCookie(NextResponse.next(), resolvedMarket);
   }
 
   // Ha már lejárt a karbantartás ideje
@@ -66,20 +77,20 @@ export function proxy(request) {
   // Ellenőrizzük az engedélyezett útvonalakat
   const isAllowedPath = ALLOWED_PATHS.some(path => pathname.startsWith(path));
   if (isAllowedPath) {
-    return setMarketCookie(NextResponse.next(), selectedMarket || resolveMarketFromHost(hostWithoutPort));
+    return setMarketCookie(NextResponse.next(), resolvedMarket);
   }
 
   // Ellenőrizzük a bypass cookie-t (admin hozzáférés)
   const bypassCookie = request.cookies.get('maintenance_bypass');
   if (bypassCookie?.value === 'true') {
-    return setMarketCookie(NextResponse.next(), selectedMarket || resolveMarketFromHost(hostWithoutPort));
+    return setMarketCookie(NextResponse.next(), resolvedMarket);
   }
 
   // Minden más kérést átirányítunk a maintenance oldalra
   const maintenanceUrl = new URL('/maintenance', request.url);
   return setMarketCookie(
     NextResponse.redirect(maintenanceUrl),
-    selectedMarket || resolveMarketFromHost(hostWithoutPort)
+    resolvedMarket
   );
 }
 

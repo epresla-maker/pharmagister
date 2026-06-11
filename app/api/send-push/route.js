@@ -33,13 +33,36 @@ function isPlainObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value);
 }
 
+function getNoSubscriptionsMessage(market) {
+  return market === 'de' ? 'Keine Abonnements gefunden' : 'Nem található push feliratkozás';
+}
+
+function getSendPushApiCopy(market) {
+  if (market === 'de') {
+    return {
+      unauthorized: 'Keine Berechtigung',
+      userIdRequired: 'userId ist erforderlich',
+      forbidden: 'Keine Berechtigung fuer den Benachrichtigungsempfaenger',
+      defaultBody: 'Du hast eine neue Benachrichtigung erhalten!',
+    };
+  }
+
+  return {
+    unauthorized: 'Nincs jogosultság',
+    userIdRequired: 'A userId megadása kötelező',
+    forbidden: 'Nincs jogosultság az értesítés címzettjéhez.',
+    defaultBody: 'Új értesítésed érkezett!',
+  };
+}
+
 export async function POST(request) {
   try {
     const requestMarket = resolveMarketFromRequest(request);
+    const copy = getSendPushApiCopy(requestMarket);
     // Verify authenticated user
     const authUser = await verifyAuth(request);
     if (!authUser) {
-      return new Response(JSON.stringify({ error: 'Nincs jogosultság' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ error: copy.unauthorized }), { status: 401, headers: { 'Content-Type': 'application/json' } });
     }
 
     console.log('📨 Push notification API called by:', authUser.email);
@@ -61,11 +84,11 @@ export async function POST(request) {
     } = await request.json();
 
     if (!userId) {
-      return Response.json({ error: 'userId is required' }, { status: 400 });
+      return Response.json({ error: copy.userIdRequired }, { status: 400 });
     }
 
     const normalizedTitle = title || 'Pharmagister';
-    const normalizedBody = body || 'Új értesítésed érkezett!';
+    const normalizedBody = body || copy.defaultBody;
     const normalizedUrl = url || '/notifications';
     const normalizedTag = tag || 'pharmagister-notification';
     const normalizedType = type || (String(normalizedTag).startsWith('chat-') ? 'new_message' : 'system');
@@ -84,7 +107,7 @@ export async function POST(request) {
     });
 
     if (!canSend) {
-      return Response.json({ error: 'Nincs jogosultság az értesítés címzettjéhez.' }, { status: 403 });
+      return Response.json({ error: copy.forbidden }, { status: 403 });
     }
 
     let notificationId = null;
@@ -170,7 +193,12 @@ export async function POST(request) {
 
     if (marketSubscriptions.length === 0) {
       console.log(`No push subscriptions found for user: ${userId}`);
-      return Response.json({ success: true, sent: 0, notificationId, message: 'No subscriptions found' });
+      return Response.json({
+        success: true,
+        sent: 0,
+        notificationId,
+        message: getNoSubscriptionsMessage(requestMarket)
+      });
     }
 
     const unreadSnapshot = await db.collection('notifications')

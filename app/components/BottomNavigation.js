@@ -110,23 +110,6 @@ function BottomNavigation({ isVisible = true }) {
         transform: 'translateZ(0)'
       }}
     >
-      <div className="px-3 pt-2">
-        <div className={`flex items-center justify-between rounded-xl border px-3 py-2 text-xs ${
-          darkMode ? 'border-gray-700 bg-gray-800 text-gray-200' : 'border-gray-200 bg-gray-50 text-gray-700'
-        }`}>
-          <span className="font-medium">{t('activeLanguage', market)}</span>
-          <button
-            onClick={() => router.push('/settings/market')}
-            className={`inline-flex items-center rounded-full px-2.5 py-1 font-semibold ${
-              market === 'de'
-                ? 'bg-amber-500 text-white'
-                : 'bg-emerald-600 text-white'
-            }`}
-          >
-            {market === 'de' ? t('deMode', market) : t('huMode', market)}
-          </button>
-        </div>
-      </div>
       <div className="grid grid-cols-5 gap-1 px-2 py-2">
         {navItems.map((item) => (
           <NavItem

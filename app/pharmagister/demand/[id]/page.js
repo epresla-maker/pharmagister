@@ -7,7 +7,8 @@ import RouteGuard from '@/app/components/RouteGuard';
 import { doc, getDoc, updateDoc, arrayUnion, arrayRemove, Timestamp, collection, addDoc, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { createNotificationWithPush } from '@/lib/notifications';
-import { getClientMarket } from '@/lib/marketI18n';
+import { getClientMarket, getLocalizedDemandPositionLabel } from '@/lib/marketI18n';
+import { isDocInMarket } from '@/lib/market';
 import { MessageCircle } from 'lucide-react';
 
 const ADMIN_EMAILS = ['epresla@icloud.com'];
@@ -43,6 +44,11 @@ export default function DemandDetailPage() {
 
         if (demandSnap.exists()) {
           const demandData = { id: demandSnap.id, ...demandSnap.data() };
+          if (!isDocInMarket(demandData, market)) {
+            setError(market === 'de' ? 'Anfrage nicht gefunden.' : 'Az igeny nem talalhato.');
+            setDemand(null);
+            return;
+          }
           setDemand(demandData);
           
           // Check if user already applied
@@ -127,7 +133,7 @@ export default function DemandDetailPage() {
     
     if (!isAdminUser && userRole !== demandPosition) {
       const userRoleLabel = userRole === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'gyógyszerész') : (market === 'de' ? 'Assistent/in' : 'szakasszisztens');
-      const demandPositionLabel = demandPosition === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'gyógyszerész') : (market === 'de' ? 'Assistent/in' : 'szakasszisztens');
+      const demandPositionLabel = demandPosition === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'gyógyszerész') : demandPosition === 'pka' ? 'PKA' : (market === 'de' ? 'PTA' : 'szakasszisztens');
       console.log('❌ Szerepkör nem egyezik! User:', userRoleLabel, '| Demand:', demandPositionLabel);
       alert(market === 'de' ? `Auf diese Anfrage koennen sich nur ${demandPositionLabel} bewerben. Du bist als ${userRoleLabel} registriert.` : `Erre az igényre csak ${demandPositionLabel}ek jelentkezhetnek. Te ${userRoleLabel}ként vagy regisztrálva.`);
       return;
@@ -190,8 +196,10 @@ export default function DemandDetailPage() {
       await createNotificationWithPush({
         userId: demand.pharmacyId,
         type: 'pharma_application',
-        title: 'Új jelentkező! 📝',
-        message: `${userData.displayName || 'Valaki'} jelentkezett a ${new Date(demand.date).toLocaleDateString('hu-HU')}-i helyettesítésre.`,
+        title: market === 'de' ? 'Neue Bewerbung! 📝' : 'Új jelentkező! 📝',
+        message: market === 'de'
+          ? `${userData.displayName || 'Jemand'} hat sich fuer die Vertretung am ${new Date(demand.date).toLocaleDateString('de-DE')} beworben.`
+          : `${userData.displayName || 'Valaki'} jelentkezett a ${new Date(demand.date).toLocaleDateString('hu-HU')}-i helyettesítésre.`,
         data: {
           demandId: demandId,
           applicantId: user.uid,
@@ -259,7 +267,7 @@ export default function DemandDetailPage() {
           relatedDemandId: demandId,
           relatedDemandDate: demand.date,
           relatedDemandPosition: demand.position,
-          relatedDemandPositionLabel: demand.position === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'Gyógyszerész') : (market === 'de' ? 'Assistent/in' : 'Szakasszisztens'),
+          relatedDemandPositionLabel: getLocalizedDemandPositionLabel(demand.position, market),
           archivedBy: [],
           deletedBy: [],
           readBy: []
@@ -306,7 +314,8 @@ export default function DemandDetailPage() {
 
   const positionLabels = {
     pharmacist: market === 'de' ? 'Apotheker/in' : 'Gyógyszerész',
-    assistant: market === 'de' ? 'Assistent/in' : 'Szakasszisztens'
+    assistant: market === 'de' ? 'PTA' : 'Szakasszisztens',
+    pka: market === 'de' ? 'PKA' : 'PKA'
   };
 
   const getMonogram = (name) => {
@@ -507,7 +516,7 @@ export default function DemandDetailPage() {
                   <div className="flex items-center gap-3 py-3 border-b border-gray-200 dark:border-gray-700">
                     <div>
                       <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{market === 'de' ? 'Maximaler Stundenlohn' : 'Maximum órabér'}</p>
-                      <p className="font-medium">{demand.maxHourlyRate} {market === 'de' ? 'Ft/Stunde' : 'Ft/óra'}</p>
+                      <p className="font-medium">{demand.maxHourlyRate} {market === 'de' ? 'EUR/Stunde' : 'Ft/óra'}</p>
                     </div>
                   </div>
                 )}
@@ -636,7 +645,7 @@ export default function DemandDetailPage() {
                     <div className="flex-1">
                       <p className="font-medium">{applicant.displayName}</p>
                       <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                        {applicant.pharmagisterRole === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'Gyógyszerész') : (market === 'de' ? 'Assistent/in' : 'Szakasszisztens')}
+                        {applicant.pharmagisterRole === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'Gyógyszerész') : applicant.pharmagisterRole === 'pka' ? 'PKA' : (market === 'de' ? 'PTA' : 'Szakasszisztens')}
                         {applicant.experience && ` • ${applicant.experience}`}
                       </p>
                     </div>
@@ -691,7 +700,7 @@ export default function DemandDetailPage() {
                 </>
               ) : (
                 <div className={`flex-1 px-4 py-3 rounded-xl text-center font-semibold ${darkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
-                  {demand.position === 'pharmacist' ? (market === 'de' ? 'Nur fuer Apotheker/innen' : 'Csak gyógyszerészeknek') : (market === 'de' ? 'Nur fuer Assistent/innen' : 'Csak szakasszisztenseknek')}
+                  {demand.position === 'pharmacist' ? (market === 'de' ? 'Nur für Apotheker/innen' : 'Csak gyógyszerészeknek') : demand.position === 'pka' ? (market === 'de' ? 'Nur für PKA' : 'Csak PKA pozicióra') : (market === 'de' ? 'Nur für PTA' : 'Csak szakasszisztenseknek')}
                 </div>
               )}
             </div>

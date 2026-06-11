@@ -82,11 +82,12 @@ export default function ProfilePage() {
     return null;
   }
 
-  const isSubstitute = profileData.pharmagisterRole === 'pharmacist' || profileData.pharmagisterRole === 'assistant';
+  const isSubstitute = profileData.pharmagisterRole === 'pharmacist' || profileData.pharmagisterRole === 'assistant' || profileData.pharmagisterRole === 'pka';
   const isProfileAdmin = profileData.email === 'epresla@icloud.com';
   const roleLabel = isProfileAdmin ? 'Admin' :
-                    profileData.pharmagisterRole === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'Gyógyszerész') : 
-                    profileData.pharmagisterRole === 'assistant' ? (market === 'de' ? 'Assistent/in' : 'Szakasszisztens') : (market === 'de' ? 'Apotheke' : 'Gyógyszertár');
+                    profileData.pharmagisterRole === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'Gyógyszerész') :
+                    profileData.pharmagisterRole === 'assistant' ? (market === 'de' ? 'PTA' : 'Szakasszisztens') :
+                    profileData.pharmagisterRole === 'pka' ? 'PKA' : (market === 'de' ? 'Apotheke' : 'Gyógyszertár');
   
   // Ellenőrizzük, hogy saját profilunkat nézzük-e
   const isOwnProfile = user?.uid === userId;
@@ -301,7 +302,7 @@ export default function ProfilePage() {
                           <div>
                             <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{market === 'de' ? 'Stundenlohn' : 'Órabér'}</p>
                             <p className={`font-medium ${darkMode ? 'text-gray-200' : 'text-gray-900'}`}>
-                              {profileData.pharmaHourlyRate} {market === 'de' ? 'Ft/Stunde' : 'Ft/óra'}
+                              {profileData.pharmaHourlyRate} {market === 'de' ? 'EUR/Stunde' : 'Ft/óra'}
                             </p>
                           </div>
                         </div>

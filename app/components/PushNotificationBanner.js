@@ -198,7 +198,7 @@ export default function PushNotificationBanner() {
         setShowBanner(false);
         localStorage.setItem('push-banner-dismissed', 'true');
       } else {
-        throw new Error('Failed to save subscription');
+        throw new Error(market === 'de' ? 'Abonnement konnte nicht gespeichert werden' : 'Nem sikerült menteni a feliratkozást');
       }
     } catch (error) {
       console.error('Push subscription error:', error);

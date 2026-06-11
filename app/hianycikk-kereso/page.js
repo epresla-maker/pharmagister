@@ -35,6 +35,7 @@ import {
   X
 } from 'lucide-react';
 import { getClientMarket, t } from '@/lib/marketI18n';
+import { isDocInMarket } from '@/lib/market';
 
 // ============================================
 // KERESEK TAB - Search for shortage items
@@ -93,7 +94,9 @@ function KeresekTab({ darkMode }) {
       const items = [];
       snapshot.forEach((doc) => {
         const data = doc.data();
-        items.push({ id: doc.id, ...data });
+        if (isDocInMarket(data, market)) {
+          items.push({ id: doc.id, ...data });
+        }
       });
       setResults(items);
     } catch (error) {
@@ -103,7 +106,7 @@ function KeresekTab({ darkMode }) {
       setLoading(false);
       setInitialLoad(false);
     }
-  }, []);
+  }, [market]);
 
   // Trigger search on debounced term change
   useEffect(() => {
@@ -113,7 +116,7 @@ function KeresekTab({ darkMode }) {
   const formatDate = (timestamp) => {
     if (!timestamp) return '';
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    return date.toLocaleDateString('hu-HU', {
+    return date.toLocaleDateString(market === 'de' ? 'de-DE' : 'hu-HU', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -280,7 +283,9 @@ function ElerhetoNalunkTab({ darkMode, user, onSuccess }) {
       const items = [];
       snapshot.forEach((d) => {
         const data = d.data();
-        items.push({ id: d.id, ...data });
+        if (isDocInMarket(data, market)) {
+          items.push({ id: d.id, ...data });
+        }
       });
       setMyItems(items);
     } catch (error) {
@@ -288,7 +293,7 @@ function ElerhetoNalunkTab({ darkMode, user, onSuccess }) {
     } finally {
       setLoadingMyItems(false);
     }
-  }, [user?.uid]);
+  }, [user?.uid, market]);
 
   useEffect(() => {
     loadMyItems();
@@ -323,13 +328,15 @@ function ElerhetoNalunkTab({ darkMode, user, onSuccess }) {
         const snapshot = await getDocs(q);
         if (!snapshot.empty) {
           const prev = snapshot.docs[0].data();
-          setForm((f) => ({
-            ...f,
-            pharmacyName: prev.pharmacyName || '',
-            pharmacyAddress: prev.pharmacyAddress || '',
-            pharmacyContact: prev.pharmacyContact || ''
-          }));
-          setPrefilled(true);
+          if (isDocInMarket(prev, market)) {
+            setForm((f) => ({
+              ...f,
+              pharmacyName: prev.pharmacyName || '',
+              pharmacyAddress: prev.pharmacyAddress || '',
+              pharmacyContact: prev.pharmacyContact || ''
+            }));
+            setPrefilled(true);
+          }
         }
       } catch (error) {
         // Silent – can't load previous data, user fills manually
@@ -338,7 +345,7 @@ function ElerhetoNalunkTab({ darkMode, user, onSuccess }) {
     };
 
     loadPreviousData();
-  }, [user?.uid, prefilled]);
+  }, [user?.uid, prefilled, market]);
 
   const validate = () => {
     const newErrors = {};
@@ -404,6 +411,7 @@ function ElerhetoNalunkTab({ darkMode, user, onSuccess }) {
       const newDoc = {
         drugName: form.drugName.trim(),
         drugNameLower: form.drugName.trim().toLowerCase(),
+        market,
         pharmacyId: user.uid,
         pharmacyName: form.pharmacyName.trim(),
         pharmacyAddress: form.pharmacyAddress.trim(),
@@ -442,7 +450,7 @@ function ElerhetoNalunkTab({ darkMode, user, onSuccess }) {
   const formatDate = (timestamp) => {
     if (!timestamp) return '';
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    return date.toLocaleDateString('hu-HU', {
+    return date.toLocaleDateString(market === 'de' ? 'de-DE' : 'hu-HU', {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
@@ -574,7 +582,7 @@ function ElerhetoNalunkTab({ darkMode, user, onSuccess }) {
           type="text"
           value={form.pharmacyAddress}
           onChange={handleChange('pharmacyAddress')}
-          placeholder={market === 'de' ? 'z. B. 1051 Budapest, Vaci utca 10.' : 'pl. 1051 Budapest, Váci utca 10.'}
+          placeholder={market === 'de' ? 'z. B. 10115 Berlin, Friedrichstrasse 10' : 'pl. 1051 Budapest, Váci utca 10.'}
           className={inputClass('pharmacyAddress')}
         />
         {errors.pharmacyAddress && (
@@ -593,7 +601,7 @@ function ElerhetoNalunkTab({ darkMode, user, onSuccess }) {
           type="text"
           value={form.pharmacyContact}
           onChange={handleChange('pharmacyContact')}
-          placeholder="pl. +36 1 234 5678"
+          placeholder={market === 'de' ? 'z. B. +49 30 12345678' : 'pl. +36 1 234 5678'}
           className={inputClass('pharmacyContact')}
         />
         {errors.pharmacyContact && (

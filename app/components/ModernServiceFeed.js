@@ -50,7 +50,7 @@ export default function ModernServiceFeed() {
     refresh,
     loadMore,
     updatePostLocally,
-  } = useServiceFeed({ userData });
+  } = useServiceFeed({ userData, market });
 
   // Lokális UI állapotok
   const [newPostText, setNewPostText] = useState('');
@@ -280,7 +280,7 @@ export default function ModernServiceFeed() {
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.error || 'Képfeltöltés sikertelen');
+          throw new Error(data.error || (market === 'de' ? 'Bild-Upload fehlgeschlagen' : 'Képfeltöltés sikertelen'));
         }
 
         imageUrl = data.url;
@@ -288,6 +288,7 @@ export default function ModernServiceFeed() {
 
       await addDoc(collection(db, 'serviceFeedPosts'), {
         postType: 'userPost',
+        market,
         userId: user.uid,
         text: newPostText.trim(),
         imageUrl: imageUrl,
@@ -648,7 +649,7 @@ export default function ModernServiceFeed() {
                       <div className="flex items-center gap-2 p-2.5 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                         <div>
                           <p className="text-xs text-gray-500 dark:text-gray-400">{market === 'de' ? 'Max. Stundenlohn' : 'Max. órabér'}</p>
-                          <p className="text-sm font-medium text-gray-900 dark:text-white">{post.maxHourlyRate} Ft</p>
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">{post.maxHourlyRate} {market === 'de' ? 'EUR' : 'Ft'}</p>
                         </div>
                       </div>
                     )}
@@ -838,7 +839,7 @@ export default function ModernServiceFeed() {
                       {post.servicePrice && (
                         <div className="flex justify-between">
                           <span className="text-gray-600 dark:text-gray-400 text-sm">{market === 'de' ? 'Preis' : 'Ár'}</span>
-                          <span className="font-medium text-gray-900 dark:text-white text-sm">{post.servicePrice} Ft</span>
+                          <span className="font-medium text-gray-900 dark:text-white text-sm">{post.servicePrice} {market === 'de' ? 'EUR' : 'Ft'}</span>
                         </div>
                       )}
                       {post.serviceDuration && (

@@ -234,7 +234,11 @@ export default function AdminEmailPage() {
           result = await response.json();
         } catch (parseErr) {
           // Ha a válasz nem JSON (pl. Vercel 504 timeout)
-          throw new Error(`HTTP ${response.status} - nem sikerült a válasz feldolgozása`);
+          throw new Error(
+            market === 'de'
+              ? `HTTP ${response.status} - Antwort konnte nicht verarbeitet werden`
+              : `HTTP ${response.status} - nem sikerült a válasz feldolgozása`
+          );
         }
 
         if (response.ok) {
@@ -243,7 +247,7 @@ export default function AdminEmailPage() {
           if (result.errors) allErrors.push(...result.errors);
         } else {
           totalFailed += batch.length;
-          batch.forEach(t => allErrors.push({ email: t.email, name: t.name, error: result.error || 'Request failed' }));
+          batch.forEach(t => allErrors.push({ email: t.email, name: t.name, error: result.error || (market === 'de' ? 'Anfrage fehlgeschlagen' : 'Kérés sikertelen') }));
         }
       } catch (fetchErr) {
         console.error(`Batch ${Math.floor(i / BATCH_SIZE) + 1} hiba:`, fetchErr);

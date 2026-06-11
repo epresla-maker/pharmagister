@@ -214,7 +214,7 @@ export default function PrivacySettingsPage() {
           </div>
 
           {/* Helyettesítő beállítások */}
-          {(pharmaRole === 'pharmacist' || pharmaRole === 'assistant' || !pharmaRole) && (
+          {(pharmaRole === 'pharmacist' || pharmaRole === 'assistant' || pharmaRole === 'pka' || !pharmaRole) && (
             <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-sm overflow-hidden`}>
               <div className={`px-4 py-3 ${darkMode ? 'bg-gray-700/50 border-gray-700' : 'bg-gray-50 border-gray-100'} border-b`}>
                 <div className="flex items-center gap-2">

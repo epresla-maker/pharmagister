@@ -1,12 +1,43 @@
-export const dynamic = "force-static";
+export const dynamic = "force-dynamic";
 import { NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 import { Resend } from 'resend';
+import { resolveMarketFromRequest } from '@/lib/market';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+function getVerificationV2ApiCopy(market) {
+  if (market === 'de') {
+    return {
+      serverConfigError: 'Server-Konfigurationsfehler',
+      emailSendError: 'E-Mail-Sendefehler',
+      genericError: 'Fehler aufgetreten',
+      subject: 'Bestaetige deine E-Mail-Adresse - Pharmagister',
+      heading: 'Willkommen!',
+      intro: 'Danke fuer deine Registrierung bei Pharmagister!',
+      ctaLead: 'Bitte bestaetige deine E-Mail-Adresse:',
+      ctaButton: '✅ E-Mail-Adresse bestaetigen',
+      fallbackLead: 'Falls der Button nicht funktioniert, kopiere diesen Link:',
+    };
+  }
+
+  return {
+    serverConfigError: 'Server konfigurációs hiba',
+    emailSendError: 'Email küldési hiba',
+    genericError: 'Hiba történt',
+    subject: 'Erősítsd meg az email címedet - Pharmagister',
+    heading: 'Üdvözlünk!',
+    intro: 'Köszönjük, hogy regisztráltál a Pharmagister platformon!',
+    ctaLead: 'Kérjük, erősítsd meg az email címedet:',
+    ctaButton: '✅ Email cím megerősítése',
+    fallbackLead: 'Ha a gomb nem működik, másold be ezt a linket:',
+  };
+}
+
 export async function POST(request) {
   try {
+    const requestMarket = resolveMarketFromRequest(request);
+    const copy = getVerificationV2ApiCopy(requestMarket);
     // Initialize Firebase Admin
     let admin;
     try {
@@ -14,7 +45,7 @@ export async function POST(request) {
     } catch (initError) {
       console.error('❌ Firebase Admin initialization error:', initError);
       return NextResponse.json({ 
-        error: 'Server konfigurációs hiba',
+        error: copy.serverConfigError,
         details: initError.message 
       }, { status: 500 });
     }
@@ -32,7 +63,7 @@ export async function POST(request) {
     const { data, error } = await resend.emails.send({
       from: 'Pharmagister VF <noreply@valifriend.com>',
       to: [email],
-      subject: 'Erősítsd meg az email címedet - Pharmagister',
+      subject: copy.subject,
       html: `
         <!DOCTYPE html>
         <html>
@@ -67,16 +98,16 @@ export async function POST(request) {
           </head>
           <body>
             <div class="container">
-              <h2>Üdvözlünk!</h2>
-              <p>Köszönjük, hogy regisztráltál a Pharmagister platformon!</p>
-              <p>Kérjük, erősítsd meg az email címedet:</p>
+              <h2>${copy.heading}</h2>
+              <p>${copy.intro}</p>
+              <p>${copy.ctaLead}</p>
               <div style="text-align: center;">
                 <a href="${verificationLink}" class="button">
-                  ✅ Email cím megerősítése
+                  ${copy.ctaButton}
                 </a>
               </div>
               <p style="font-size: 14px; color: #666; margin-top: 30px;">
-                Ha a gomb nem működik, másold be ezt a linket:
+                ${copy.fallbackLead}
               </p>
               <p style="font-size: 12px; word-break: break-all;">
                 <a href="${verificationLink}">${verificationLink}</a>
@@ -89,7 +120,7 @@ export async function POST(request) {
 
     if (error) {
       console.error('❌ Resend error:', error);
-      return NextResponse.json({ error: 'Email küldési hiba', details: error }, { status: 500 });
+      return NextResponse.json({ error: copy.emailSendError, details: error }, { status: 500 });
     }
 
     console.log('✅ Email sent:', data.id);
@@ -97,8 +128,9 @@ export async function POST(request) {
 
   } catch (error) {
     console.error('❌ Error:', error);
+    const copy = getVerificationV2ApiCopy(resolveMarketFromRequest(request));
     return NextResponse.json({ 
-      error: 'Hiba történt', 
+      error: copy.genericError, 
       details: error.message 
     }, { status: 500 });
   }

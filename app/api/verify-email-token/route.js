@@ -1,9 +1,37 @@
-export const dynamic = "force-static";
+export const dynamic = "force-dynamic";
 import { NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
+import { normalizeMarket, resolveMarketFromRequest } from '@/lib/market';
+
+function getVerifyEmailCopy(market) {
+  if (market === 'de') {
+    return {
+      unauthorized: 'Keine Berechtigung',
+      serverConfigError: 'Server-Konfigurationsfehler. Bitte kontaktiere den Administrator.',
+      missingToken: 'Token fehlt',
+      invalidLink: 'Ungueltiger oder bereits verwendeter Verifizierungslink',
+      expiredLink: 'Der Verifizierungslink ist abgelaufen. Fordere einen neuen Link an.',
+      success: 'E-Mail-Adresse erfolgreich bestaetigt!',
+      genericError: 'Fehler bei der E-Mail-Bestaetigung',
+    };
+  }
+
+  return {
+    unauthorized: 'Nincs jogosultság',
+    serverConfigError: 'Server konfigurációs hiba. Kérjük, vegye fel a kapcsolatot az adminisztrátorral.',
+    missingToken: 'Token hiányzik',
+    invalidLink: 'Érvénytelen vagy már felhasznált verifikációs link',
+    expiredLink: 'A verifikációs link lejárt. Kérj új linket.',
+    success: 'Email cím sikeresen megerősítve!',
+    genericError: 'Hiba történt az email megerősítése során',
+  };
+}
 
 export async function POST(request) {
   try {
+    const body = await request.json();
+    const requestMarket = normalizeMarket(body.market || resolveMarketFromRequest(request));
+    const copy = getVerifyEmailCopy(requestMarket);
     // Initialize Firebase Admin
     let admin;
     try {
@@ -11,15 +39,15 @@ export async function POST(request) {
     } catch (initError) {
       console.error('❌ Firebase Admin initialization error:', initError);
       return NextResponse.json({ 
-        error: 'Server konfigurációs hiba. Kérjük, vegye fel a kapcsolatot az adminisztrátorral.',
+        error: copy.serverConfigError,
         details: initError.message 
       }, { status: 500 });
     }
 
-    const { token } = await request.json();
+    const { token } = body;
 
     if (!token) {
-      return NextResponse.json({ error: 'Token hiányzik' }, { status: 400 });
+      return NextResponse.json({ error: copy.missingToken }, { status: 400 });
     }
 
     const db = admin.firestore();
@@ -30,7 +58,7 @@ export async function POST(request) {
     
     if (snapshot.empty) {
       return NextResponse.json({ 
-        error: 'Érvénytelen vagy már felhasznált verifikációs link' 
+        error: copy.invalidLink 
       }, { status: 404 });
     }
 
@@ -40,7 +68,7 @@ export async function POST(request) {
     // Ellenőrizzük a lejáratot
     if (new Date(userData.verificationTokenExpires) < new Date()) {
       return NextResponse.json({ 
-        error: 'A verifikációs link lejárt. Kérj új linket.' 
+        error: copy.expiredLink 
       }, { status: 410 });
     }
 
@@ -64,13 +92,13 @@ export async function POST(request) {
 
     return NextResponse.json({ 
       success: true,
-      message: 'Email cím sikeresen megerősítve!'
+      message: copy.success
     });
 
   } catch (error) {
     console.error('❌ Email verification error:', error);
     return NextResponse.json({ 
-      error: 'Hiba történt az email megerősítése során',
+      error: getVerifyEmailCopy(resolveMarketFromRequest(request)).genericError,
       details: error.message 
     }, { status: 500 });
   }

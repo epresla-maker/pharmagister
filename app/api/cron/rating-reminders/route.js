@@ -1,6 +1,34 @@
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 import { resolveMarketFromRequest, normalizeMarket, isDocInMarket } from '@/lib/market';
 
+function buildRatingReminderCopy(market, substituteName) {
+  if (market === 'de') {
+    return {
+      title: 'Bewerte die Vertretung!',
+      body: `Wie lief die Zusammenarbeit? Bewerte die Arbeit von ${substituteName}!`,
+    };
+  }
+
+  return {
+    title: 'Értékeld a helyettesítőt!',
+    body: `Hogy dolgoztatok együtt? Értékeld ${substituteName} munkáját!`,
+  };
+}
+
+function getRatingCronMessage(kind, market) {
+  if (market === 'de') {
+    if (kind === 'unauthorized') return 'Nicht autorisiert';
+    if (kind === 'none_yesterday') return 'Keine Anfragen von gestern';
+    if (kind === 'none_eligible') return 'Keine passenden Anfragen (kein angenommener Bewerber)';
+    if (kind === 'already_done') return 'Alle Anfragen wurden bereits bewertet oder erinnert';
+  }
+
+  if (kind === 'unauthorized') return 'Nincs jogosultság';
+  if (kind === 'none_yesterday') return 'Nincs tegnapi igény';
+  if (kind === 'none_eligible') return 'Nincs megfelelő igény (nincs elfogadott jelentkező)';
+  return 'Minden igény már értékelt vagy emlékeztetve';
+}
+
 // Vercel Cron Job - naponta 19:00-kor CET
 // cron: 0 18 * * * (UTC, ami CET 19:00)
 //
@@ -20,7 +48,7 @@ export async function GET(request) {
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
       // Allow manual testing in development
       if (process.env.NODE_ENV === 'production') {
-        return Response.json({ error: 'Unauthorized' }, { status: 401 });
+        return Response.json({ error: getRatingCronMessage('unauthorized', requestMarket) }, { status: 401 });
       }
     }
 
@@ -53,7 +81,7 @@ export async function GET(request) {
         success: true,
         sent: 0,
         skipped: 0,
-        message: 'No demands from yesterday',
+        message: getRatingCronMessage('none_yesterday', requestMarket),
         timestamp: new Date().toISOString(),
       });
     }
@@ -92,7 +120,7 @@ export async function GET(request) {
         success: true,
         sent: 0,
         skipped: 0,
-        message: 'No eligible demands (no accepted applicants)',
+        message: getRatingCronMessage('none_eligible', requestMarket),
         timestamp: new Date().toISOString(),
       });
     }
@@ -133,7 +161,7 @@ export async function GET(request) {
         success: true,
         sent: 0,
         skipped: eligibleDemands.length,
-        message: 'All demands already rated or reminded',
+        message: getRatingCronMessage('already_done', requestMarket),
         timestamp: new Date().toISOString(),
       });
     }
@@ -148,7 +176,7 @@ export async function GET(request) {
       substituteDocs.forEach(doc => {
         if (doc.exists) {
           const data = doc.data();
-          substituteNames[doc.id] = data.displayName || data.name || 'a helyettesítő';
+          substituteNames[doc.id] = data.displayName || data.name || (requestMarket === 'de' ? 'die Vertretungskraft' : 'a helyettesítő');
         }
       });
     }
@@ -180,7 +208,8 @@ export async function GET(request) {
     const results = [];
 
     for (const demand of demandsToNotify) {
-      const substituteName = substituteNames[demand.substituteId] || 'a helyettesítő';
+      const substituteName = substituteNames[demand.substituteId] || (requestMarket === 'de' ? 'die Vertretungskraft' : 'a helyettesítő');
+      const copy = buildRatingReminderCopy(requestMarket, substituteName);
       
       // In-app értesítés batch-be
       const notifRef = db.collection('notifications').doc();
@@ -188,8 +217,8 @@ export async function GET(request) {
         userId: demand.pharmacyId,
         market: requestMarket,
         type: 'rating_reminder',
-        title: 'Értékeld a helyettesítőt!',
-        body: `Hogy dolgoztatok együtt? Értékeld ${substituteName} munkáját!`,
+        title: copy.title,
+        body: copy.body,
         url: `/ertekeles/${demand.id}`,
         relatedId: demand.id,
         read: false,
@@ -203,8 +232,8 @@ export async function GET(request) {
           await admin.messaging().send({
             token,
             notification: {
-              title: 'Értékeld a helyettesítőt!',
-              body: `Hogy dolgoztatok együtt? Értékeld ${substituteName} munkáját!`,
+              title: copy.title,
+              body: copy.body,
             },
             data: {
               url: `/ertekeles/${demand.id}`,
@@ -218,8 +247,8 @@ export async function GET(request) {
               payload: {
                 aps: {
                   alert: {
-                    title: 'Értékeld a helyettesítőt!',
-                    body: `Hogy dolgoztatok együtt? Értékeld ${substituteName} munkáját!`,
+                    title: copy.title,
+                    body: copy.body,
                   },
                   sound: 'default',
                 },

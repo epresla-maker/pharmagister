@@ -79,7 +79,11 @@ function PharmagisterContent() {
   const handleInstallClick = useCallback(async () => {
     if (!deferredPrompt) {
       // iOS vagy már telepített
-      alert('📱 Telepítés:\n\niOS: Nyomd meg a Megosztás gombot → "Hozzáadás a kezdőképernyőhöz"\n\nAndroid: Nyomd meg a ⋮ menüt → "Hozzáadás a kezdőképernyőhöz"');
+      alert(
+        market === 'de'
+          ? '📱 Installation:\n\niOS: Tippe auf Teilen → "Zum Home-Bildschirm"\n\nAndroid: Tippe auf das ⋮-Menue → "Zum Startbildschirm hinzufuegen"'
+          : '📱 Telepítés:\n\niOS: Nyomd meg a Megosztás gombot → "Hozzáadás a kezdőképernyőhöz"\n\nAndroid: Nyomd meg a ⋮ menüt → "Hozzáadás a kezdőképernyőhöz"'
+      );
       return;
     }
 
@@ -132,11 +136,11 @@ function PharmagisterContent() {
       setShowScheduleDisclaimer(false);
     } catch (error) {
       console.error('Error accepting schedule disclaimer:', error);
-      alert('Nem sikerült menteni az elfogadást. Kérlek próbáld újra.');
+      alert(market === 'de' ? 'Speichern der Bestaetigung fehlgeschlagen. Bitte versuche es erneut.' : 'Nem sikerült menteni az elfogadást. Kérlek próbáld újra.');
     } finally {
       setAcceptingScheduleDisclaimer(false);
     }
-  }, [user?.uid]);
+  }, [market, user?.uid]);
 
   const handleDeclineScheduleDisclaimer = useCallback(() => {
     setShowScheduleDisclaimer(false);

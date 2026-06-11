@@ -1,13 +1,40 @@
 import { NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 import { verifyAdmin } from '@/lib/apiAuth';
+import { resolveMarketFromRequest } from '@/lib/market';
+
+function getAdminDeleteUserCopy(market) {
+  if (market === 'de') {
+    return {
+      missingAdminPermission: 'Keine Admin-Berechtigung',
+      serverConfigError: 'Server-Konfigurationsfehler',
+      userIdRequired: 'userId ist erforderlich',
+      successFull: 'Nutzer/in vollstaendig geloescht (Firestore + Auth + Posts)',
+      successPartial: 'Nutzer/in aus Firestore geloescht (Auth-Loeschung fehlgeschlagen)',
+      warningManualAuthDelete: 'Firebase-Auth-Loeschung fehlgeschlagen - bitte manuell in der Firebase Console loeschen',
+      genericDeleteError: 'Loeschfehler',
+    };
+  }
+
+  return {
+    missingAdminPermission: 'Nincs admin jogosultság',
+    serverConfigError: 'Server konfigurációs hiba',
+    userIdRequired: 'userId kötelező',
+    successFull: 'Felhasználó teljesen törölve (Firestore + Auth + Posts)',
+    successPartial: 'Felhasználó törölve Firestore-ból (Auth törlés sikertelen)',
+    warningManualAuthDelete: 'Firebase Auth törlés nem sikerült - töröld manuálisan a Firebase Console-ból',
+    genericDeleteError: 'Törlési hiba',
+  };
+}
 
 export async function POST(request) {
   try {
+    const requestMarket = resolveMarketFromRequest(request);
+    const copy = getAdminDeleteUserCopy(requestMarket);
     // Verify admin access
     const adminUser = await verifyAdmin(request);
     if (!adminUser) {
-      return NextResponse.json({ error: 'Nincs admin jogosultság' }, { status: 403 });
+      return NextResponse.json({ error: copy.missingAdminPermission }, { status: 403 });
     }
 
     // Initialize Firebase Admin
@@ -17,7 +44,7 @@ export async function POST(request) {
     } catch (initError) {
       console.error('❌ Firebase Admin initialization error:', initError);
       return NextResponse.json({ 
-        error: 'Server konfigurációs hiba',
+        error: copy.serverConfigError,
         details: initError.message 
       }, { status: 500 });
     }
@@ -25,7 +52,7 @@ export async function POST(request) {
     const { userId } = await request.json();
 
     if (!userId) {
-      return NextResponse.json({ error: 'userId kötelező' }, { status: 400 });
+      return NextResponse.json({ error: copy.userIdRequired }, { status: 400 });
     }
 
     console.log('🗑️ Törlés indul:', userId);
@@ -62,7 +89,7 @@ export async function POST(request) {
       
       return NextResponse.json({ 
         success: true, 
-        message: 'Felhasználó teljesen törölve (Firestore + Auth + Posts)',
+        message: copy.successFull,
         deletedPosts: deletedPosts
       });
     } catch (authError) {
@@ -70,16 +97,17 @@ export async function POST(request) {
       
       return NextResponse.json({ 
         success: true, 
-        message: 'Felhasználó törölve Firestore-ból (Auth törlés sikertelen)',
+        message: copy.successPartial,
         deletedPosts: deletedPosts,
-        warning: 'Firebase Auth törlés nem sikerült - töröld manuálisan a Firebase Console-ból'
+        warning: copy.warningManualAuthDelete
       });
     }
 
   } catch (error) {
     console.error('❌ User törlési hiba:', error);
+    const copy = getAdminDeleteUserCopy(resolveMarketFromRequest(request));
     return NextResponse.json({ 
-      error: 'Törlési hiba',
+      error: copy.genericDeleteError,
       details: error.message,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     }, { status: 500 });

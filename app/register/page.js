@@ -5,10 +5,13 @@ import { createUserWithEmailAndPassword, sendEmailVerification, signOut } from '
 import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { getClientMarket } from '@/lib/marketI18n';
+import { MARKET_COOKIE, normalizeMarket } from '@/lib/market';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const market = getClientMarket();
+  const detectedMarket = normalizeMarket(getClientMarket());
+  const [selectedMarket, setSelectedMarket] = useState('');
+  const market = selectedMarket ? normalizeMarket(selectedMarket) : detectedMarket;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -20,9 +23,22 @@ export default function RegisterPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showFreemailWarning, setShowFreemailWarning] = useState(false);
 
+  const handleMarketSelect = (nextMarket) => {
+    const normalized = normalizeMarket(nextMarket);
+    setSelectedMarket(normalized);
+    document.cookie = `${MARKET_COOKIE}=${normalized}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    if (!selectedMarket) {
+      setError(market === 'de' ? 'Bitte waehle bei der Registrierung eine Sprache aus.' : 'Regisztrációkor kötelező kiválasztani a nyelvet/lokalizációt.');
+      return;
+    }
+
+    const registrationMarket = normalizeMarket(selectedMarket);
 
     if (!acceptedPrivacy) {
       setError(market === 'de' ? 'Die Annahme der Datenschutzerklaerung ist erforderlich.' : 'Az adatvédelmi tájékoztató elfogadása kötelező');
@@ -47,6 +63,8 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
+      document.cookie = `${MARKET_COOKIE}=${registrationMarket}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
+
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       
       // Egyedi verification token generálása (crypto-safe)
@@ -54,6 +72,7 @@ export default function RegisterPage() {
       
       await setDoc(doc(db, 'users', userCredential.user.uid), {
         email: userCredential.user.email,
+        market: registrationMarket,
         createdAt: new Date().toISOString(),
         pharmagisterRole: null,
         pharmaProfileComplete: false,
@@ -69,6 +88,7 @@ export default function RegisterPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: userCredential.user.email,
+          market: registrationMarket,
           verificationToken: verificationToken
         })
       });
@@ -151,6 +171,41 @@ export default function RegisterPage() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              {market === 'de' ? 'Sprache/Lokalisierung (verbindlich)' : 'Nyelv/lokalizáció (kötelező)'}
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => handleMarketSelect('hu')}
+                className={`rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${
+                  selectedMarket === 'hu'
+                    ? 'bg-emerald-600 text-white border-emerald-600'
+                    : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                🇭🇺 {market === 'de' ? 'Ungarisch' : 'Magyar'}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleMarketSelect('de')}
+                className={`rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${
+                  selectedMarket === 'de'
+                    ? 'bg-emerald-600 text-white border-emerald-600'
+                    : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                🇩🇪 {market === 'de' ? 'Deutsch' : 'Német'}
+              </button>
+            </div>
+            <p className="mt-2 text-xs text-gray-600">
+              {market === 'de'
+                ? 'Diese Auswahl wird bei der Registrierung gespeichert und ist spaeter nicht aenderbar.'
+                : 'Ezt a választást regisztrációkor véglegesen mentjük, később nem módosítható.'}
+            </p>
+          </div>
+
           <div>
             <label className="block text-sm font-medium mb-1">Email</label>
             <input
@@ -243,7 +298,7 @@ export default function RegisterPage() {
 
           <button
             type="submit"
-            disabled={loading || !acceptedPrivacy}
+            disabled={loading || !acceptedPrivacy || !selectedMarket}
             className="w-full bg-emerald-700 text-white py-2 rounded-lg hover:bg-emerald-800 disabled:opacity-50"
           >
             {loading ? (market === 'de' ? 'Wird geladen...' : 'Betöltés...') : (market === 'de' ? 'Registrieren' : 'Regisztrálok')}
