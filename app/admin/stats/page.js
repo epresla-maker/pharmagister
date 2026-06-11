@@ -411,6 +411,89 @@ export default function StatsPage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-4">
+                          <div className="text-right">
+                            <p className="text-lg font-bold text-purple-600">{pharmacy.demands.length}</p>
+                            <p className="text-xs text-gray-500">igény</p>
+                          </div>
+                          {expandedPharmacy === pharmacy.pharmacyId 
+                            ? <ChevronUp size={20} className="text-gray-400" />
+                            : <ChevronDown size={20} className="text-gray-400" />}
+                        </div>
+                      </button>
+                      {expandedPharmacy === pharmacy.pharmacyId && (
+                        <div className="p-4 border-t">
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="text-left text-gray-500 border-b">
+                                  <th className="py-2 pr-3">Dátum</th>
+                                  <th className="py-2 px-3">Pozíció</th>
+                                  <th className="py-2 px-3 text-center">Jelentkezők</th>
+                                  <th className="py-2 px-3">Állapot</th>
+                                  <th className="py-2 pl-3">Létrehozva</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {pharmacy.demands
+                                  .sort((a, b) => (a.date > b.date ? -1 : 1))
+                                  .map((d) => (
+                                  <React.Fragment key={d.id}>
+                                  <tr className="border-b last:border-0">
+                                    <td className="py-2 pr-3 font-medium">{d.date}</td>
+                                    <td className="py-2 px-3">{d.position}</td>
+                                    <td className="py-2 px-3 text-center">
+                                      <span className={`font-semibold ${d.applicantCount > 0 ? 'text-blue-600' : 'text-gray-400'}`}>
+                                        {d.applicantCount}
+                                      </span>
+                                    </td>
+                                    <td className="py-2 px-3">
+                                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                                        d.demandStatus === 'Betöltve' ? 'bg-green-100 text-green-700' :
+                                        d.demandStatus === 'Mindenkit elutasították' ? 'bg-red-100 text-red-700' :
+                                        d.demandStatus === 'Vár válaszra' ? 'bg-yellow-100 text-yellow-700' :
+                                        'bg-gray-100 text-gray-600'
+                                      }`}>
+                                        {d.demandStatus === 'Betöltve' && <><CheckCircle size={12} /> Betöltve</>}
+                                        {d.demandStatus === 'Mindenkit elutasították' && <><XCircle size={12} /> Mindenkit elutasították</>}
+                                        {d.demandStatus === 'Vár válaszra' && <><Clock size={12} /> Vár válaszra</>}
+                                        {d.demandStatus === 'Nincs jelentkező' && 'Nincs jelentkező'}
+                                      </span>
+                                    </td>
+                                    <td className="py-2 pl-3 text-xs text-gray-400">
+                                      {d.createdAt 
+                                        ? (typeof d.createdAt === 'string' 
+                                            ? new Date(d.createdAt).toLocaleDateString('hu-HU') 
+                                            : d.createdAt.seconds 
+                                              ? new Date(d.createdAt.seconds * 1000).toLocaleDateString('hu-HU')
+                                              : '-')
+                                        : '-'}
+                                    </td>
+                                  </tr>
+                                  {d.applicants && d.applicants.length > 0 && (
+                                    <tr>
+                                      <td colSpan={5} className="pb-3 pt-0 px-2">
+                                        <div className="ml-4 bg-blue-50 rounded-lg p-3">
+                                          <p className="text-xs font-semibold text-blue-700 mb-2">Jelentkezők:</p>
+                                          <div className="space-y-1.5">
+                                            {d.applicants.map(app => {
+                                              const formatDate = (val) => {
+                                                if (!val) return '-';
+                                                if (typeof val === 'string') return new Date(val).toLocaleDateString('hu-HU');
+                                                if (val.seconds) return new Date(val.seconds * 1000).toLocaleDateString('hu-HU');
+                                                return '-';
+                                              };
+                                              return (
+                                                <div key={app.id} className="flex items-center justify-between text-xs bg-white rounded-md px-3 py-1.5">
+                                                  <div className="flex items-center gap-2">
+                                                    <span className="font-medium text-gray-800">{app.name}</span>
+                                                    <span className="text-gray-400">({app.role})</span>
+                                                  </div>
+                                                  <div className="flex items-center gap-3">
+                                                    <span className="text-gray-400">Jelentkezett: {formatDate(app.appliedAt)}</span>
+                                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium ${
+                                                      app.status === 'accepted' ? 'bg-green-100 text-green-700' :
+                                                      app.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                                      'bg-yellow-100 text-yellow-700'
                                                     }`}>
                                                       {app.status === 'accepted' && <><CheckCircle size={10} /> Elfogadva</>}
                                                       {app.status === 'rejected' && <><XCircle size={10} /> Elutasítva</>}
@@ -444,56 +527,6 @@ export default function StatsPage() {
                     </div>
                   ))}
                 </div>
-
-                {/* Részletes lista */}
-                {stats.de.list && stats.de.list.length > 0 && (
-                  <div className="mt-5 border-t pt-4">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Regisztrált DE felhasználók</p>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="text-left text-gray-500 border-b text-xs">
-                            <th className="py-2 pr-3">Név</th>
-                            <th className="py-2 px-3">Email</th>
-                            <th className="py-2 px-3">Szerepkör</th>
-                            <th className="py-2 px-3 text-center">Profil</th>
-                            <th className="py-2 pl-3">Regisztrált</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {stats.de.list.map((u) => {
-                            const roleLabel = u.role === 'pharmacy' || u.role === 'gyógyszertár' ? 'Gyógyszertár'
-                              : u.role === 'pharmacist' || u.role === 'gyógyszerész' ? 'Gyógyszerész'
-                              : u.role === 'assistant' || u.role === 'szakasszisztens' ? 'Szakasszisztens'
-                              : 'Nincs';
-                            const roleColor = u.role === 'pharmacy' || u.role === 'gyógyszertár' ? 'bg-green-100 text-green-700'
-                              : u.role === 'pharmacist' || u.role === 'gyógyszerész' ? 'bg-indigo-100 text-indigo-700'
-                              : u.role === 'assistant' || u.role === 'szakasszisztens' ? 'bg-orange-100 text-orange-700'
-                              : 'bg-gray-100 text-gray-500';
-                            const createdStr = u.createdAt?.seconds
-                              ? new Date(u.createdAt.seconds * 1000).toLocaleDateString('hu-HU')
-                              : '-';
-                            return (
-                              <tr key={u.id} className="border-b last:border-0 hover:bg-blue-50/30">
-                                <td className="py-2 pr-3 font-medium text-gray-800">{u.name}</td>
-                                <td className="py-2 px-3 text-gray-600 text-xs">{u.email}</td>
-                                <td className="py-2 px-3">
-                                  <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${roleColor}`}>{roleLabel}</span>
-                                </td>
-                                <td className="py-2 px-3 text-center">
-                                  {u.pharmaProfileComplete
-                                    ? <span className="text-green-600 text-xs font-semibold">✓ Kész</span>
-                                    : <span className="text-gray-400 text-xs">Hiányos</span>}
-                                </td>
-                                <td className="py-2 pl-3 text-xs text-gray-400">{createdStr}</td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
               </section>
             )}
 
