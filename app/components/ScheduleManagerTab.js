@@ -8117,8 +8117,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                     },
                   }))}
                   className="h-4 w-4 rounded"
-                  <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>{market === 'de' ? 'Oeffnungszeiten pruefen' : 'Nyitvatartás ellenőrzése'}</span>
-                <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>Nyitvatartás ellenőrzése</span>
+                />
+                <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>{market === 'de' ? 'Oeffnungszeiten pruefen' : 'Nyitvatartás ellenőrzése'}</span>
               </label>
             </div>
 
