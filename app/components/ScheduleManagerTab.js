@@ -7700,25 +7700,41 @@ export default function ScheduleManagerTab({ pharmaRole }) {
     : 0;
   const contradictionWarnings = [];
   if (plannerConfigForm.operations?.onCall?.enabled && onCallDaysSelected.length === 0) {
-    contradictionWarnings.push('Az ügyelet be van kapcsolva, de nincs kiválasztott ügyeleti nap.');
+    contradictionWarnings.push(market === 'de'
+      ? 'Bereitschaftsdienst ist aktiviert, aber es sind keine Bereitschaftstage ausgewaehlt.'
+      : 'Az ügyelet be van kapcsolva, de nincs kiválasztott ügyeleti nap.');
   }
   if (activePharmacists === 0 && (Number(plannerConfigForm.minPharmacistsPerShift || 0) > 0 || estimatedOnCallDemand > 0)) {
-    contradictionWarnings.push('A rendszer gyógyszerészt vár el, de jelenleg nincs egyetlen aktív gyógyszerész sem a dolgozók között.');
+    contradictionWarnings.push(market === 'de'
+      ? 'Das System erwartet Apotheker/innen, aber aktuell gibt es keine aktive Apothekerin bzw. keinen aktiven Apotheker im Team.'
+      : 'A rendszer gyógyszerészt vár el, de jelenleg nincs egyetlen aktív gyógyszerész sem a dolgozók között.');
   }
   if (activePharmacists > 0 && (estimatedDayPharmacistDemand + estimatedOnCallDemand) > activePharmacists * 6) {
-    contradictionWarnings.push('A megadott gyógyszerész-igény nagyon magas a jelenlegi létszámhoz képest, várhatóan sok lefedetlen műszak lesz.');
+    contradictionWarnings.push(market === 'de'
+      ? 'Der angegebene Apothekerbedarf ist im Verhaeltnis zur aktuellen Teamgroesse sehr hoch; voraussichtlich bleiben viele Schichten unbesetzt.'
+      : 'A megadott gyógyszerész-igény nagyon magas a jelenlegi létszámhoz képest, várhatóan sok lefedetlen műszak lesz.');
   }
   if (plannerConfigForm.operations?.enforceOpeningHours !== false && plannerConfigForm.operations?.onCall?.enabled && plannerConfigForm.operations?.allowOnCallOutsideOpening === false) {
-    contradictionWarnings.push('Az ügyelet aktív, de nyitvatartáson kívüli ügyelet nincs engedélyezve, így az ügyeleti sáv ütközhet a nyitvatartással.');
+    contradictionWarnings.push(market === 'de'
+      ? 'Bereitschaft ist aktiv, aber ausserhalb der Oeffnungszeiten nicht erlaubt. Dadurch kann das Bereitschaftsfenster mit den Oeffnungszeiten kollidieren.'
+      : 'Az ügyelet aktív, de nyitvatartáson kívüli ügyelet nincs engedélyezve, így az ügyeleti sáv ütközhet a nyitvatartással.');
   }
 
   const aiSummaryLines = [
-    `Normál nyitvatartási napok: ${weekdayOpenDays} nap / hét`,
-    `Minimum nappali gyógyszerész igény: ${plannerConfigForm.minPharmacistsPerShift || 0} fő / nyitott nap`,
+    market === 'de'
+      ? `Normale Oeffnungstage: ${weekdayOpenDays} Tage / Woche`
+      : `Normál nyitvatartási napok: ${weekdayOpenDays} nap / hét`,
+    market === 'de'
+      ? `Minimaler Tagesbedarf an Apotheker/innen: ${plannerConfigForm.minPharmacistsPerShift || 0} Personen / geoeffneter Tag`
+      : `Minimum nappali gyógyszerész igény: ${plannerConfigForm.minPharmacistsPerShift || 0} fő / nyitott nap`,
     plannerConfigForm.operations?.onCall?.enabled
-      ? `Ügyelet: ${onCallDaysSelected.length} kijelölt nap, ${plannerConfigForm.operations?.onCall?.startTime || '20:00'}-${plannerConfigForm.operations?.onCall?.endTime || '08:00'}, minimum ${plannerConfigForm.operations?.onCall?.requiredPharmacists ?? 0} gyógyszerész`
-      : 'Ügyelet: nincs bekapcsolva',
-    `Aktív dolgozók: ${activeEmployees.length} fő, ebből gyógyszerész: ${activePharmacists} fő`,
+      ? (market === 'de'
+          ? `Bereitschaft: ${onCallDaysSelected.length} ausgewaehlte Tage, ${plannerConfigForm.operations?.onCall?.startTime || '20:00'}-${plannerConfigForm.operations?.onCall?.endTime || '08:00'}, mindestens ${plannerConfigForm.operations?.onCall?.requiredPharmacists ?? 0} Apotheker/innen`
+          : `Ügyelet: ${onCallDaysSelected.length} kijelölt nap, ${plannerConfigForm.operations?.onCall?.startTime || '20:00'}-${plannerConfigForm.operations?.onCall?.endTime || '08:00'}, minimum ${plannerConfigForm.operations?.onCall?.requiredPharmacists ?? 0} gyógyszerész`)
+      : (market === 'de' ? 'Bereitschaft: nicht aktiviert' : 'Ügyelet: nincs bekapcsolva'),
+    market === 'de'
+      ? `Aktive Mitarbeitende: ${activeEmployees.length}, davon Apotheker/innen: ${activePharmacists}`
+      : `Aktív dolgozók: ${activeEmployees.length} fő, ebből gyógyszerész: ${activePharmacists} fő`,
   ];
 
   const goWizardPrev = () => setPlannerWizardStep((prev) => Math.max(0, Math.min(safeWizardStepIndex - 1, prev - 1)));
@@ -7793,8 +7809,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                 {wizardStep.key === 'open_sunday' && (
                   <div className="space-y-3">
                     {[
-                      { value: true, label: 'Igen, vasárnap is nyitva vagyunk', icon: '✅' },
-                      { value: false, label: 'Nem, vasárnap zárva tartunk', icon: '🚫' },
+                      { value: true, label: market === 'de' ? 'Ja, wir haben auch sonntags geoeffnet' : 'Igen, vasárnap is nyitva vagyunk', icon: '✅' },
+                      { value: false, label: market === 'de' ? 'Nein, sonntags haben wir geschlossen' : 'Nem, vasárnap zárva tartunk', icon: '🚫' },
                     ].map(opt => {
                       const current = plannerConfigForm.operations?.openingHoursByWeekday?.[0]?.isOpen !== false;
                       const selected = opt.value === current;
@@ -7821,8 +7837,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                 {wizardStep.key === 'on_call_enabled' && (
                   <div className="space-y-3">
                     {[
-                      { value: true, label: 'Igen, van rendszeres ügyelet', icon: '🌙' },
-                      { value: false, label: 'Nem, nincs ügyeleti szolgálat', icon: '☀️' },
+                      { value: true, label: market === 'de' ? 'Ja, wir haben regulaere Bereitschaft' : 'Igen, van rendszeres ügyelet', icon: '🌙' },
+                      { value: false, label: market === 'de' ? 'Nein, es gibt keinen Bereitschaftsdienst' : 'Nem, nincs ügyeleti szolgálat', icon: '☀️' },
                     ].map(opt => {
                       const current = plannerConfigForm.operations?.onCall?.enabled === true;
                       const selected = opt.value === current;
@@ -7881,7 +7897,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                     >−</button>
                     <div className="flex-1 text-center">
                       <p className={`text-5xl font-black ${darkMode ? 'text-white' : 'text-gray-900'}`}>{plannerConfigForm.minPharmacistsPerShift || 0}</p>
-                      <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>gyógyszerész / műszak</p>
+                      <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{market === 'de' ? 'Apotheker/in / Schicht' : 'gyógyszerész / műszak'}</p>
                     </div>
                     <button
                       type="button"
@@ -7900,7 +7916,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                     >−</button>
                     <div className="flex-1 text-center">
                       <p className={`text-5xl font-black ${darkMode ? 'text-white' : 'text-gray-900'}`}>{plannerConfigForm.operations?.onCall?.requiredPharmacists ?? 1}</p>
-                      <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>gyógyszerész / ügyelet</p>
+                      <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{market === 'de' ? 'Apotheker/in / Bereitschaft' : 'gyógyszerész / ügyelet'}</p>
                     </div>
                     <button
                       type="button"
