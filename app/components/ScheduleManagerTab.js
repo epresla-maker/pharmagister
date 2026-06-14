@@ -7751,11 +7751,11 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                 </div>
                 <div>
                   <p className={`font-bold text-base ${darkMode ? 'text-white' : 'text-gray-900'}`}>Betti</p>
-                  <p className={`text-xs ${darkMode ? 'text-violet-300' : 'text-violet-600'}`}>Beosztástervező asszisztens</p>
+                  <p className={`text-xs ${darkMode ? 'text-violet-300' : 'text-violet-600'}`}>{market === 'de' ? 'Dienstplan-Assistentin' : 'Beosztástervező asszisztens'}</p>
                 </div>
                 <div className="ml-auto text-right">
                   <p className={`text-xs font-semibold ${darkMode ? 'text-violet-300' : 'text-violet-700'}`}>{safeWizardStepIndex + 1} / {wizardTotal}</p>
-                  <p className={`text-[10px] ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>kérdés</p>
+                  <p className={`text-[10px] ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{market === 'de' ? 'Frage' : 'kérdés'}</p>
                 </div>
               </div>
               {/* Progress bar */}
@@ -7773,9 +7773,11 @@ export default function ScheduleManagerTab({ pharmaRole }) {
               {/* Bemutatkozás csak első lépésnél */}
               {safeWizardStepIndex === 0 && (
                 <div className={`rounded-2xl rounded-tl-sm px-5 py-4 ${darkMode ? 'bg-violet-900/50' : 'bg-violet-50'}`}>
-                  <p className={`font-bold text-base mb-1 ${darkMode ? 'text-violet-100' : 'text-violet-900'}`}>Szia! Én vagyok Betti</p>
+                  <p className={`font-bold text-base mb-1 ${darkMode ? 'text-violet-100' : 'text-violet-900'}`}>{market === 'de' ? 'Hallo! Ich bin Betti' : 'Szia! Én vagyok Betti'}</p>
                   <p className={`text-sm leading-relaxed ${darkMode ? 'text-violet-200/80' : 'text-violet-800/80'}`}>
-                    A beosztástervező asszisztensed vagyok. Néhány kérdéssel beállítom a gyógyszertárad kritériumait, hogy az automatikus beosztás pontosan illeszkedjen hozzátok. Minden válasz azonnal mentődik!
+                    {market === 'de'
+                      ? 'Ich bin deine Dienstplan-Assistentin. Mit ein paar Fragen stelle ich die Kriterien deiner Apotheke ein, damit der automatische Dienstplan genau zu euch passt. Jede Antwort wird sofort gespeichert!'
+                      : 'A beosztástervező asszisztensed vagyok. Néhány kérdéssel beállítom a gyógyszertárad kritériumait, hogy az automatikus beosztás pontosan illeszkedjen hozzátok. Minden válasz azonnal mentődik!'}
                   </p>
                 </div>
               )}
