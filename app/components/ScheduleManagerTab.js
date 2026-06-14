@@ -8252,7 +8252,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                         },
                       },
                     }))}
-                      <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>{market === 'de' ? 'Bereitschaft ausserhalb der Oeffnungszeiten erlaubt' : 'Ügyelet nyitvatartáson kívül engedélyezett'}</span>
+                    className={`w-full rounded-xl border px-3 py-2 text-sm ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
                   />
                 </Field>
               </div>
@@ -8286,8 +8286,8 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                       },
                     }))}
                     className="h-4 w-4 rounded"
-                    <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>{market === 'de' ? 'Automatische Bereitschaftsvorlage verwenden' : 'Automatikus ügyeleti sablon használat'}</span>
-                  <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>Ügyelet nyitvatartáson kívül engedélyezett</span>
+                  />
+                  <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>{market === 'de' ? 'Bereitschaft ausserhalb der Oeffnungszeiten erlaubt' : 'Ügyelet nyitvatartáson kívül engedélyezett'}</span>
                 </label>
                 <label className="flex items-center gap-2 text-xs font-medium cursor-pointer">
                   <input
@@ -8305,7 +8305,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                     }))}
                     className="h-4 w-4 rounded"
                   />
-                  <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>Automatikus ügyeleti sablon használat</span>
+                  <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>{market === 'de' ? 'Automatische Bereitschaftsvorlage verwenden' : 'Automatikus ügyeleti sablon használat'}</span>
                 </label>
               </div>
             </div>
