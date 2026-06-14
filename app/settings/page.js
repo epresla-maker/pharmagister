@@ -261,13 +261,7 @@ export default function SettingsPage() {
                 🇩🇪 {market === 'de' ? 'Deutsch' : 'Német'}
               </button>
             </div>
-          ) : (
-            <div className={`rounded-xl border px-3 py-2.5 text-sm ${darkMode ? 'border-gray-700 bg-gray-900 text-gray-200' : 'border-gray-200 bg-gray-50 text-gray-700'}`}>
-              {market === 'de'
-                ? 'Aktive Sprache: Deutsch. Die Sprache wird bei der Registrierung festgelegt und kann spaeter nicht geaendert werden.'
-                : 'Aktív nyelv: Magyar. A nyelv regisztrációkor kerül rögzítésre, később nem módosítható.'}
-            </div>
-          )}
+          ) : null}
         </div>
       </div>
 
