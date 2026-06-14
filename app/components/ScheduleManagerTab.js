@@ -8008,9 +8008,9 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
           {/* ── Napi létszám ────────────────────────────────────────── */}
           <div className={`rounded-2xl border p-4 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
-            <h3 className={`font-bold text-sm uppercase tracking-widest ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Napi létszám követelmények</h3>
+            <h3 className={`font-bold text-sm uppercase tracking-widest ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{market === 'de' ? 'Taegliche Personalanforderungen' : 'Napi létszám követelmények'}</h3>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Minimum létszám / műszak">
+              <Field label={market === 'de' ? 'Mindestpersonal / Schicht' : 'Minimum létszám / műszak'}>
                 <input
                   type="number" min="1"
                   value={plannerConfigForm.minStaffPerShift}
@@ -8018,16 +8018,16 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   className={`w-full rounded-xl border px-3 py-2.5 text-base ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
                 />
               </Field>
-              <Field label="Maximum létszám / műszak">
+              <Field label={market === 'de' ? 'Maximalpersonal / Schicht' : 'Maximum létszám / műszak'}>
                 <input
                   type="number" min="0"
                   value={(plannerConfigForm.maxStaffPerShift ?? 0) === 0 ? '' : plannerConfigForm.maxStaffPerShift}
-                  placeholder="nincs maximum"
+                  placeholder={market === 'de' ? 'kein Maximum' : 'nincs maximum'}
                   onChange={e => setPlannerConfigForm(prev => ({ ...prev, maxStaffPerShift: Number(e.target.value || 0) }))}
                   className={`w-full rounded-xl border px-3 py-2.5 text-base ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-500' : 'bg-white border-gray-300 placeholder-gray-400'}`}
                 />
               </Field>
-              <Field label="Min. gyógyszerész / műszak">
+              <Field label={market === 'de' ? 'Min. Apotheker/in / Schicht' : 'Min. gyógyszerész / műszak'}>
                 <input
                   type="number" min="0"
                   value={plannerConfigForm.minPharmacistsPerShift}
@@ -8035,7 +8035,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   className={`w-full rounded-xl border px-3 py-2.5 text-base ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
                 />
               </Field>
-              <Field label="Max. gyógyszerész / műszak">
+              <Field label={market === 'de' ? 'Max. Apotheker/in / Schicht' : 'Max. gyógyszerész / műszak'}>
                 <input
                   type="number" min="0"
                   value={(plannerConfigForm.maxPharmacistsPerShift ?? 0) === 0 ? '' : plannerConfigForm.maxPharmacistsPerShift}
@@ -8084,14 +8084,14 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                   className={`w-full rounded-xl border px-3 py-2.5 text-base ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
                 />
               </Field>
-              <Field label="Max. éjszakai műszak (óra)">
+              <Field label={market === 'de' ? 'Max. Nachtschicht (Stunden)' : 'Max. éjszakai műszak (óra)'}>
                 <input type="number" min="1" max="24"
                   value={plannerConfigForm.laborLaw?.maxNightShiftHoursLegal || 8}
                   onChange={e => setPlannerConfigForm(prev => ({ ...prev, laborLaw: { ...(prev.laborLaw || {}), maxNightShiftHoursLegal: Number(e.target.value || 8) } }))}
                   className={`w-full rounded-xl border px-3 py-2.5 text-base ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
                 />
               </Field>
-              <Field label="Kötelező szünet ettől (óra)">
+              <Field label={market === 'de' ? 'Pause verpflichtend ab (Stunden)' : 'Kötelező szünet ettől (óra)'}>
                 <input type="number" min="1" max="12"
                   value={plannerConfigForm.laborLaw?.requireBreakAfterHours || 6}
                   onChange={e => setPlannerConfigForm(prev => ({ ...prev, laborLaw: { ...(prev.laborLaw || {}), requireBreakAfterHours: Number(e.target.value || 6) } }))}
@@ -8104,7 +8104,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
           {/* ── Nyitvatartás + ügyelet ───────────────────────────── */}
           <div className={`rounded-2xl border p-4 space-y-4 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
             <div className="flex items-center justify-between">
-              <h3 className={`font-bold text-sm uppercase tracking-widest ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Nyitvatartás és ügyelet</h3>
+              <h3 className={`font-bold text-sm uppercase tracking-widest ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{market === 'de' ? 'Oeffnungszeiten und Bereitschaft' : 'Nyitvatartás és ügyelet'}</h3>
               <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
                 <input
                   type="checkbox"
@@ -8117,7 +8117,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                     },
                   }))}
                   className="h-4 w-4 rounded"
-                />
+                  <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>{market === 'de' ? 'Oeffnungszeiten pruefen' : 'Nyitvatartás ellenőrzése'}</span>
                 <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>Nyitvatartás ellenőrzése</span>
               </label>
             </div>
@@ -8137,7 +8137,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                           onChange={e => updateOpeningHoursDay(day, { isOpen: e.target.checked })}
                           className="h-4 w-4 rounded"
                         />
-                        <span className={darkMode ? 'text-gray-300' : 'text-gray-600'}>Nyitva</span>
+                        <span className={darkMode ? 'text-gray-300' : 'text-gray-600'}>{market === 'de' ? 'Geoeffnet' : 'Nyitva'}</span>
                       </label>
                     </div>
                     <div className="mt-2 grid grid-cols-2 gap-2">
@@ -8163,7 +8163,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
 
             <div className={`rounded-xl border p-3 space-y-3 ${darkMode ? 'border-violet-700 bg-violet-900/20' : 'border-violet-200 bg-violet-50'}`}>
               <div className="flex items-center justify-between">
-                <p className={`text-sm font-bold ${darkMode ? 'text-violet-200' : 'text-violet-900'}`}>Ügyeleti sajátosságok</p>
+                <p className={`text-sm font-bold ${darkMode ? 'text-violet-200' : 'text-violet-900'}`}>{market === 'de' ? 'Bereitschaftsdetails' : 'Ügyeleti sajátosságok'}</p>
                 <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
                   <input
                     type="checkbox"
@@ -8180,12 +8180,12 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                     }))}
                     className="h-4 w-4 rounded"
                   />
-                  <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>Ügyelet van</span>
+                  <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>{market === 'de' ? 'Bereitschaft aktiv' : 'Ügyelet van'}</span>
                 </label>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
-                <Field label="Ügyelet kezdés">
+                <Field label={market === 'de' ? 'Bereitschaft Start' : 'Ügyelet kezdés'}>
                   <input
                     type="time"
                     value={plannerConfigForm.operations?.onCall?.startTime || '20:00'}
@@ -8202,7 +8202,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                     className={`w-full rounded-xl border px-3 py-2 text-sm ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
                   />
                 </Field>
-                <Field label="Ügyelet vége">
+                <Field label={market === 'de' ? 'Bereitschaft Ende' : 'Ügyelet vége'}>
                   <input
                     type="time"
                     value={plannerConfigForm.operations?.onCall?.endTime || '08:00'}
@@ -8219,7 +8219,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                     className={`w-full rounded-xl border px-3 py-2 text-sm ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
                   />
                 </Field>
-                <Field label="Ügyelet létszám">
+                <Field label={market === 'de' ? 'Bereitschaft Personal' : 'Ügyelet létszám'}>
                   <input
                     type="number"
                     min="0"
@@ -8237,7 +8237,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                     className={`w-full rounded-xl border px-3 py-2 text-sm ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
                   />
                 </Field>
-                <Field label="Ügyelet gyógyszerész">
+                <Field label={market === 'de' ? 'Bereitschaft Apotheker/in' : 'Ügyelet gyógyszerész'}>
                   <input
                     type="number"
                     min="0"
@@ -8252,7 +8252,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                         },
                       },
                     }))}
-                    className={`w-full rounded-xl border px-3 py-2 text-sm ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                      <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>{market === 'de' ? 'Bereitschaft ausserhalb der Oeffnungszeiten erlaubt' : 'Ügyelet nyitvatartáson kívül engedélyezett'}</span>
                   />
                 </Field>
               </div>
@@ -8286,7 +8286,7 @@ export default function ScheduleManagerTab({ pharmaRole }) {
                       },
                     }))}
                     className="h-4 w-4 rounded"
-                  />
+                    <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>{market === 'de' ? 'Automatische Bereitschaftsvorlage verwenden' : 'Automatikus ügyeleti sablon használat'}</span>
                   <span className={darkMode ? 'text-gray-300' : 'text-gray-700'}>Ügyelet nyitvatartáson kívül engedélyezett</span>
                 </label>
                 <label className="flex items-center gap-2 text-xs font-medium cursor-pointer">
