@@ -42,15 +42,17 @@ export default function AdminReportsPage() {
   const market = getClientMarket();
   const [reports, setReports] = useState([]);
   const [loadingReports, setLoadingReports] = useState(true);
+  const normalizedEmail = String(user?.email || userData?.email || '').trim().toLowerCase();
+  const isAuthorized = ADMINKA_EMAILS.some((email) => email.toLowerCase() === normalizedEmail);
 
   useEffect(() => {
-    if (!loading && (!user || !ADMINKA_EMAILS.includes(user.email))) {
+    if (!loading && (!user || !isAuthorized)) {
       router.push('/');
     }
-  }, [user, loading, router]);
+  }, [user, loading, isAuthorized, router]);
 
   useEffect(() => {
-    if (!user || !ADMINKA_EMAILS.includes(user.email)) return;
+    if (!user || !isAuthorized) return;
 
     const fetchReports = async () => {
       setLoadingReports(true);
@@ -72,7 +74,7 @@ export default function AdminReportsPage() {
     };
 
     fetchReports();
-  }, [user]);
+  }, [user, isAuthorized]);
 
   const stats = useMemo(() => {
     return {
@@ -82,7 +84,7 @@ export default function AdminReportsPage() {
     };
   }, [reports]);
 
-  if (loading || !user || !ADMINKA_EMAILS.includes(user.email)) {
+  if (loading || !user || !isAuthorized) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-xl">{market === 'de' ? 'Wird geladen...' : 'Betöltés...'}</div>

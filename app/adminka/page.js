@@ -12,16 +12,16 @@ export default function AdminkaPage() {
   const { user, userData, loading } = useAuth();
   const router = useRouter();
   const market = getClientMarket();
+  const normalizedEmail = String(user?.email || userData?.email || '').trim().toLowerCase();
+  const isAuthorized = ADMINKA_EMAILS.some((email) => email.toLowerCase() === normalizedEmail);
 
   useEffect(() => {
-    if (!loading) {
-      if (!user || !ADMINKA_EMAILS.includes(user.email)) {
-        router.push('/');
-      }
+    if (!loading && (!user || !isAuthorized)) {
+      router.push('/');
     }
-  }, [user, loading, router]);
+  }, [user, loading, isAuthorized, router]);
 
-  if (loading || !user || !ADMINKA_EMAILS.includes(user.email)) {
+  if (loading || !user || !isAuthorized) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-xl">{market === 'de' ? 'Wird geladen...' : 'Betöltés...'}</div>
