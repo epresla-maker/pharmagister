@@ -36,7 +36,10 @@ export default function SettingsPage() {
   const [deleteStep, setDeleteStep] = useState(0); // 0: initial, 1: confirming, 2: deleting, 3: done
   const [deleteError, setDeleteError] = useState('');
   const market = normalizeMarket(getClientMarket());
-  const isPrimaryAdmin = String(user?.email || '').toLowerCase() === 'epresla@icloud.com';
+  const normalizedEmail = String(user?.email || '').trim().toLowerCase();
+  const isPrimaryAdmin = normalizedEmail === 'epresla@icloud.com';
+  const isAdmin = ADMIN_EMAILS.some((email) => email.toLowerCase() === normalizedEmail);
+  const isAdminka = ADMINKA_EMAILS.some((email) => email.toLowerCase() === normalizedEmail);
 
   const switchMarket = (targetMarket) => {
     if (typeof window === 'undefined') return;
@@ -188,8 +191,8 @@ export default function SettingsPage() {
     }
   ];
 
-  // Admin menüpont hozzáadása ha admin user
-  if (user && ADMIN_EMAILS.includes(user.email)) {
+  // Admin/Adminka menüpont hozzáadása ha jogosult felhasználó
+  if (user && (isAdmin || isAdminka)) {
     settingsSections.push({
       title: t('adminSection', market),
       items: [
@@ -199,22 +202,6 @@ export default function SettingsPage() {
           onClick: () => router.push('/admin'),
           color: 'text-red-600',
           bgColor: darkMode ? 'bg-red-900/30' : 'bg-red-100'
-        }
-      ]
-    });
-  }
-
-  // Adminka menüpont hozzáadása ha adminka user
-  if (user && ADMINKA_EMAILS.includes(user.email)) {
-    settingsSections.push({
-      title: t('adminSection', market),
-      items: [
-        {
-          icon: SettingsIcon,
-          label: 'Adminka Panel',
-          onClick: () => router.push('/adminka'),
-          color: 'text-pink-600',
-          bgColor: darkMode ? 'bg-pink-900/30' : 'bg-pink-100'
         }
       ]
     });

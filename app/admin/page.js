@@ -25,22 +25,22 @@ export default function AdminPage() {
     usingPharmacies: [],
   });
 
-  const isAdmin = user && ADMIN_EMAILS.includes(user.email);
-  const isAdminka = user && ADMINKA_EMAILS.includes(user.email);
+  const normalizedEmail = String(user?.email || '').trim().toLowerCase();
+  const isAdmin = ADMIN_EMAILS.some((email) => email.toLowerCase() === normalizedEmail);
+  const isAdminka = ADMINKA_EMAILS.some((email) => email.toLowerCase() === normalizedEmail);
+  const isAuthorized = isAdmin || isAdminka;
 
   useEffect(() => {
-    if (!loading) {
-      if (!user || !ALL_ADMIN_EMAILS.includes(user.email)) {
-        router.push('/login');
-      }
+    if (!loading && (!user || !isAuthorized)) {
+      router.push('/login');
     }
-  }, [user, loading, router]);
+  }, [user, loading, isAuthorized, router]);
 
   useEffect(() => {
-    if (user && ALL_ADMIN_EMAILS.includes(user.email)) {
+    if (user && isAuthorized) {
       loadUsers();
     }
-  }, [user]);
+  }, [user, isAuthorized]);
 
   const loadUsers = async () => {
     setLoadingUsers(true);
@@ -179,7 +179,7 @@ export default function AdminPage() {
     }
   };
 
-  if (loading || !user || !ALL_ADMIN_EMAILS.includes(user.email)) {
+  if (loading || !user || !isAuthorized) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-xl">{market === 'de' ? 'Wird geladen...' : 'Betöltés...'}</div>
@@ -211,6 +211,12 @@ export default function AdminPage() {
               className="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 text-xs sm:text-sm w-full"
             >
               {market === 'de' ? '📝 Beitraege verwalten' : '📝 Posztok kezelése'}
+            </button>
+            <button
+              onClick={() => router.push('/admin/reports')}
+              className="bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 text-xs sm:text-sm w-full"
+            >
+              {market === 'de' ? '🚩 Meldungen' : '🚩 Jelentések'}
             </button>
             <button
               onClick={() => router.push('/admin/password-activations')}

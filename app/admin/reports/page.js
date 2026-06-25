@@ -98,7 +98,7 @@ export default function AdminReportsPage() {
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
           <div className="flex items-center gap-3 mb-4">
             <button
-              onClick={() => router.push('/adminka')}
+              onClick={() => router.push('/admin')}
               className="p-2 hover:bg-gray-100 rounded-full transition-colors"
             >
               <ArrowLeft className="w-5 h-5 text-gray-700" />
