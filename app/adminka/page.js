@@ -6,7 +6,7 @@ import { ArrowLeft, Key, BarChart3, TestTube, Smartphone, ClipboardList, FileTex
 import { getClientMarket } from '@/lib/marketI18n';
 
 // Adminka szerepkörű felhasználók
-const ADMINKA_EMAILS = ['etinatina22@gmail.com'];
+const ADMINKA_EMAILS = ['etinatina22@gmail.com', 'epresla@icloud.com'];
 
 export default function AdminkaPage() {
   const { user, userData, loading } = useAuth();

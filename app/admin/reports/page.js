@@ -8,7 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import { db } from '@/lib/firebase';
 import { getClientMarket } from '@/lib/marketI18n';
 
-const ADMINKA_EMAILS = ['etinatina22@gmail.com'];
+const ADMINKA_EMAILS = ['etinatina22@gmail.com', 'epresla@icloud.com'];
 
 function formatDate(value) {
   if (!value) return '—';
