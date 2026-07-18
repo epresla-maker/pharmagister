@@ -403,8 +403,8 @@ export default function EszkozPiacterPage() {
             <h2 className="text-lg font-semibold mb-2">{market === 'de' ? 'Kein Zugriff' : 'Nincs hozzáférés'}</h2>
             <p className={darkMode ? 'text-gray-300' : 'text-gray-600'}>
               {market === 'de'
-                ? 'Der Geraetemarkt ist nur fuer pharmazeutische Profile verfuegbar.'
-                : 'Az Eszközpiactér csak szakmai Pharmagister profiloknak érhető el.'}
+                ? 'Der Marktplatz ist nur fuer pharmazeutische Profile verfuegbar.'
+                : 'A Piactér csak szakmai Pharmagister profiloknak érhető el.'}
             </p>
           </div>
         </div>
@@ -421,7 +421,7 @@ export default function EszkozPiacterPage() {
               <ArrowLeft className="w-5 h-5" />
               {market === 'de' ? 'zurueck' : 'vissza'}
             </button>
-            <h1 className="text-lg sm:text-xl font-bold text-purple-600 ml-auto">{market === 'de' ? 'Geraetemarkt' : 'Eszközpiactér'}</h1>
+            <h1 className="text-lg sm:text-xl font-bold text-purple-600 ml-auto">{market === 'de' ? 'Marktplatz' : 'Piactér'}</h1>
           </div>
 
           <div className="max-w-2xl mx-auto px-4 pb-3 flex gap-2">
@@ -451,7 +451,7 @@ export default function EszkozPiacterPage() {
             <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl p-8 text-center border ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
               <Package className="w-10 h-10 mx-auto mb-3 text-gray-400" />
               <p className={darkMode ? 'text-gray-300' : 'text-gray-600'}>
-                {market === 'de' ? 'Noch keine Geraeteanzeigen.' : 'Még nincs eszköz hirdetés.'}
+                {market === 'de' ? 'Noch keine Anzeigen im Marktplatz.' : 'Még nincs hirdetés a Piactéren.'}
               </p>
             </div>
           ) : (
@@ -568,7 +568,7 @@ export default function EszkozPiacterPage() {
           <div className="fixed inset-0 z-[80] bg-black/60 flex items-end sm:items-center justify-center p-3 pb-[calc(96px+env(safe-area-inset-bottom,0px))] sm:pb-3">
             <div className={`${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} w-full max-w-xl rounded-2xl p-4 max-h-[86vh] overflow-y-auto pb-[calc(16px+env(safe-area-inset-bottom,0px))]`}>
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-lg font-semibold">{market === 'de' ? 'Geraet inserieren' : 'Eszköz hirdetés feladása'}</h2>
+                <h2 className="text-lg font-semibold">{market === 'de' ? 'Anzeige erstellen' : 'Hirdetés feladása'}</h2>
                 <button onClick={() => { setShowComposer(false); resetComposer(); }} className="p-1 rounded hover:bg-gray-200/20">
                   <X className="w-5 h-5" />
                 </button>

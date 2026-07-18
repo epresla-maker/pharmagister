@@ -2175,7 +2175,7 @@ export default function KozossegPage() {
               className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors bg-white/75 backdrop-blur-sm text-gray-700 hover:bg-white/90 shadow-sm"
             >
               <Package className="w-4 h-4 flex-shrink-0" />
-              <span>{market === 'de' ? 'Geraetemarkt' : 'Eszközpiactér'}</span>
+              <span>{market === 'de' ? 'Marktplatz' : 'Piactér'}</span>
             </button>
           </div>
         </div>
