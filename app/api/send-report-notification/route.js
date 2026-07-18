@@ -80,6 +80,22 @@ export async function POST(request) {
     const { reportType, reportedUserName, reason, details } = await request.json();
     const reportTitle = getReportNotificationTitle(requestMarket);
     const emailCopy = getReportEmailCopy(requestMarket);
+    const messageLikeTypes = new Set([
+      'message',
+      'comment',
+      'communityPost',
+      'rssComment',
+      'rssPost',
+      'pharmaDemandPost',
+      'serviceFeedPost',
+      'allandoKeresPost',
+      'equipmentMarketplacePost',
+    ]);
+    const reportTypeLabel = reportType === 'user'
+      ? emailCopy.reportTypeUser
+      : messageLikeTypes.has(reportType)
+        ? emailCopy.reportTypeMessage
+        : emailCopy.reportTypeDemand;
 
     // === 1. In-app notification Firestore-ba ===
     try {
@@ -225,7 +241,7 @@ export async function POST(request) {
             <h2>${emailCopy.sectionTitle}</h2>
             
             <div class="info-row">
-              <span class="info-label">${emailCopy.typeLabel}:</span> ${reportType === 'user' ? emailCopy.reportTypeUser : reportType === 'message' ? emailCopy.reportTypeMessage : emailCopy.reportTypeDemand}
+              <span class="info-label">${emailCopy.typeLabel}:</span> ${reportTypeLabel}
             </div>
             
             <div class="info-row">

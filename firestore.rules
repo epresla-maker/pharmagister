@@ -3,7 +3,10 @@ service cloud.firestore {
   match /databases/{database}/documents {
     // Admin hozzáférés - admin email címmel rendelkező user mindent elérhet
     function isAdmin() {
-      return request.auth != null && request.auth.token.email == 'epresla@icloud.com';
+      return request.auth != null && (
+        request.auth.token.email == 'epresla@icloud.com' ||
+        request.auth.token.email == 'etinatina22@gmail.com'
+      );
     }
     
     // Bejelentkezett user ellenőrzés
@@ -157,6 +160,13 @@ service cloud.firestore {
     match /allandoKeresPosts/{postId} {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    // Equipment marketplace posts (szakmai eszköz hirdetések)
+    match /equipmentMarketplacePosts/{postId} {
+      allow read: if hasPharmagisterRole();
+      allow create: if hasPharmagisterRole() && request.resource.data.userId == request.auth.uid;
       allow update, delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
     }
     

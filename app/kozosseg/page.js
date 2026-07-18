@@ -54,6 +54,7 @@ import {
   Pencil,
   Newspaper,
   Search,
+  Package,
   ImagePlus
 } from 'lucide-react';
 import ReportModal from '@/app/components/ReportModal';
@@ -2168,6 +2169,13 @@ export default function KozossegPage() {
             >
               <Search className="w-4 h-4 flex-shrink-0" />
               <span>{t('jobSearch', market)}</span>
+            </button>
+            <button
+              onClick={() => router.push('/pharmagister/eszkozpiacter')}
+              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors bg-white/75 backdrop-blur-sm text-gray-700 hover:bg-white/90 shadow-sm"
+            >
+              <Package className="w-4 h-4 flex-shrink-0" />
+              <span>{market === 'de' ? 'Geraetemarkt' : 'Eszközpiactér'}</span>
             </button>
           </div>
         </div>

@@ -179,6 +179,7 @@ reportCategories.rssPost = reportCategories.message;
 reportCategories.pharmaDemandPost = reportCategories.message;
 reportCategories.serviceFeedPost = reportCategories.message;
 reportCategories.allandoKeresPost = reportCategories.message;
+reportCategories.equipmentMarketplacePost = reportCategories.message;
 
 export default function ReportModal({ 
   isOpen, 
