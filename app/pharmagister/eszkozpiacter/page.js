@@ -565,8 +565,8 @@ export default function EszkozPiacterPage() {
         </div>
 
         {showComposer ? (
-          <div className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center p-3">
-            <div className={`${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} w-full max-w-xl rounded-2xl p-4 max-h-[92vh] overflow-y-auto`}>
+          <div className="fixed inset-0 z-[80] bg-black/60 flex items-end sm:items-center justify-center p-3 pb-[calc(96px+env(safe-area-inset-bottom,0px))] sm:pb-3">
+            <div className={`${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} w-full max-w-xl rounded-2xl p-4 max-h-[86vh] overflow-y-auto pb-[calc(16px+env(safe-area-inset-bottom,0px))]`}>
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-lg font-semibold">{market === 'de' ? 'Geraet inserieren' : 'Eszköz hirdetés feladása'}</h2>
                 <button onClick={() => { setShowComposer(false); resetComposer(); }} className="p-1 rounded hover:bg-gray-200/20">
