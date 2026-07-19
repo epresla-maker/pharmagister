@@ -49,7 +49,6 @@ import {
   Store,
   Tag,
   Trash2,
-  User,
   Wrench,
   X,
 } from "lucide-react";
@@ -147,7 +146,6 @@ const CATEGORY_DEFS: CategoryDef[] = [
   { id: "books", label: "Könyvek", color: "bg-lime-100 text-lime-700", placeholder: "Szakmai könyvek", icon: Tag },
   { id: "work_clothing", label: "Munkaruházat", color: "bg-rose-100 text-rose-700", placeholder: "Köpeny, védőruha", icon: Shirt },
   { id: "services", label: "Szolgáltatások", color: "bg-teal-100 text-teal-700", placeholder: "Karbantartás, szerviz", icon: Wrench },
-  { id: "jobs", label: "Állások", color: "bg-sky-100 text-sky-700", placeholder: "Munkalehetőség", icon: User },
   { id: "pharmacy_business", label: "Gyógyszertári üzlet", color: "bg-fuchsia-100 text-fuchsia-700", placeholder: "Üzleti ajánlatok", icon: Store },
   { id: "wanted", label: "Keresem", color: "bg-yellow-100 text-yellow-700", placeholder: "Keresett eszköz", icon: Search },
   { id: "other", label: "Egyéb", color: "bg-gray-100 text-gray-700", placeholder: "Minden más", icon: ChevronsUpDown },
@@ -751,10 +749,6 @@ export default function EszkozPiacterPage() {
     );
     if (blocked) {
       errors.push(`Tiltott kifejezést tartalmaz a szöveg: ${blocked}`);
-    }
-
-    if (existingImages.length + newImages.length === 0) {
-      errors.push("Legalább 1 kép megadása kötelező.");
     }
 
     return errors;
