@@ -1325,13 +1325,6 @@ export default function EszkozPiacterPage() {
               </button>
 
               <button
-                onClick={reloadAll}
-                className={`rounded-xl px-3 py-2 text-sm font-semibold ${darkMode ? "bg-gray-800 border border-gray-700" : "bg-white border border-gray-200"}`}
-              >
-                {refreshing ? "Frissítés..." : "Frissítés"}
-              </button>
-
-              <button
                 onClick={() => {
                   resetComposer();
                   setShowComposer(true);
@@ -1541,7 +1534,7 @@ export default function EszkozPiacterPage() {
         </main>
 
         {showFilters ? (
-          <div className="fixed inset-0 z-50 bg-black/50 flex items-end md:items-center justify-center p-3">
+          <div className="fixed inset-0 z-50 bg-black/50 flex items-end md:items-center justify-center p-3 pb-[calc(96px+env(safe-area-inset-bottom,0px))] md:pb-3">
             <div className={`w-full max-w-2xl rounded-2xl border max-h-[85vh] overflow-y-auto ${darkMode ? "bg-gray-900 border-gray-700 text-white" : "bg-white border-gray-200 text-gray-900"}`}>
               <div className="sticky top-0 px-4 py-3 border-b flex items-center justify-between bg-inherit">
                 <h3 className="font-bold text-lg">Szűrés és rendezés</h3>
@@ -1549,6 +1542,15 @@ export default function EszkozPiacterPage() {
               </div>
 
               <div className="p-4 space-y-4">
+                <div>
+                  <label className="text-sm font-semibold">Rendezés</label>
+                  <select value={sortBy} onChange={(e) => setSortBy(e.target.value as SortOption)} className={`mt-1 w-full rounded-xl border px-3 py-2 text-sm ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"}`}>
+                    {SORT_OPTIONS.map((option) => (
+                      <option key={option.id} value={option.id}>{option.label}</option>
+                    ))}
+                  </select>
+                </div>
+
                 <div>
                   <label className="text-sm font-semibold">Kategória</label>
                   <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className={`mt-1 w-full rounded-xl border px-3 py-2 text-sm ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"}`}>
@@ -1589,15 +1591,6 @@ export default function EszkozPiacterPage() {
                   <label className="flex items-center gap-2"><input type="checkbox" checked={featuredOnly} onChange={(e) => setFeaturedOnly(e.target.checked)} /> Csak kiemelt</label>
                   <label className="flex items-center gap-2"><input type="checkbox" checked={verifiedOnly} onChange={(e) => setVerifiedOnly(e.target.checked)} /> Csak ellenőrzött eladók</label>
                   <label className="flex items-center gap-2"><input type="checkbox" checked={withImagesOnly} onChange={(e) => setWithImagesOnly(e.target.checked)} /> Csak képes hirdetések</label>
-                </div>
-
-                <div>
-                  <label className="text-sm font-semibold">Rendezés</label>
-                  <select value={sortBy} onChange={(e) => setSortBy(e.target.value as SortOption)} className={`mt-1 w-full rounded-xl border px-3 py-2 text-sm ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"}`}>
-                    {SORT_OPTIONS.map((option) => (
-                      <option key={option.id} value={option.id}>{option.label}</option>
-                    ))}
-                  </select>
                 </div>
 
                 <div className="flex gap-2">
