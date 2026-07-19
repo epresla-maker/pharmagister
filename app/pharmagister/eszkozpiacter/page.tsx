@@ -1349,6 +1349,16 @@ export default function EszkozPiacterPage() {
               </button>
 
               <button
+                onClick={() => {
+                  resetComposer();
+                  setShowComposer(true);
+                }}
+                className="inline-flex items-center gap-2 rounded-xl px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 text-sm font-semibold hover:bg-emerald-100"
+              >
+                + Hirdetés feladása
+              </button>
+
+              <button
                 onClick={() => setViewMode("piacter")}
                 className={`rounded-xl px-3 py-2 text-sm font-semibold ${viewMode === "piacter" ? "bg-emerald-100 text-emerald-700" : darkMode ? "bg-gray-800" : "bg-white border border-gray-200"}`}
               >
@@ -1545,16 +1555,6 @@ export default function EszkozPiacterPage() {
             </section>
           ) : null}
         </main>
-
-        <button
-          onClick={() => {
-            resetComposer();
-            setShowComposer(true);
-          }}
-          className="fixed right-5 bottom-24 z-40 rounded-full shadow-xl px-5 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
-        >
-          + Hirdetés feladása
-        </button>
 
         {showFilters ? (
           <div className="fixed inset-0 z-50 bg-black/50 flex items-end md:items-center justify-center p-3">
