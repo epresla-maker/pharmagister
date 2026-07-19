@@ -128,6 +128,8 @@ export default function ChatRoomPage() {
   
   // --- FEJLÉC MAGASSÁG DINAMIKUS KÖVETÉSE ---
   const [headerHeight, setHeaderHeight] = useState(130);
+  const [composerHeight, setComposerHeight] = useState(80);
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
   
   // Automatikus görgetés
   const scrollToBottom = (options = { behavior: "smooth" }) => {
@@ -158,6 +160,48 @@ export default function ChatRoomPage() {
     return () => {
       resizeObserver.disconnect();
       window.removeEventListener('resize', updateHeaderHeight);
+    };
+  }, []);
+
+  // --- INPUT MAGASSÁG FIGYELÉSE (reply sáv miatt változhat) ---
+  useEffect(() => {
+    const updateComposerHeight = () => {
+      if (formRef.current) {
+        setComposerHeight(formRef.current.getBoundingClientRect().height || 80);
+      }
+    };
+
+    updateComposerHeight();
+
+    const resizeObserver = new ResizeObserver(updateComposerHeight);
+    if (formRef.current) {
+      resizeObserver.observe(formRef.current);
+    }
+
+    window.addEventListener('resize', updateComposerHeight);
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', updateComposerHeight);
+    };
+  }, [replyTo, editingMessage]);
+
+  // --- MOBIL BILLENTYŰZET OFFSET (visualViewport) ---
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.visualViewport) return;
+
+    const updateKeyboardOffset = () => {
+      const vv = window.visualViewport;
+      const offset = Math.max(0, window.innerHeight - (vv.height + vv.offsetTop));
+      setKeyboardOffset(offset);
+    };
+
+    updateKeyboardOffset();
+    window.visualViewport.addEventListener('resize', updateKeyboardOffset);
+    window.visualViewport.addEventListener('scroll', updateKeyboardOffset);
+
+    return () => {
+      window.visualViewport.removeEventListener('resize', updateKeyboardOffset);
+      window.visualViewport.removeEventListener('scroll', updateKeyboardOffset);
     };
   }, []);
   
@@ -1399,7 +1443,10 @@ export default function ChatRoomPage() {
         className={`fixed bottom-0 left-0 right-0 p-4 border-t-2 z-50 ${
           darkMode ? 'bg-[#c8e6c9] border-[#a5d6a7]' : 'bg-white border-gray-200'
         }`}
-        style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
+        style={{
+          bottom: `${keyboardOffset}px`,
+          paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))'
+        }}
         onTouchStart={(e) => {
           e.currentTarget.dataset.touchStartY = e.touches[0].clientY;
         }}
@@ -1424,7 +1471,7 @@ export default function ChatRoomPage() {
                   {replyTo.text}
                 </div>
               </div>
-              <button
+                    bottom: `${composerHeight + keyboardOffset}px`,
                 type="button"
                 onClick={() => setReplyTo(null)}
                 className={`ml-2 p-1 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}
