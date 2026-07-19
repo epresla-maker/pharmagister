@@ -1225,7 +1225,7 @@ export default function ChatRoomPage() {
         className={`absolute left-0 right-0 overflow-y-auto p-4 space-y-2 ${darkMode ? 'bg-[#e8f5e9]' : 'bg-gradient-to-br from-gray-50 via-white to-gray-100'}`}
         style={{ 
           top: `${headerHeight + 8}px`,
-          bottom: '80px',
+          bottom: `${composerHeight + keyboardOffset}px`,
           overscrollBehavior: 'contain'
         }}
         onTouchStart={(e) => {
@@ -1471,7 +1471,7 @@ export default function ChatRoomPage() {
                   {replyTo.text}
                 </div>
               </div>
-                    bottom: `${composerHeight + keyboardOffset}px`,
+              <button
                 type="button"
                 onClick={() => setReplyTo(null)}
                 className={`ml-2 p-1 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}
