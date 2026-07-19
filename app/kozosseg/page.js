@@ -53,14 +53,57 @@ import {
   Type,
   Pencil,
   Newspaper,
-  Search,
-  Package,
   ImagePlus
 } from 'lucide-react';
 import ReportModal from '@/app/components/ReportModal';
 import { getEffectivePharmagisterRole } from '@/lib/pharmagisterProfile';
 import { getClientMarket, getCategoryLabel, getReactionLabel, t } from '@/lib/marketI18n';
 import { isDocInMarket } from '@/lib/market';
+
+function MarketGlyph({ className = 'w-4 h-4' }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} xmlns="http://www.w3.org/2000/svg">
+      <path d="M4.5 8.5C4.5 7.12 5.62 6 7 6H12.2C13.58 6 14.7 7.12 14.7 8.5V13.7C14.7 15.08 13.58 16.2 12.2 16.2H7C5.62 16.2 4.5 15.08 4.5 13.7V8.5Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"/>
+      <path d="M14.7 8.8H17.3C18.05 8.8 18.76 9.1 19.28 9.62L20.38 10.72C20.9 11.24 21.2 11.95 21.2 12.7V17.1C21.2 18.48 20.08 19.6 18.7 19.6H15.6C14.22 19.6 13.1 18.48 13.1 17.1V13.4C13.1 12.3 13.95 11.4 15.05 11.32L18.1 11.08" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M7.4 11.1H11.8" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>
+      <path d="M9.6 8.9V13.3" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+function SignalPaperGlyph({ className = 'w-4 h-4' }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} xmlns="http://www.w3.org/2000/svg">
+      <path d="M6.2 4.8H16.1C17.04 4.8 17.8 5.56 17.8 6.5V18C17.8 18.94 17.04 19.7 16.1 19.7H6.2C5.26 19.7 4.5 18.94 4.5 18V6.5C4.5 5.56 5.26 4.8 6.2 4.8Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"/>
+      <path d="M8 8.2H14.3" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>
+      <path d="M8 11.1H14.3" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>
+      <path d="M8 14H12.2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>
+      <path d="M17.8 10.2C19.1 10.5 20.1 11.4 20.1 12.8C20.1 14.2 19.1 15.1 17.8 15.4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+function SearchPulseGlyph({ className = 'w-4 h-4' }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} xmlns="http://www.w3.org/2000/svg">
+      <circle cx="10.3" cy="10.3" r="4.9" stroke="currentColor" strokeWidth="1.7"/>
+      <path d="M14 14L19.5 19.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>
+      <path d="M7.6 10.3H13" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>
+      <path d="M10.3 7.6V13" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+function MarketCubeGlyph({ className = 'w-4 h-4' }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 4.7L18.7 8.5V15.5L12 19.3L5.3 15.5V8.5L12 4.7Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"/>
+      <path d="M12 4.7V11.8" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>
+      <path d="M5.3 8.5L12 11.8L18.7 8.5" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"/>
+      <path d="M8.1 10.2L15.9 6.1" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" opacity="0.55"/>
+    </svg>
+  );
+}
 
 // ============================================
 // CONSTANTS
@@ -2144,37 +2187,47 @@ export default function KozossegPage() {
           <div className="max-w-xl mx-auto grid grid-cols-2 gap-2">
             <button
               onClick={() => router.push('/hianycikk-kereso')}
-              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors bg-white/75 backdrop-blur-sm text-gray-700 hover:bg-white/90 shadow-sm"
+              className="flex items-center justify-start gap-2 px-3 py-2.5 rounded-2xl text-xs font-semibold transition-colors bg-white/80 backdrop-blur-sm text-gray-700 hover:bg-white/95 shadow-sm border border-white/60"
             >
-              <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                <MarketGlyph className="w-4 h-4 flex-shrink-0" />
+              </span>
               <span>{t('shortageSearch', market)}</span>
             </button>
             <button
               onClick={() => router.push('/pm-hirfolyam')}
-              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors bg-white/75 backdrop-blur-sm text-gray-700 hover:bg-white/90 shadow-sm"
+              className="flex items-center justify-start gap-2 px-3 py-2.5 rounded-2xl text-xs font-semibold transition-colors bg-white/80 backdrop-blur-sm text-gray-700 hover:bg-white/95 shadow-sm border border-white/60"
             >
-              <Newspaper className="w-4 h-4 flex-shrink-0" />
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
+                <SignalPaperGlyph className="w-4 h-4 flex-shrink-0" />
+              </span>
               <span>{t('pmFeed', market)}</span>
             </button>
             <button
               onClick={() => router.push('/hirek')}
-              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors bg-white/75 backdrop-blur-sm text-gray-700 hover:bg-white/90 shadow-sm"
+              className="flex items-center justify-start gap-2 px-3 py-2.5 rounded-2xl text-xs font-semibold transition-colors bg-white/80 backdrop-blur-sm text-gray-700 hover:bg-white/95 shadow-sm border border-white/60"
             >
-              <Newspaper className="w-4 h-4 flex-shrink-0" />
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+                <SignalPaperGlyph className="w-4 h-4 flex-shrink-0" />
+              </span>
               <span>{t('news', market)}</span>
             </button>
             <button
               onClick={() => router.push('/pharmagister/allando-keres')}
-              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors bg-white/75 backdrop-blur-sm text-gray-700 hover:bg-white/90 shadow-sm"
+              className="flex items-center justify-start gap-2 px-3 py-2.5 rounded-2xl text-xs font-semibold transition-colors bg-white/80 backdrop-blur-sm text-gray-700 hover:bg-white/95 shadow-sm border border-white/60"
             >
-              <Search className="w-4 h-4 flex-shrink-0" />
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                <SearchPulseGlyph className="w-4 h-4 flex-shrink-0" />
+              </span>
               <span>{t('jobSearch', market)}</span>
             </button>
             <button
               onClick={() => router.push('/pharmagister/eszkozpiacter')}
-              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors bg-white/75 backdrop-blur-sm text-gray-700 hover:bg-white/90 shadow-sm"
+              className="flex items-center justify-start gap-2 px-3 py-2.5 rounded-2xl text-xs font-semibold transition-colors bg-white/80 backdrop-blur-sm text-gray-700 hover:bg-white/95 shadow-sm border border-white/60"
             >
-              <Package className="w-4 h-4 flex-shrink-0" />
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-fuchsia-50 text-fuchsia-600">
+                <MarketCubeGlyph className="w-4 h-4 flex-shrink-0" />
+              </span>
               <span>{market === 'de' ? 'Marktplatz' : 'Piactér'}</span>
             </button>
           </div>
