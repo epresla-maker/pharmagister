@@ -59,6 +59,7 @@ type SortOption = "legfrissebb" | "regebbi" | "legalacsonyabb_ar" | "legmagasabb
 type ConditionOption = "new" | "used" | "refurbished";
 type ViewMode = "piacter" | "kedvencek" | "hirdeteseim";
 type MyListingTab = "aktiv" | "fuggoben" | "eladva" | "piszkozat" | "lejart";
+type ListingFeedMode = "osszes" | "legfrissebb";
 
 type MarketplaceListing = {
   id: string;
@@ -365,6 +366,7 @@ export default function EszkozPiacterPage() {
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [withImagesOnly, setWithImagesOnly] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("legfrissebb");
+  const [listingFeedMode, setListingFeedMode] = useState<ListingFeedMode>("osszes");
   const [showFilters, setShowFilters] = useState(false);
 
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
@@ -698,21 +700,7 @@ export default function EszkozPiacterPage() {
     [visibleListings]
   );
 
-  const recommendedListings = useMemo(() => {
-    const favCategories = new Set(
-      visibleListings
-        .filter((item) => favoriteIds.has(item.id))
-        .map((item) => item.category)
-    );
-
-    if (favCategories.size === 0) {
-      return [...visibleListings].sort((a, b) => Number(b.views || 0) - Number(a.views || 0)).slice(0, 8);
-    }
-
-    return visibleListings
-      .filter((item) => favCategories.has(item.category))
-      .slice(0, 8);
-  }, [favoriteIds, visibleListings]);
+  const activeFeedListings = listingFeedMode === "legfrissebb" ? latestListings : visibleListings;
 
   const myListings = useMemo(
     () => items.filter((item) => item.sellerId === user?.uid),
@@ -1443,21 +1431,22 @@ export default function EszkozPiacterPage() {
               ) : null}
 
               <section>
-                <h2 className="font-bold mb-3">Legfrissebb hirdetések</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {latestListings.map(renderCard)}
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={() => setListingFeedMode("osszes")}
+                    className={`rounded-xl px-3 py-2 text-sm font-semibold ${listingFeedMode === "osszes" ? "bg-emerald-100 text-emerald-700" : darkMode ? "bg-gray-800" : "bg-white border border-gray-200"}`}
+                  >
+                    Összes
+                  </button>
+                  <button
+                    onClick={() => setListingFeedMode("legfrissebb")}
+                    className={`rounded-xl px-3 py-2 text-sm font-semibold ${listingFeedMode === "legfrissebb" ? "bg-emerald-100 text-emerald-700" : darkMode ? "bg-gray-800" : "bg-white border border-gray-200"}`}
+                  >
+                    Legfrissebb
+                  </button>
                 </div>
-              </section>
 
-              <section>
-                <h2 className="font-bold mb-3">Ajánlott hirdetések</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {recommendedListings.map(renderCard)}
-                </div>
-              </section>
-
-              <section>
-                <h2 className="font-bold mb-3">Összes találat</h2>
+                <h2 className="font-bold mb-3">{listingFeedMode === "legfrissebb" ? "Legfrissebb hirdetések" : "Összes találat"}</h2>
 
                 {errorText ? (
                   <div className="rounded-xl border border-rose-200 bg-rose-50 text-rose-700 p-3 mb-3">{errorText}</div>
@@ -1470,7 +1459,7 @@ export default function EszkozPiacterPage() {
                     <ListingSkeleton darkMode={darkMode} />
                     <ListingSkeleton darkMode={darkMode} />
                   </div>
-                ) : visibleListings.length === 0 ? (
+                ) : activeFeedListings.length === 0 ? (
                   <div className={`rounded-2xl p-8 text-center border ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
                     <Package className="w-10 h-10 mx-auto mb-3 text-gray-400" />
                     <h3 className="font-semibold text-lg">Nincs találat</h3>
@@ -1484,7 +1473,7 @@ export default function EszkozPiacterPage() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {visibleListings.map(renderCard)}
+                    {activeFeedListings.map(renderCard)}
                   </div>
                 )}
 
