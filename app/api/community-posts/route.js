@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
-import { verifyAuth } from '@/lib/apiAuth';
-import getFirebaseAdmin from '@/lib/firebaseAdmin';
-import { resolveMarketFromRequest, normalizeMarket } from '@/lib/market';
-import { getEffectivePharmagisterRole } from '@/lib/pharmagisterProfile';
+import { verifyAuth } from '../../../lib/apiAuth';
+import getFirebaseAdmin from '../../../lib/firebaseAdmin';
+import { resolveMarketFromRequest, normalizeMarket } from '../../../lib/market';
+import { getEffectivePharmagisterRole } from '../../../lib/pharmagisterProfile';
 
 function stripInvalidUnicodeSurrogates(value) {
   const input = String(value || '');

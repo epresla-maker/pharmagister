@@ -22,9 +22,9 @@ import {
 } from 'firebase/firestore';
 import { Star, MessageCircle, Share2, Send, MoreHorizontal, X, Heart, Laugh, Frown, Angry, Zap, Image as ImageIcon, ImagePlus, RefreshCw, Trash2, Edit3, Newspaper, Flag } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { createNotificationWithPush } from '@/lib/notifications';
+import { createNotificationWithPush } from '../../lib/notifications';
 import ReportModal from '@/app/components/ReportModal';
-import { getClientMarket } from '@/lib/marketI18n';
+import { getClientMarket } from '../../lib/marketI18n';
 
 const REACTIONS = [
   { type: 'like', emoji: '⭐', icon: Star, label: 'Tetszik', color: 'text-yellow-500' },

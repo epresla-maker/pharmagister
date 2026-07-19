@@ -3,9 +3,9 @@ import { Resend } from 'resend';
 const resend = new Resend(process.env.RESEND_API_KEY);
 import webpush from 'web-push';
 import { verifyAuth } from '@/lib/apiAuth';
-import { escapeHtml } from '@/lib/sanitize';
-import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
-import { resolveMarketFromRequest, isDocInMarket } from '@/lib/market';
+import { escapeHtml } from '../../../lib/sanitize';
+import { getFirebaseAdmin } from '../../../lib/firebaseAdmin';
+import { resolveMarketFromRequest, isDocInMarket } from '../../../lib/market';
 
 const ADMIN_UID = 'AcBMMwkqMvWAjrodNPPBjFdjjhw2';
 

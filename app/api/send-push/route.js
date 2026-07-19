@@ -1,8 +1,8 @@
 import webpush from 'web-push';
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 import { verifyAuth } from '@/lib/apiAuth';
-import { canSendNotificationToUser } from '@/lib/scheduleAccess';
-import { resolveMarketFromRequest, isDocInMarket } from '@/lib/market';
+import { canSendNotificationToUser } from '../../../lib/scheduleAccess';
+import { resolveMarketFromRequest, isDocInMarket } from '../../../lib/market';
 
 // Configure webpush on each request to ensure fresh keys
 function configureWebpush() {

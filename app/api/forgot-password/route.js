@@ -4,9 +4,9 @@ import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 import { randomBytes } from 'crypto';
-import { escapeHtml } from '@/lib/sanitize';
-import { checkRateLimit, getClientIp } from '@/lib/rateLimit';
-import { resolveMarketFromRequest } from '@/lib/market';
+import { escapeHtml } from '../../../lib/sanitize';
+import { checkRateLimit, getClientIp } from '../../../lib/rateLimit';
+import { resolveMarketFromRequest } from '../../../lib/market';
 
 function getForgotPasswordCopy(market) {
   if (market === 'de') {

@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
-import { sanitizeUrl } from '@/lib/sanitize';
-import { checkRateLimit, getClientIp } from '@/lib/rateLimit';
-import { resolveMarketFromRequest } from '@/lib/market';
+import { sanitizeUrl } from '../../../lib/sanitize';
+import { checkRateLimit, getClientIp } from '../../../lib/rateLimit';
+import { resolveMarketFromRequest } from '../../../lib/market';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 

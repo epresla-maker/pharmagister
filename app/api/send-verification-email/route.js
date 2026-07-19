@@ -1,8 +1,8 @@
 export const dynamic = "force-dynamic";
 import { Resend } from 'resend';
 import { NextResponse } from 'next/server';
-import { sanitizeUrl } from '@/lib/sanitize';
-import { resolveMarketFromRequest } from '@/lib/market';
+import { sanitizeUrl } from '../../../lib/sanitize';
+import { resolveMarketFromRequest } from '../../../lib/market';
 
 function getVerificationApiCopy(market) {
   if (market === 'de') {

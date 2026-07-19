@@ -6,9 +6,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import RouteGuard from '@/app/components/RouteGuard';
 import PharmaNavbar from '@/app/components/PharmaNavbar';
 import { useBadges } from '@/context/BadgesContext';
-import { canAccessScheduleManager } from '@/lib/pharmagisterFeatures';
-import { getEffectivePharmagisterRole, hasPharmagisterProfileData, normalizePharmagisterRole } from '@/lib/pharmagisterProfile';
-import { getClientMarket, t } from '@/lib/marketI18n';
+import { canAccessScheduleManager } from '../../lib/pharmagisterFeatures';
+import { getEffectivePharmagisterRole, hasPharmagisterProfileData, normalizePharmagisterRole } from '../../lib/pharmagisterProfile';
+import { getClientMarket, t } from '../../lib/marketI18n';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 

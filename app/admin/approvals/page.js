@@ -3,9 +3,9 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { collection, query, where, getDocs, doc, updateDoc, deleteDoc, orderBy, addDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { createNotificationWithPush } from '@/lib/notifications';
-import { getClientMarket } from '@/lib/marketI18n';
+import { db } from "../../../lib/firebase";
+import { createNotificationWithPush } from '../../../lib/notifications';
+import { getClientMarket } from '../../../lib/marketI18n';
 
 const ADMIN_EMAILS = ['epresla@icloud.com'];
 const ADMINKA_EMAILS = ['etinatina22@gmail.com'];

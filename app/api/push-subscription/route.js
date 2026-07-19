@@ -1,7 +1,7 @@
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 import { verifyAuth } from '@/lib/apiAuth';
-import { isAdminEmail } from '@/lib/scheduleAccess';
-import { resolveMarketFromRequest, isDocInMarket, normalizeMarket } from '@/lib/market';
+import { isAdminEmail } from '../../../lib/scheduleAccess';
+import { resolveMarketFromRequest, isDocInMarket, normalizeMarket } from '../../../lib/market';
 
 function isLikelyApnsToken(token) {
   return typeof token === 'string' && /^[0-9a-fA-F]{64}$/.test(token);

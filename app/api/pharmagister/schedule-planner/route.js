@@ -1,17 +1,17 @@
 import { NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/apiAuth';
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
-import { requireSchedulePharmacyAccess } from '@/lib/scheduleAccess';
-import { resolveMarketFromRequest } from '@/lib/market';
+import { requireSchedulePharmacyAccess } from '../../../../lib/scheduleAccess';
+import { resolveMarketFromRequest } from '../../../../lib/market';
 import {
   buildPlannerSuggestions,
   computePlannerStats,
   detectScheduleConflicts,
   generateAutoSchedulePlan,
   quickReplanForAbsence,
-} from '@/lib/scheduleEngine';
-import { buildHumanPlanSummary, humanizeConflicts } from '@/lib/explanationEngine';
-import { buildProactiveWarnings } from '@/lib/suggestionEngine';
+} from '../../../../lib/scheduleEngine';
+import { buildHumanPlanSummary, humanizeConflicts } from '../../../../lib/explanationEngine';
+import { buildProactiveWarnings } from '../../../../lib/suggestionEngine';
 
 export const runtime = 'nodejs';
 

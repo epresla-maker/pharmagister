@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/apiAuth';
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
-import { getScheduleManagerAccess } from '@/lib/scheduleAccess';
+import { getScheduleManagerAccess } from '../../../../lib/scheduleAccess';
 import { parseBettiIntent } from '@/lib/intentParserV6';
 import { normalizeHungarianChatInput } from '@/lib/huDictionary';
 import { explainAssignmentDecision } from '@/lib/explanationEngine';

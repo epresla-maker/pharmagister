@@ -3,10 +3,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/context/AuthContext';
-import { useTheme } from '@/context/ThemeContext';
-import { db } from '@/lib/firebase';
-import { createNotificationWithPush } from '@/lib/notifications';
+import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
+import { db } from '../../lib/firebase';
+import { createNotificationWithPush } from '../../lib/notifications';
 import {
   collection,
   query,
@@ -55,10 +55,10 @@ import {
   Newspaper,
   ImagePlus
 } from 'lucide-react';
-import ReportModal from '@/app/components/ReportModal';
-import { getEffectivePharmagisterRole } from '@/lib/pharmagisterProfile';
-import { getClientMarket, getCategoryLabel, getReactionLabel, t } from '@/lib/marketI18n';
-import { isDocInMarket } from '@/lib/market';
+import ReportModal from '../components/ReportModal';
+import { getEffectivePharmagisterRole } from '../../lib/pharmagisterProfile';
+import { getClientMarket, getCategoryLabel, getReactionLabel, t } from '../../lib/marketI18n';
+import { isDocInMarket } from '../../lib/market';
 
 function MarketGlyph({ className = 'w-4 h-4' }) {
   return (
@@ -2228,7 +2228,7 @@ export default function KozossegPage() {
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-fuchsia-50 text-fuchsia-600">
                 <MarketCubeGlyph className="w-4 h-4 flex-shrink-0" />
               </span>
-              <span>{market === 'de' ? 'Marktplatz' : 'Piactér'}</span>
+              <span>Piactér</span>
             </button>
           </div>
         </div>

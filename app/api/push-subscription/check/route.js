@@ -1,7 +1,7 @@
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 import { verifyAuth } from '@/lib/apiAuth';
-import { isAdminEmail } from '@/lib/scheduleAccess';
-import { resolveMarketFromRequest, isDocInMarket } from '@/lib/market';
+import { isAdminEmail } from '../../../../lib/scheduleAccess';
+import { resolveMarketFromRequest, isDocInMarket } from '../../../../lib/market';
 
 function getPushSubscriptionCheckCopy(market) {
   if (market === 'de') {

@@ -1,8 +1,8 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
-import { escapeHtml } from '@/lib/sanitize';
-import { resolveMarketFromRequest } from '@/lib/market';
+import { escapeHtml } from '../../../lib/sanitize';
+import { resolveMarketFromRequest } from '../../../lib/market';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 

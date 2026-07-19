@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import admin from 'firebase-admin';
-import { checkRateLimit, getClientIp } from '@/lib/rateLimit';
-import { resolveMarketFromRequest } from '@/lib/market';
+import { checkRateLimit, getClientIp } from '../../../lib/rateLimit';
+import { resolveMarketFromRequest } from '../../../lib/market';
 
 function getResetPasswordCopy(market) {
   if (market === 'de') {

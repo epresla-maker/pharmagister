@@ -1,8 +1,8 @@
 "use client";
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { getClientMarket } from '@/lib/marketI18n';
-import { MARKET_COOKIE, normalizeMarket } from '@/lib/market';
+import { getClientMarket } from '../../lib/marketI18n';
+import { MARKET_COOKIE, normalizeMarket } from '../../lib/market';
 
 function VerifyEmailContent() {
   const router = useRouter();

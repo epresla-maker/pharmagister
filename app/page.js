@@ -1,8 +1,8 @@
 "use client";
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/context/AuthContext';
-import { getEffectivePharmagisterRole } from '@/lib/pharmagisterProfile';
+import { useAuth } from '../context/AuthContext';
+import { getEffectivePharmagisterRole } from '../lib/pharmagisterProfile';
 
 export default function HomePage() {
   const router = useRouter();
