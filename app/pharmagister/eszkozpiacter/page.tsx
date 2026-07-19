@@ -49,6 +49,7 @@ import {
   Store,
   Tag,
   Trash2,
+  User,
   Wrench,
   X,
 } from "lucide-react";
