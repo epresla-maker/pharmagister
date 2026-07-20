@@ -1881,13 +1881,13 @@ export default function EszkozPiacterPage() {
 
         {showFilters ? (
           <div
-            className="fixed inset-0 z-50 bg-black/50 flex items-end md:items-center justify-center p-3 md:pb-3"
-            style={{ paddingBottom: filtersKeyboardInset > 0 ? `${filtersKeyboardInset + 12}px` : undefined }}
+            className="fixed top-0 left-0 right-0 z-50 bg-black/50 flex items-end md:items-center justify-center p-3"
+            style={{ bottom: `${filtersKeyboardInset}px` }}
           >
             <div
               ref={filtersSheetRef}
               className={`w-full max-w-2xl rounded-2xl border flex flex-col ${darkMode ? "bg-gray-900 border-gray-700 text-white" : "bg-white border-gray-200 text-gray-900"}`}
-              style={{ maxHeight: "85dvh" }}
+              style={{ maxHeight: "calc(100% - 24px)" }}
             >
               <div className="sticky top-0 px-4 py-3 border-b flex items-center justify-between bg-inherit">
                 <h3 className="font-bold text-lg">Szűrés és rendezés</h3>
@@ -1895,7 +1895,7 @@ export default function EszkozPiacterPage() {
               </div>
 
               <div
-                className="overflow-y-auto overscroll-contain"
+                className="overflow-y-auto overscroll-contain flex-1 min-h-0"
                 style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}
               >
               <div className="p-4 space-y-4 pb-4">
@@ -1964,13 +1964,13 @@ export default function EszkozPiacterPage() {
 
         {showComposer ? (
           <div
-            className="fixed inset-0 z-[70] bg-black/60 flex items-end md:items-center justify-center p-3 md:pb-3"
-            style={{ paddingBottom: composerKeyboardInset > 0 ? `${composerKeyboardInset + 12}px` : undefined }}
+            className="fixed top-0 left-0 right-0 z-[70] bg-black/60 flex items-end md:items-center justify-center p-3"
+            style={{ bottom: `${composerKeyboardInset}px` }}
           >
             <div
               ref={composerSheetRef}
               className={`w-full max-w-3xl rounded-2xl border flex flex-col ${darkMode ? "bg-gray-900 border-gray-700 text-white" : "bg-white border-gray-200 text-gray-900"}`}
-              style={{ maxHeight: "90dvh" }}
+              style={{ maxHeight: "calc(100% - 24px)" }}
             >
               <div className="sticky top-0 px-4 py-3 border-b flex items-center justify-between bg-inherit z-10">
                 <h3 className="font-bold text-lg">{editingId ? "Hirdetés szerkesztése" : "Hirdetés feladása"}</h3>
@@ -1978,7 +1978,7 @@ export default function EszkozPiacterPage() {
               </div>
 
               <div
-                className="overflow-y-auto overscroll-contain flex-1"
+                className="overflow-y-auto overscroll-contain flex-1 min-h-0"
                 style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}
               >
               <div className="p-4 space-y-4 pb-4">
