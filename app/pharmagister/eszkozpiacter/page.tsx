@@ -546,10 +546,18 @@ export default function EszkozPiacterPage() {
 
     const viewport = window.visualViewport;
 
-    const scrollActiveFieldIntoView = () => {
+    const ensureActiveFieldVisible = () => {
       const activeElement = document.activeElement as HTMLElement | null;
       if (!activeElement || !composerSheetRef.current?.contains(activeElement)) return;
-      activeElement.scrollIntoView({ block: "center", behavior: "smooth" });
+
+      const viewportHeight = viewport?.height ?? window.innerHeight;
+      const rect = activeElement.getBoundingClientRect();
+      const visibleTop = 72;
+      const visibleBottom = viewportHeight - 136;
+
+      if (rect.top < visibleTop || rect.bottom > visibleBottom) {
+        activeElement.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      }
     };
 
     const updateComposerViewport = () => {
@@ -565,25 +573,28 @@ export default function EszkozPiacterPage() {
       setComposerViewportHeight(nextHeight);
       setComposerKeyboardInset(nextInset > 24 ? nextInset : 0);
 
-      window.requestAnimationFrame(scrollActiveFieldIntoView);
+      window.requestAnimationFrame(ensureActiveFieldVisible);
     };
 
     const handleFocusIn = (event: FocusEvent) => {
       const target = event.target as HTMLElement | null;
       if (!target || !composerSheetRef.current?.contains(target)) return;
       window.setTimeout(() => {
-        target.scrollIntoView({ block: "center", behavior: "smooth" });
+        const viewportHeight = viewport?.height ?? window.innerHeight;
+        const rect = target.getBoundingClientRect();
+        const visibleBottom = viewportHeight - 136;
+        if (rect.bottom > visibleBottom) {
+          target.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        }
       }, 220);
     };
 
     updateComposerViewport();
     viewport?.addEventListener("resize", updateComposerViewport);
-    viewport?.addEventListener("scroll", updateComposerViewport);
     window.addEventListener("focusin", handleFocusIn);
 
     return () => {
       viewport?.removeEventListener("resize", updateComposerViewport);
-      viewport?.removeEventListener("scroll", updateComposerViewport);
       window.removeEventListener("focusin", handleFocusIn);
       setComposerViewportHeight(null);
       setComposerKeyboardInset(0);
@@ -595,10 +606,18 @@ export default function EszkozPiacterPage() {
 
     const viewport = window.visualViewport;
 
-    const scrollActiveFieldIntoView = () => {
+    const ensureActiveFieldVisible = () => {
       const activeElement = document.activeElement as HTMLElement | null;
       if (!activeElement || !filtersSheetRef.current?.contains(activeElement)) return;
-      activeElement.scrollIntoView({ block: "center", behavior: "smooth" });
+
+      const viewportHeight = viewport?.height ?? window.innerHeight;
+      const rect = activeElement.getBoundingClientRect();
+      const visibleTop = 72;
+      const visibleBottom = viewportHeight - 112;
+
+      if (rect.top < visibleTop || rect.bottom > visibleBottom) {
+        activeElement.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      }
     };
 
     const updateFiltersViewport = () => {
@@ -614,25 +633,28 @@ export default function EszkozPiacterPage() {
       setFiltersViewportHeight(nextHeight);
       setFiltersKeyboardInset(nextInset > 24 ? nextInset : 0);
 
-      window.requestAnimationFrame(scrollActiveFieldIntoView);
+      window.requestAnimationFrame(ensureActiveFieldVisible);
     };
 
     const handleFocusIn = (event: FocusEvent) => {
       const target = event.target as HTMLElement | null;
       if (!target || !filtersSheetRef.current?.contains(target)) return;
       window.setTimeout(() => {
-        target.scrollIntoView({ block: "center", behavior: "smooth" });
+        const viewportHeight = viewport?.height ?? window.innerHeight;
+        const rect = target.getBoundingClientRect();
+        const visibleBottom = viewportHeight - 112;
+        if (rect.bottom > visibleBottom) {
+          target.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        }
       }, 220);
     };
 
     updateFiltersViewport();
     viewport?.addEventListener("resize", updateFiltersViewport);
-    viewport?.addEventListener("scroll", updateFiltersViewport);
     window.addEventListener("focusin", handleFocusIn);
 
     return () => {
       viewport?.removeEventListener("resize", updateFiltersViewport);
-      viewport?.removeEventListener("scroll", updateFiltersViewport);
       window.removeEventListener("focusin", handleFocusIn);
       setFiltersViewportHeight(null);
       setFiltersKeyboardInset(0);
@@ -1938,6 +1960,7 @@ export default function EszkozPiacterPage() {
               className={`w-full max-w-2xl rounded-2xl border overflow-y-auto overscroll-contain ${darkMode ? "bg-gray-900 border-gray-700 text-white" : "bg-white border-gray-200 text-gray-900"}`}
               style={{
                 maxHeight: filtersViewportHeight ? `${filtersViewportHeight}px` : undefined,
+                WebkitOverflowScrolling: "touch",
               }}
             >
               <div className="sticky top-0 px-4 py-3 border-b flex items-center justify-between bg-inherit">
@@ -1948,7 +1971,7 @@ export default function EszkozPiacterPage() {
               <div
                 className="p-4 space-y-4"
                 style={{
-                  paddingBottom: `${Math.max(24, filtersKeyboardInset + 24)}px`,
+                  paddingBottom: `${Math.max(112, filtersKeyboardInset + 112)}px`,
                 }}
               >
                 <div>
@@ -2020,6 +2043,7 @@ export default function EszkozPiacterPage() {
               className={`w-full max-w-3xl rounded-2xl border overflow-y-auto overscroll-contain ${darkMode ? "bg-gray-900 border-gray-700 text-white" : "bg-white border-gray-200 text-gray-900"}`}
               style={{
                 maxHeight: composerViewportHeight ? `${composerViewportHeight}px` : undefined,
+                WebkitOverflowScrolling: "touch",
               }}
             >
               <div className="sticky top-0 px-4 py-3 border-b flex items-center justify-between bg-inherit z-10">
@@ -2030,7 +2054,7 @@ export default function EszkozPiacterPage() {
               <div
                 className="p-4 space-y-4"
                 style={{
-                  paddingBottom: `${Math.max(24, composerKeyboardInset + 24)}px`,
+                  paddingBottom: `${Math.max(128, composerKeyboardInset + 128)}px`,
                 }}
               >
                 <div>
