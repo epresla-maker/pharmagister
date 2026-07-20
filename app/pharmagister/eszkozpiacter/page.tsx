@@ -1435,8 +1435,8 @@ export default function EszkozPiacterPage() {
         <main className="max-w-6xl mx-auto px-4 py-5 space-y-6">
           {viewMode === "eladas" ? (
             <>
-              <section className={`rounded-[2rem] p-5 border shadow-[0_12px_40px_rgba(15,23,42,0.08)] ${darkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200"}`}>
-                <div className="flex items-center justify-between gap-3 mb-4">
+              <section className={`rounded-[2rem] p-4 md:p-5 border shadow-[0_12px_40px_rgba(15,23,42,0.08)] ${darkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200"}`}>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
                   <div>
                     <h2 className="font-bold text-lg">Eladás</h2>
                     <p className={darkMode ? "text-gray-300" : "text-gray-600"}>Saját hirdetéseid kezelése és új termék feladása.</p>
@@ -1446,7 +1446,7 @@ export default function EszkozPiacterPage() {
                       resetComposer();
                       setShowComposer(true);
                     }}
-                    className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-white font-semibold shadow-sm"
+                    className="inline-flex items-center justify-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-white font-semibold shadow-sm w-full sm:w-auto"
                   >
                     + Apróhirdetés létrehozása
                   </button>
@@ -1481,6 +1481,30 @@ export default function EszkozPiacterPage() {
                   <button onClick={() => setViewMode("kedvencek")} className="rounded-full px-3 py-2 bg-rose-100 text-rose-700 text-sm font-semibold">
                     Kedvencek
                   </button>
+                </div>
+
+                <div className="mb-3 flex flex-wrap gap-2">
+                  {([
+                    ["aktiv", "Aktív"],
+                    ["fuggoben", "Függőben"],
+                    ["eladva", "Eladva"],
+                    ["piszkozat", "Piszkozat"],
+                    ["lejart", "Lejárt"],
+                  ] as Array<[MyListingTab, string]>).map(([id, label]) => (
+                    <button
+                      key={id}
+                      onClick={() => setMyTab(id)}
+                      className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
+                        myTab === id
+                          ? "bg-indigo-100 text-indigo-700"
+                          : darkMode
+                            ? "bg-gray-800 text-gray-100"
+                            : "bg-gray-100 text-gray-700"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
                 </div>
 
                 {myListingsFiltered.length === 0 ? (
@@ -1524,12 +1548,18 @@ export default function EszkozPiacterPage() {
 
           {viewMode === "neked" ? (
             <>
-              <section className={`rounded-2xl p-4 border ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
-                <h2 className="font-bold text-lg mb-2">Neked</h2>
-                <p className={darkMode ? "text-gray-300" : "text-gray-600"}>Ajánlott hirdetések a kedvenceid és a legnézettebb elemek alapján.</p>
+              <section className={`relative overflow-hidden rounded-[2rem] p-4 border ${darkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200"}`}>
+                <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 via-emerald-500/10 to-blue-500/10 pointer-events-none" />
+                <div className="relative z-10">
+                  <h2 className="font-bold text-lg mb-2">Neked</h2>
+                  <p className={darkMode ? "text-gray-300" : "text-gray-600"}>Ajánlott hirdetések a kedvenceid és a legnézettebb elemek alapján.</p>
+                  <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-blue-600 text-white px-3 py-1.5 text-xs font-semibold">
+                    <Sparkles className="w-3.5 h-3.5" /> {recommendedListings.length} ajánlott hirdetés
+                  </div>
+                </div>
 
                 <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <button onClick={() => setViewMode("eladas")} className="rounded-2xl p-4 text-left border bg-blue-600 text-white font-semibold">Eladás</button>
+                  <button onClick={() => setViewMode("eladas")} className="rounded-2xl p-4 text-left border bg-blue-600 text-white font-semibold shadow-sm">Eladás</button>
                   <button onClick={() => setViewMode("helyi")} className={`rounded-2xl p-4 text-left border ${darkMode ? "bg-gray-900 border-gray-700" : "bg-gray-50 border-gray-200"}`}>
                     <p className="font-semibold">Helyi</p>
                     <p className="text-xs opacity-70 mt-1">A közeledben</p>
@@ -1558,11 +1588,14 @@ export default function EszkozPiacterPage() {
 
           {viewMode === "helyi" ? (
             <>
-              <section className={`rounded-2xl p-4 border ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
+              <section className={`relative overflow-hidden rounded-[2rem] p-4 border ${darkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200"}`}>
+                <div className="absolute inset-0 bg-gradient-to-br from-amber-400/10 via-orange-400/10 to-rose-400/10 pointer-events-none" />
+                <div className="relative z-10">
                 <h2 className="font-bold text-lg mb-2">Helyi</h2>
                 <p className={darkMode ? "text-gray-300" : "text-gray-600"}>A profilodban megadott településhez közeli hirdetések.</p>
-                <div className={`mt-3 inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm ${darkMode ? "bg-gray-900 text-gray-100" : "bg-gray-100 text-gray-800"}`}>
+                <div className={`mt-3 inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm ${darkMode ? "bg-gray-950 text-gray-100" : "bg-gray-100 text-gray-800"}`}>
                   <MapPin className="w-4 h-4" /> {userLocation || "Nincs megadott hely"}
+                </div>
                 </div>
               </section>
 
