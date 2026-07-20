@@ -8,6 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
 import { getClientMarket, getLocalizedDemandPositionLabel } from '@/lib/marketI18n';
 import ChatComposer from "@/app/components/chat/ChatComposer";
+import useVisualViewport from "@/app/components/chat/useVisualViewport";
 import {
   doc,
   getDoc,
@@ -125,6 +126,7 @@ export default function ChatRoomPage() {
   const justSentMessageRef = useRef(false); // Követjük hogy mi küldtünk-e épp üzenetet
   const messagesContainerRef = useRef(null);
   const headerRef = useRef(null);
+  const vp = useVisualViewport();
   
   // Automatikus görgetés
   const scrollToBottom = (options = { behavior: "smooth" }) => {
@@ -815,7 +817,16 @@ export default function ChatRoomPage() {
 
   // --- KÉPERNYŐ TARTALOM ---
   return (
-    <main className={`flex flex-col h-[100dvh] w-full overflow-hidden ${darkMode ? 'bg-[#e8f5e9] text-gray-900' : 'bg-gray-100 text-gray-900'}`}>
+    <main
+      className={`flex flex-col w-full overflow-hidden ${darkMode ? 'bg-[#e8f5e9] text-gray-900' : 'bg-gray-100 text-gray-900'}`}
+      style={{
+        position: 'fixed',
+        left: 0,
+        right: 0,
+        top: vp ? `${vp.offsetTop}px` : 0,
+        height: vp ? `${vp.height}px` : '100dvh',
+      }}
+    >
       
       {/* --- FEJLÉC --- */}
       <header 
