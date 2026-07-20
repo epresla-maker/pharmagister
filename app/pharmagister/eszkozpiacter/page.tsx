@@ -9,6 +9,7 @@ import ReportModal from "../../components/ReportModal";
 import { useAuth } from "../../../context/AuthContext";
 import { useTheme } from "../../../context/ThemeContext";
 import { db } from "../../../lib/firebase";
+import { createNotificationWithPush, NotificationTypes } from "../../../lib/notifications";
 import { getEffectivePharmagisterRole } from "../../../lib/pharmagisterProfile";
 import { isDocInMarket } from "../../../lib/market";
 import {
@@ -24,6 +25,7 @@ import {
   serverTimestamp,
   startAfter,
   updateDoc,
+  where,
 } from "firebase/firestore";
 import {
   ArrowLeft,
@@ -736,6 +738,11 @@ export default function EszkozPiacterPage() {
     return { active, pending, sold, drafts, total: ownedListings.length };
   }, [ownedListings]);
 
+  const adminPendingListings = useMemo(
+    () => (isAdmin ? items.filter((item) => item.status === "pending") : []),
+    [isAdmin, items]
+  );
+
   const categoryGroups = useMemo(() => {
     return CATEGORY_DEFS.map((cat) => ({
       ...cat,
@@ -1210,17 +1217,52 @@ export default function EszkozPiacterPage() {
         },
       };
 
+      let createdListingId: string | null = null;
+
       if (editingId) {
         await updateDoc(doc(db, "equipmentMarketplacePosts", editingId), {
           ...payload,
           updatedAt: serverTimestamp(),
         });
       } else {
-        await addDoc(collection(db, "equipmentMarketplacePosts"), {
+        const listingRef = await addDoc(collection(db, "equipmentMarketplacePosts"), {
           ...payload,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
+        createdListingId = listingRef.id;
+      }
+
+      if (!editingId && !isAdmin && createdListingId) {
+        try {
+          const adminUsersSnapshot = await getDocs(
+            query(collection(db, "users"), where("email", "in", Array.from(ADMIN_EMAILS)))
+          );
+
+          const adminUsers = adminUsersSnapshot.docs
+            .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
+            .filter((adminUser: any) => adminUser?.id && adminUser.id !== user.uid);
+
+          await Promise.all(
+            adminUsers.map((adminUser: any) =>
+              createNotificationWithPush({
+                userId: adminUser.id,
+                type: NotificationTypes.ADMIN_APPROVAL_REQUEST.type,
+                title: "Új piactér hirdetés vár jóváhagyásra",
+                message: `${payload.sellerName} új eszközhirdetést küldött jóváhagyásra: ${payload.title}`,
+                data: {
+                  listingId: createdListingId,
+                  sellerId: user.uid,
+                  sellerName: payload.sellerName,
+                  marketplaceType: "equipment_marketplace",
+                },
+                url: "/pharmagister/eszkozpiacter",
+              })
+            )
+          );
+        } catch (notificationError) {
+          console.error("Piactér admin értesítés hiba:", notificationError);
+        }
       }
 
       localStorage.removeItem(DRAFT_STORAGE_KEY);
@@ -1655,6 +1697,31 @@ export default function EszkozPiacterPage() {
                       <p className="text-lg font-bold">{adminStats.sold}</p>
                     </div>
                   </div>
+                </section>
+              ) : null}
+
+              {isAdmin ? (
+                <section className={`rounded-[2rem] p-4 border shadow-[0_12px_30px_rgba(15,23,42,0.05)] ${darkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200"}`}>
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <div>
+                      <h2 className="font-bold text-lg">Jóváhagyásra váró hirdetések</h2>
+                      <p className={darkMode ? "text-gray-300" : "text-gray-600"}>Itt tudod jóváhagyni vagy elutasítani a pending eszközhirdetéseket.</p>
+                    </div>
+                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${adminPendingListings.length > 0 ? "bg-amber-100 text-amber-700" : darkMode ? "bg-gray-800 text-gray-100" : "bg-gray-100 text-gray-600"}`}>
+                      {adminPendingListings.length} várakozik
+                    </span>
+                  </div>
+
+                  {adminPendingListings.length === 0 ? (
+                    <div className={`rounded-2xl p-6 text-center border ${darkMode ? "bg-gray-950 border-gray-800" : "bg-gray-50 border-gray-200"}`}>
+                      <Check className="w-8 h-8 mx-auto mb-2 text-emerald-500" />
+                      <p className={darkMode ? "text-gray-300" : "text-gray-600"}>Jelenleg nincs jóváhagyásra váró hirdetés.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {adminPendingListings.map(renderCard)}
+                    </div>
+                  )}
                 </section>
               ) : null}
             </>
