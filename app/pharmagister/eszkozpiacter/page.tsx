@@ -57,7 +57,7 @@ import {
 type ListingStatus = "approved" | "pending" | "rejected" | "sold" | "expired" | "draft";
 type SortOption = "legfrissebb" | "regebbi" | "legalacsonyabb_ar" | "legmagasabb_ar" | "legnezettebb" | "legkedveltebb";
 type ConditionOption = "new" | "used" | "refurbished";
-type ViewMode = "piacter" | "kedvencek" | "hirdeteseim";
+type ViewMode = "eladas" | "neked" | "helyi" | "kategoriak" | "kedvencek";
 type MyListingTab = "aktiv" | "fuggoben" | "eladva" | "piszkozat" | "lejart";
 type ListingFeedMode = "osszes" | "legfrissebb";
 
@@ -341,6 +341,16 @@ export default function EszkozPiacterPage() {
   const role = getEffectivePharmagisterRole(userData);
   const canUseMarketplace = Boolean(role);
   const isAdmin = ADMIN_EMAILS.has(String(user?.email || "").toLowerCase());
+  const userLocation = [
+    userData?.pharmacyZipCode,
+    userData?.pharmacyCity,
+    userData?.pharmacyStreet,
+    userData?.city,
+    userData?.zipCode,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
 
   const [items, setItems] = useState<MarketplaceListing[]>([]);
   const [loading, setLoading] = useState(true);
@@ -349,7 +359,7 @@ export default function EszkozPiacterPage() {
   const [errorText, setErrorText] = useState("");
   const [reportData, setReportData] = useState<ReportData | null>(null);
 
-  const [viewMode, setViewMode] = useState<ViewMode>("piacter");
+  const [viewMode, setViewMode] = useState<ViewMode>("neked");
   const [myTab, setMyTab] = useState<MyListingTab>("aktiv");
 
   const [searchInput, setSearchInput] = useState("");
@@ -604,6 +614,26 @@ export default function EszkozPiacterPage() {
     return map;
   }, [items]);
 
+  const ownedListings = useMemo(
+    () => items.filter((item) => item.sellerId === user?.uid),
+    [items, user?.uid]
+  );
+
+  const ownedListingStats = useMemo(() => {
+    const active = ownedListings.filter((item) => item.status === "approved").length;
+    const pending = ownedListings.filter((item) => item.status === "pending").length;
+    const sold = ownedListings.filter((item) => item.status === "sold").length;
+    const drafts = ownedListings.filter((item) => item.status === "draft").length;
+    return { active, pending, sold, drafts, total: ownedListings.length };
+  }, [ownedListings]);
+
+  const categoryGroups = useMemo(() => {
+    return CATEGORY_DEFS.map((cat) => ({
+      ...cat,
+      count: categoryCountMap.get(cat.id) || 0,
+    })).filter((cat) => cat.count > 0 || selectedCategory === cat.id);
+  }, [categoryCountMap, selectedCategory]);
+
   const searchSuggestions = useMemo(() => {
     const q = normalizeText(searchInput);
     if (!q) return [];
@@ -695,6 +725,30 @@ export default function EszkozPiacterPage() {
     [visibleListings]
   );
 
+  const localListings = useMemo(() => {
+    const locationQuery = normalizeText(userLocation);
+    if (!locationQuery) return visibleListings.slice(0, 16);
+
+    const matched = visibleListings.filter((item) => {
+      const haystack = normalizeText(`${item.location} ${item.city} ${item.description} ${item.title}`);
+      return haystack.includes(locationQuery) || locationQuery.includes(normalizeText(item.location));
+    });
+
+    return (matched.length > 0 ? matched : visibleListings).slice(0, 16);
+  }, [userLocation, visibleListings]);
+
+  const recommendedListings = useMemo(() => {
+    const favoriteCategories = new Set(
+      visibleListings
+        .filter((item) => favoriteIds.has(item.id))
+        .map((item) => item.category || "other")
+    );
+
+    const preferred = visibleListings.filter((item) => favoriteCategories.has(item.category || "other"));
+    const pool = preferred.length > 0 ? preferred : featuredListings.length > 0 ? featuredListings : visibleListings;
+    return pool.slice(0, 12);
+  }, [favoriteIds, featuredListings, visibleListings]);
+
   const latestListings = useMemo(
     () => [...visibleListings].sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)).slice(0, 8),
     [visibleListings]
@@ -702,18 +756,13 @@ export default function EszkozPiacterPage() {
 
   const activeFeedListings = listingFeedMode === "legfrissebb" ? latestListings : visibleListings;
 
-  const myListings = useMemo(
-    () => items.filter((item) => item.sellerId === user?.uid),
-    [items, user?.uid]
-  );
-
   const myListingsFiltered = useMemo(() => {
-    if (myTab === "aktiv") return myListings.filter((item) => item.status === "approved");
-    if (myTab === "fuggoben") return myListings.filter((item) => item.status === "pending");
-    if (myTab === "eladva") return myListings.filter((item) => item.status === "sold");
-    if (myTab === "lejart") return myListings.filter((item) => item.status === "expired");
+    if (myTab === "aktiv") return ownedListings.filter((item) => item.status === "approved");
+    if (myTab === "fuggoben") return ownedListings.filter((item) => item.status === "pending");
+    if (myTab === "eladva") return ownedListings.filter((item) => item.status === "sold");
+    if (myTab === "lejart") return ownedListings.filter((item) => item.status === "expired");
     return [];
-  }, [myListings, myTab]);
+  }, [myTab, ownedListings]);
 
   const favoriteListings = useMemo(
     () => visibleListings.filter((item) => favoriteIds.has(item.id)),
@@ -1248,6 +1297,30 @@ export default function EszkozPiacterPage() {
             <h1 className="text-xl font-bold ml-auto">Piactér</h1>
           </div>
 
+          <div className="max-w-6xl mx-auto px-4 pb-3 flex gap-2 overflow-x-auto">
+            {[
+              ["eladas", "Eladás"],
+              ["neked", "Neked"],
+              ["helyi", "Helyi"],
+              ["kategoriak", "Kategóriák"],
+              ["kedvencek", "Kedvencek"],
+            ].map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => setViewMode(key as ViewMode)}
+                className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                  viewMode === key
+                    ? "bg-blue-100 text-blue-700"
+                    : darkMode
+                      ? "bg-gray-800 text-gray-100"
+                      : "bg-gray-100 text-gray-900"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
           <div
             className="max-w-6xl mx-auto px-4 pb-3 transition-all"
             style={{ transform: `translateY(${Math.min(0, pullDistance / 4)}px)` }}
@@ -1337,55 +1410,161 @@ export default function EszkozPiacterPage() {
               >
                 + Hirdetés feladása
               </button>
-
-              <button
-                onClick={() => setViewMode("piacter")}
-                className={`rounded-xl px-3 py-2 text-sm font-semibold ${viewMode === "piacter" ? "bg-emerald-100 text-emerald-700" : darkMode ? "bg-gray-800" : "bg-white border border-gray-200"}`}
-              >
-                Piactér
-              </button>
-              <button
-                onClick={() => setViewMode("kedvencek")}
-                className={`rounded-xl px-3 py-2 text-sm font-semibold ${viewMode === "kedvencek" ? "bg-rose-100 text-rose-700" : darkMode ? "bg-gray-800" : "bg-white border border-gray-200"}`}
-              >
-                Kedvencek
-              </button>
-              <button
-                onClick={() => setViewMode("hirdeteseim")}
-                className={`rounded-xl px-3 py-2 text-sm font-semibold ${viewMode === "hirdeteseim" ? "bg-indigo-100 text-indigo-700" : darkMode ? "bg-gray-800" : "bg-white border border-gray-200"}`}
-              >
-                Saját hirdetéseim
-              </button>
             </div>
           </div>
         </div>
 
         <main className="max-w-6xl mx-auto px-4 py-5 space-y-6">
-          {isAdmin ? (
-            <section className={`rounded-2xl p-4 border ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
-              <h2 className="font-bold mb-3">Admin statisztikák</h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className={`rounded-xl p-3 ${darkMode ? "bg-gray-700" : "bg-emerald-50"}`}>
-                  <p className="text-xs opacity-70">Összes hirdetés</p>
-                  <p className="text-lg font-bold">{adminStats.total}</p>
+          {viewMode === "eladas" ? (
+            <>
+              <section className={`rounded-2xl p-4 border ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
+                <div className="flex items-center justify-between gap-3 mb-4">
+                  <div>
+                    <h2 className="font-bold text-lg">Eladás</h2>
+                    <p className={darkMode ? "text-gray-300" : "text-gray-600"}>Saját hirdetéseid kezelése és új termék feladása.</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      resetComposer();
+                      setShowComposer(true);
+                    }}
+                    className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-white font-semibold"
+                  >
+                    + Apróhirdetés létrehozása
+                  </button>
                 </div>
-                <div className={`rounded-xl p-3 ${darkMode ? "bg-gray-700" : "bg-amber-50"}`}>
-                  <p className="text-xs opacity-70">Függőben</p>
-                  <p className="text-lg font-bold">{adminStats.pending}</p>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className={`rounded-xl p-3 ${darkMode ? "bg-gray-700" : "bg-blue-50"}`}>
+                    <p className="text-xs opacity-70">Válaszra váró chatek</p>
+                    <p className="text-lg font-bold">{adminStats.pending}</p>
+                  </div>
+                  <div className={`rounded-xl p-3 ${darkMode ? "bg-gray-700" : "bg-emerald-50"}`}>
+                    <p className="text-xs opacity-70">Aktív apróhirdetés</p>
+                    <p className="text-lg font-bold">{ownedListingStats.active}</p>
+                  </div>
+                  <div className={`rounded-xl p-3 ${darkMode ? "bg-gray-700" : "bg-amber-50"}`}>
+                    <p className="text-xs opacity-70">Megújítható apróhirdetés</p>
+                    <p className="text-lg font-bold">{ownedListingStats.drafts}</p>
+                  </div>
+                  <div className={`rounded-xl p-3 ${darkMode ? "bg-gray-700" : "bg-gray-50"}`}>
+                    <p className="text-xs opacity-70">Összes hirdetésed</p>
+                    <p className="text-lg font-bold">{ownedListingStats.total}</p>
+                  </div>
                 </div>
-                <div className={`rounded-xl p-3 ${darkMode ? "bg-gray-700" : "bg-violet-50"}`}>
-                  <p className="text-xs opacity-70">Kiemelt</p>
-                  <p className="text-lg font-bold">{adminStats.featured}</p>
+              </section>
+
+              <section className={`rounded-2xl p-4 border ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div>
+                    <h2 className="font-bold text-lg">Megjelenés</h2>
+                    <p className={darkMode ? "text-gray-300" : "text-gray-600"}>A hirdetéseid kezelése, szerkesztés, kiemelés, eladottként jelölés.</p>
+                  </div>
+                  <button onClick={() => setViewMode("kedvencek")} className="rounded-xl px-3 py-2 bg-rose-100 text-rose-700 text-sm font-semibold">
+                    Kedvencek
+                  </button>
                 </div>
-                <div className={`rounded-xl p-3 ${darkMode ? "bg-gray-700" : "bg-blue-50"}`}>
-                  <p className="text-xs opacity-70">Eladva</p>
-                  <p className="text-lg font-bold">{adminStats.sold}</p>
-                </div>
-              </div>
-            </section>
+
+                {myListingsFiltered.length === 0 ? (
+                  <div className={`rounded-2xl p-8 text-center border ${darkMode ? "bg-gray-900/50 border-gray-700" : "bg-gray-50 border-gray-200"}`}>
+                    <Package className="w-10 h-10 mx-auto mb-3 text-gray-400" />
+                    <h3 className="font-semibold text-lg">Nincs még hirdetésed ebben a nézetben</h3>
+                    <p className={`mt-1 ${darkMode ? "text-gray-300" : "text-gray-600"}`}>Hozz létre egy új apróhirdetést a fenti gombbal.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {myListingsFiltered.map(renderCard)}
+                  </div>
+                )}
+              </section>
+
+              {isAdmin ? (
+                <section className={`rounded-2xl p-4 border ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
+                  <h2 className="font-bold mb-3">Admin statisztikák</h2>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className={`rounded-xl p-3 ${darkMode ? "bg-gray-700" : "bg-emerald-50"}`}>
+                      <p className="text-xs opacity-70">Összes hirdetés</p>
+                      <p className="text-lg font-bold">{adminStats.total}</p>
+                    </div>
+                    <div className={`rounded-xl p-3 ${darkMode ? "bg-gray-700" : "bg-amber-50"}`}>
+                      <p className="text-xs opacity-70">Függőben</p>
+                      <p className="text-lg font-bold">{adminStats.pending}</p>
+                    </div>
+                    <div className={`rounded-xl p-3 ${darkMode ? "bg-gray-700" : "bg-violet-50"}`}>
+                      <p className="text-xs opacity-70">Kiemelt</p>
+                      <p className="text-lg font-bold">{adminStats.featured}</p>
+                    </div>
+                    <div className={`rounded-xl p-3 ${darkMode ? "bg-gray-700" : "bg-blue-50"}`}>
+                      <p className="text-xs opacity-70">Eladva</p>
+                      <p className="text-lg font-bold">{adminStats.sold}</p>
+                    </div>
+                  </div>
+                </section>
+              ) : null}
+            </>
           ) : null}
 
-          {viewMode === "piacter" ? (
+          {viewMode === "neked" ? (
+            <>
+              <section className={`rounded-2xl p-4 border ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
+                <h2 className="font-bold text-lg mb-2">Neked</h2>
+                <p className={darkMode ? "text-gray-300" : "text-gray-600"}>Ajánlott hirdetések a kedvenceid és a legnézettebb elemek alapján.</p>
+
+                <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <button onClick={() => setViewMode("eladas")} className="rounded-2xl p-4 text-left border bg-blue-600 text-white font-semibold">Eladás</button>
+                  <button onClick={() => setViewMode("helyi")} className={`rounded-2xl p-4 text-left border ${darkMode ? "bg-gray-900 border-gray-700" : "bg-gray-50 border-gray-200"}`}>
+                    <p className="font-semibold">Helyi</p>
+                    <p className="text-xs opacity-70 mt-1">A közeledben</p>
+                  </button>
+                  <button onClick={() => setViewMode("kategoriak")} className={`rounded-2xl p-4 text-left border ${darkMode ? "bg-gray-900 border-gray-700" : "bg-gray-50 border-gray-200"}`}>
+                    <p className="font-semibold">Kategóriák</p>
+                    <p className="text-xs opacity-70 mt-1">Szűkebb böngészés</p>
+                  </button>
+                  <button onClick={() => setViewMode("kedvencek")} className={`rounded-2xl p-4 text-left border ${darkMode ? "bg-gray-900 border-gray-700" : "bg-gray-50 border-gray-200"}`}>
+                    <p className="font-semibold">Kedvencek</p>
+                    <p className="text-xs opacity-70 mt-1">Mentett hirdetések</p>
+                  </button>
+                </div>
+              </section>
+
+              {recommendedListings.length > 0 ? (
+                <section>
+                  <h2 className="font-bold mb-3">Ajánlott neked</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {recommendedListings.map(renderCard)}
+                  </div>
+                </section>
+              ) : null}
+            </>
+          ) : null}
+
+          {viewMode === "helyi" ? (
+            <>
+              <section className={`rounded-2xl p-4 border ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
+                <h2 className="font-bold text-lg mb-2">Helyi</h2>
+                <p className={darkMode ? "text-gray-300" : "text-gray-600"}>A profilodban megadott településhez közeli hirdetések.</p>
+                <div className={`mt-3 inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm ${darkMode ? "bg-gray-900 text-gray-100" : "bg-gray-100 text-gray-800"}`}>
+                  <MapPin className="w-4 h-4" /> {userLocation || "Nincs megadott hely"}
+                </div>
+              </section>
+
+              {localListings.length > 0 ? (
+                <section>
+                  <h2 className="font-bold mb-3">Közeli hirdetések</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {localListings.map(renderCard)}
+                  </div>
+                </section>
+              ) : (
+                <section className={`rounded-2xl p-8 text-center border ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
+                  <Package className="w-10 h-10 mx-auto mb-3 text-gray-400" />
+                  <p className={darkMode ? "text-gray-300" : "text-gray-600"}>Most nincs külön helyi találat, ezért a teljes piactér látható a keresésben.</p>
+                </section>
+              )}
+            </>
+          ) : null}
+
+          {viewMode === "kategoriak" ? (
             <>
               <section>
                 <h2 className="font-bold mb-3">Kategóriák</h2>
@@ -1412,6 +1591,26 @@ export default function EszkozPiacterPage() {
                             <p className="text-xs opacity-70">{count} hirdetés</p>
                           </div>
                         </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+
+              <section>
+                <h2 className="font-bold mb-3">Kategória áttekintés</h2>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {categoryGroups.map((cat) => {
+                    const Icon = cat.icon;
+                    return (
+                      <button
+                        key={cat.id}
+                        onClick={() => setSelectedCategory(cat.id)}
+                        className={`rounded-2xl p-4 text-left border ${selectedCategory === cat.id ? "ring-2 ring-blue-200 border-blue-300" : darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}
+                      >
+                        <div className={`inline-flex rounded-xl p-2 ${cat.color}`}><Icon className="w-5 h-5" /></div>
+                        <p className="mt-3 font-semibold">{cat.label}</p>
+                        <p className="text-xs opacity-70 mt-1">{cat.count} hirdetés</p>
                       </button>
                     );
                   })}
@@ -1498,43 +1697,6 @@ export default function EszkozPiacterPage() {
             </section>
           ) : null}
 
-          {viewMode === "hirdeteseim" ? (
-            <section>
-              <h2 className="font-bold mb-3">Saját hirdetéseim</h2>
-
-              <div className="flex flex-wrap gap-2 mb-3">
-                {([
-                  ["aktiv", "Aktív"],
-                  ["fuggoben", "Függőben"],
-                  ["eladva", "Eladva"],
-                  ["piszkozat", "Piszkozat"],
-                  ["lejart", "Lejárt"],
-                ] as Array<[MyListingTab, string]>).map(([id, label]) => (
-                  <button
-                    key={id}
-                    onClick={() => setMyTab(id)}
-                    className={`rounded-xl px-3 py-2 text-sm font-semibold ${myTab === id ? "bg-indigo-100 text-indigo-700" : darkMode ? "bg-gray-800" : "bg-white border border-gray-200"}`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-
-              {myTab === "piszkozat" ? (
-                <div className={`rounded-2xl p-5 border ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
-                  <p className={darkMode ? "text-gray-300" : "text-gray-600"}>A hirdetés feladás közben mentett adatok automatikusan visszatöltődnek az új hirdetés ablakban.</p>
-                </div>
-              ) : myListingsFiltered.length === 0 ? (
-                <div className={`rounded-2xl p-8 text-center border ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
-                  <p className={darkMode ? "text-gray-300" : "text-gray-600"}>Nincs hirdetés ebben a kategóriában.</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {myListingsFiltered.map(renderCard)}
-                </div>
-              )}
-            </section>
-          ) : null}
         </main>
 
         {showFilters ? (
