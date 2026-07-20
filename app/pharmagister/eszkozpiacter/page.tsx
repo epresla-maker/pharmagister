@@ -1150,19 +1150,19 @@ export default function EszkozPiacterPage() {
     return (
       <article
         key={item.id}
-        className={`rounded-2xl border overflow-hidden shadow-sm transition hover:shadow-md ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}
+        className={`group overflow-hidden rounded-[1.75rem] border shadow-[0_10px_30px_rgba(15,23,42,0.06)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_40px_rgba(15,23,42,0.12)] ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}
       >
         <button
           onClick={() => openDetails(item)}
           className="w-full text-left"
         >
-          <div className="relative w-full h-48">
+          <div className="relative w-full aspect-[4/3] overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200">
             {firstImage ? (
               <Image
                 src={firstImage}
                 alt={item.title}
                 fill
-                className="object-cover"
+                className="object-cover transition duration-500 group-hover:scale-[1.03]"
                 loading="lazy"
                 sizes="(max-width: 768px) 100vw, 50vw"
               />
@@ -1172,18 +1172,20 @@ export default function EszkozPiacterPage() {
               </div>
             )}
 
+            <div className="absolute inset-0 bg-gradient-to-t from-black/15 via-transparent to-transparent pointer-events-none" />
+
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 toggleFavorite(item);
               }}
-              className={`absolute top-3 right-3 rounded-full p-2 backdrop-blur border ${favorited ? "bg-rose-500 text-white border-rose-500" : "bg-white/90 text-gray-700 border-white"}`}
+              className={`absolute top-3 right-3 rounded-full p-2.5 backdrop-blur-lg border shadow-lg ${favorited ? "bg-rose-500 text-white border-rose-500" : "bg-white/90 text-gray-700 border-white"}`}
             >
               <Heart className={`w-4 h-4 ${favorited ? "fill-current" : ""}`} />
             </button>
 
             {item.featured ? (
-              <span className="absolute top-3 left-3 inline-flex items-center gap-1 rounded-full bg-amber-500 text-white text-xs px-2 py-1 font-semibold">
+              <span className="absolute top-3 left-3 inline-flex items-center gap-1 rounded-full bg-amber-500/95 backdrop-blur text-white text-xs px-2.5 py-1 font-semibold shadow-lg">
                 <Star className="w-3 h-3" /> Kiemelt
               </span>
             ) : null}
@@ -1191,21 +1193,26 @@ export default function EszkozPiacterPage() {
 
           <div className="p-4">
             <div className="flex items-start justify-between gap-2">
-              <h3 className="font-semibold text-base leading-tight">{item.title}</h3>
+              <h3 className="font-semibold text-[15px] leading-snug line-clamp-2">{item.title}</h3>
               {item.verified ? <BadgeCheck className="w-5 h-5 text-emerald-500 shrink-0" /> : null}
             </div>
 
-            <p className="mt-2 text-lg font-bold text-emerald-600">{formatHuPrice(item.priceAmount ?? item.price ?? null, item.negotiable)}</p>
-
-            <div className="mt-2 flex flex-wrap gap-2 text-xs">
-              <span className={`rounded-full px-2 py-1 ${getCategoryColor(item.category)}`}>{getCategoryLabel(item.category)}</span>
-              <span className={`rounded-full px-2 py-1 ${darkMode ? "bg-gray-700 text-gray-200" : "bg-gray-100 text-gray-700"}`}>{getConditionLabel(item.condition)}</span>
-              <span className={`rounded-full px-2 py-1 ${getStatusClass(item.status)}`}>{getStatusLabel(item.status)}</span>
+            <div className="mt-3 flex items-center justify-between gap-3">
+              <p className="text-xl font-extrabold text-emerald-600 tracking-tight">{formatHuPrice(item.priceAmount ?? item.price ?? null, item.negotiable)}</p>
+              <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${darkMode ? "bg-gray-700 text-gray-100" : "bg-gray-100 text-gray-700"}`}>
+                {getStatusLabel(item.status)}
+              </span>
             </div>
 
-            <div className={`mt-3 text-sm space-y-1 ${darkMode ? "text-gray-300" : "text-gray-600"}`}>
-              <div className="flex items-center gap-1"><MapPin className="w-4 h-4" /> {item.location}</div>
-              <div className="flex items-center gap-1"><User className="w-4 h-4" /> {item.sellerName}</div>
+            <div className="mt-3 flex flex-wrap gap-2 text-xs">
+              <span className={`rounded-full px-2 py-1 ${getCategoryColor(item.category)}`}>{getCategoryLabel(item.category)}</span>
+              <span className={`rounded-full px-2 py-1 ${darkMode ? "bg-gray-700 text-gray-200" : "bg-gray-100 text-gray-700"}`}>{getConditionLabel(item.condition)}</span>
+              {item.negotiable ? <span className={`rounded-full px-2 py-1 ${darkMode ? "bg-amber-900/30 text-amber-200" : "bg-amber-50 text-amber-700"}`}>Alkuképes</span> : null}
+            </div>
+
+            <div className={`mt-3 text-sm space-y-1.5 ${darkMode ? "text-gray-300" : "text-gray-600"}`}>
+              <div className="flex items-center gap-1.5"><MapPin className="w-4 h-4" /> {item.location}</div>
+              <div className="flex items-center gap-1.5"><User className="w-4 h-4" /> {item.sellerName}</div>
               <div>{formatHuDateTime(item.createdAt)}</div>
             </div>
           </div>
@@ -1213,7 +1220,7 @@ export default function EszkozPiacterPage() {
 
         <div className="px-4 pb-4 flex flex-wrap gap-2">
           {!isOwner && item.status === "approved" ? (
-            <button onClick={() => openChat(item)} className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold">
+            <button onClick={() => openChat(item)} className="px-3 py-2 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-sm">
               Üzenet az eladónak
             </button>
           ) : null}
@@ -1229,7 +1236,7 @@ export default function EszkozPiacterPage() {
                   itemContent: item.title,
                 })
               }
-              className="px-3 py-2 rounded-xl bg-amber-100 text-amber-700 text-sm font-semibold"
+              className="px-3 py-2 rounded-2xl bg-amber-100 text-amber-700 text-sm font-semibold"
             >
               Jelentés
             </button>
@@ -1237,24 +1244,24 @@ export default function EszkozPiacterPage() {
 
           {isOwner ? (
             <>
-              <button onClick={() => openEdit(item)} className="px-3 py-2 rounded-xl bg-indigo-100 text-indigo-700 text-sm font-semibold">Szerkesztés</button>
-              <button onClick={() => openDuplicate(item)} className="px-3 py-2 rounded-xl bg-cyan-100 text-cyan-700 text-sm font-semibold">Duplikálás</button>
-              <button onClick={() => handleRenew(item)} className="px-3 py-2 rounded-xl bg-emerald-100 text-emerald-700 text-sm font-semibold">Megújítás</button>
+              <button onClick={() => openEdit(item)} className="px-3 py-2 rounded-2xl bg-indigo-100 text-indigo-700 text-sm font-semibold">Szerkesztés</button>
+              <button onClick={() => openDuplicate(item)} className="px-3 py-2 rounded-2xl bg-cyan-100 text-cyan-700 text-sm font-semibold">Duplikálás</button>
+              <button onClick={() => handleRenew(item)} className="px-3 py-2 rounded-2xl bg-emerald-100 text-emerald-700 text-sm font-semibold">Megújítás</button>
               {item.status !== "sold" ? (
-                <button onClick={() => handleMarkSold(item)} className="px-3 py-2 rounded-xl bg-blue-100 text-blue-700 text-sm font-semibold">Eladva</button>
+                <button onClick={() => handleMarkSold(item)} className="px-3 py-2 rounded-2xl bg-blue-100 text-blue-700 text-sm font-semibold">Eladva</button>
               ) : null}
             </>
           ) : null}
 
           {canDeleteListing ? (
-            <button onClick={() => handleDeleteListing(item.id)} className="px-3 py-2 rounded-xl bg-rose-100 text-rose-700 text-sm font-semibold inline-flex items-center gap-1"><Trash2 className="w-4 h-4" />Törlés</button>
+            <button onClick={() => handleDeleteListing(item.id)} className="px-3 py-2 rounded-2xl bg-rose-100 text-rose-700 text-sm font-semibold inline-flex items-center gap-1"><Trash2 className="w-4 h-4" />Törlés</button>
           ) : null}
 
           {isAdmin ? (
             <>
-              <button onClick={() => handleAdminStatus(item.id, "approved")} className="px-3 py-2 rounded-xl bg-emerald-100 text-emerald-700 text-sm font-semibold">Jóváhagyás</button>
-              <button onClick={() => handleAdminStatus(item.id, "rejected")} className="px-3 py-2 rounded-xl bg-orange-100 text-orange-700 text-sm font-semibold">Elutasítás</button>
-              <button onClick={() => handleFeatureToggle(item)} className="px-3 py-2 rounded-xl bg-purple-100 text-purple-700 text-sm font-semibold">{item.featured ? "Kiemelés levétele" : "Kiemelés"}</button>
+              <button onClick={() => handleAdminStatus(item.id, "approved")} className="px-3 py-2 rounded-2xl bg-emerald-100 text-emerald-700 text-sm font-semibold">Jóváhagyás</button>
+              <button onClick={() => handleAdminStatus(item.id, "rejected")} className="px-3 py-2 rounded-2xl bg-orange-100 text-orange-700 text-sm font-semibold">Elutasítás</button>
+              <button onClick={() => handleFeatureToggle(item)} className="px-3 py-2 rounded-2xl bg-purple-100 text-purple-700 text-sm font-semibold">{item.featured ? "Kiemelés levétele" : "Kiemelés"}</button>
             </>
           ) : null}
         </div>
@@ -1288,16 +1295,21 @@ export default function EszkozPiacterPage() {
 
   return (
     <RouteGuard>
-      <div className={`min-h-screen pb-24 ${darkMode ? "bg-gray-900 text-white" : "bg-[#f5f7fb] text-gray-900"}`}>
-        <div className="sticky top-0 z-30 backdrop-blur-sm border-b pt-safe-small bg-white/85 dark:bg-gray-900/85 dark:border-gray-700">
-          <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3">
-            <button onClick={() => router.push("/kozosseg")} className="inline-flex items-center gap-1 text-emerald-600 font-semibold">
-              <ArrowLeft className="w-5 h-5" /> Vissza
+      <div className={`min-h-screen pb-24 ${darkMode ? "bg-gray-950 text-white" : "bg-[#f4f7fb] text-gray-900"}`}>
+        <div className={`sticky top-0 z-30 border-b pt-safe-small backdrop-blur-xl ${darkMode ? "bg-gray-950/88 border-gray-800" : "bg-white/88 border-gray-200"}`}>
+          <div className="absolute inset-x-0 top-0 h-24 pointer-events-none bg-gradient-to-b from-blue-500/10 to-transparent" />
+
+          <div className="max-w-6xl mx-auto px-4 pt-3 pb-2 flex items-center gap-3 relative z-10">
+            <button onClick={() => router.push("/kozosseg")} className={`inline-flex items-center gap-1 rounded-full px-3 py-2 text-sm font-semibold ${darkMode ? "bg-gray-900 text-gray-100" : "bg-gray-100 text-gray-900"}`}>
+              <ArrowLeft className="w-4 h-4" /> Vissza
             </button>
-            <h1 className="text-xl font-bold ml-auto">Piactér</h1>
+            <div className="ml-auto text-right">
+              <h1 className="text-2xl font-black tracking-tight">Piactér</h1>
+              <p className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Gyors böngészés, ajánlott hirdetések, saját eladáskezelő</p>
+            </div>
           </div>
 
-          <div className="max-w-6xl mx-auto px-4 pb-3 flex gap-2 overflow-x-auto">
+          <div className="max-w-6xl mx-auto px-4 pb-3 flex gap-2 overflow-x-auto relative z-10">
             {[
               ["eladas", "Eladás"],
               ["neked", "Neked"],
@@ -1308,7 +1320,7 @@ export default function EszkozPiacterPage() {
               <button
                 key={key}
                 onClick={() => setViewMode(key as ViewMode)}
-                className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition-colors shadow-sm ${
                   viewMode === key
                     ? "bg-blue-100 text-blue-700"
                     : darkMode
@@ -1322,94 +1334,100 @@ export default function EszkozPiacterPage() {
           </div>
 
           <div
-            className="max-w-6xl mx-auto px-4 pb-3 transition-all"
+            className="max-w-6xl mx-auto px-4 pb-4 transition-all relative z-10"
             style={{ transform: `translateY(${Math.min(0, pullDistance / 4)}px)` }}
           >
-            <div className="relative">
-              <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                onFocus={() => setShowSearchPanel(true)}
-                onBlur={() => setTimeout(() => setShowSearchPanel(false), 120)}
-                placeholder="Keresés cím, leírás, kategória, hely vagy eladó szerint"
-                className={`w-full rounded-2xl pl-12 pr-4 py-3 text-sm border outline-none focus:ring-2 focus:ring-emerald-200 ${darkMode ? "bg-gray-800 border-gray-700 placeholder:text-gray-400" : "bg-white border-gray-200 placeholder:text-gray-500"}`}
-              />
+            <div className={`rounded-[1.75rem] border p-3 shadow-[0_10px_30px_rgba(15,23,42,0.06)] ${darkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200"}`}>
+              <div className="relative">
+                <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  onFocus={() => setShowSearchPanel(true)}
+                  onBlur={() => setTimeout(() => setShowSearchPanel(false), 120)}
+                  placeholder="Keresés cím, leírás, kategória, hely vagy eladó szerint"
+                  className={`w-full rounded-[1.4rem] pl-12 pr-4 py-3.5 text-sm border outline-none focus:ring-2 focus:ring-blue-200 ${darkMode ? "bg-gray-950 border-gray-800 placeholder:text-gray-500" : "bg-gray-50 border-gray-200 placeholder:text-gray-500"}`}
+                />
 
-              {showSearchPanel && (searchSuggestions.length > 0 || recentSearches.length > 0 || POPULAR_SEARCHES.length > 0) ? (
-                <div className={`absolute top-[110%] left-0 right-0 rounded-2xl border shadow-xl p-3 z-20 ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
-                  {searchSuggestions.length > 0 ? (
-                    <div>
-                      <p className="text-xs font-semibold mb-2 opacity-70">Javaslatok</p>
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        {searchSuggestions.map((suggestion) => (
-                          <button
-                            key={suggestion}
-                            onClick={() => {
-                              setSearchInput(suggestion);
-                              addRecentSearch(suggestion);
-                            }}
-                            className={`text-xs px-3 py-1.5 rounded-full ${darkMode ? "bg-gray-700 hover:bg-gray-600" : "bg-gray-100 hover:bg-gray-200"}`}
-                          >
-                            {suggestion}
-                          </button>
-                        ))}
+                {showSearchPanel && (searchSuggestions.length > 0 || recentSearches.length > 0 || POPULAR_SEARCHES.length > 0) ? (
+                  <div className={`absolute top-[110%] left-0 right-0 rounded-2xl border shadow-xl p-3 z-20 ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
+                    {searchSuggestions.length > 0 ? (
+                      <div>
+                        <p className="text-xs font-semibold mb-2 opacity-70">Javaslatok</p>
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          {searchSuggestions.map((suggestion) => (
+                            <button
+                              key={suggestion}
+                              onClick={() => {
+                                setSearchInput(suggestion);
+                                addRecentSearch(suggestion);
+                              }}
+                              className={`text-xs px-3 py-1.5 rounded-full ${darkMode ? "bg-gray-700 hover:bg-gray-600" : "bg-gray-100 hover:bg-gray-200"}`}
+                            >
+                              {suggestion}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ) : null}
+                    ) : null}
 
-                  {recentSearches.length > 0 ? (
+                    {recentSearches.length > 0 ? (
+                      <div>
+                        <p className="text-xs font-semibold mb-2 opacity-70">Legutóbbi keresések</p>
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          {recentSearches.map((search) => (
+                            <button
+                              key={search}
+                              onClick={() => setSearchInput(search)}
+                              className={`text-xs px-3 py-1.5 rounded-full ${darkMode ? "bg-gray-700 hover:bg-gray-600" : "bg-gray-100 hover:bg-gray-200"}`}
+                            >
+                              {search}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
                     <div>
-                      <p className="text-xs font-semibold mb-2 opacity-70">Legutóbbi keresések</p>
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        {recentSearches.map((search) => (
+                      <p className="text-xs font-semibold mb-2 opacity-70">Népszerű keresések</p>
+                      <div className="flex flex-wrap gap-2">
+                        {POPULAR_SEARCHES.map((search) => (
                           <button
                             key={search}
                             onClick={() => setSearchInput(search)}
-                            className={`text-xs px-3 py-1.5 rounded-full ${darkMode ? "bg-gray-700 hover:bg-gray-600" : "bg-gray-100 hover:bg-gray-200"}`}
+                            className={`text-xs px-3 py-1.5 rounded-full ${darkMode ? "bg-emerald-900/40 text-emerald-200" : "bg-emerald-50 text-emerald-700"}`}
                           >
                             {search}
                           </button>
                         ))}
                       </div>
                     </div>
-                  ) : null}
-
-                  <div>
-                    <p className="text-xs font-semibold mb-2 opacity-70">Népszerű keresések</p>
-                    <div className="flex flex-wrap gap-2">
-                      {POPULAR_SEARCHES.map((search) => (
-                        <button
-                          key={search}
-                          onClick={() => setSearchInput(search)}
-                          className={`text-xs px-3 py-1.5 rounded-full ${darkMode ? "bg-emerald-900/40 text-emerald-200" : "bg-emerald-50 text-emerald-700"}`}
-                        >
-                          {search}
-                        </button>
-                      ))}
-                    </div>
                   </div>
+                ) : null}
+              </div>
+
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => setShowFilters(true)}
+                  className="inline-flex items-center gap-2 rounded-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold"
+                >
+                  <SlidersHorizontal className="w-4 h-4" /> Szűrés és rendezés
+                </button>
+
+                <button
+                  onClick={() => {
+                    resetComposer();
+                    setShowComposer(true);
+                  }}
+                  className="inline-flex items-center gap-2 rounded-full px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 text-sm font-semibold hover:bg-emerald-100"
+                >
+                  + Hirdetés feladása
+                </button>
+
+                <div className={`ml-auto hidden md:flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold ${darkMode ? "bg-gray-950 text-gray-300" : "bg-gray-50 text-gray-600"}`}>
+                  <Sparkles className="w-4 h-4 text-blue-500" /> {viewMode === "eladas" ? "Eladás" : viewMode === "neked" ? "Neked" : viewMode === "helyi" ? "Helyi" : viewMode === "kategoriak" ? "Kategóriák" : "Kedvencek"}
                 </div>
-              ) : null}
-            </div>
-
-            <div className="flex flex-wrap gap-2 mt-3">
-              <button
-                onClick={() => setShowFilters(true)}
-                className="inline-flex items-center gap-2 rounded-xl px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold"
-              >
-                <SlidersHorizontal className="w-4 h-4" /> Szűrés és rendezés
-              </button>
-
-              <button
-                onClick={() => {
-                  resetComposer();
-                  setShowComposer(true);
-                }}
-                className="inline-flex items-center gap-2 rounded-xl px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 text-sm font-semibold hover:bg-emerald-100"
-              >
-                + Hirdetés feladása
-              </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1417,7 +1435,7 @@ export default function EszkozPiacterPage() {
         <main className="max-w-6xl mx-auto px-4 py-5 space-y-6">
           {viewMode === "eladas" ? (
             <>
-              <section className={`rounded-2xl p-4 border ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
+              <section className={`rounded-[2rem] p-5 border shadow-[0_12px_40px_rgba(15,23,42,0.08)] ${darkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200"}`}>
                 <div className="flex items-center justify-between gap-3 mb-4">
                   <div>
                     <h2 className="font-bold text-lg">Eladás</h2>
@@ -1428,39 +1446,39 @@ export default function EszkozPiacterPage() {
                       resetComposer();
                       setShowComposer(true);
                     }}
-                    className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-white font-semibold"
+                    className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-white font-semibold shadow-sm"
                   >
                     + Apróhirdetés létrehozása
                   </button>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <div className={`rounded-xl p-3 ${darkMode ? "bg-gray-700" : "bg-blue-50"}`}>
+                  <div className={`rounded-2xl p-3 ${darkMode ? "bg-gray-800" : "bg-blue-50"}`}>
                     <p className="text-xs opacity-70">Válaszra váró chatek</p>
                     <p className="text-lg font-bold">{adminStats.pending}</p>
                   </div>
-                  <div className={`rounded-xl p-3 ${darkMode ? "bg-gray-700" : "bg-emerald-50"}`}>
+                  <div className={`rounded-2xl p-3 ${darkMode ? "bg-gray-800" : "bg-emerald-50"}`}>
                     <p className="text-xs opacity-70">Aktív apróhirdetés</p>
                     <p className="text-lg font-bold">{ownedListingStats.active}</p>
                   </div>
-                  <div className={`rounded-xl p-3 ${darkMode ? "bg-gray-700" : "bg-amber-50"}`}>
+                  <div className={`rounded-2xl p-3 ${darkMode ? "bg-gray-800" : "bg-amber-50"}`}>
                     <p className="text-xs opacity-70">Megújítható apróhirdetés</p>
                     <p className="text-lg font-bold">{ownedListingStats.drafts}</p>
                   </div>
-                  <div className={`rounded-xl p-3 ${darkMode ? "bg-gray-700" : "bg-gray-50"}`}>
+                  <div className={`rounded-2xl p-3 ${darkMode ? "bg-gray-800" : "bg-gray-50"}`}>
                     <p className="text-xs opacity-70">Összes hirdetésed</p>
                     <p className="text-lg font-bold">{ownedListingStats.total}</p>
                   </div>
                 </div>
               </section>
 
-              <section className={`rounded-2xl p-4 border ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
+              <section className={`rounded-[2rem] p-4 border shadow-[0_12px_30px_rgba(15,23,42,0.05)] ${darkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200"}`}>
                 <div className="flex items-center justify-between gap-3 mb-3">
                   <div>
                     <h2 className="font-bold text-lg">Megjelenés</h2>
                     <p className={darkMode ? "text-gray-300" : "text-gray-600"}>A hirdetéseid kezelése, szerkesztés, kiemelés, eladottként jelölés.</p>
                   </div>
-                  <button onClick={() => setViewMode("kedvencek")} className="rounded-xl px-3 py-2 bg-rose-100 text-rose-700 text-sm font-semibold">
+                  <button onClick={() => setViewMode("kedvencek")} className="rounded-full px-3 py-2 bg-rose-100 text-rose-700 text-sm font-semibold">
                     Kedvencek
                   </button>
                 </div>
