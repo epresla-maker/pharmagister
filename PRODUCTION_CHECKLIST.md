@@ -84,12 +84,20 @@
 - [ ] **Full description** (max. 4000 karakter)
   - [ ] Magyarul
   - [ ] Angolul (ajánlott)
+  - [ ] Németül (de-DE) a német kiadáshoz
 - [ ] **Kategória:** Medical / Health & Fitness
 - [ ] **Tags/Keywords** optimalizálva (SEO)
 - [ ] **Developer contact:**
   - [ ] Email cím
   - [ ] Weboldal URL
   - [ ] Telefon (opcionális)
+
+### 9/A. Német (DE) Store Listing 🇩🇪
+- [ ] Külön `de-DE` egyéni áruházi adatlap létrehozva
+- [ ] Német rövid leírás feltöltve
+- [ ] Német teljes leírás feltöltve
+- [ ] Német screenshotok feltöltve (ha a képeken szöveg szerepel)
+- [ ] Privacy Policy és Child Safety szövegek DE nézetben is ellenőrizve
 
 ### 10. Store Listing Assets 🖼️
 - [ ] App ikon (512x512px, PNG)
@@ -188,6 +196,12 @@
 - [ ] Release submitted for review
 - [ ] Google review várakozás (1-7 nap)
 
+### 19/A. Országok és régiók (HU + DE) 🌍
+- [ ] Országok/régiók alatt Magyarország és Németország is hozzáadva
+- [ ] Staged rollout először HU+DE 10%-on indítva
+- [ ] Crash/ANR figyelés külön DE felhasználókra az első 24-48 órában
+- [ ] Rollout emelés 50%-ra, majd 100%-ra, ha stabil
+
 ---
 
 ## ✅ FINAL CHECKLIST - Feltöltés Előtt
@@ -201,6 +215,7 @@
 - [ ] Screenshotok feltöltve (min. 2 db)
 - [ ] Feature graphic feltöltve
 - [ ] App leírás magyarul + angolul
+- [ ] Német (`de-DE`) store listing elkészült
 - [ ] Engedélyek dokumentálva
 - [ ] Release APK tesztelve eszközön
 - [ ] Nincs HTTP connection (csak HTTPS)

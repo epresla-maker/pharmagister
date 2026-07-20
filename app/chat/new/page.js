@@ -7,13 +7,13 @@ import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, getDoc
 import { db } from '@/lib/firebase';
 import { ArrowLeft, Send, Loader2 } from 'lucide-react';
 import { getClientMarket, getLocalizedDemandPositionLabel } from '@/lib/marketI18n';
+import ChatComposer from '@/app/components/chat/ChatComposer';
 
 function NewChatContent() {
   const { user, userData } = useAuth();
   const market = getClientMarket();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const inputRef = useRef(null);
 
   const [messageText, setMessageText] = useState('');
   const [sending, setSending] = useState(false);
@@ -140,7 +140,7 @@ function NewChatContent() {
 
   return (
     <RouteGuard>
-      <div className={`min-h-screen flex flex-col ${darkMode ? 'bg-black' : 'bg-gray-100'}`}>
+      <div className={`min-h-[100dvh] flex flex-col overflow-hidden ${darkMode ? 'bg-black' : 'bg-gray-100'}`}>
         {/* Header - same style as chat page */}
         <div className={`${darkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'} border-b px-4 py-3 sticky top-0 z-10 pt-safe-small`}>
           <div className="max-w-4xl mx-auto flex items-center gap-3">
@@ -179,7 +179,7 @@ function NewChatContent() {
         </div>
 
         {/* Empty state */}
-        <div className="flex-1 flex flex-col items-center justify-center px-4 pb-32">
+        <div className="flex-1 flex flex-col items-center justify-center px-4 pb-40">
           <div className="text-center max-w-md">
             <div className="text-6xl mb-4">💬</div>
             <h3 className={`text-xl font-semibold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
@@ -193,36 +193,15 @@ function NewChatContent() {
           </div>
         </div>
 
-        {/* Message input - same style as chat page */}
-        <div className={`${darkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'} border-t px-4 py-4 fixed bottom-0 left-0 right-0`}>
-          <div className="max-w-4xl mx-auto flex gap-2 items-end">
-            <input
-              ref={inputRef}
-              type="text"
-              value={messageText}
-              onChange={(e) => setMessageText(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && !sending && handleSendMessage()}
-              placeholder={market === 'de' ? 'Nachricht schreiben...' : 'Írj üzenetet...'}
-              className={`flex-1 px-4 py-3 rounded-3xl border focus:outline-none focus:border-cyan-500 ${
-                darkMode 
-                  ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-400' 
-                  : 'bg-gray-100 border-gray-300 text-gray-900 placeholder-gray-500'
-              }`}
-              disabled={sending}
-            />
-            <button
-              onClick={handleSendMessage}
-              disabled={!messageText.trim() || sending}
-              className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold p-3 rounded-full transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {sending ? (
-                <Loader2 className="w-6 h-6 animate-spin" />
-              ) : (
-                <Send className="w-6 h-6" />
-              )}
-            </button>
-          </div>
-        </div>
+        <ChatComposer
+          value={messageText}
+          onChange={setMessageText}
+          onSubmit={handleSendMessage}
+          darkMode={darkMode}
+          market={market}
+          placeholder={market === 'de' ? 'Nachricht schreiben...' : 'Írj üzenetet...'}
+          sending={sending}
+        />
       </div>
     </RouteGuard>
   );

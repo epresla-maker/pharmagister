@@ -7,6 +7,8 @@ import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
 import { getClientMarket, getLocalizedDemandPositionLabel } from '@/lib/marketI18n';
+import ChatComposer from "@/app/components/chat/ChatComposer";
+import useKeyboardInset from "@/app/components/chat/useKeyboardInset";
 import {
   doc,
   getDoc,
@@ -122,14 +124,13 @@ export default function ChatRoomPage() {
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const justSentMessageRef = useRef(false); // Követjük hogy mi küldtünk-e épp üzenetet
-  const formRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const headerRef = useRef(null);
   
   // --- FEJLÉC MAGASSÁG DINAMIKUS KÖVETÉSE ---
   const [headerHeight, setHeaderHeight] = useState(130);
   const [composerHeight, setComposerHeight] = useState(80);
-  const [keyboardOffset, setKeyboardOffset] = useState(0);
+  const keyboardOffset = useKeyboardInset();
   
   // Automatikus görgetés
   const scrollToBottom = (options = { behavior: "smooth" }) => {
@@ -163,48 +164,6 @@ export default function ChatRoomPage() {
     };
   }, []);
 
-  // --- INPUT MAGASSÁG FIGYELÉSE (reply sáv miatt változhat) ---
-  useEffect(() => {
-    const updateComposerHeight = () => {
-      if (formRef.current) {
-        setComposerHeight(formRef.current.getBoundingClientRect().height || 80);
-      }
-    };
-
-    updateComposerHeight();
-
-    const resizeObserver = new ResizeObserver(updateComposerHeight);
-    if (formRef.current) {
-      resizeObserver.observe(formRef.current);
-    }
-
-    window.addEventListener('resize', updateComposerHeight);
-    return () => {
-      resizeObserver.disconnect();
-      window.removeEventListener('resize', updateComposerHeight);
-    };
-  }, [replyTo, editingMessage]);
-
-  // --- MOBIL BILLENTYŰZET OFFSET (visualViewport) ---
-  useEffect(() => {
-    if (typeof window === 'undefined' || !window.visualViewport) return;
-
-    const updateKeyboardOffset = () => {
-      const vv = window.visualViewport;
-      const offset = Math.max(0, window.innerHeight - (vv.height + vv.offsetTop));
-      setKeyboardOffset(offset);
-    };
-
-    updateKeyboardOffset();
-    window.visualViewport.addEventListener('resize', updateKeyboardOffset);
-    window.visualViewport.addEventListener('scroll', updateKeyboardOffset);
-
-    return () => {
-      window.visualViewport.removeEventListener('resize', updateKeyboardOffset);
-      window.visualViewport.removeEventListener('scroll', updateKeyboardOffset);
-    };
-  }, []);
-  
   // Scroll pozíció figyelése - scroll to bottom gomb megjelenítéséhez
   useEffect(() => {
     const container = messagesContainerRef.current;
@@ -795,10 +754,6 @@ export default function ChatRoomPage() {
 
     // Azonnal töröljük az input mezőket
     setNewMessage("");
-    // Töröljük a contenteditable div tartalmát is
-    if (inputElement && inputElement.textContent) {
-      inputElement.textContent = '';
-    }
     setReplyTo(null); // Töröljük a válasz referenciát
     
     // Töröljük az időzítőt, mert üzenetküldés = gépelés vége
@@ -891,7 +846,7 @@ export default function ChatRoomPage() {
 
   // --- KÉPERNYŐ TARTALOM ---
   return (
-    <main className={`h-screen w-screen overflow-hidden ${darkMode ? 'bg-[#e8f5e9] text-gray-900' : 'bg-gray-100 text-gray-900'}`}>
+    <main className={`relative h-[100dvh] w-full overflow-hidden ${darkMode ? 'bg-[#e8f5e9] text-gray-900' : 'bg-gray-100 text-gray-900'}`}>
       
       {/* --- FEJLÉC (FIXED a tetején) --- */}
       <header 
@@ -1437,123 +1392,24 @@ export default function ChatRoomPage() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* --- INPUT (FIXED az alján) --- */}
-      <div
-        ref={formRef}
-        className={`fixed bottom-0 left-0 right-0 p-4 border-t-2 z-50 ${
-          darkMode ? 'bg-[#c8e6c9] border-[#a5d6a7]' : 'bg-white border-gray-200'
-        }`}
-        style={{
-          bottom: `${keyboardOffset}px`,
-          paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))'
+      <ChatComposer
+        inputRef={inputRef}
+        value={newMessage}
+        onChange={setNewMessage}
+        onSubmit={handleSendMessage}
+        onFocus={() => {
+          setShowReactionPicker(null);
+          setShowMessageMenu(null);
+          setHighlightedMessage(null);
+          setSelectedMessageData(null);
         }}
-        onTouchStart={(e) => {
-          e.currentTarget.dataset.touchStartY = e.touches[0].clientY;
-        }}
-        onTouchMove={(e) => {
-          const startY = parseFloat(e.currentTarget.dataset.touchStartY);
-          const currentY = e.touches[0].clientY;
-          // Ha lefelé húzza (50px-nél több), bezárjuk a billentyűzetet
-          if (currentY > startY + 50 && inputRef.current) {
-            inputRef.current.blur();
-          }
-        }}
-      >
-        <div className="max-w-4xl mx-auto">
-          {/* Reply előnézet */}
-          {replyTo && (
-            <div className={`mb-2 p-2 rounded-lg border-l-4 border-cyan-500 flex items-center justify-between ${darkMode ? 'bg-gray-800' : 'bg-gray-100'}`}>
-              <div className="flex-1 min-w-0">
-                <div className={`text-xs font-medium ${darkMode ? 'text-cyan-400' : 'text-cyan-600'}`}>
-                  Válasz erre: {replyTo.senderName}
-                </div>
-                <div className={`text-sm truncate ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  {replyTo.text}
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setReplyTo(null)}
-                className={`ml-2 p-1 rounded-full ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-          )}
-          
-          <div 
-            className="flex space-x-2 items-end"
-            onMouseDown={(e) => {
-              // Csak ha pontosan erre a div-re kattintunk (nem gyerek elemre)
-              if (e.target === e.currentTarget) {
-                e.preventDefault();
-              }
-            }}
-            onTouchStart={(e) => {
-              if (e.target === e.currentTarget) {
-                e.preventDefault();
-              }
-            }}
-          >
-            {/* Contenteditable div az iOS accessory bar elkerülésére */}
-            <div
-              ref={inputRef}
-              contentEditable={!editingMessage}
-              suppressContentEditableWarning={true}
-              onInput={(e) => setNewMessage(e.currentTarget.textContent)}
-              onFocus={() => {
-                // Overlay-ek bezárása fókuszáláskor
-                setShowReactionPicker(null);
-                setShowMessageMenu(null);
-                setHighlightedMessage(null);
-                setSelectedMessageData(null);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSendMessage();
-                  e.currentTarget.textContent = '';
-                }
-              }}
-              className={`flex-1 border rounded-3xl py-3 px-4 focus:outline-none focus:border-cyan-500 disabled:opacity-50 transition-all overflow-y-auto min-h-[44px] max-h-32 ${
-                darkMode ? 'bg-[#e8f5e9] border-[#a5d6a7] text-gray-900 placeholder-gray-500' : 'bg-gray-100 border-gray-300 text-gray-900 placeholder-gray-500'
-              }`}
-              style={{ 
-                WebkitUserSelect: 'text',
-                userSelect: 'text',
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word'
-              }}
-              data-placeholder="Írj üzenetet..."
-            />
-
-            {/* Küldés gomb */}
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onTouchStart={(e) => e.preventDefault()}
-              onTouchEnd={(e) => {
-                e.preventDefault();
-                handleSendMessage();
-                setTimeout(() => inputRef.current?.focus(), 10);
-              }}
-              onClick={(e) => {
-                e.preventDefault();
-                handleSendMessage();
-                setTimeout(() => inputRef.current?.focus(), 10);
-              }}
-              disabled={newMessage.trim() === ""}
-              className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold p-3 rounded-full transition duration-200 disabled:bg-gray-600 disabled:opacity-50"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      </div>
+        onHeightChange={setComposerHeight}
+        replyTo={replyTo}
+        onClearReply={() => setReplyTo(null)}
+        darkMode={darkMode}
+        market={market}
+        placeholder={market === 'de' ? 'Nachricht schreiben...' : 'Írj üzenetet...'}
+      />
 
       {/* Jelentés modal */}
       <ReportModal
