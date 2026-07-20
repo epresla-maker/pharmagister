@@ -127,24 +127,6 @@ export default function ChatRoomPage() {
   const headerRef = useRef(null);
   const mainRef = useRef(null);
 
-  // iOS fix: directly manipulate DOM height from visualViewport — no React state = no render lag
-  useEffect(() => {
-    const el = mainRef.current;
-    const vp = window.visualViewport;
-    if (!el || !vp) return;
-    const update = () => {
-      el.style.height = `${vp.height}px`;
-      el.style.top = `${vp.offsetTop}px`;
-    };
-    update();
-    vp.addEventListener('resize', update);
-    vp.addEventListener('scroll', update);
-    return () => {
-      vp.removeEventListener('resize', update);
-      vp.removeEventListener('scroll', update);
-    };
-  }, []);
-
   
   // Automatikus görgetés
   const scrollToBottom = (options = { behavior: "smooth" }) => {
@@ -843,7 +825,7 @@ export default function ChatRoomPage() {
         left: 0,
         right: 0,
         top: 0,
-        height: '100dvh',
+        height: '50dvh',
       }}
     >
       
