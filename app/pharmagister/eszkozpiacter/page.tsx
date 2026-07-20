@@ -546,57 +546,20 @@ export default function EszkozPiacterPage() {
 
     const viewport = window.visualViewport;
 
-    const ensureActiveFieldVisible = () => {
-      const activeElement = document.activeElement as HTMLElement | null;
-      if (!activeElement || !composerSheetRef.current?.contains(activeElement)) return;
-
-      const viewportHeight = viewport?.height ?? window.innerHeight;
-      const rect = activeElement.getBoundingClientRect();
-      const visibleTop = 72;
-      const visibleBottom = viewportHeight - 136;
-
-      if (rect.top < visibleTop || rect.bottom > visibleBottom) {
-        activeElement.scrollIntoView({ block: "nearest", behavior: "smooth" });
-      }
-    };
-
     const updateComposerViewport = () => {
       if (!viewport) {
-        setComposerViewportHeight(null);
         setComposerKeyboardInset(0);
         return;
       }
-
-      const nextHeight = Math.max(320, viewport.height - 12);
       const nextInset = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
-
-      setComposerViewportHeight(nextHeight);
-      setComposerKeyboardInset(nextInset > 24 ? nextInset : 0);
-
-      window.requestAnimationFrame(ensureActiveFieldVisible);
-    };
-
-    const handleFocusIn = (event: FocusEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (!target || !composerSheetRef.current?.contains(target)) return;
-      window.setTimeout(() => {
-        const viewportHeight = viewport?.height ?? window.innerHeight;
-        const rect = target.getBoundingClientRect();
-        const visibleBottom = viewportHeight - 136;
-        if (rect.bottom > visibleBottom) {
-          target.scrollIntoView({ block: "nearest", behavior: "smooth" });
-        }
-      }, 220);
+      setComposerKeyboardInset(nextInset > 20 ? nextInset : 0);
     };
 
     updateComposerViewport();
     viewport?.addEventListener("resize", updateComposerViewport);
-    window.addEventListener("focusin", handleFocusIn);
 
     return () => {
       viewport?.removeEventListener("resize", updateComposerViewport);
-      window.removeEventListener("focusin", handleFocusIn);
-      setComposerViewportHeight(null);
       setComposerKeyboardInset(0);
     };
   }, [showComposer]);
@@ -606,57 +569,20 @@ export default function EszkozPiacterPage() {
 
     const viewport = window.visualViewport;
 
-    const ensureActiveFieldVisible = () => {
-      const activeElement = document.activeElement as HTMLElement | null;
-      if (!activeElement || !filtersSheetRef.current?.contains(activeElement)) return;
-
-      const viewportHeight = viewport?.height ?? window.innerHeight;
-      const rect = activeElement.getBoundingClientRect();
-      const visibleTop = 72;
-      const visibleBottom = viewportHeight - 112;
-
-      if (rect.top < visibleTop || rect.bottom > visibleBottom) {
-        activeElement.scrollIntoView({ block: "nearest", behavior: "smooth" });
-      }
-    };
-
     const updateFiltersViewport = () => {
       if (!viewport) {
-        setFiltersViewportHeight(null);
         setFiltersKeyboardInset(0);
         return;
       }
-
-      const nextHeight = Math.max(260, viewport.height - 12);
       const nextInset = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
-
-      setFiltersViewportHeight(nextHeight);
-      setFiltersKeyboardInset(nextInset > 24 ? nextInset : 0);
-
-      window.requestAnimationFrame(ensureActiveFieldVisible);
-    };
-
-    const handleFocusIn = (event: FocusEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (!target || !filtersSheetRef.current?.contains(target)) return;
-      window.setTimeout(() => {
-        const viewportHeight = viewport?.height ?? window.innerHeight;
-        const rect = target.getBoundingClientRect();
-        const visibleBottom = viewportHeight - 112;
-        if (rect.bottom > visibleBottom) {
-          target.scrollIntoView({ block: "nearest", behavior: "smooth" });
-        }
-      }, 220);
+      setFiltersKeyboardInset(nextInset > 20 ? nextInset : 0);
     };
 
     updateFiltersViewport();
     viewport?.addEventListener("resize", updateFiltersViewport);
-    window.addEventListener("focusin", handleFocusIn);
 
     return () => {
       viewport?.removeEventListener("resize", updateFiltersViewport);
-      window.removeEventListener("focusin", handleFocusIn);
-      setFiltersViewportHeight(null);
       setFiltersKeyboardInset(0);
     };
   }, [showFilters]);
@@ -1954,14 +1880,14 @@ export default function EszkozPiacterPage() {
         </main>
 
         {showFilters ? (
-          <div className="fixed inset-0 z-50 bg-black/50 flex items-end md:items-center justify-center p-3 pb-[calc(96px+env(safe-area-inset-bottom,0px))] md:pb-3">
+          <div
+            className="fixed inset-0 z-50 bg-black/50 flex items-end md:items-center justify-center p-3 md:pb-3"
+            style={{ paddingBottom: filtersKeyboardInset > 0 ? `${filtersKeyboardInset + 12}px` : undefined }}
+          >
             <div
               ref={filtersSheetRef}
-              className={`w-full max-w-2xl rounded-2xl border overflow-y-auto overscroll-contain ${darkMode ? "bg-gray-900 border-gray-700 text-white" : "bg-white border-gray-200 text-gray-900"}`}
-              style={{
-                maxHeight: filtersViewportHeight ? `${filtersViewportHeight}px` : undefined,
-                WebkitOverflowScrolling: "touch",
-              }}
+              className={`w-full max-w-2xl rounded-2xl border flex flex-col ${darkMode ? "bg-gray-900 border-gray-700 text-white" : "bg-white border-gray-200 text-gray-900"}`}
+              style={{ maxHeight: "85dvh" }}
             >
               <div className="sticky top-0 px-4 py-3 border-b flex items-center justify-between bg-inherit">
                 <h3 className="font-bold text-lg">Szűrés és rendezés</h3>
@@ -1969,11 +1895,10 @@ export default function EszkozPiacterPage() {
               </div>
 
               <div
-                className="p-4 space-y-4"
-                style={{
-                  paddingBottom: `${Math.max(112, filtersKeyboardInset + 112)}px`,
-                }}
+                className="overflow-y-auto overscroll-contain"
+                style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}
               >
+              <div className="p-4 space-y-4 pb-4">
                 <div>
                   <label className="text-sm font-semibold">Rendezés</label>
                   <select value={sortBy} onChange={(e) => setSortBy(e.target.value as SortOption)} className={`mt-1 w-full rounded-xl border px-3 py-2 text-sm ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"}`}>
@@ -2025,11 +1950,12 @@ export default function EszkozPiacterPage() {
                   <label className="flex items-center gap-2"><input type="checkbox" checked={withImagesOnly} onChange={(e) => setWithImagesOnly(e.target.checked)} /> Csak képes hirdetések</label>
                 </div>
 
-                <div className={`sticky bottom-0 -mx-4 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] border-t z-10 ${darkMode ? "bg-gray-900/95 border-gray-700" : "bg-white/95 border-gray-200"}`}>
-                  <div className="flex gap-2">
-                    <button onClick={clearFilters} className="flex-1 rounded-xl bg-gray-200 text-gray-800 py-2 font-semibold">Törlés</button>
-                    <button onClick={() => setShowFilters(false)} className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white py-2 font-semibold">Alkalmazás</button>
-                  </div>
+              </div>
+              </div>
+              <div className={`shrink-0 px-4 pt-3 pb-4 border-t ${darkMode ? "bg-gray-900 border-gray-700" : "bg-white border-gray-200"}`}>
+                <div className="flex gap-2">
+                  <button onClick={clearFilters} className="flex-1 rounded-xl bg-gray-200 text-gray-800 py-2 font-semibold">Törlés</button>
+                  <button onClick={() => setShowFilters(false)} className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white py-2 font-semibold">Alkalmazás</button>
                 </div>
               </div>
             </div>
@@ -2037,14 +1963,14 @@ export default function EszkozPiacterPage() {
         ) : null}
 
         {showComposer ? (
-          <div className="fixed inset-0 z-[70] bg-black/60 flex items-end md:items-center justify-center p-3 pb-[calc(96px+env(safe-area-inset-bottom,0px))] md:pb-3">
+          <div
+            className="fixed inset-0 z-[70] bg-black/60 flex items-end md:items-center justify-center p-3 md:pb-3"
+            style={{ paddingBottom: composerKeyboardInset > 0 ? `${composerKeyboardInset + 12}px` : undefined }}
+          >
             <div
               ref={composerSheetRef}
-              className={`w-full max-w-3xl rounded-2xl border overflow-y-auto overscroll-contain ${darkMode ? "bg-gray-900 border-gray-700 text-white" : "bg-white border-gray-200 text-gray-900"}`}
-              style={{
-                maxHeight: composerViewportHeight ? `${composerViewportHeight}px` : undefined,
-                WebkitOverflowScrolling: "touch",
-              }}
+              className={`w-full max-w-3xl rounded-2xl border flex flex-col ${darkMode ? "bg-gray-900 border-gray-700 text-white" : "bg-white border-gray-200 text-gray-900"}`}
+              style={{ maxHeight: "90dvh" }}
             >
               <div className="sticky top-0 px-4 py-3 border-b flex items-center justify-between bg-inherit z-10">
                 <h3 className="font-bold text-lg">{editingId ? "Hirdetés szerkesztése" : "Hirdetés feladása"}</h3>
@@ -2052,11 +1978,10 @@ export default function EszkozPiacterPage() {
               </div>
 
               <div
-                className="p-4 space-y-4"
-                style={{
-                  paddingBottom: `${Math.max(128, composerKeyboardInset + 128)}px`,
-                }}
+                className="overflow-y-auto overscroll-contain flex-1"
+                style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}
               >
+              <div className="p-4 space-y-4 pb-4">
                 <div>
                   <label className="text-sm font-semibold">Képek (max. 15)</label>
                   <input
@@ -2187,19 +2112,19 @@ export default function EszkozPiacterPage() {
                   <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-rose-700 text-sm">{composerError}</div>
                 ) : null}
 
-                <div className={`sticky bottom-0 -mx-4 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] border-t z-10 ${darkMode ? "bg-gray-900/95 border-gray-700" : "bg-white/95 border-gray-200"}`}>
-                  <div className="flex gap-2">
-                    <button onClick={() => { localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft)); alert("Piszkozat mentve."); }} className="flex-1 rounded-xl bg-gray-200 text-gray-800 py-2 font-semibold">Piszkozat mentése</button>
-                    <button onClick={handleSubmitListing} disabled={submitting} className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white py-2 font-semibold disabled:opacity-60 inline-flex items-center justify-center gap-2">
-                      {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                      {submitting ? "Mentés..." : editingId ? "Módosítás mentése" : "Hirdetés feladása"}
-                    </button>
-                  </div>
-
-                  {!isAdmin ? (
-                    <p className={`mt-2 text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Az új hirdetések moderáció után jelennek meg nyilvánosan.</p>
-                  ) : null}
+              </div>
+              </div>
+              <div className={`shrink-0 px-4 pt-3 pb-4 border-t ${darkMode ? "bg-gray-900 border-gray-700" : "bg-white border-gray-200"}`}>
+                <div className="flex gap-2">
+                  <button onClick={() => { localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft)); alert("Piszkozat mentve."); }} className="flex-1 rounded-xl bg-gray-200 text-gray-800 py-2 font-semibold">Piszkozat mentése</button>
+                  <button onClick={handleSubmitListing} disabled={submitting} className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white py-2 font-semibold disabled:opacity-60 inline-flex items-center justify-center gap-2">
+                    {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                    {submitting ? "Mentés..." : editingId ? "Módosítás mentése" : "Hirdetés feladása"}
+                  </button>
                 </div>
+                {!isAdmin ? (
+                  <p className={`mt-2 text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Az új hirdetések moderáció után jelennek meg nyilvánosan.</p>
+                ) : null}
               </div>
             </div>
           </div>
