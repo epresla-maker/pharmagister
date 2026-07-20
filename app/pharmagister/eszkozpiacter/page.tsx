@@ -387,6 +387,8 @@ export default function EszkozPiacterPage() {
   const [showComposer, setShowComposer] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [composerError, setComposerError] = useState("");
+  const [composerViewportHeight, setComposerViewportHeight] = useState<number | null>(null);
+  const [composerKeyboardInset, setComposerKeyboardInset] = useState(0);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [newImages, setNewImages] = useState<File[]>([]);
@@ -411,6 +413,7 @@ export default function EszkozPiacterPage() {
 
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
+  const composerSheetRef = useRef<HTMLDivElement | null>(null);
   const lastDocRef = useRef<any>(null);
   const viewedOnceRef = useRef<Set<string>>(new Set());
 
@@ -527,6 +530,55 @@ export default function EszkozPiacterPage() {
     if (!showComposer) return;
     localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
   }, [draft, showComposer]);
+
+  useEffect(() => {
+    if (!showComposer || typeof window === "undefined") return;
+
+    const viewport = window.visualViewport;
+
+    const scrollActiveFieldIntoView = () => {
+      const activeElement = document.activeElement as HTMLElement | null;
+      if (!activeElement || !composerSheetRef.current?.contains(activeElement)) return;
+      activeElement.scrollIntoView({ block: "center", behavior: "smooth" });
+    };
+
+    const updateComposerViewport = () => {
+      if (!viewport) {
+        setComposerViewportHeight(null);
+        setComposerKeyboardInset(0);
+        return;
+      }
+
+      const nextHeight = Math.max(320, viewport.height - 12);
+      const nextInset = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
+
+      setComposerViewportHeight(nextHeight);
+      setComposerKeyboardInset(nextInset > 24 ? nextInset : 0);
+
+      window.requestAnimationFrame(scrollActiveFieldIntoView);
+    };
+
+    const handleFocusIn = (event: FocusEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target || !composerSheetRef.current?.contains(target)) return;
+      window.setTimeout(() => {
+        target.scrollIntoView({ block: "center", behavior: "smooth" });
+      }, 220);
+    };
+
+    updateComposerViewport();
+    viewport?.addEventListener("resize", updateComposerViewport);
+    viewport?.addEventListener("scroll", updateComposerViewport);
+    window.addEventListener("focusin", handleFocusIn);
+
+    return () => {
+      viewport?.removeEventListener("resize", updateComposerViewport);
+      viewport?.removeEventListener("scroll", updateComposerViewport);
+      window.removeEventListener("focusin", handleFocusIn);
+      setComposerViewportHeight(null);
+      setComposerKeyboardInset(0);
+    };
+  }, [showComposer]);
 
   useEffect(() => {
     const previews = newImages.map((file) => URL.createObjectURL(file));
@@ -1821,13 +1873,24 @@ export default function EszkozPiacterPage() {
 
         {showComposer ? (
           <div className="fixed inset-0 z-[70] bg-black/60 flex items-end md:items-center justify-center p-3 pb-[calc(96px+env(safe-area-inset-bottom,0px))] md:pb-3">
-            <div className={`w-full max-w-3xl rounded-2xl border max-h-[88vh] overflow-y-auto ${darkMode ? "bg-gray-900 border-gray-700 text-white" : "bg-white border-gray-200 text-gray-900"}`}>
+            <div
+              ref={composerSheetRef}
+              className={`w-full max-w-3xl rounded-2xl border overflow-y-auto overscroll-contain ${darkMode ? "bg-gray-900 border-gray-700 text-white" : "bg-white border-gray-200 text-gray-900"}`}
+              style={{
+                maxHeight: composerViewportHeight ? `${composerViewportHeight}px` : undefined,
+              }}
+            >
               <div className="sticky top-0 px-4 py-3 border-b flex items-center justify-between bg-inherit z-10">
                 <h3 className="font-bold text-lg">{editingId ? "Hirdetés szerkesztése" : "Hirdetés feladása"}</h3>
                 <button onClick={() => { setShowComposer(false); resetComposer(); }} className="p-2 rounded-lg hover:bg-gray-200/20"><X className="w-5 h-5" /></button>
               </div>
 
-              <div className="p-4 space-y-4">
+              <div
+                className="p-4 space-y-4"
+                style={{
+                  paddingBottom: `${Math.max(24, composerKeyboardInset + 24)}px`,
+                }}
+              >
                 <div>
                   <label className="text-sm font-semibold">Képek (max. 15)</label>
                   <input
@@ -1958,17 +2021,19 @@ export default function EszkozPiacterPage() {
                   <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-rose-700 text-sm">{composerError}</div>
                 ) : null}
 
-                <div className="flex gap-2">
-                  <button onClick={() => { localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft)); alert("Piszkozat mentve."); }} className="flex-1 rounded-xl bg-gray-200 text-gray-800 py-2 font-semibold">Piszkozat mentése</button>
-                  <button onClick={handleSubmitListing} disabled={submitting} className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white py-2 font-semibold disabled:opacity-60 inline-flex items-center justify-center gap-2">
-                    {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                    {submitting ? "Mentés..." : editingId ? "Módosítás mentése" : "Hirdetés feladása"}
-                  </button>
-                </div>
+                <div className={`sticky bottom-0 -mx-4 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] border-t z-10 ${darkMode ? "bg-gray-900/95 border-gray-700" : "bg-white/95 border-gray-200"}`}>
+                  <div className="flex gap-2">
+                    <button onClick={() => { localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft)); alert("Piszkozat mentve."); }} className="flex-1 rounded-xl bg-gray-200 text-gray-800 py-2 font-semibold">Piszkozat mentése</button>
+                    <button onClick={handleSubmitListing} disabled={submitting} className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white py-2 font-semibold disabled:opacity-60 inline-flex items-center justify-center gap-2">
+                      {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                      {submitting ? "Mentés..." : editingId ? "Módosítás mentése" : "Hirdetés feladása"}
+                    </button>
+                  </div>
 
-                {!isAdmin ? (
-                  <p className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Az új hirdetések moderáció után jelennek meg nyilvánosan.</p>
-                ) : null}
+                  {!isAdmin ? (
+                    <p className={`mt-2 text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Az új hirdetések moderáció után jelennek meg nyilvánosan.</p>
+                  ) : null}
+                </div>
               </div>
             </div>
           </div>
