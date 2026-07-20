@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Capacitor } from "@capacitor/core";
+import { Keyboard } from "@capacitor/keyboard";
 import type { ComponentType } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -380,8 +382,7 @@ export default function EszkozPiacterPage() {
   const [sortBy, setSortBy] = useState<SortOption>("legfrissebb");
   const [listingFeedMode, setListingFeedMode] = useState<ListingFeedMode>("osszes");
   const [showFilters, setShowFilters] = useState(false);
-  const [filtersViewportHeight, setFiltersViewportHeight] = useState<number | null>(null);
-  const [filtersKeyboardInset, setFiltersKeyboardInset] = useState(0);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
   const [selectedListing, setSelectedListing] = useState<MarketplaceListing | null>(null);
@@ -391,8 +392,6 @@ export default function EszkozPiacterPage() {
   const [showComposer, setShowComposer] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [composerError, setComposerError] = useState("");
-  const [composerViewportHeight, setComposerViewportHeight] = useState<number | null>(null);
-  const [composerKeyboardInset, setComposerKeyboardInset] = useState(0);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [newImages, setNewImages] = useState<File[]>([]);
@@ -542,50 +541,38 @@ export default function EszkozPiacterPage() {
   }, [draft, showComposer]);
 
   useEffect(() => {
-    if (!showComposer || typeof window === "undefined") return;
+    if (typeof window === "undefined") return;
 
+    if (Capacitor.isNativePlatform()) {
+      let showHandle: any;
+      let hideHandle: any;
+
+      Keyboard.addListener("keyboardWillShow", (info) => {
+        setKeyboardHeight(info.keyboardHeight);
+      }).then((h) => { showHandle = h; });
+
+      Keyboard.addListener("keyboardWillHide", () => {
+        setKeyboardHeight(0);
+      }).then((h) => { hideHandle = h; });
+
+      return () => {
+        showHandle?.remove();
+        hideHandle?.remove();
+      };
+    }
+
+    // Web fallback (browser preview)
     const viewport = window.visualViewport;
-
-    const updateComposerViewport = () => {
-      if (!viewport) {
-        setComposerKeyboardInset(0);
-        return;
-      }
-      const nextInset = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
-      setComposerKeyboardInset(nextInset > 20 ? nextInset : 0);
+    const update = () => {
+      if (!viewport) return;
+      const inset = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
+      setKeyboardHeight(inset > 20 ? inset : 0);
     };
-
-    updateComposerViewport();
-    viewport?.addEventListener("resize", updateComposerViewport);
-
+    viewport?.addEventListener("resize", update);
     return () => {
-      viewport?.removeEventListener("resize", updateComposerViewport);
-      setComposerKeyboardInset(0);
+      viewport?.removeEventListener("resize", update);
     };
-  }, [showComposer]);
-
-  useEffect(() => {
-    if (!showFilters || typeof window === "undefined") return;
-
-    const viewport = window.visualViewport;
-
-    const updateFiltersViewport = () => {
-      if (!viewport) {
-        setFiltersKeyboardInset(0);
-        return;
-      }
-      const nextInset = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
-      setFiltersKeyboardInset(nextInset > 20 ? nextInset : 0);
-    };
-
-    updateFiltersViewport();
-    viewport?.addEventListener("resize", updateFiltersViewport);
-
-    return () => {
-      viewport?.removeEventListener("resize", updateFiltersViewport);
-      setFiltersKeyboardInset(0);
-    };
-  }, [showFilters]);
+  }, []);
 
   useEffect(() => {
     const previews = newImages.map((file) => URL.createObjectURL(file));
@@ -1882,7 +1869,7 @@ export default function EszkozPiacterPage() {
         {showFilters ? (
           <div
             className="fixed top-0 left-0 right-0 z-50 bg-black/50 flex items-end md:items-center justify-center p-3"
-            style={{ bottom: `${filtersKeyboardInset}px` }}
+            style={{ bottom: `${keyboardHeight}px` }}
           >
             <div
               ref={filtersSheetRef}
@@ -1965,7 +1952,7 @@ export default function EszkozPiacterPage() {
         {showComposer ? (
           <div
             className="fixed top-0 left-0 right-0 z-[70] bg-black/60 flex items-end md:items-center justify-center p-3"
-            style={{ bottom: `${composerKeyboardInset}px` }}
+            style={{ bottom: `${keyboardHeight}px` }}
           >
             <div
               ref={composerSheetRef}
