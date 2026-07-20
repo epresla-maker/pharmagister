@@ -75,39 +75,34 @@ export default function ChatComposer({
   return (
     <div
       ref={rootRef}
-      className={`w-full flex-shrink-0 border-t backdrop-blur-xl shadow-[0_-16px_40px_rgba(15,23,42,0.12)] ${
-        darkMode ? "bg-gray-900/95 border-gray-700" : "bg-white/95 border-gray-200"
-      }`}
+      className={`w-full flex-shrink-0 ${
+        darkMode ? "bg-[#1c1c1e] border-[#2c2c2e]" : "bg-white border-gray-200"
+      } border-t`}
       style={{
-        paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0px))",
+        paddingBottom: "max(0.5rem, env(safe-area-inset-bottom, 0px))",
+        paddingTop: "0.5rem",
       }}
     >
-      <div className="max-w-4xl mx-auto px-4 pt-3">
-        {replyTo ? (
-          <div className={`mb-3 rounded-2xl border px-3 py-2 ${darkMode ? "bg-gray-800 border-gray-700" : "bg-gray-50 border-gray-200"}`}>
-            <div className="flex items-start gap-3">
-              <div className="flex-1 min-w-0">
-                <p className={`text-xs font-semibold ${darkMode ? "text-cyan-300" : "text-cyan-700"}`}>
-                  {market === "de" ? "Antwort an" : "Válasz erre"}: {replyTo.senderName}
-                </p>
-                <p className={`mt-1 text-sm line-clamp-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
-                  {replyTo.text}
-                </p>
-              </div>
-              {onClearReply ? (
-                <button
-                  type="button"
-                  onClick={onClearReply}
-                  className={`rounded-full px-2 py-1 text-xs font-semibold ${darkMode ? "bg-gray-700 text-gray-200" : "bg-gray-200 text-gray-700"}`}
-                >
-                  {market === "de" ? "Entfernen" : "Mégse"}
-                </button>
-              ) : null}
+      {replyTo ? (
+        <div className={`mx-3 mb-2 rounded-xl border-l-4 px-3 py-2 ${darkMode ? "bg-[#2c2c2e] border-blue-500" : "bg-gray-100 border-blue-500"}`}>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-blue-500">{replyTo.senderName}</p>
+              <p className={`text-xs truncate ${darkMode ? "text-gray-400" : "text-gray-600"}`}>{replyTo.text}</p>
             </div>
+            {onClearReply && (
+              <button type="button" onClick={onClearReply} className={`text-lg leading-none ${darkMode ? "text-gray-400" : "text-gray-500"}`}>×</button>
+            )}
           </div>
-        ) : null}
+        </div>
+      ) : null}
 
-        <div className="flex items-end gap-3">
+      <div className="flex items-end gap-2 px-3">
+        <div className={`flex-1 flex items-end rounded-[22px] border px-4 py-2 ${
+          darkMode
+            ? "bg-[#2c2c2e] border-[#3a3a3c]"
+            : "bg-[#f0f2f5] border-transparent"
+        }`}>
           <textarea
             ref={resolvedInputRef}
             rows={1}
@@ -115,32 +110,30 @@ export default function ChatComposer({
             onChange={(event) => onChange(event.target.value)}
             onFocus={onFocus}
             onKeyDown={handleKeyDown}
-            placeholder={placeholder}
+            placeholder={placeholder || (market === "de" ? "Aa" : "Aa")}
             disabled={sending || disabled}
             enterKeyHint="send"
             autoComplete="off"
             autoCapitalize="sentences"
             spellCheck
-            className={`flex-1 resize-none rounded-[1.5rem] border px-4 py-3.5 text-[15px] leading-6 outline-none transition focus:ring-2 focus:ring-cyan-400/30 disabled:opacity-60 ${
-              darkMode
-                ? "bg-gray-800 border-gray-700 text-white placeholder:text-gray-400"
-                : "bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-500"
+            className={`w-full resize-none bg-transparent outline-none text-[16px] leading-6 disabled:opacity-60 ${
+              darkMode ? "text-white placeholder:text-gray-500" : "text-gray-900 placeholder:text-gray-500"
             }`}
             style={{
-              minHeight: 52,
-              maxHeight: 144,
+              minHeight: 24,
+              maxHeight: 120,
             }}
           />
-
-          <button
-            type="button"
-            onClick={submitMessage}
-            disabled={sending || disabled || !value.trim()}
-            className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg transition hover:from-blue-600 hover:to-purple-600 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
-          </button>
         </div>
+
+        <button
+          type="button"
+          onClick={submitMessage}
+          disabled={sending || disabled || !value.trim()}
+          className="flex-shrink-0 inline-flex h-[44px] w-[44px] items-center justify-center rounded-full bg-blue-500 text-white shadow transition active:scale-95 disabled:opacity-40"
+        >
+          {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-[18px] w-[18px]" />}
+        </button>
       </div>
     </div>
   );

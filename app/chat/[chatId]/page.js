@@ -8,7 +8,6 @@ import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
 import { getClientMarket, getLocalizedDemandPositionLabel } from '@/lib/marketI18n';
 import ChatComposer from "@/app/components/chat/ChatComposer";
-import useVisualViewport from "@/app/components/chat/useVisualViewport";
 import {
   doc,
   getDoc,
@@ -126,7 +125,26 @@ export default function ChatRoomPage() {
   const justSentMessageRef = useRef(false); // Követjük hogy mi küldtünk-e épp üzenetet
   const messagesContainerRef = useRef(null);
   const headerRef = useRef(null);
-  const vp = useVisualViewport();
+  const mainRef = useRef(null);
+
+  // iOS fix: directly manipulate DOM height from visualViewport — no React state = no render lag
+  useEffect(() => {
+    const el = mainRef.current;
+    const vp = window.visualViewport;
+    if (!el || !vp) return;
+    const update = () => {
+      el.style.height = `${vp.height}px`;
+      el.style.top = `${vp.offsetTop}px`;
+    };
+    update();
+    vp.addEventListener('resize', update);
+    vp.addEventListener('scroll', update);
+    return () => {
+      vp.removeEventListener('resize', update);
+      vp.removeEventListener('scroll', update);
+    };
+  }, []);
+
   
   // Automatikus görgetés
   const scrollToBottom = (options = { behavior: "smooth" }) => {
@@ -818,13 +836,14 @@ export default function ChatRoomPage() {
   // --- KÉPERNYŐ TARTALOM ---
   return (
     <main
+      ref={mainRef}
       className={`flex flex-col w-full overflow-hidden ${darkMode ? 'bg-[#e8f5e9] text-gray-900' : 'bg-gray-100 text-gray-900'}`}
       style={{
         position: 'fixed',
         left: 0,
         right: 0,
-        top: vp ? `${vp.offsetTop}px` : 0,
-        height: vp ? `${vp.height}px` : '100dvh',
+        top: 0,
+        height: '100dvh',
       }}
     >
       
