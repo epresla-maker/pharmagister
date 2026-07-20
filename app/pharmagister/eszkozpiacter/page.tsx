@@ -1094,6 +1094,7 @@ export default function EszkozPiacterPage() {
 
   const renderCard = (item: MarketplaceListing) => {
     const isOwner = item.sellerId === user?.uid;
+    const canDeleteListing = isOwner || isAdmin;
     const favorited = favoriteIds.has(item.id);
     const firstImage = item.images[0];
 
@@ -1193,8 +1194,11 @@ export default function EszkozPiacterPage() {
               {item.status !== "sold" ? (
                 <button onClick={() => handleMarkSold(item)} className="px-3 py-2 rounded-xl bg-blue-100 text-blue-700 text-sm font-semibold">Eladva</button>
               ) : null}
-              <button onClick={() => handleDeleteListing(item.id)} className="px-3 py-2 rounded-xl bg-rose-100 text-rose-700 text-sm font-semibold inline-flex items-center gap-1"><Trash2 className="w-4 h-4" />Törlés</button>
             </>
+          ) : null}
+
+          {canDeleteListing ? (
+            <button onClick={() => handleDeleteListing(item.id)} className="px-3 py-2 rounded-xl bg-rose-100 text-rose-700 text-sm font-semibold inline-flex items-center gap-1"><Trash2 className="w-4 h-4" />Törlés</button>
           ) : null}
 
           {isAdmin ? (
@@ -1919,6 +1923,15 @@ export default function EszkozPiacterPage() {
                     >
                       Megosztás
                     </button>
+
+                    {selectedListing.sellerId === user?.uid || isAdmin ? (
+                      <button
+                        onClick={() => handleDeleteListing(selectedListing.id)}
+                        className="rounded-xl bg-rose-100 text-rose-700 px-4 py-2.5 font-semibold inline-flex items-center gap-1"
+                      >
+                        <Trash2 className="w-4 h-4" /> Törlés
+                      </button>
+                    ) : null}
 
                     {selectedListing.sellerId !== user?.uid ? (
                       <button
