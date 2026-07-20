@@ -378,6 +378,8 @@ export default function EszkozPiacterPage() {
   const [sortBy, setSortBy] = useState<SortOption>("legfrissebb");
   const [listingFeedMode, setListingFeedMode] = useState<ListingFeedMode>("osszes");
   const [showFilters, setShowFilters] = useState(false);
+  const [filtersViewportHeight, setFiltersViewportHeight] = useState<number | null>(null);
+  const [filtersKeyboardInset, setFiltersKeyboardInset] = useState(0);
 
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
   const [selectedListing, setSelectedListing] = useState<MarketplaceListing | null>(null);
@@ -413,6 +415,7 @@ export default function EszkozPiacterPage() {
 
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
+  const filtersSheetRef = useRef<HTMLDivElement | null>(null);
   const composerSheetRef = useRef<HTMLDivElement | null>(null);
   const lastDocRef = useRef<any>(null);
   const viewedOnceRef = useRef<Set<string>>(new Set());
@@ -513,6 +516,11 @@ export default function EszkozPiacterPage() {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
+  const publicItems = useMemo(
+    () => items.filter((item) => item.status === "approved"),
+    [items]
+  );
+
   useEffect(() => {
     if (!showComposer) return;
     const savedDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
@@ -579,6 +587,55 @@ export default function EszkozPiacterPage() {
       setComposerKeyboardInset(0);
     };
   }, [showComposer]);
+
+  useEffect(() => {
+    if (!showFilters || typeof window === "undefined") return;
+
+    const viewport = window.visualViewport;
+
+    const scrollActiveFieldIntoView = () => {
+      const activeElement = document.activeElement as HTMLElement | null;
+      if (!activeElement || !filtersSheetRef.current?.contains(activeElement)) return;
+      activeElement.scrollIntoView({ block: "center", behavior: "smooth" });
+    };
+
+    const updateFiltersViewport = () => {
+      if (!viewport) {
+        setFiltersViewportHeight(null);
+        setFiltersKeyboardInset(0);
+        return;
+      }
+
+      const nextHeight = Math.max(260, viewport.height - 12);
+      const nextInset = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
+
+      setFiltersViewportHeight(nextHeight);
+      setFiltersKeyboardInset(nextInset > 24 ? nextInset : 0);
+
+      window.requestAnimationFrame(scrollActiveFieldIntoView);
+    };
+
+    const handleFocusIn = (event: FocusEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target || !filtersSheetRef.current?.contains(target)) return;
+      window.setTimeout(() => {
+        target.scrollIntoView({ block: "center", behavior: "smooth" });
+      }, 220);
+    };
+
+    updateFiltersViewport();
+    viewport?.addEventListener("resize", updateFiltersViewport);
+    viewport?.addEventListener("scroll", updateFiltersViewport);
+    window.addEventListener("focusin", handleFocusIn);
+
+    return () => {
+      viewport?.removeEventListener("resize", updateFiltersViewport);
+      viewport?.removeEventListener("scroll", updateFiltersViewport);
+      window.removeEventListener("focusin", handleFocusIn);
+      setFiltersViewportHeight(null);
+      setFiltersKeyboardInset(0);
+    };
+  }, [showFilters]);
 
   useEffect(() => {
     const previews = newImages.map((file) => URL.createObjectURL(file));
@@ -659,12 +716,12 @@ export default function EszkozPiacterPage() {
   const categoryCountMap = useMemo(() => {
     const map = new Map<string, number>();
     CATEGORY_DEFS.forEach((cat) => map.set(cat.id, 0));
-    items.forEach((item) => {
+    publicItems.forEach((item) => {
       const key = item.category || "other";
       map.set(key, (map.get(key) || 0) + 1);
     });
     return map;
-  }, [items]);
+  }, [publicItems]);
 
   const ownedListings = useMemo(
     () => items.filter((item) => item.sellerId === user?.uid),
@@ -691,7 +748,7 @@ export default function EszkozPiacterPage() {
     if (!q) return [];
 
     const pool = new Set<string>();
-    items.forEach((item) => {
+    publicItems.forEach((item) => {
       const title = item.title?.trim();
       const location = item.location?.trim();
       const seller = item.sellerName?.trim();
@@ -703,7 +760,7 @@ export default function EszkozPiacterPage() {
     return Array.from(pool)
       .filter((value) => normalizeText(value).includes(q))
       .slice(0, 8);
-  }, [items, searchInput]);
+  }, [publicItems, searchInput]);
 
   const visibleListings = useMemo(() => {
     const q = normalizeText(searchDebounced);
@@ -772,41 +829,46 @@ export default function EszkozPiacterPage() {
     user?.uid,
   ]);
 
-  const featuredListings = useMemo(
-    () => visibleListings.filter((item) => item.featured).slice(0, 10),
+  const publicVisibleListings = useMemo(
+    () => visibleListings.filter((item) => item.status === "approved"),
     [visibleListings]
+  );
+
+  const featuredListings = useMemo(
+    () => publicVisibleListings.filter((item) => item.featured).slice(0, 10),
+    [publicVisibleListings]
   );
 
   const localListings = useMemo(() => {
     const locationQuery = normalizeText(userLocation);
-    if (!locationQuery) return visibleListings.slice(0, 16);
+    if (!locationQuery) return publicVisibleListings.slice(0, 16);
 
-    const matched = visibleListings.filter((item) => {
+    const matched = publicVisibleListings.filter((item) => {
       const haystack = normalizeText(`${item.location} ${item.city} ${item.description} ${item.title}`);
       return haystack.includes(locationQuery) || locationQuery.includes(normalizeText(item.location));
     });
 
-    return (matched.length > 0 ? matched : visibleListings).slice(0, 16);
-  }, [userLocation, visibleListings]);
+    return (matched.length > 0 ? matched : publicVisibleListings).slice(0, 16);
+  }, [userLocation, publicVisibleListings]);
 
   const recommendedListings = useMemo(() => {
     const favoriteCategories = new Set(
-      visibleListings
+      publicVisibleListings
         .filter((item) => favoriteIds.has(item.id))
         .map((item) => item.category || "other")
     );
 
-    const preferred = visibleListings.filter((item) => favoriteCategories.has(item.category || "other"));
-    const pool = preferred.length > 0 ? preferred : featuredListings.length > 0 ? featuredListings : visibleListings;
+    const preferred = publicVisibleListings.filter((item) => favoriteCategories.has(item.category || "other"));
+    const pool = preferred.length > 0 ? preferred : featuredListings.length > 0 ? featuredListings : publicVisibleListings;
     return pool.slice(0, 12);
-  }, [favoriteIds, featuredListings, visibleListings]);
+  }, [favoriteIds, featuredListings, publicVisibleListings]);
 
   const latestListings = useMemo(
-    () => [...visibleListings].sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)).slice(0, 8),
-    [visibleListings]
+    () => [...publicVisibleListings].sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)).slice(0, 8),
+    [publicVisibleListings]
   );
 
-  const activeFeedListings = listingFeedMode === "legfrissebb" ? latestListings : visibleListings;
+  const activeFeedListings = listingFeedMode === "legfrissebb" ? latestListings : publicVisibleListings;
 
   const myListingsFiltered = useMemo(() => {
     if (myTab === "aktiv") return ownedListings.filter((item) => item.status === "approved");
@@ -817,8 +879,8 @@ export default function EszkozPiacterPage() {
   }, [myTab, ownedListings]);
 
   const favoriteListings = useMemo(
-    () => visibleListings.filter((item) => favoriteIds.has(item.id)),
-    [favoriteIds, visibleListings]
+    () => publicVisibleListings.filter((item) => favoriteIds.has(item.id)),
+    [favoriteIds, publicVisibleListings]
   );
 
   const validationErrors = useMemo(() => {
@@ -1804,13 +1866,24 @@ export default function EszkozPiacterPage() {
 
         {showFilters ? (
           <div className="fixed inset-0 z-50 bg-black/50 flex items-end md:items-center justify-center p-3 pb-[calc(96px+env(safe-area-inset-bottom,0px))] md:pb-3">
-            <div className={`w-full max-w-2xl rounded-2xl border max-h-[85vh] overflow-y-auto ${darkMode ? "bg-gray-900 border-gray-700 text-white" : "bg-white border-gray-200 text-gray-900"}`}>
+            <div
+              ref={filtersSheetRef}
+              className={`w-full max-w-2xl rounded-2xl border overflow-y-auto overscroll-contain ${darkMode ? "bg-gray-900 border-gray-700 text-white" : "bg-white border-gray-200 text-gray-900"}`}
+              style={{
+                maxHeight: filtersViewportHeight ? `${filtersViewportHeight}px` : undefined,
+              }}
+            >
               <div className="sticky top-0 px-4 py-3 border-b flex items-center justify-between bg-inherit">
                 <h3 className="font-bold text-lg">Szűrés és rendezés</h3>
                 <button onClick={() => setShowFilters(false)} className="p-2 rounded-lg hover:bg-gray-200/20"><X className="w-5 h-5" /></button>
               </div>
 
-              <div className="p-4 space-y-4">
+              <div
+                className="p-4 space-y-4"
+                style={{
+                  paddingBottom: `${Math.max(24, filtersKeyboardInset + 24)}px`,
+                }}
+              >
                 <div>
                   <label className="text-sm font-semibold">Rendezés</label>
                   <select value={sortBy} onChange={(e) => setSortBy(e.target.value as SortOption)} className={`mt-1 w-full rounded-xl border px-3 py-2 text-sm ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"}`}>
@@ -1862,9 +1935,11 @@ export default function EszkozPiacterPage() {
                   <label className="flex items-center gap-2"><input type="checkbox" checked={withImagesOnly} onChange={(e) => setWithImagesOnly(e.target.checked)} /> Csak képes hirdetések</label>
                 </div>
 
-                <div className="flex gap-2">
-                  <button onClick={clearFilters} className="flex-1 rounded-xl bg-gray-200 text-gray-800 py-2 font-semibold">Törlés</button>
-                  <button onClick={() => setShowFilters(false)} className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white py-2 font-semibold">Alkalmazás</button>
+                <div className={`sticky bottom-0 -mx-4 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] border-t z-10 ${darkMode ? "bg-gray-900/95 border-gray-700" : "bg-white/95 border-gray-200"}`}>
+                  <div className="flex gap-2">
+                    <button onClick={clearFilters} className="flex-1 rounded-xl bg-gray-200 text-gray-800 py-2 font-semibold">Törlés</button>
+                    <button onClick={() => setShowFilters(false)} className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white py-2 font-semibold">Alkalmazás</button>
+                  </div>
                 </div>
               </div>
             </div>
