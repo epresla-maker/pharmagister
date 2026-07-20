@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from "react";
 import { Loader2, Send } from "lucide-react";
-import useKeyboardInset from "./useKeyboardInset";
 
 export default function ChatComposer({
   inputRef,
@@ -21,7 +20,6 @@ export default function ChatComposer({
 }) {
   const rootRef = useRef(null);
   const localInputRef = useRef(null);
-  const keyboardInset = useKeyboardInset();
   const resolvedInputRef = inputRef || localInputRef;
 
   useEffect(() => {
@@ -77,11 +75,10 @@ export default function ChatComposer({
   return (
     <div
       ref={rootRef}
-      className={`fixed left-0 right-0 z-50 border-t backdrop-blur-xl shadow-[0_-16px_40px_rgba(15,23,42,0.12)] ${
+      className={`w-full flex-shrink-0 border-t backdrop-blur-xl shadow-[0_-16px_40px_rgba(15,23,42,0.12)] ${
         darkMode ? "bg-gray-900/95 border-gray-700" : "bg-white/95 border-gray-200"
       }`}
       style={{
-        bottom: keyboardInset,
         paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0px))",
       }}
     >

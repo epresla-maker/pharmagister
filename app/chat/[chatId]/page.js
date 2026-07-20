@@ -8,7 +8,6 @@ import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
 import { getClientMarket, getLocalizedDemandPositionLabel } from '@/lib/marketI18n';
 import ChatComposer from "@/app/components/chat/ChatComposer";
-import useKeyboardInset from "@/app/components/chat/useKeyboardInset";
 import {
   doc,
   getDoc,
@@ -127,42 +126,12 @@ export default function ChatRoomPage() {
   const messagesContainerRef = useRef(null);
   const headerRef = useRef(null);
   
-  // --- FEJLÉC MAGASSÁG DINAMIKUS KÖVETÉSE ---
-  const [headerHeight, setHeaderHeight] = useState(130);
-  const [composerHeight, setComposerHeight] = useState(80);
-  const keyboardOffset = useKeyboardInset();
-  
   // Automatikus görgetés
   const scrollToBottom = (options = { behavior: "smooth" }) => {
     messagesEndRef.current?.scrollIntoView(options);
   };
   
-  // --- FEJLÉC MAGASSÁG FIGYELÉSE ---
-  useEffect(() => {
-    const updateHeaderHeight = () => {
-      if (headerRef.current) {
-        const height = headerRef.current.getBoundingClientRect().height;
-        setHeaderHeight(height);
-      }
-    };
-    
-    // Kezdeti mérés
-    updateHeaderHeight();
-    
-    // ResizeObserver a dinamikus változások követéséhez
-    const resizeObserver = new ResizeObserver(updateHeaderHeight);
-    if (headerRef.current) {
-      resizeObserver.observe(headerRef.current);
-    }
-    
-    // Window resize figyelése is
-    window.addEventListener('resize', updateHeaderHeight);
-    
-    return () => {
-      resizeObserver.disconnect();
-      window.removeEventListener('resize', updateHeaderHeight);
-    };
-  }, []);
+
 
   // Scroll pozíció figyelése - scroll to bottom gomb megjelenítéséhez
   useEffect(() => {
@@ -846,14 +815,14 @@ export default function ChatRoomPage() {
 
   // --- KÉPERNYŐ TARTALOM ---
   return (
-    <main className={`relative h-[100dvh] w-full overflow-hidden ${darkMode ? 'bg-[#e8f5e9] text-gray-900' : 'bg-gray-100 text-gray-900'}`}>
+    <main className={`flex flex-col h-[100dvh] w-full overflow-hidden ${darkMode ? 'bg-[#e8f5e9] text-gray-900' : 'bg-gray-100 text-gray-900'}`}>
       
-      {/* --- FEJLÉC (FIXED a tetején) --- */}
+      {/* --- FEJLÉC --- */}
       <header 
         ref={headerRef}
-        className={`fixed top-0 left-0 right-0 ${darkMode ? 'bg-[#c8e6c9] border-[#a5d6a7]' : 'bg-white border-gray-300'} border-b-2 shadow-lg`}
+        className={`flex-shrink-0 ${darkMode ? 'bg-[#c8e6c9] border-[#a5d6a7]' : 'bg-white border-gray-300'} border-b-2 shadow-lg`}
         style={{ 
-          zIndex: 9999,
+          zIndex: 10,
           padding: '0.5rem 1rem',
           paddingTop: 'max(0.5rem, env(safe-area-inset-top))'
         }}
@@ -1174,13 +1143,11 @@ export default function ChatRoomPage() {
         </button>
       )}
 
-      {/* --- ÜZENETEK ABLAK (a fejléc alatt, input felett) --- */}
+      {/* --- ÜZENETEK ABLAK --- */}
       <div 
         ref={messagesContainerRef} 
-        className={`absolute left-0 right-0 overflow-y-auto p-4 space-y-2 ${darkMode ? 'bg-[#e8f5e9]' : 'bg-gradient-to-br from-gray-50 via-white to-gray-100'}`}
+        className={`flex-1 overflow-y-auto p-4 space-y-2 ${darkMode ? 'bg-[#e8f5e9]' : 'bg-gradient-to-br from-gray-50 via-white to-gray-100'}`}
         style={{ 
-          top: `${headerHeight + 8}px`,
-          bottom: `${composerHeight + keyboardOffset}px`,
           overscrollBehavior: 'contain'
         }}
         onTouchStart={(e) => {
@@ -1403,7 +1370,6 @@ export default function ChatRoomPage() {
           setHighlightedMessage(null);
           setSelectedMessageData(null);
         }}
-        onHeightChange={setComposerHeight}
         replyTo={replyTo}
         onClearReply={() => setReplyTo(null)}
         darkMode={darkMode}
