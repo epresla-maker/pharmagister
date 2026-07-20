@@ -1311,8 +1311,8 @@ export default function EszkozPiacterPage() {
 
           <div className="max-w-6xl mx-auto px-4 pb-3 flex gap-2 overflow-x-auto relative z-10">
             {[
-              ["eladas", "Eladás"],
               ["neked", "Neked"],
+              ["eladas", "Eladás"],
               ["helyi", "Helyi"],
               ["kategoriak", "Kategóriák"],
               ["kedvencek", "Kedvencek"],
