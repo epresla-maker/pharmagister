@@ -461,15 +461,12 @@ export default function PharmaCalendar({ pharmaRole }) {
 
 // Date Modal Component
 function DateModal({ date, demands, pharmaRole, darkMode, onClose, onDemandDeleted, onDemandCreated, showCreateForm, setShowCreateForm, directCreateMode, market, locale }) {
-  const dateStr = date.toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' });
-
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-[#E5E7EB]'} rounded-2xl shadow-xl w-full border ${
         showCreateForm ? 'fixed inset-0 rounded-none max-h-screen overflow-y-auto pb-48' : 'max-w-2xl max-h-[80vh] overflow-y-auto'
       }`}>
-        <div className="sticky top-0 bg-[#6B46C1] px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
-          <h3 className="text-xl font-bold text-white">{dateStr}</h3>
+        <div className="sticky top-0 bg-[#6B46C1] px-6 py-4 flex items-center justify-end rounded-t-2xl z-10">
           <button
             onClick={onClose}
             className="p-2 hover:bg-white/10 rounded-xl transition-colors"
