@@ -2239,7 +2239,7 @@ export default function EszkozPiacterPage() {
                     <div className="flex justify-start">
                       <div className={`max-w-[90%] rounded-2xl rounded-bl-md px-4 py-3 text-sm ${darkMode ? "bg-purple-900/50 text-purple-100" : "bg-purple-100 text-purple-900"}`}>
                         Hol vehető át? (város vagy környék)
-                ) : null}
+                      </div>
                     </div>
                     {draft.location ? (
                       <div className="flex justify-end">
