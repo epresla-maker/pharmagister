@@ -283,7 +283,6 @@ function isSameDay(date, baseDate) {
 
 async function countTodayAutoPosts(db, market) {
   const snap = await db.collection('serviceFeedPosts')
-    .where('source', '==', SOURCE)
     .orderBy('createdAt', 'desc')
     .limit(300)
     .get();
@@ -294,6 +293,7 @@ async function countTodayAutoPosts(db, market) {
 
   snap.docs.forEach((doc) => {
     const data = doc.data() || {};
+    if (String(data.source || '') !== SOURCE) return;
     if ((data.market || 'hu') !== market) return;
     if (String(data.generatedDateKey || '') !== dateKey) return;
     count += 1;
