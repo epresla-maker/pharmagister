@@ -447,6 +447,7 @@ export async function GET(request) {
     const url = new URL(request.url);
     const market = normalizeMarket(url.searchParams.get('market') || 'hu');
     const dryRun = parseDryRunFlag(url.searchParams.get('dryRun'));
+    const cleanup = parseDryRunFlag(url.searchParams.get('cleanup'));
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
@@ -455,6 +456,41 @@ export async function GET(request) {
 
     const admin = getFirebaseAdmin();
     const db = admin.firestore();
+
+    if (cleanup) {
+      const now = getZonedNowParts(market);
+      const snap = await db.collection('serviceFeedPosts')
+        .orderBy('createdAt', 'desc')
+        .limit(300)
+        .get();
+
+      const toDelete = [];
+      snap.docs.forEach((doc) => {
+        const data = doc.data() || {};
+        if (String(data.source || '') === SOURCE && (data.market || 'hu') === market && String(data.generatedDateKey || '') === now.dateKey && data.approvalStatus === 'pending') {
+          toDelete.push(doc.id);
+        }
+      });
+
+      const batch = db.batch();
+      toDelete.forEach((id) => {
+        batch.delete(db.collection('serviceFeedPosts').doc(id));
+      });
+      await batch.commit();
+
+      const lockSnap = await db.collection('autoFeedSlotLocks')
+        .where('market', '==', market)
+        .where('dateKey', '==', now.dateKey)
+        .get();
+      
+      const lockBatch = db.batch();
+      lockSnap.docs.forEach((doc) => {
+        lockBatch.delete(doc.ref);
+      });
+      await lockBatch.commit();
+
+      // Continue with generation after cleanup
+    }
 
     const now = getZonedNowParts(market);
     const requestedDate = parseDateOverride(url.searchParams.get('date'));
