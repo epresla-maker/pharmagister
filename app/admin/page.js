@@ -213,6 +213,12 @@ export default function AdminPage() {
               {market === 'de' ? '📝 Beitraege verwalten' : '📝 Posztok kezelése'}
             </button>
             <button
+              onClick={() => router.push('/admin/news-feed')}
+              className="bg-teal-600 text-white px-3 py-2 rounded-lg hover:bg-teal-700 text-xs sm:text-sm w-full"
+            >
+              {market === 'de' ? '📰 Nachrichtenfeed' : '📰 Hírfolyam'}
+            </button>
+            <button
               onClick={() => router.push('/admin/reports')}
               className="bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 text-xs sm:text-sm w-full"
             >

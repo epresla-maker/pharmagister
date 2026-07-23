@@ -4,7 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, deleteDoc, doc, setDoc, getDocs, updateDoc } from 'firebase/firestore';
-import { Trash2, Send, EyeOff, Eye, Palette, Type, Image, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { Trash2, Send, EyeOff, Eye, Palette, Type, Image, ChevronDown, ChevronUp, X, Check } from 'lucide-react';
 import { getClientMarket, getLocalizedDemandPositionLabel } from '@/lib/marketI18n';
 import { isDocInMarket } from '@/lib/market';
 
@@ -132,6 +132,11 @@ export default function AdminPostsPage() {
         market,
         text: postText,
         postType: 'adminPost',
+        source: 'admin_manual',
+        requiresAdminApproval: false,
+        approvalStatus: 'approved',
+        approvedAt: serverTimestamp(),
+        approvedBy: user?.email || 'admin',
         createdAt: serverTimestamp(),
         authorData: {
           displayName: userData?.displayName || 'Admin',
@@ -212,6 +217,22 @@ export default function AdminPostsPage() {
     } catch (error) {
       console.error('Error hiding RSS post:', error);
       alert((market === 'de' ? '❌ Fehler beim Ausblenden: ' : '❌ Hiba történt az elrejtés során: ') + error.message);
+    }
+  };
+
+  const handleApprovePost = async (postId) => {
+    try {
+      await updateDoc(doc(db, 'serviceFeedPosts', postId), {
+        approvalStatus: 'approved',
+        approvedAt: serverTimestamp(),
+        approvedBy: user?.email || 'admin',
+        publishedAt: serverTimestamp(),
+      });
+
+      alert(market === 'de' ? '✅ Beitrag freigegeben!' : '✅ Poszt jóváhagyva!');
+    } catch (error) {
+      console.error('Error approving post:', error);
+      alert((market === 'de' ? '❌ Fehler bei der Freigabe: ' : '❌ Hiba történt a jóváhagyás során: ') + error.message);
     }
   };
 
@@ -577,6 +598,13 @@ export default function AdminPostsPage() {
                         {post.source === 'rss' ? (market === 'de' ? '📰 RSS-Nachricht' : '📰 RSS Hír') : (market === 'de' ? '💊 Apothekenanfrage' : '💊 Gyógyszertári igény')}
                       </span>
                     )}
+                    {post.source !== 'rss' && post.requiresAdminApproval === true && (
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${post.approvalStatus === 'approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                        {post.approvalStatus === 'approved'
+                          ? (market === 'de' ? '✅ Freigegeben' : '✅ Jóváhagyva')
+                          : (market === 'de' ? '⏳ Offen' : '⏳ Jóváhagyásra vár')}
+                      </span>
+                    )}
                   </div>
 
                   {post.source === 'rss' ? (
@@ -628,6 +656,15 @@ export default function AdminPostsPage() {
                   {/* Törlés/Elrejtés gomb */}
                   {isAdmin && (
                   <>
+                  {post.source !== 'rss' && post.requiresAdminApproval === true && post.approvalStatus !== 'approved' && (
+                    <button
+                      onClick={() => handleApprovePost(post.id)}
+                      className="flex items-center gap-2 text-emerald-600 hover:text-emerald-700 text-sm mt-2"
+                    >
+                      <Check size={16} />
+                      {market === 'de' ? 'Beitrag freigeben' : 'Poszt jóváhagyása'}
+                    </button>
+                  )}
                   {post.source === 'rss' ? (
                     <button
                       onClick={() => handleHideRssPost(post.id)}

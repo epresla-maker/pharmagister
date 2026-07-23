@@ -93,6 +93,9 @@ type MarketplaceListing = {
   featured?: boolean;
   verified?: boolean;
   status?: ListingStatus;
+  rejectionReason?: string;
+  rejectedAt?: any;
+  rejectedBy?: string;
   views?: number;
   favorites?: number;
   contactPhone?: string;
@@ -1041,10 +1044,39 @@ export default function EszkozPiacterPage() {
     try {
       const listing = items.find((item) => item.id === listingId);
 
-      await updateDoc(doc(db, "equipmentMarketplacePosts", listingId), {
+      let rejectionReason = "";
+      if (status === "rejected") {
+        const reasonInput = window.prompt(
+          market === "de"
+            ? "Bitte gib den Ablehnungsgrund an:"
+            : "Kérlek add meg az elutasítás indokát:"
+        );
+        if (reasonInput === null) return;
+
+        rejectionReason = reasonInput.trim();
+        if (!rejectionReason) {
+          alert(market === "de" ? "Ablehnungsgrund ist erforderlich." : "Az elutasítás indoklása kötelező.");
+          return;
+        }
+      }
+
+      const statusUpdate: Record<string, any> = {
         status,
         updatedAt: serverTimestamp(),
-      });
+      };
+      if (status === "rejected") {
+        statusUpdate.rejectionReason = rejectionReason;
+        statusUpdate.rejectedAt = serverTimestamp();
+        statusUpdate.rejectedBy = user?.uid || "admin";
+      } else {
+        statusUpdate.rejectionReason = null;
+      }
+
+      await updateDoc(doc(db, "equipmentMarketplacePosts", listingId), statusUpdate);
+
+      const localizedReason = status === "rejected"
+        ? (market === "de" ? `Grund: ${rejectionReason}` : `Indoklás: ${rejectionReason}`)
+        : "";
 
       if (listing?.sellerId) {
         await createNotificationWithPush({
@@ -1058,20 +1090,35 @@ export default function EszkozPiacterPage() {
               ? `Deine Anzeige wurde freigegeben und ist jetzt im Marktplatz sichtbar: ${listing.title}`
               : `A hirdetésed jóváhagyásra került és most már látható a piactéren: ${listing.title}`)
             : (market === "de"
-              ? `Deine Anzeige wurde abgelehnt. Bitte prüfe sie und bearbeite sie bei Bedarf erneut: ${listing.title}`
-              : `A hirdetésed elutasításra került. Kérjük ellenőrizd, és szükség esetén szerkeszd újra: ${listing.title}`),
+              ? `Deine Anzeige wurde abgelehnt. Bitte prüfe sie und bearbeite sie bei Bedarf erneut: ${listing.title}. ${localizedReason}`
+              : `A hirdetésed elutasításra került. Kérjük ellenőrizd, és szükség esetén szerkeszd újra: ${listing.title}. ${localizedReason}`),
           data: {
             listingId,
             status,
+            rejectionReason: status === "rejected" ? rejectionReason : null,
             marketplaceType: "equipment_marketplace",
           },
           url: "/pharmagister/eszkozpiacter?view=eladas",
         });
       }
 
-      setItems((prev) => prev.map((item) => (item.id === listingId ? { ...item, status } : item)));
+      setItems((prev) =>
+        prev.map((item) =>
+          item.id === listingId
+            ? {
+              ...item,
+              status,
+              rejectionReason: status === "rejected" ? rejectionReason : undefined,
+            }
+            : item
+        )
+      );
       if (selectedListing?.id === listingId) {
-        setSelectedListing({ ...selectedListing, status });
+        setSelectedListing({
+          ...selectedListing,
+          status,
+          rejectionReason: status === "rejected" ? rejectionReason : undefined,
+        });
       }
     } catch (error) {
       console.error("Moderációs hiba:", error);

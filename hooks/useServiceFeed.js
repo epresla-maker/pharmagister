@@ -81,6 +81,11 @@ export function useServiceFeed({ userData, market = 'hu' }) {
         return false;
       }
 
+      // LLM-generated feed posts require explicit admin approval before public visibility.
+      if (post.requiresAdminApproval === true && post.approvalStatus !== 'approved') {
+        return false;
+      }
+
       // Filter out reactionActivity posts
       if (post.postType === 'reactionActivity') return false;
 
