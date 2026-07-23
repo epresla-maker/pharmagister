@@ -30,6 +30,8 @@ export default function NewsFeedPage() {
 
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [generatingPosts, setGeneratingPosts] = useState(false);
+  const [generationMessage, setGenerationMessage] = useState(null);
 
   // Admin auth ellenőrzés
   useEffect(() => {
@@ -121,6 +123,35 @@ export default function NewsFeedPage() {
     return <span className="inline-block px-2 py-1 bg-amber-100 text-amber-700 text-xs font-semibold rounded">⏳ Jóváhagyásra vár</span>;
   };
 
+  const handleGenerateAIPosts = async () => {
+    setGeneratingPosts(true);
+    setGenerationMessage(null);
+    try {
+      const idToken = await user.getIdToken();
+      const response = await fetch('/api/admin/trigger-ai-posts', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${idToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ market, cleanup: true }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        setGenerationMessage({ type: 'success', text: `✅ ${data.result?.message || 'AI posztok frissítve'}` });
+        setTimeout(() => setGenerationMessage(null), 5000);
+      } else {
+        setGenerationMessage({ type: 'error', text: `❌ Hiba: ${data.error}` });
+      }
+    } catch (error) {
+      console.error('Generation error:', error);
+      setGenerationMessage({ type: 'error', text: `❌ Hiba: ${error.message}` });
+    } finally {
+      setGeneratingPosts(false);
+    }
+  };
+
   if (!isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -148,8 +179,33 @@ export default function NewsFeedPage() {
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">📰 Hírfolyam - Admin Nézet</h1>
-          <p className="text-gray-600">Összes poszt áttekintése</p>
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <h1 className="text-4xl font-bold text-gray-900 mb-2">📰 Hírfolyam - Admin Nézet</h1>
+              <p className="text-gray-600">Összes poszt áttekintése</p>
+            </div>
+            <button
+              onClick={handleGenerateAIPosts}
+              disabled={generatingPosts}
+              className={`px-4 py-2 rounded-lg font-medium transition ${
+                generatingPosts
+                  ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
+            >
+              {generatingPosts ? '⏳ Generálás...' : '🤖 AI posztok generálása'}
+            </button>
+          </div>
+
+          {generationMessage && (
+            <div className={`p-4 rounded-lg ${
+              generationMessage.type === 'success'
+                ? 'bg-emerald-100 text-emerald-700'
+                : 'bg-red-100 text-red-700'
+            }`}>
+              {generationMessage.text}
+            </div>
+          )}
         </div>
 
         {/* Posztok listája */}
