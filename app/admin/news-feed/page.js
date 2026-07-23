@@ -200,7 +200,7 @@ export default function NewsFeedPage() {
                   <p><strong>Szerző:</strong> {post.authorName || post.authorEmail || 'Ismeretlen'}</p>
                   {post.source === 'llm_auto_feed' && (
                     <>
-                      <p><strong>Típus:</strong> {post.promptType || 'N/A'}</p>
+                      <p><strong>Típus:</strong> {post.generationKind || post.promptType || 'N/A'}</p>
                       {post.generatedDateKey && <p><strong>Nap:</strong> {post.generatedDateKey}</p>}
                     </>
                   )}

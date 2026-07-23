@@ -39,6 +39,7 @@ export default function AdminPostsPage() {
   const { user, userData } = useAuth();
   const router = useRouter();
   const market = getClientMarket();
+  const isPrimaryAdmin = user?.email === 'epresla@icloud.com';
   const isAdmin = user && ADMIN_EMAILS.includes(user.email);
   const [postText, setPostText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -246,7 +247,15 @@ export default function AdminPostsPage() {
         source: 'rss',
         createdAt: rss.pubDate ? { toDate: () => new Date(rss.pubDate) } : null
       }))
-  ].sort((a, b) => {
+  ]
+  .filter((post) => {
+    // AI approval-flow posts are visible only to the primary admin account.
+    if (!isPrimaryAdmin && post.source !== 'rss' && post.requiresAdminApproval === true) {
+      return false;
+    }
+    return true;
+  })
+  .sort((a, b) => {
     const dateA = a.createdAt?.toDate?.() || new Date(0);
     const dateB = b.createdAt?.toDate?.() || new Date(0);
     return dateB - dateA;

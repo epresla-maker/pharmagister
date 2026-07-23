@@ -2,7 +2,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 import { normalizeMarket } from '@/lib/market';
 
-const ADMIN_EMAILS = ['epresla@icloud.com', 'etinatina22@gmail.com'];
+const ADMIN_EMAILS = ['epresla@icloud.com'];
 const MIN_DAILY_POSTS = 3;
 const MAX_DAILY_POSTS = 5;
 const SOURCE = 'llm_auto_feed';
@@ -324,24 +324,12 @@ export async function GET(request) {
     const db = admin.firestore();
 
     const now = getZonedNowParts(market);
-    const nowSlot = now.hour * 60 + (Math.floor(now.minute / SLOT_MINUTES) * SLOT_MINUTES);
     const plan = buildDailyPlan({ dateKey: now.dateKey, market });
 
-    const isPlannedSlot = plan.slots.includes(nowSlot);
-    if (!isPlannedSlot) {
-      return Response.json({
-        success: true,
-        created: 0,
-        skipped: true,
-        reason: 'not_planned_slot',
-        now: `${String(now.hour).padStart(2, '0')}:${String(now.minute).padStart(2, '0')}`,
-        dateKey: now.dateKey,
-        plannedSlots: plan.slots.map(formatSlot),
-      });
-    }
-
     const todaySummary = await countTodayAutoPosts(db, market);
-    if (todaySummary.count >= plan.target) {
+    const missingSlots = plan.slots.filter((slot) => !todaySummary.postedSlots.has(slot));
+
+    if (todaySummary.count >= plan.target || missingSlots.length === 0) {
       return Response.json({
         success: true,
         created: 0,
@@ -349,34 +337,8 @@ export async function GET(request) {
         reason: 'daily_limit_reached',
         todayCount: todaySummary.count,
         targetDaily: plan.target,
-      });
-    }
-
-    if (todaySummary.postedSlots.has(nowSlot)) {
-      return Response.json({
-        success: true,
-        created: 0,
-        skipped: true,
-        reason: 'slot_already_posted',
-        slot: formatSlot(nowSlot),
-        todayCount: todaySummary.count,
-        targetDaily: plan.target,
-      });
-    }
-
-    const lockAcquired = await acquireSlotLock(db, {
-      market,
-      dateKey: now.dateKey,
-      slot: nowSlot,
-    });
-
-    if (!lockAcquired) {
-      return Response.json({
-        success: true,
-        created: 0,
-        skipped: true,
-        reason: 'slot_locked',
-        slot: formatSlot(nowSlot),
+        dateKey: now.dateKey,
+        plannedSlots: plan.slots.map(formatSlot),
       });
     }
 
@@ -398,46 +360,71 @@ export async function GET(request) {
     const promptPool = shuffle(getPromptTypePool(market));
     const adminUserIds = await loadAdminUserIds(db);
 
-    const typeConfig = promptPool[nowSlot % promptPool.length];
-    const author = pickRandom(authors);
+    const created = [];
+    for (const slot of missingSlots) {
+      const lockAcquired = await acquireSlotLock(db, {
+        market,
+        dateKey: now.dateKey,
+        slot,
+      });
 
-    const generated = await generateWithGemini({
-      model,
-      market,
-      typeConfig,
-    });
+      if (!lockAcquired) {
+        continue;
+      }
 
-    const postData = {
-      postType: 'userPost',
-      module: 'pharmagister',
-      market,
-      userId: author.id,
-      text: generated.text,
-      category: generated.category || 'kozosseg',
-      tags: generated.tags || [],
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      authorData: {
-        displayName: author.displayName || author.name || 'Felhasználó',
-        photoURL: author.photoURL || null,
-      },
-      reactions: {},
-      comments: [],
-      shares: 0,
-      source: SOURCE,
-      generatedBy: 'gemini-2.5-flash',
-      generationKind: typeConfig.kind,
-      generationFallback: Boolean(generated.usedFallback),
-      generatedDateKey: now.dateKey,
-      generatedSlot: nowSlot,
-      generatedSlotLabel: formatSlot(nowSlot),
-      generatedTimeZone: now.timeZone,
-      requiresAdminApproval: true,
-      approvalStatus: 'pending',
-      approvalRequestedAt: admin.firestore.FieldValue.serverTimestamp(),
-    };
+      const typeConfig = promptPool[slot % promptPool.length];
+      const author = pickRandom(authors);
+      const generated = await generateWithGemini({
+        model,
+        market,
+        typeConfig,
+      });
 
-    const postRef = await db.collection('serviceFeedPosts').add(postData);
-    const created = [{ id: postRef.id, authorId: author.id, kind: typeConfig.kind }];
+      const postData = {
+        postType: 'userPost',
+        module: 'pharmagister',
+        market,
+        userId: author.id,
+        text: generated.text,
+        category: generated.category || 'kozosseg',
+        tags: generated.tags || [],
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        authorData: {
+          displayName: author.displayName || author.name || 'Felhasználó',
+          photoURL: author.photoURL || null,
+        },
+        reactions: {},
+        comments: [],
+        shares: 0,
+        source: SOURCE,
+        generatedBy: 'gemini-2.5-flash',
+        generationKind: typeConfig.kind,
+        generationFallback: Boolean(generated.usedFallback),
+        generatedDateKey: now.dateKey,
+        generatedSlot: slot,
+        generatedSlotLabel: formatSlot(slot),
+        generatedTimeZone: now.timeZone,
+        requiresAdminApproval: true,
+        approvalStatus: 'pending',
+        approvalRequestedAt: admin.firestore.FieldValue.serverTimestamp(),
+      };
+
+      const postRef = await db.collection('serviceFeedPosts').add(postData);
+      created.push({ id: postRef.id, authorId: author.id, kind: typeConfig.kind, slot });
+    }
+
+    if (created.length === 0) {
+      return Response.json({
+        success: true,
+        created: 0,
+        skipped: true,
+        reason: 'all_slots_locked_or_already_created',
+        todayCount: todaySummary.count,
+        targetDaily: plan.target,
+        dateKey: now.dateKey,
+        plannedSlots: plan.slots.map(formatSlot),
+      });
+    }
 
     if (created.length > 0 && adminUserIds.length > 0) {
       const notifBatch = db.batch();
@@ -466,11 +453,11 @@ export async function GET(request) {
 
     return Response.json({
       success: true,
-      created: 1,
+      created: created.length,
       pendingApproval: created.length,
-      todayCountAfter: todaySummary.count + 1,
+      todayCountAfter: todaySummary.count + created.length,
       targetDaily: plan.target,
-      postedSlot: formatSlot(nowSlot),
+      postedSlots: created.map((c) => formatSlot(c.slot)),
       dateKey: now.dateKey,
       plannedSlots: plan.slots.map(formatSlot),
       ids: created.map((c) => c.id),
