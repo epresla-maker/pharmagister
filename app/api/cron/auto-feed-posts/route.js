@@ -265,26 +265,68 @@ function maybeHumanizeTypos(text) {
   return source;
 }
 
-function fallbackText(type, market) {
+function fallbackText(type, market, variationKey = '') {
   if (market === 'de') {
     const deFallbacks = {
-      question: 'Wie plant ihr kurzfristige Ausfaelle im Team, ohne dass die Woche komplett neu organisiert werden muss?',
-      tip: 'Kurzer Tipp: Wenn ihr den Wochenplan 2 Tage vor Monatsstart finalisiert, sinken spontane Tausch-Anfragen deutlich.',
-      'micro-story': 'Heute hat uns ein fruehes Team-Check-in geholfen, eine Luecke in der Spaetschicht rechtzeitig zu loesen.',
-      poll: 'Kurze Umfrage: Was hilft euch mehr bei fairen Diensten? A) Feste Rotation B) Wunschdienst-Block C) Monatsweiser Wechsel',
-      motivation: 'Kleine Erinnerung: Eine klare Schichtkommunikation spart am Ende des Tages Zeit und Nerven fuer alle.',
+      question: [
+        'Wie plant ihr kurzfristige Ausfaelle im Team, ohne dass die Woche komplett neu organisiert werden muss?',
+        'Wenn morgens ploetzlich jemand ausfaellt: Wie fangt ihr das ab, ohne die ganze Schichtkette umzubauen?',
+        'Welche Loesung hilft euch am meisten, wenn kurzfristig eine Luecke im Dienstplan entsteht?',
+      ],
+      tip: [
+        'Kurzer Tipp: Wenn ihr den Wochenplan 2 Tage vor Monatsstart finalisiert, sinken spontane Tausch-Anfragen deutlich.',
+        'Bei uns hilft es, offene Tauschwuensche schon zur Wochenmitte zu sammeln statt erst am Vorabend.',
+        'Praktisch im Alltag: Eine kurze Schichtbestaetigung am Vorabend verhindert viele Missverstaendnisse.',
+      ],
+      'micro-story': [
+        'Heute hat uns ein fruehes Team-Check-in geholfen, eine Luecke in der Spaetschicht rechtzeitig zu loesen.',
+        'Eine kurze Morgenabstimmung hat heute gereicht, damit aus einer Ausfallmeldung kein Tageschaos wurde.',
+        'Spannend, wie viel eine 5-Minuten-Abstimmung bringt, wenn der Tag schon mit Plan-Aenderung startet.',
+      ],
+      poll: [
+        'Kurze Umfrage: Was hilft euch mehr bei fairen Diensten? A) Feste Rotation B) Wunschdienst-Block C) Monatsweiser Wechsel',
+        'Was ist fuer euch bei Diensttauschen realistischer? A) Fester Tauschrahmen B) Freie Abstimmung C) Teamleitung entscheidet',
+        'Kleine Umfrage: Was entlastet euren Alltag mehr? A) Fruehe Planung B) Flexible Wechsel C) Klare Springer-Regel',
+      ],
+      motivation: [
+        'Kleine Erinnerung: Eine klare Schichtkommunikation spart am Ende des Tages Zeit und Nerven fuer alle.',
+        'Auch an stressigen Tagen hilft oft schon ein sauber abgestimmter Plan mehr als jedes Improvisieren.',
+        'Wenn alle frueh wissen, woran sie sind, laeuft selbst ein voller Tag meist deutlich ruhiger.',
+      ],
     };
-    return deFallbacks[type] || deFallbacks.question;
+    const options = deFallbacks[type] || deFallbacks.question;
+    return options[hashString(`${type}:${variationKey}`) % options.length];
   }
 
   const huFallbacks = {
-    question: 'Ti hogyan kezelitek a hirtelen kieséseket úgy, hogy ne boruljon az egész heti beosztás?',
-    tip: 'Gyakorlati tipp: ha a havi beosztást 2 nappal a hónap előtt lezárjátok, kevesebb lesz az utólagos csereigény.',
-    'micro-story': 'Ma egy reggeli 10 perces egyeztetés elég volt ahhoz, hogy időben megoldjuk az esti műszakhiányt.',
-    poll: 'Mini szavazás: Nektek mi működik jobban? A) fix rotáció B) kívánságműszak blokk C) havi váltott rendszer',
-    motivation: 'Rövid emlékeztető: a világos beosztás-kommunikáció rengeteg időt és feszültséget spórol a csapatnak.',
+    question: [
+      'Ti hogyan kezelitek a hirtelen kieséseket úgy, hogy ne boruljon az egész heti beosztás?',
+      'Ha reggel derül ki egy hiány, nálatok mi az első lépés, hogy ne csússzon szét a nap?',
+      'Milyen megoldás vált be nálatok akkor, amikor valaki rövid időn belül kiesik a műszakból?',
+    ],
+    tip: [
+      'Gyakorlati tipp: ha a havi beosztást 2 nappal a hónap előtt lezárjátok, kevesebb lesz az utólagos csereigény.',
+      'Nálunk sokat segít, ha a csereigényeket nem külön chatben, hanem egy fix heti idősávban gyűjtjük össze.',
+      'Apró trükk, de működik: az előző esti rövid visszaigazolás sok félreértést kivesz a másnapi műszakból.',
+    ],
+    'micro-story': [
+      'Ma egy reggeli 10 perces egyeztetés elég volt ahhoz, hogy időben megoldjuk az esti műszakhiányt.',
+      'Ma az segített a legtöbbet, hogy még nyitás előtt gyorsan átbeszéltük, kinél mennyi mozgástér van.',
+      'Érdekes, hogy néha egy rövid reggeli egyeztetés többet ér, mint a napközbeni kapkodás.',
+    ],
+    poll: [
+      'Mini szavazás: Nektek mi működik jobban? A) fix rotáció B) kívánságműszak blokk C) havi váltott rendszer',
+      'Kíváncsi vagyok, nálatok mi a legélhetőbb: A) előre lezárt hónap B) heti finomhangolás C) tartalékos rendszer',
+      'Ti mire szavaztok beosztásnál? A) teljesen fix rend B) részben rugalmas csere C) gyors beugrós lista',
+    ],
+    motivation: [
+      'Rövid emlékeztető: a világos beosztás-kommunikáció rengeteg időt és feszültséget spórol a csapatnak.',
+      'Sokszor már az is fél siker, ha mindenki időben látja, mire számíthat a következő napokban.',
+      'Egy jól átlátható beosztás nem látványos dolog, de elképesztően sok napi feszültséget levesz a vállakról.',
+    ],
   };
-  return huFallbacks[type] || huFallbacks.question;
+  const options = huFallbacks[type] || huFallbacks.question;
+  return options[hashString(`${type}:${variationKey}`) % options.length];
 }
 
 async function generateWithGemini({ model, market, typeConfig, avoidTexts = [], variationHint = '' }) {
@@ -321,14 +363,14 @@ async function generateWithGemini({ model, market, typeConfig, avoidTexts = [], 
 
   let text = maybeHumanizeTypos(cleanText(parsed?.text));
   if (soundsInstitutionalPharmacyVoice(text, market)) {
-    text = fallbackText(typeConfig.kind, market);
+    text = fallbackText(typeConfig.kind, market, variationHint);
   }
   const tags = Array.isArray(parsed?.tags) ? parsed.tags.map((t) => cleanText(t)).filter(Boolean).slice(0, 5) : [];
   const category = cleanText(parsed?.category) || 'kozosseg';
 
   if (!text) {
     return {
-      text: fallbackText(typeConfig.kind, market),
+      text: fallbackText(typeConfig.kind, market, variationHint),
       tags: [],
       category: 'kozosseg',
       usedFallback: true,
@@ -491,7 +533,11 @@ export async function GET(request) {
         }
       }
 
-      const finalText = makeUniqueText(generated?.text || fallbackText(typeConfig.kind, market), market, usedTexts);
+      const finalText = makeUniqueText(
+        generated?.text || fallbackText(typeConfig.kind, market, `${effectiveDateKey}:${slot}:final`),
+        market,
+        usedTexts,
+      );
       usedTexts.add(normalizeForDedup(finalText));
 
       const postData = {
