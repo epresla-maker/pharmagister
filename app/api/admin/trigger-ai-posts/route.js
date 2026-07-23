@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAuth } from 'firebase-admin/auth';
-import { getFirebaseAdmin } from '@/lib/firebase-admin';
-import { normalizeMarket } from '@/lib/marketI18n';
+import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 
 const ADMIN_EMAILS = ['epresla@icloud.com'];
 
@@ -29,16 +28,17 @@ export async function POST(request) {
     }
 
     const { market = 'hu', cleanup = true } = await request.json();
-    const normalizedMarket = normalizeMarket(market);
+    const normalizedMarket = market === 'de' ? 'de' : 'hu';
 
     // Call the cron endpoint directly
-    const cronUrl = new URL(`${process.env.NEXT_PUBLIC_APP_URL || 'https://pharmagister.hu'}/api/cron/auto-feed-posts`);
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pharmagister.hu';
+    const cronUrl = new URL(`${baseUrl}/api/cron/auto-feed-posts`);
     cronUrl.searchParams.set('market', normalizedMarket);
     if (cleanup) cronUrl.searchParams.set('cleanup', '1');
 
     const cronSecret = process.env.CRON_SECRET;
     if (!cronSecret) {
-      return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 });
+      return NextResponse.json({ error: 'Server misconfiguration: CRON_SECRET not set' }, { status: 500 });
     }
 
     const cronResponse = await fetch(cronUrl.toString(), {
