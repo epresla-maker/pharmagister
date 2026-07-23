@@ -852,23 +852,43 @@ export default function EszkozPiacterPage() {
 
   const stepValidationMessage = useMemo(() => {
     if (composerStep === 1) {
-      if (!draft.title.trim()) return "A cím megadása kötelező.";
-      if (!draft.description.trim()) return "A leírás megadása kötelező.";
       return "";
     }
 
     if (composerStep === 2) {
-      if (!draft.location.trim()) return "A hely megadása kötelező.";
       return "";
     }
 
     if (composerStep === 3) {
+      if (!draft.title.trim()) return "A cím megadása kötelező.";
+      return "";
+    }
+
+    if (composerStep === 4) {
+      if (!draft.description.trim()) return "A leírás megadása kötelező.";
+      return "";
+    }
+
+    if (composerStep === 5) {
+      return "";
+    }
+
+    if (composerStep === 6) {
+      if (!draft.location.trim()) return "A hely megadása kötelező.";
+      return "";
+    }
+
+    if (composerStep === 7) {
       if (!draft.negotiable) {
         const price = Number(draft.price || 0);
         if (!draft.price || Number.isNaN(price) || price <= 0) {
           return "Érvényes ár megadása kötelező.";
         }
       }
+      return "";
+    }
+
+    if (composerStep === 8) {
       return "";
     }
 
@@ -882,7 +902,7 @@ export default function EszkozPiacterPage() {
     }
 
     setComposerError("");
-    setComposerStep((prev) => Math.min(4, prev + 1));
+    setComposerStep((prev) => Math.min(9, prev + 1));
   };
 
   const goToPreviousComposerStep = () => {
@@ -2042,7 +2062,7 @@ export default function EszkozPiacterPage() {
                 <div className="flex items-center gap-2">
                   <h3 className="font-bold text-lg">{editingId ? "Hirdetés szerkesztése" : "Hirdetés feladása"}</h3>
                   <span className={`text-xs font-semibold px-2 py-1 rounded-full ${darkMode ? "bg-gray-800 text-gray-200" : "bg-gray-100 text-gray-700"}`}>
-                    {composerStep}/4
+                    {composerStep}/9
                   </span>
                 </div>
                 <button onClick={() => { setShowComposer(false); resetComposer(); }} className="p-2 rounded-lg hover:bg-gray-200/20"><X className="w-5 h-5" /></button>
@@ -2055,140 +2075,198 @@ export default function EszkozPiacterPage() {
               <div className="p-4 space-y-4 pb-4">
                 <div>
                   <div className={`h-2 rounded-full overflow-hidden ${darkMode ? "bg-gray-800" : "bg-gray-200"}`}>
-                    <div className="h-full bg-purple-600 transition-all" style={{ width: `${(composerStep / 4) * 100}%` }} />
+                    <div className="h-full bg-purple-600 transition-all" style={{ width: `${(composerStep / 9) * 100}%` }} />
                   </div>
                   <p className={`text-xs mt-2 ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-                    {composerStep === 1 ? "Alapadatok" : composerStep === 2 ? "Képek és hely" : composerStep === 3 ? "Ár és kapcsolat" : "Ellenőrzés és feladás"}
+                    {composerStep === 1 ? "Kategória" : composerStep === 2 ? "Állapot" : composerStep === 3 ? "Cím" : composerStep === 4 ? "Leírás" : composerStep === 5 ? "Képek" : composerStep === 6 ? "Hely" : composerStep === 7 ? "Ár" : composerStep === 8 ? "Kapcsolat" : "Ellenőrzés és feladás"}
                   </p>
                 </div>
 
                 {composerStep === 1 ? (
-                  <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-sm font-semibold">Kategória</label>
-                        <select value={draft.category} onChange={(e) => setDraft((prev) => ({ ...prev, category: e.target.value }))} className={`mt-1 w-full rounded-xl border px-3 py-2 text-sm ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"}`}>
-                          {CATEGORY_DEFS.map((cat) => (
-                            <option key={cat.id} value={cat.id}>{cat.label}</option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="text-sm font-semibold">Állapot</label>
-                        <select value={draft.condition} onChange={(e) => setDraft((prev) => ({ ...prev, condition: e.target.value as ConditionOption }))} className={`mt-1 w-full rounded-xl border px-3 py-2 text-sm ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"}`}>
-                          {CONDITION_OPTIONS.map((condition) => (
-                            <option key={condition.id} value={condition.id}>{condition.label}</option>
-                          ))}
-                        </select>
+                  <div className="space-y-3">
+                    <div className="flex justify-start">
+                      <div className={`max-w-[90%] rounded-2xl rounded-bl-md px-4 py-3 text-sm ${darkMode ? "bg-purple-900/50 text-purple-100" : "bg-purple-100 text-purple-900"}`}>
+                        Milyen kategóriába tartozik a hirdetés?
                       </div>
                     </div>
-
-                    <div>
-                      <label className="text-sm font-semibold">Cím</label>
-                      <input value={draft.title} onChange={(e) => setDraft((prev) => ({ ...prev, title: e.target.value }))} placeholder="Pl. Hűtő, bicikli, irodai szék" className={`mt-1 w-full rounded-xl border px-3 py-2 text-sm ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"}`} />
+                    <div className="flex justify-end">
+                      <div className={`max-w-[90%] rounded-2xl rounded-br-md px-4 py-3 text-sm ${darkMode ? "bg-gray-800 text-gray-100" : "bg-gray-100 text-gray-900"}`}>
+                        {getCategoryLabel(draft.category)}
+                      </div>
                     </div>
-
-                    <div>
-                      <label className="text-sm font-semibold">Leírás</label>
-                      <textarea value={draft.description} onChange={(e) => setDraft((prev) => ({ ...prev, description: e.target.value }))} rows={5} placeholder="Részletes leírás, állapot, átvételi információk" className={`mt-1 w-full rounded-xl border px-3 py-2 text-sm ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"}`} />
-                    </div>
-                  </>
+                    <select value={draft.category} onChange={(e) => setDraft((prev) => ({ ...prev, category: e.target.value }))} className={`w-full rounded-xl border px-3 py-3 text-sm ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"}`}>
+                      {CATEGORY_DEFS.map((cat) => (
+                        <option key={cat.id} value={cat.id}>{cat.label}</option>
+                      ))}
+                    </select>
+                  </div>
                 ) : null}
 
                 {composerStep === 2 ? (
-                  <>
-                    <div>
-                      <label className="text-sm font-semibold">Képek (max. {MAX_IMAGES})</label>
-                      <input
-                        ref={imageInputRef}
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        className="hidden"
-                        onChange={(e) => onChooseImages(e.target.files)}
-                      />
-                      <button onClick={() => imageInputRef.current?.click()} className="mt-2 inline-flex items-center gap-2 rounded-xl px-3 py-2 bg-purple-100 text-purple-700 text-sm font-semibold">
-                        <Camera className="w-4 h-4" /> Képek kiválasztása
-                      </button>
-
-                      {existingImages.length > 0 ? (
-                        <div className="mt-2">
-                          <p className="text-xs opacity-70 mb-1">Már feltöltött képek</p>
-                          <div className="grid grid-cols-4 gap-2">
-                            {existingImages.map((url, idx) => (
-                              <div key={`${url}-${idx}`} className="relative rounded-lg overflow-hidden border">
-                                <div className="relative h-20 w-full">
-                                  <Image src={url} alt="feltöltött kép" fill className="object-cover" sizes="120px" />
-                                </div>
-                                <button onClick={() => removeExistingImage(idx)} className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1"><X className="w-3 h-3" /></button>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ) : null}
-
-                      {newImages.length > 0 ? (
-                        <div className="mt-2">
-                          <p className="text-xs opacity-70 mb-1">Új képek (húzd át az átrendezéshez)</p>
-                          <div className="grid grid-cols-4 gap-2">
-                            {newImages.map((file, idx) => (
-                              <div
-                                key={`${file.name}-${idx}`}
-                                draggable
-                                onDragStart={() => setDragIndex(idx)}
-                                onDragOver={(e) => e.preventDefault()}
-                                onDrop={() => {
-                                  if (dragIndex == null) return;
-                                  reorderNewImages(dragIndex, idx);
-                                  setDragIndex(null);
-                                }}
-                                className={`relative rounded-lg overflow-hidden border cursor-move ${dragIndex === idx ? "ring-2 ring-emerald-400" : ""}`}
-                              >
-                                <div className="relative h-20 w-full">
-                                  <img src={newImagePreviews[idx]} alt="új kép" className="w-full h-full object-cover" />
-                                </div>
-                                <button onClick={() => removeNewImage(idx)} className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1"><X className="w-3 h-3" /></button>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ) : null}
+                  <div className="space-y-3">
+                    <div className="flex justify-start">
+                      <div className={`max-w-[90%] rounded-2xl rounded-bl-md px-4 py-3 text-sm ${darkMode ? "bg-purple-900/50 text-purple-100" : "bg-purple-100 text-purple-900"}`}>
+                        Milyen állapotú a termék?
+                      </div>
                     </div>
-
-                    <div>
-                      <label className="text-sm font-semibold">Hely</label>
-                      <input value={draft.location} onChange={(e) => setDraft((prev) => ({ ...prev, location: e.target.value }))} placeholder="Pl. Budapest" className={`mt-1 w-full rounded-xl border px-3 py-2 text-sm ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"}`} />
+                    <div className="flex justify-end">
+                      <div className={`max-w-[90%] rounded-2xl rounded-br-md px-4 py-3 text-sm ${darkMode ? "bg-gray-800 text-gray-100" : "bg-gray-100 text-gray-900"}`}>
+                        {getConditionLabel(draft.condition)}
+                      </div>
                     </div>
-                  </>
+                    <select value={draft.condition} onChange={(e) => setDraft((prev) => ({ ...prev, condition: e.target.value as ConditionOption }))} className={`w-full rounded-xl border px-3 py-3 text-sm ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"}`}>
+                      {CONDITION_OPTIONS.map((condition) => (
+                        <option key={condition.id} value={condition.id}>{condition.label}</option>
+                      ))}
+                    </select>
+                  </div>
                 ) : null}
 
                 {composerStep === 3 ? (
-                  <>
-                    <div className="space-y-2 text-sm">
-                      <label className="flex items-center gap-2"><input type="checkbox" checked={draft.negotiable} onChange={(e) => setDraft((prev) => ({ ...prev, negotiable: e.target.checked }))} /> Alkuképes</label>
-                      <label className="flex items-center gap-2"><input type="checkbox" checked={draft.chatEnabled} onChange={(e) => setDraft((prev) => ({ ...prev, chatEnabled: e.target.checked }))} /> Chat engedélyezése</label>
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-semibold">Ár (Ft)</label>
-                      <input value={draft.price} onChange={(e) => setDraft((prev) => ({ ...prev, price: e.target.value.replace(/[^0-9]/g, "") }))} disabled={draft.negotiable} placeholder="Pl. 120000" className={`mt-1 w-full rounded-xl border px-3 py-2 text-sm ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"} ${draft.negotiable ? "opacity-60" : ""}`} />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-sm font-semibold">Kapcsolattartó telefonszám (opcionális)</label>
-                        <input value={draft.contactPhone} onChange={(e) => setDraft((prev) => ({ ...prev, contactPhone: e.target.value }))} placeholder="Pl. +36 30 123 4567" className={`mt-1 w-full rounded-xl border px-3 py-2 text-sm ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"}`} />
-                      </div>
-                      <div>
-                        <label className="text-sm font-semibold">Címkék</label>
-                        <input value={draft.tags} onChange={(e) => setDraft((prev) => ({ ...prev, tags: e.target.value }))} placeholder="Pl. hűtő, használt, bútor" className={`mt-1 w-full rounded-xl border px-3 py-2 text-sm ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"}`} />
+                  <div className="space-y-3">
+                    <div className="flex justify-start">
+                      <div className={`max-w-[90%] rounded-2xl rounded-bl-md px-4 py-3 text-sm ${darkMode ? "bg-purple-900/50 text-purple-100" : "bg-purple-100 text-purple-900"}`}>
+                        Mi legyen a hirdetés címe?
                       </div>
                     </div>
-                  </>
+                    {draft.title ? (
+                      <div className="flex justify-end">
+                        <div className={`max-w-[90%] rounded-2xl rounded-br-md px-4 py-3 text-sm ${darkMode ? "bg-gray-800 text-gray-100" : "bg-gray-100 text-gray-900"}`}>
+                          {draft.title}
+                        </div>
+                      </div>
+                    ) : null}
+                    <input value={draft.title} onChange={(e) => setDraft((prev) => ({ ...prev, title: e.target.value }))} placeholder="Pl. Hűtő, bicikli, irodai szék" className={`w-full rounded-xl border px-3 py-3 text-sm ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"}`} />
+                  </div>
                 ) : null}
 
                 {composerStep === 4 ? (
+                  <div className="space-y-3">
+                    <div className="flex justify-start">
+                      <div className={`max-w-[90%] rounded-2xl rounded-bl-md px-4 py-3 text-sm ${darkMode ? "bg-purple-900/50 text-purple-100" : "bg-purple-100 text-purple-900"}`}>
+                        Írd le röviden a terméket és az állapotát.
+                      </div>
+                    </div>
+                    {draft.description ? (
+                      <div className="flex justify-end">
+                        <div className={`max-w-[90%] rounded-2xl rounded-br-md px-4 py-3 text-sm whitespace-pre-wrap ${darkMode ? "bg-gray-800 text-gray-100" : "bg-gray-100 text-gray-900"}`}>
+                          {draft.description}
+                        </div>
+                      </div>
+                    ) : null}
+                    <textarea value={draft.description} onChange={(e) => setDraft((prev) => ({ ...prev, description: e.target.value }))} rows={5} placeholder="Részletes leírás, állapot, átvételi információk" className={`w-full rounded-xl border px-3 py-3 text-sm ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"}`} />
+                  </div>
+                ) : null}
+
+                {composerStep === 5 ? (
+                  <div className="space-y-3">
+                    <div className="flex justify-start">
+                      <div className={`max-w-[90%] rounded-2xl rounded-bl-md px-4 py-3 text-sm ${darkMode ? "bg-purple-900/50 text-purple-100" : "bg-purple-100 text-purple-900"}`}>
+                        Tölts fel képeket a hirdetéshez (max. {MAX_IMAGES}).
+                      </div>
+                    </div>
+                    <input
+                      ref={imageInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => onChooseImages(e.target.files)}
+                    />
+                    <button onClick={() => imageInputRef.current?.click()} className="inline-flex items-center gap-2 rounded-xl px-3 py-2 bg-purple-100 text-purple-700 text-sm font-semibold">
+                      <Camera className="w-4 h-4" /> Képek kiválasztása
+                    </button>
+                    <p className={`text-xs ${darkMode ? "text-gray-400" : "text-gray-500"}`}>{existingImages.length + newImages.length} / {MAX_IMAGES} kép</p>
+
+                    {existingImages.length > 0 ? (
+                      <div className="mt-1">
+                        <p className="text-xs opacity-70 mb-1">Már feltöltött képek</p>
+                        <div className="grid grid-cols-4 gap-2">
+                          {existingImages.map((url, idx) => (
+                            <div key={`${url}-${idx}`} className="relative rounded-lg overflow-hidden border">
+                              <div className="relative h-20 w-full">
+                                <Image src={url} alt="feltöltött kép" fill className="object-cover" sizes="120px" />
+                              </div>
+                              <button onClick={() => removeExistingImage(idx)} className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1"><X className="w-3 h-3" /></button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {newImages.length > 0 ? (
+                      <div className="mt-1">
+                        <p className="text-xs opacity-70 mb-1">Új képek (húzd át az átrendezéshez)</p>
+                        <div className="grid grid-cols-4 gap-2">
+                          {newImages.map((file, idx) => (
+                            <div
+                              key={`${file.name}-${idx}`}
+                              draggable
+                              onDragStart={() => setDragIndex(idx)}
+                              onDragOver={(e) => e.preventDefault()}
+                              onDrop={() => {
+                                if (dragIndex == null) return;
+                                reorderNewImages(dragIndex, idx);
+                                setDragIndex(null);
+                              }}
+                              className={`relative rounded-lg overflow-hidden border cursor-move ${dragIndex === idx ? "ring-2 ring-emerald-400" : ""}`}
+                            >
+                              <div className="relative h-20 w-full">
+                                <img src={newImagePreviews[idx]} alt="új kép" className="w-full h-full object-cover" />
+                              </div>
+                              <button onClick={() => removeNewImage(idx)} className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1"><X className="w-3 h-3" /></button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                {composerStep === 6 ? (
+                  <div className="space-y-3">
+                    <div className="flex justify-start">
+                      <div className={`max-w-[90%] rounded-2xl rounded-bl-md px-4 py-3 text-sm ${darkMode ? "bg-purple-900/50 text-purple-100" : "bg-purple-100 text-purple-900"}`}>
+                        Hol vehető át? (város vagy környék)
+                ) : null}
+                    </div>
+                    {draft.location ? (
+                      <div className="flex justify-end">
+                        <div className={`max-w-[90%] rounded-2xl rounded-br-md px-4 py-3 text-sm ${darkMode ? "bg-gray-800 text-gray-100" : "bg-gray-100 text-gray-900"}`}>
+                          {draft.location}
+                        </div>
+                      </div>
+                    ) : null}
+                    <input value={draft.location} onChange={(e) => setDraft((prev) => ({ ...prev, location: e.target.value }))} placeholder="Pl. Budapest" className={`w-full rounded-xl border px-3 py-3 text-sm ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"}`} />
+                  </div>
+                ) : null}
+
+                {composerStep === 7 ? (
+                  <div className="space-y-3">
+                    <div className="flex justify-start">
+                      <div className={`max-w-[90%] rounded-2xl rounded-bl-md px-4 py-3 text-sm ${darkMode ? "bg-purple-900/50 text-purple-100" : "bg-purple-100 text-purple-900"}`}>
+                        Mennyi az ára? Ha alkuképes, jelöld be.
+                      </div>
+                    </div>
+                    <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={draft.negotiable} onChange={(e) => setDraft((prev) => ({ ...prev, negotiable: e.target.checked }))} /> Alkuképes</label>
+                    <input value={draft.price} onChange={(e) => setDraft((prev) => ({ ...prev, price: e.target.value.replace(/[^0-9]/g, "") }))} disabled={draft.negotiable} placeholder="Pl. 120000" className={`w-full rounded-xl border px-3 py-3 text-sm ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"} ${draft.negotiable ? "opacity-60" : ""}`} />
+                  </div>
+                ) : null}
+
+                {composerStep === 8 ? (
+                  <div className="space-y-3">
+                    <div className="flex justify-start">
+                      <div className={`max-w-[90%] rounded-2xl rounded-bl-md px-4 py-3 text-sm ${darkMode ? "bg-purple-900/50 text-purple-100" : "bg-purple-100 text-purple-900"}`}>
+                        Kapcsolati adatok és extra címkék (opcionális).
+                      </div>
+                    </div>
+                    <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={draft.chatEnabled} onChange={(e) => setDraft((prev) => ({ ...prev, chatEnabled: e.target.checked }))} /> Chat engedélyezése</label>
+                    <input value={draft.contactPhone} onChange={(e) => setDraft((prev) => ({ ...prev, contactPhone: e.target.value }))} placeholder="Pl. +36 30 123 4567" className={`w-full rounded-xl border px-3 py-3 text-sm ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"}`} />
+                    <input value={draft.tags} onChange={(e) => setDraft((prev) => ({ ...prev, tags: e.target.value }))} placeholder="Pl. használt, bútor, monitor" className={`w-full rounded-xl border px-3 py-3 text-sm ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"}`} />
+                  </div>
+                ) : null}
+
+                {composerStep === 9 ? (
                   <>
                     <div className={`rounded-xl border p-3 ${darkMode ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-gray-50"}`}>
                       <p className="text-xs opacity-70">Cím</p>
@@ -2215,7 +2293,6 @@ export default function EszkozPiacterPage() {
                     ) : null}
                   </>
                 ) : null}
-
                 {composerError ? (
                   <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-rose-700 text-sm">{composerError}</div>
                 ) : null}
@@ -2241,7 +2318,7 @@ export default function EszkozPiacterPage() {
                     {composerStep === 1 ? "Mégse" : "Vissza"}
                   </button>
 
-                  {composerStep < 4 ? (
+                  {composerStep < 9 ? (
                     <button onClick={goToNextComposerStep} className="flex-1 rounded-xl bg-purple-600 hover:bg-purple-700 text-white py-2 font-semibold">
                       Tovább
                     </button>
