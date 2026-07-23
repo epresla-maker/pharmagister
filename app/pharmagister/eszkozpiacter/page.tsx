@@ -14,6 +14,7 @@ import { db } from "../../../lib/firebase";
 import { createNotificationWithPush, NotificationTypes } from "../../../lib/notifications";
 import { getEffectivePharmagisterRole } from "../../../lib/pharmagisterProfile";
 import { isDocInMarket } from "../../../lib/market";
+import { getClientMarket } from "../../../lib/marketI18n";
 import {
   addDoc,
   collection,
@@ -348,6 +349,7 @@ export default function EszkozPiacterPage() {
   const role = getEffectivePharmagisterRole(userData);
   const canUseMarketplace = Boolean(role);
   const isAdmin = ADMIN_EMAILS.has(String(user?.email || "").toLowerCase());
+  const market = getClientMarket();
   const userLocation = [
     userData?.pharmacyZipCode,
     userData?.pharmacyCity,
