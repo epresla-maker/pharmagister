@@ -107,6 +107,7 @@ function isWeekend(date) {
 export default function PharmaCalendar({ pharmaRole }) {
   const { user, userData } = useAuth();
   const { darkMode } = useTheme();
+  const router = useRouter();
   const market = getClientMarket();
   const locale = market === 'de' ? 'de-DE' : 'hu-HU';
   const searchParams = useSearchParams();
@@ -445,6 +446,9 @@ export default function PharmaCalendar({ pharmaRole }) {
           onClose={() => {
             setShowModal(false);
             setShowCreateForm(false);
+            if (directCreateMode) {
+              router.replace('/pharmagister?tab=dashboard');
+            }
           }}
           onDemandDeleted={handleDeleteDemand}
           onDemandCreated={loadDemands}
