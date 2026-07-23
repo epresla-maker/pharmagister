@@ -952,6 +952,19 @@ export default function EszkozPiacterPage() {
     });
   };
 
+  const handleSearchSubmit = () => {
+    const clean = searchInput.trim();
+    setSearchInput(clean);
+    setSearchDebounced(clean);
+    addRecentSearch(clean);
+    setShowSearchPanel(false);
+
+    if (typeof document !== "undefined") {
+      const active = document.activeElement as HTMLElement | null;
+      active?.blur?.();
+    }
+  };
+
   const handleDeleteListing = async (listingId: string) => {
     const ok = window.confirm("Biztosan törlöd ezt a hirdetést?");
     if (!ok) return;
@@ -1434,11 +1447,25 @@ export default function EszkozPiacterPage() {
                 <input
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleSearchSubmit();
+                    }
+                  }}
                   onFocus={() => setShowSearchPanel(true)}
                   onBlur={() => setTimeout(() => setShowSearchPanel(false), 120)}
                   placeholder="Keresés cím, leírás, kategória, hely vagy eladó szerint"
-                  className={`w-full rounded-[1.4rem] pl-12 pr-4 py-3.5 text-sm border outline-none focus:ring-2 focus:ring-blue-200 ${darkMode ? "bg-gray-950 border-gray-800 placeholder:text-gray-500" : "bg-gray-50 border-gray-200 placeholder:text-gray-500"}`}
+                  className={`w-full rounded-[1.4rem] pl-12 pr-28 py-3.5 text-sm border outline-none focus:ring-2 focus:ring-blue-200 ${darkMode ? "bg-gray-950 border-gray-800 placeholder:text-gray-500" : "bg-gray-50 border-gray-200 placeholder:text-gray-500"}`}
                 />
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={handleSearchSubmit}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2"
+                >
+                  Keresés
+                </button>
 
                 {showSearchPanel && (searchSuggestions.length > 0 || recentSearches.length > 0 || POPULAR_SEARCHES.length > 0) ? (
                   <div className={`absolute top-[110%] left-0 right-0 rounded-2xl border shadow-xl p-3 z-20 ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
