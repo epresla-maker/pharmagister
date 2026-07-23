@@ -2136,7 +2136,18 @@ export default function EszkozPiacterPage() {
                         </div>
                       </div>
                     ) : null}
-                    <input value={draft.title} onChange={(e) => setDraft((prev) => ({ ...prev, title: e.target.value }))} placeholder="Pl. Hűtő, bicikli, irodai szék" className={`w-full rounded-xl border px-3 py-3 text-sm ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"}`} />
+                    <input
+                      value={draft.title}
+                      onChange={(e) => setDraft((prev) => ({ ...prev, title: e.target.value }))}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          goToNextComposerStep();
+                        }
+                      }}
+                      placeholder="Pl. Hűtő, bicikli, irodai szék"
+                      className={`w-full rounded-xl border px-3 py-3 text-sm ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"}`}
+                    />
                   </div>
                 ) : null}
 
@@ -2237,7 +2248,18 @@ export default function EszkozPiacterPage() {
                         </div>
                       </div>
                     ) : null}
-                    <input value={draft.location} onChange={(e) => setDraft((prev) => ({ ...prev, location: e.target.value }))} placeholder="Pl. Budapest" className={`w-full rounded-xl border px-3 py-3 text-sm ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"}`} />
+                    <input
+                      value={draft.location}
+                      onChange={(e) => setDraft((prev) => ({ ...prev, location: e.target.value }))}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          goToNextComposerStep();
+                        }
+                      }}
+                      placeholder="Pl. Budapest"
+                      className={`w-full rounded-xl border px-3 py-3 text-sm ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"}`}
+                    />
                   </div>
                 ) : null}
 
@@ -2249,7 +2271,19 @@ export default function EszkozPiacterPage() {
                       </div>
                     </div>
                     <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={draft.negotiable} onChange={(e) => setDraft((prev) => ({ ...prev, negotiable: e.target.checked }))} /> Alkuképes</label>
-                    <input value={draft.price} onChange={(e) => setDraft((prev) => ({ ...prev, price: e.target.value.replace(/[^0-9]/g, "") }))} disabled={draft.negotiable} placeholder="Pl. 120000" className={`w-full rounded-xl border px-3 py-3 text-sm ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"} ${draft.negotiable ? "opacity-60" : ""}`} />
+                    <input
+                      value={draft.price}
+                      onChange={(e) => setDraft((prev) => ({ ...prev, price: e.target.value.replace(/[^0-9]/g, "") }))}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          goToNextComposerStep();
+                        }
+                      }}
+                      disabled={draft.negotiable}
+                      placeholder="Pl. 120000"
+                      className={`w-full rounded-xl border px-3 py-3 text-sm ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"} ${draft.negotiable ? "opacity-60" : ""}`}
+                    />
                   </div>
                 ) : null}
 
