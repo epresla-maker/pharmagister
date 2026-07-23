@@ -153,6 +153,68 @@ function cleanText(value) {
     .trim();
 }
 
+function normalizeForDedup(value) {
+  return cleanText(value)
+    .toLowerCase()
+    .replace(/[.,!?;:()\[\]"'`]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function soundsInstitutionalPharmacyVoice(text, market) {
+  const source = String(text || '').toLowerCase();
+  if (!source) return false;
+
+  const huSignals = [
+    'gyogyszertarunk',
+    'gyógyszertárunk',
+    'patikank',
+    'patikánk',
+    'nalunk a patikaban',
+    'nálunk a patikában',
+    'csapatunk',
+    'uzletunk',
+    'üzletünk',
+  ];
+
+  const deSignals = [
+    'unsere apotheke',
+    'in unserer apotheke',
+    'unser team',
+  ];
+
+  const signals = market === 'de' ? deSignals : huSignals;
+  return signals.some((signal) => source.includes(signal));
+}
+
+function makeUniqueText(text, market, usedNormalized) {
+  const base = cleanText(text);
+  if (!base) return base;
+
+  const baseNorm = normalizeForDedup(base);
+  if (!usedNormalized.has(baseNorm)) return base;
+
+  const huSuffixes = [
+    'Ti mit próbáltatok erre?',
+    'Kinek mi vált be ebben?',
+    'Nálatok mi működik jól erre?',
+  ];
+  const deSuffixes = [
+    'Wie macht ihr das konkret?',
+    'Was hat bei euch gut funktioniert?',
+    'Welche Loesung war bei euch stabil?',
+  ];
+
+  const suffixes = market === 'de' ? deSuffixes : huSuffixes;
+  for (const suffix of suffixes) {
+    const candidate = cleanText(`${base} ${suffix}`);
+    const normalized = normalizeForDedup(candidate);
+    if (!usedNormalized.has(normalized)) return candidate;
+  }
+
+  return cleanText(`${base} #${Date.now().toString().slice(-4)}`);
+}
+
 function maybeHumanizeTypos(text) {
   const source = cleanText(text);
   if (!source) return source;
@@ -205,18 +267,24 @@ function fallbackText(type, market) {
   return huFallbacks[type] || huFallbacks.question;
 }
 
-async function generateWithGemini({ model, market, typeConfig }) {
+async function generateWithGemini({ model, market, typeConfig, avoidTexts = [], variationHint = '' }) {
   const language = market === 'de' ? 'német' : 'magyar';
+  const bannedList = avoidTexts.map((item) => `- ${cleanText(item)}`).filter(Boolean).join('\n');
   const prompt = [
     `Feladat: ${typeConfig.instruction}`,
     `Nyelv: ${language}`,
     'Kontextus: Pharmagister hírfolyam, gyógyszertári szakmai közösség.',
     'Stílus: közvetlen, emberi, nem reklámszagú.',
+    'Perspektíva: mindig egy egyéni szakdolgozó ír, E/1 vagy E/2 természetes hangnemben.',
+    'TILOS intézményi hang: ne írj úgy, mintha a gyógyszertár vagy vállalkozás kommunikálna.',
+    'Kerüld ezeket a fordulatokat: "gyógyszertárunk", "patikánk", "nálunk a patikában", "csapatunk", "unsere Apotheke", "in unserer Apotheke".',
     'Hossz: 1-3 mondat, maximum 260 karakter.',
     'Ne legyen benne hashtag, ne legyen benne emoji, ne legyen benne túl általános bullshit.',
+    variationHint ? `Variációs jel: ${variationHint}` : '',
+    bannedList ? `Ezeket a korábbi szövegeket ne ismételd:\n${bannedList}` : '',
     'Adj vissza kizárólag JSON-t ebben a formában:',
     '{"text":"...","tags":["...","..."],"category":"kozosseg"}',
-  ].join('\n');
+  ].filter(Boolean).join('\n');
 
   const result = await model.generateContent(prompt);
   const raw = String(result.response.text() || '').trim();
@@ -231,7 +299,10 @@ async function generateWithGemini({ model, market, typeConfig }) {
     }
   }
 
-  const text = maybeHumanizeTypos(cleanText(parsed?.text));
+  let text = maybeHumanizeTypos(cleanText(parsed?.text));
+  if (soundsInstitutionalPharmacyVoice(text, market)) {
+    text = fallbackText(typeConfig.kind, market);
+  }
   const tags = Array.isArray(parsed?.tags) ? parsed.tags.map((t) => cleanText(t)).filter(Boolean).slice(0, 5) : [];
   const category = cleanText(parsed?.category) || 'kozosseg';
 
@@ -361,7 +432,9 @@ export async function GET(request) {
     const adminUserIds = await loadAdminUserIds(db);
 
     const created = [];
-    for (const slot of missingSlots) {
+    const usedTexts = new Set();
+    for (let index = 0; index < missingSlots.length; index += 1) {
+      const slot = missingSlots[index];
       const lockAcquired = await acquireSlotLock(db, {
         market,
         dateKey: now.dateKey,
@@ -372,20 +445,35 @@ export async function GET(request) {
         continue;
       }
 
-      const typeConfig = promptPool[slot % promptPool.length];
+      const typeConfig = promptPool[index % promptPool.length];
       const author = pickRandom(authors);
-      const generated = await generateWithGemini({
-        model,
-        market,
-        typeConfig,
-      });
+      let generated = null;
+      for (let attempt = 1; attempt <= 3; attempt += 1) {
+        generated = await generateWithGemini({
+          model,
+          market,
+          typeConfig,
+          avoidTexts: Array.from(usedTexts),
+          variationHint: `${now.dateKey}:${formatSlot(slot)}:${attempt}`,
+        });
+
+        const normalized = normalizeForDedup(generated.text);
+        const duplicate = usedTexts.has(normalized);
+        const institutional = soundsInstitutionalPharmacyVoice(generated.text, market);
+        if (!duplicate && !institutional) {
+          break;
+        }
+      }
+
+      const finalText = makeUniqueText(generated?.text || fallbackText(typeConfig.kind, market), market, usedTexts);
+      usedTexts.add(normalizeForDedup(finalText));
 
       const postData = {
         postType: 'userPost',
         module: 'pharmagister',
         market,
         userId: author.id,
-        text: generated.text,
+        text: finalText,
         category: generated.category || 'kozosseg',
         tags: generated.tags || [],
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
