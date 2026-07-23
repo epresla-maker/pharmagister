@@ -1878,7 +1878,15 @@ export default function EszkozPiacterPage() {
             >
               <div className="sticky top-0 px-4 py-3 border-b flex items-center justify-between bg-inherit">
                 <h3 className="font-bold text-lg">Szűrés és rendezés</h3>
-                <button onClick={() => setShowFilters(false)} className="p-2 rounded-lg hover:bg-gray-200/20"><X className="w-5 h-5" /></button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={clearFilters}
+                    className={`text-xs font-semibold px-3 py-1.5 rounded-lg border ${darkMode ? "border-gray-600 text-gray-200 hover:bg-gray-800" : "border-gray-300 text-gray-700 hover:bg-gray-100"}`}
+                  >
+                    Szűrők alaphelyzetbe állítása
+                  </button>
+                  <button onClick={() => setShowFilters(false)} className="p-2 rounded-lg hover:bg-gray-200/20"><X className="w-5 h-5" /></button>
+                </div>
               </div>
 
               <div
