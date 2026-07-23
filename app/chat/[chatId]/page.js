@@ -119,6 +119,7 @@ export default function ChatRoomPage() {
   const [reportMessageData, setReportMessageData] = useState(null); // { id, text } - a jelentett üzenet
   const [showBlockModal, setShowBlockModal] = useState(false);
   const [isPartnerBlocked, setIsPartnerBlocked] = useState(false);
+  const [keyboardInset, setKeyboardInset] = useState(0);
   
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -184,6 +185,28 @@ export default function ChatRoomPage() {
       document.body.style.backgroundColor = '';
     };
   }, [darkMode]);
+
+  // iPhone/Safari keyboard handling: lift the fixed layout above the keyboard
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+
+    const updateKeyboardInset = () => {
+      const inset = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
+      setKeyboardInset(inset > 20 ? inset : 0);
+    };
+
+    updateKeyboardInset();
+    viewport.addEventListener('resize', updateKeyboardInset);
+    viewport.addEventListener('scroll', updateKeyboardInset);
+
+    return () => {
+      viewport.removeEventListener('resize', updateKeyboardInset);
+      viewport.removeEventListener('scroll', updateKeyboardInset);
+    };
+  }, []);
 
   // --- FŐ useEffect: Adatok betöltése és FIGYELŐK ---
   useEffect(() => {
@@ -825,8 +848,8 @@ export default function ChatRoomPage() {
         left: 0,
         right: 0,
         top: 0,
-        bottom: 0,
-        height: '100dvh',
+        bottom: `${keyboardInset}px`,
+        height: `calc(100dvh - ${keyboardInset}px)`,
       }}
     >
       
