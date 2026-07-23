@@ -80,6 +80,26 @@ function getZonedNowParts(market) {
   return { year, month, day, hour, minute, dateKey, timeZone };
 }
 
+function shiftDateKey(dateKey, days) {
+  const [year, month, day] = String(dateKey || '').split('-').map(Number);
+  if (!year || !month || !day) return dateKey;
+  const shifted = new Date(Date.UTC(year, month - 1, day + days));
+  return `${shifted.getUTCFullYear()}-${String(shifted.getUTCMonth() + 1).padStart(2, '0')}-${String(shifted.getUTCDate()).padStart(2, '0')}`;
+}
+
+function parseDryRunFlag(value) {
+  return ['1', 'true', 'yes', 'on'].includes(String(value || '').toLowerCase());
+}
+
+function parseDateOverride(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    throw new Error('A date param formátuma YYYY-MM-DD legyen');
+  }
+  return raw;
+}
+
 function buildDailyPlan({ dateKey, market }) {
   const seed = hashString(`${dateKey}:${market}:auto-feed-slots:v1`);
   const rng = createRng(seed);
@@ -352,13 +372,12 @@ function isSameDay(date, baseDate) {
     && date.getDate() === baseDate.getDate();
 }
 
-async function countTodayAutoPosts(db, market) {
+async function countTodayAutoPosts(db, market, dateKey) {
   const snap = await db.collection('serviceFeedPosts')
     .orderBy('createdAt', 'desc')
     .limit(300)
     .get();
 
-  const { dateKey } = getZonedNowParts(market);
   let count = 0;
   const postedSlots = new Set();
 
@@ -385,6 +404,7 @@ export async function GET(request) {
 
     const url = new URL(request.url);
     const market = normalizeMarket(url.searchParams.get('market') || 'hu');
+    const dryRun = parseDryRunFlag(url.searchParams.get('dryRun'));
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
@@ -395,9 +415,12 @@ export async function GET(request) {
     const db = admin.firestore();
 
     const now = getZonedNowParts(market);
-    const plan = buildDailyPlan({ dateKey: now.dateKey, market });
+    const requestedDate = parseDateOverride(url.searchParams.get('date'));
+    const defaultPreviewDate = dryRun && !requestedDate ? shiftDateKey(now.dateKey, 1) : null;
+    const effectiveDateKey = requestedDate || defaultPreviewDate || now.dateKey;
+    const plan = buildDailyPlan({ dateKey: effectiveDateKey, market });
 
-    const todaySummary = await countTodayAutoPosts(db, market);
+    const todaySummary = await countTodayAutoPosts(db, market, effectiveDateKey);
     const missingSlots = plan.slots.filter((slot) => !todaySummary.postedSlots.has(slot));
 
     if (todaySummary.count >= plan.target || missingSlots.length === 0) {
@@ -408,8 +431,9 @@ export async function GET(request) {
         reason: 'daily_limit_reached',
         todayCount: todaySummary.count,
         targetDaily: plan.target,
-        dateKey: now.dateKey,
+        dateKey: effectiveDateKey,
         plannedSlots: plan.slots.map(formatSlot),
+        dryRun,
       });
     }
 
@@ -429,20 +453,22 @@ export async function GET(request) {
     });
 
     const promptPool = shuffle(getPromptTypePool(market));
-    const adminUserIds = await loadAdminUserIds(db);
+    const adminUserIds = dryRun ? [] : await loadAdminUserIds(db);
 
     const created = [];
     const usedTexts = new Set();
     for (let index = 0; index < missingSlots.length; index += 1) {
       const slot = missingSlots[index];
-      const lockAcquired = await acquireSlotLock(db, {
-        market,
-        dateKey: now.dateKey,
-        slot,
-      });
+      if (!dryRun) {
+        const lockAcquired = await acquireSlotLock(db, {
+          market,
+          dateKey: effectiveDateKey,
+          slot,
+        });
 
-      if (!lockAcquired) {
-        continue;
+        if (!lockAcquired) {
+          continue;
+        }
       }
 
       const typeConfig = promptPool[index % promptPool.length];
@@ -488,17 +514,29 @@ export async function GET(request) {
         generatedBy: 'gemini-2.5-flash',
         generationKind: typeConfig.kind,
         generationFallback: Boolean(generated.usedFallback),
-        generatedDateKey: now.dateKey,
+        generatedDateKey: effectiveDateKey,
         generatedSlot: slot,
         generatedSlotLabel: formatSlot(slot),
         generatedTimeZone: now.timeZone,
         requiresAdminApproval: true,
         approvalStatus: 'pending',
-        approvalRequestedAt: admin.firestore.FieldValue.serverTimestamp(),
+        approvalRequestedAt: dryRun ? null : admin.firestore.FieldValue.serverTimestamp(),
       };
 
-      const postRef = await db.collection('serviceFeedPosts').add(postData);
-      created.push({ id: postRef.id, authorId: author.id, kind: typeConfig.kind, slot });
+      if (dryRun) {
+        created.push({
+          id: `dryrun-${effectiveDateKey}-${slot}`,
+          authorId: author.id,
+          authorName: author.displayName || author.name || 'Felhasználó',
+          kind: typeConfig.kind,
+          slot,
+          text: finalText,
+          category: postData.category,
+        });
+      } else {
+        const postRef = await db.collection('serviceFeedPosts').add(postData);
+        created.push({ id: postRef.id, authorId: author.id, authorName: author.displayName || author.name || 'Felhasználó', kind: typeConfig.kind, slot, text: finalText, category: postData.category });
+      }
     }
 
     if (created.length === 0) {
@@ -509,8 +547,9 @@ export async function GET(request) {
         reason: 'all_slots_locked_or_already_created',
         todayCount: todaySummary.count,
         targetDaily: plan.target,
-        dateKey: now.dateKey,
+        dateKey: effectiveDateKey,
         plannedSlots: plan.slots.map(formatSlot),
+        dryRun,
       });
     }
 
@@ -546,9 +585,18 @@ export async function GET(request) {
       todayCountAfter: todaySummary.count + created.length,
       targetDaily: plan.target,
       postedSlots: created.map((c) => formatSlot(c.slot)),
-      dateKey: now.dateKey,
+      dateKey: effectiveDateKey,
       plannedSlots: plan.slots.map(formatSlot),
       ids: created.map((c) => c.id),
+      dryRun,
+      previews: created.map((c) => ({
+        id: c.id,
+        slot: formatSlot(c.slot),
+        kind: c.kind,
+        authorName: c.authorName,
+        text: c.text,
+        category: c.category || 'kozosseg',
+      })),
     });
   } catch (error) {
     console.error('[cron/auto-feed-posts] error:', error);
