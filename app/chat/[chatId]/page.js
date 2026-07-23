@@ -2,6 +2,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { Capacitor } from "@capacitor/core";
+import { Keyboard } from "@capacitor/keyboard";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
@@ -127,6 +129,7 @@ export default function ChatRoomPage() {
   const messagesContainerRef = useRef(null);
   const headerRef = useRef(null);
   const mainRef = useRef(null);
+  const nativeKeyboardHeightRef = useRef(0);
 
   
   // Automatikus görgetés
@@ -191,20 +194,80 @@ export default function ChatRoomPage() {
     if (typeof window === 'undefined') return;
 
     const viewport = window.visualViewport;
-    if (!viewport) return;
+    let keyboardShowSub = null;
+    let keyboardDidShowSub = null;
+    let keyboardHideSub = null;
+    let keyboardDidHideSub = null;
 
     const updateKeyboardInset = () => {
-      const inset = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
-      setKeyboardInset(inset > 20 ? inset : 0);
+      const overlap = viewport
+        ? Math.max(
+            0,
+            window.innerHeight - viewport.height,
+            window.innerHeight - viewport.height - viewport.offsetTop
+          )
+        : 0;
+
+      const nextInset = Math.max(overlap, nativeKeyboardHeightRef.current);
+      setKeyboardInset(nextInset > 20 ? nextInset : 0);
     };
 
+    const isNativeIos = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios';
+    if (isNativeIos) {
+      Keyboard.setScroll({ isDisabled: true }).catch(() => {});
+      Keyboard.setResizeMode({ mode: 'none' }).catch(() => {});
+
+      Keyboard.addListener('keyboardWillShow', (info) => {
+        nativeKeyboardHeightRef.current = Math.max(0, Number(info?.keyboardHeight || 0));
+        updateKeyboardInset();
+        setTimeout(() => {
+          inputRef.current?.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'nearest' });
+          inputRef.current?.focus();
+        }, 0);
+      }).then((sub) => {
+        keyboardShowSub = sub;
+      });
+
+      Keyboard.addListener('keyboardDidShow', (info) => {
+        nativeKeyboardHeightRef.current = Math.max(0, Number(info?.keyboardHeight || 0));
+        updateKeyboardInset();
+        setTimeout(() => {
+          inputRef.current?.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'nearest' });
+        }, 0);
+      }).then((sub) => {
+        keyboardDidShowSub = sub;
+      });
+
+      Keyboard.addListener('keyboardWillHide', () => {
+        nativeKeyboardHeightRef.current = 0;
+        setKeyboardInset(0);
+      }).then((sub) => {
+        keyboardHideSub = sub;
+      });
+
+      Keyboard.addListener('keyboardDidHide', () => {
+        nativeKeyboardHeightRef.current = 0;
+        setKeyboardInset(0);
+      }).then((sub) => {
+        keyboardDidHideSub = sub;
+      });
+    }
+
     updateKeyboardInset();
-    viewport.addEventListener('resize', updateKeyboardInset);
-    viewport.addEventListener('scroll', updateKeyboardInset);
+    viewport?.addEventListener('resize', updateKeyboardInset);
+    viewport?.addEventListener('scroll', updateKeyboardInset);
 
     return () => {
-      viewport.removeEventListener('resize', updateKeyboardInset);
-      viewport.removeEventListener('scroll', updateKeyboardInset);
+      viewport?.removeEventListener('resize', updateKeyboardInset);
+      viewport?.removeEventListener('scroll', updateKeyboardInset);
+      keyboardShowSub?.remove();
+      keyboardDidShowSub?.remove();
+      keyboardHideSub?.remove();
+      keyboardDidHideSub?.remove();
+      if (isNativeIos) {
+        Keyboard.setScroll({ isDisabled: false }).catch(() => {});
+        Keyboard.setResizeMode({ mode: 'body' }).catch(() => {});
+      }
     };
   }, []);
 
