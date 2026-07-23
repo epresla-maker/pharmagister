@@ -2050,7 +2050,7 @@ export default function EszkozPiacterPage() {
 
         {showComposer ? (
           <div
-            className="fixed top-0 left-0 right-0 z-[70] bg-black/60 flex items-center justify-center p-3"
+            className="fixed top-0 left-0 right-0 z-[70] bg-black/60 flex items-start justify-center px-3 pt-0 pb-3"
             style={{ bottom: `${keyboardHeight}px` }}
           >
             <div
