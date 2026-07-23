@@ -3,7 +3,7 @@ import { useState, useRef, useEffect, Suspense } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import RouteGuard from '@/app/components/RouteGuard';
-import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, getDoc, updateDoc, arrayRemove } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { ArrowLeft, Send, Loader2 } from 'lucide-react';
 import { getClientMarket, getLocalizedDemandPositionLabel } from '@/lib/marketI18n';
@@ -99,13 +99,25 @@ function NewChatContent() {
         chatId = newChatRef.id;
       }
 
-      // Add first message
+      // Add first message (same schema as /chat/[chatId])
       await addDoc(collection(db, 'chats', chatId, 'messages'), {
         senderId: user.uid,
         senderName: userData?.pharmacyName || userData?.displayName || (market === 'de' ? 'Benutzer/in' : 'Felhasználó'),
         text: messageText.trim(),
+        createdAt: serverTimestamp(),
         timestamp: serverTimestamp(),
+        readBy: [user.uid],
         read: false
+      });
+
+      // Ensure chat list visibility and unread logic are updated consistently
+      await updateDoc(doc(db, 'chats', chatId), {
+        lastMessage: messageText.trim(),
+        lastMessageAt: serverTimestamp(),
+        lastMessageSenderId: user.uid,
+        readBy: [user.uid],
+        deletedBy: arrayRemove(user.uid),
+        archivedBy: arrayRemove(user.uid)
       });
 
       // Push notification küldése a címzettnek
