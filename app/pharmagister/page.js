@@ -29,8 +29,8 @@ function PharmagisterContent() {
   const { badges } = useBadges();
   const unreadCount = badges.notifications;
   
-  // Az aktív tab a query paraméterből jön (alapértelmezett: 'calendar')
-  const activeTab = searchParams.get('tab') || 'calendar';
+  // Az aktív tab a query paraméterből jön (alapértelmezett: 'dashboard')
+  const activeTab = searchParams.get('tab') || 'dashboard';
   const showScheduleManager = canAccessScheduleManager(user, userData);
   const hasAcceptedScheduleDisclaimer = Boolean(
     userData?.scheduleManagerDisclaimerAcceptedAt || scheduleDisclaimerAcceptedLocal
@@ -115,7 +115,7 @@ function PharmagisterContent() {
 
   useEffect(() => {
     if (activeTab === 'schedule-manager' && !showScheduleManager) {
-      router.replace('/pharmagister?tab=calendar');
+      router.replace('/pharmagister?tab=dashboard');
     }
   }, [activeTab, showScheduleManager, router]);
 
@@ -144,7 +144,7 @@ function PharmagisterContent() {
 
   const handleDeclineScheduleDisclaimer = useCallback(() => {
     setShowScheduleDisclaimer(false);
-    router.replace('/pharmagister?tab=calendar');
+    router.replace('/pharmagister?tab=dashboard');
   }, [router]);
 
   // ✅ TÖRÖLVE: Duplikált notification listener - most már useDashboardBadges-ből jön

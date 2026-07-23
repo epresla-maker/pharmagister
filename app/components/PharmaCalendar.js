@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { collection, addDoc, query, where, getDocs, getDoc, deleteDoc, doc, orderBy, serverTimestamp, updateDoc, arrayRemove, setDoc, increment } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { createNotificationWithPush } from '@/lib/notifications';
@@ -109,12 +109,24 @@ export default function PharmaCalendar({ pharmaRole }) {
   const { darkMode } = useTheme();
   const market = getClientMarket();
   const locale = market === 'de' ? 'de-DE' : 'hu-HU';
+  const searchParams = useSearchParams();
+  const directCreateMode = searchParams.get('create') === 'true';
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
   const [demands, setDemands] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
+
+  useEffect(() => {
+    if (!directCreateMode) return;
+
+    const initialDate = new Date();
+    setSelectedDate(initialDate);
+    setCurrentDate(initialDate);
+    setShowModal(true);
+    setShowCreateForm(true);
+  }, [directCreateMode]);
 
   // Load demands
   useEffect(() => {
@@ -438,6 +450,7 @@ export default function PharmaCalendar({ pharmaRole }) {
           onDemandCreated={loadDemands}
           showCreateForm={showCreateForm}
           setShowCreateForm={setShowCreateForm}
+          directCreateMode={directCreateMode}
           market={market}
           locale={locale}
         />
@@ -447,7 +460,7 @@ export default function PharmaCalendar({ pharmaRole }) {
 }
 
 // Date Modal Component
-function DateModal({ date, demands, pharmaRole, darkMode, onClose, onDemandDeleted, onDemandCreated, showCreateForm, setShowCreateForm, market, locale }) {
+function DateModal({ date, demands, pharmaRole, darkMode, onClose, onDemandDeleted, onDemandCreated, showCreateForm, setShowCreateForm, directCreateMode, market, locale }) {
   const dateStr = date.toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' });
 
   return (
@@ -525,6 +538,8 @@ function DateModal({ date, demands, pharmaRole, darkMode, onClose, onDemandDelet
                   darkMode={darkMode}
                   market={market}
                   locale={locale}
+                  allowDateEdit={directCreateMode}
+                  startImmediately={directCreateMode}
                   onSuccess={() => {
                     onDemandCreated();
                     setShowCreateForm(false);
@@ -554,10 +569,11 @@ function DateModal({ date, demands, pharmaRole, darkMode, onClose, onDemandDelet
 }
 
 // Create Demand Form
-function CreateDemandForm({ date, darkMode, market, locale, onSuccess, onCancel }) {
+function CreateDemandForm({ date, darkMode, market, locale, allowDateEdit = false, startImmediately = false, onSuccess, onCancel }) {
   const { user, userData } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(startImmediately ? 1 : 1);
+  const [selectedDate, setSelectedDate] = useState(date);
   const [formData, setFormData] = useState({
     position: 'pharmacist',
     workHours: '',
@@ -591,6 +607,16 @@ function CreateDemandForm({ date, darkMode, market, locale, onSuccess, onCancel 
     ...(market === 'de' ? [{ value: 'pka', label: 'PKA' }] : []),
   ];
 
+  useEffect(() => {
+    setSelectedDate(date);
+  }, [date]);
+
+  useEffect(() => {
+    if (startImmediately) {
+      setStep(1);
+    }
+  }, [startImmediately]);
+
   const handleSoftwareToggle = (software) => {
     setFormData(prev => ({
       ...prev,
@@ -612,9 +638,9 @@ function CreateDemandForm({ date, darkMode, market, locale, onSuccess, onCancel 
 
     try {
       // Lokális dátum formázás (timezone problémák elkerülésére)
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
+      const year = selectedDate.getFullYear();
+      const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+      const day = String(selectedDate.getDate()).padStart(2, '0');
       const localDateString = `${year}-${month}-${day}`;
       
       // Teljes cím összeállítása
@@ -715,11 +741,13 @@ function CreateDemandForm({ date, darkMode, market, locale, onSuccess, onCancel 
     }
   };
 
-  const datePreview = date.toLocaleDateString(locale, {
+  const datePreview = selectedDate.toLocaleDateString(locale, {
     year: 'numeric',
     month: 'long',
     day: 'numeric'
   });
+
+  const editableDateValue = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
 
   const canContinue = () => {
     if (step === 1) return Boolean(formData.position);
@@ -809,6 +837,28 @@ function CreateDemandForm({ date, darkMode, market, locale, onSuccess, onCancel 
               {market === 'de' ? 'Datum' : 'Dátum'}: <span className="font-semibold">{datePreview}</span>
             </p>
           </div>
+
+          {allowDateEdit && (
+            <div>
+              <label className={`block text-sm font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'} mb-2`}>
+                {market === 'de' ? 'Datum aendern' : 'Dátum módosítása'}
+              </label>
+              <input
+                type="date"
+                value={editableDateValue}
+                onChange={(e) => {
+                  const nextDate = new Date(`${e.target.value}T00:00:00`);
+                  if (!Number.isNaN(nextDate.getTime())) {
+                    setSelectedDate(nextDate);
+                  }
+                }}
+                className={`w-full px-4 py-2 ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-[#E5E7EB] text-[#111827]'} border rounded-xl focus:ring-2 focus:ring-[#6B46C1] focus:border-[#6B46C1]`}
+              />
+              <p className={`text-xs mt-2 ${darkMode ? 'text-gray-400' : 'text-[#6B7280]'}`}>
+                {market === 'de' ? 'Direkt geoeffnet: das Datum kann hier angepasst werden.' : 'Közvetlen nyitásnál itt módosítható a dátum.'}
+              </p>
+            </div>
+          )}
         </div>
       )}
 

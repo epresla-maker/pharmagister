@@ -37,7 +37,7 @@ export default function PharmaNavbar({ isVisible = true }) {
   const showScheduleManager = canAccessScheduleManager(user, userData);
   
   // Az aktív tab a ?tab= query paraméterből jön
-  const activeTab = searchParams.get('tab') || 'calendar';
+  const activeTab = searchParams.get('tab') || 'dashboard';
 
   const allNavItems = [
     {

@@ -74,10 +74,6 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
     );
     const demandsSnapshot = await getDocs(demandsQuery);
     
-    // Szűrjük ki a múltbeli dátumú igényeket (lokális időzóna!)
-    const today = new Date();
-    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-    
     const demandsData = demandsSnapshot.docs
       .map(doc => ({
         id: doc.id,
@@ -87,8 +83,8 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
         if (!isDocInMarket(demand, market)) {
           return false;
         }
-        // Csak olyan igényeket tartunk meg, amelyek dátuma ma vagy jövőbeli és nem töröltek
-        return demand.date >= todayStr && demand.status !== 'deleted';
+        // Megtartjuk a régebbi igényeket is, hogy külön szekcióban lehessen kezelni/áttekinteni.
+        return demand.status !== 'deleted';
       });
 
     // Jelentkezések betöltése minden igényhez
@@ -513,6 +509,11 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
     );
   });
 
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const activeMyDemands = myDemands.filter(demand => (demand.date || '') >= todayStr);
+  const olderMyDemands = myDemands.filter(demand => (demand.date || '') < todayStr);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -539,21 +540,49 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
         // Gyógyszertár Dashboard
         <div className="space-y-4">
           <div className={`${darkMode ? 'bg-purple-900/30 border-purple-600' : 'bg-purple-50 border-[#6B46C1]'} border-l-4 p-3 rounded`}>
-            <h3 className={`font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'} text-sm mb-1`}>{market === 'de' ? 'Verwaltung meiner veroeffentlichten Anfragen' : 'Meghirdetett Igényeim Kezelése'}</h3>
+            <h3 className={`font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'} text-sm mb-1`}>{market === 'de' ? 'Ersatzbedarf im Fokus' : 'A helyettesítési igények központja'}</h3>
             <p className={`text-xs ${darkMode ? 'text-purple-300' : 'text-purple-700'}`}>
-              {market === 'de' ? 'Hier kannst du deine veroeffentlichten Anfragen und Bewerber verwalten.' : 'Itt kezelheted az általad feladott igényeket és a jelentkezőket.'}
+              {market === 'de' ? 'Schnell neue Anfrage erstellen, laufende Ausschreibungen verwalten und aeltere Eintraege sehen.' : 'Gyorsan feladhatsz új igényt, kezelheted az aktív hirdetéseidet, és egy helyen látod a korábbiakat is.'}
             </p>
           </div>
 
-          {myDemands.length === 0 ? (
+          <div className={`${darkMode ? 'bg-gradient-to-r from-violet-900/50 to-indigo-900/50 border-violet-700' : 'bg-gradient-to-r from-violet-50 to-indigo-50 border-violet-200'} border rounded-xl p-4`}>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <h3 className={`text-base font-bold ${darkMode ? 'text-white' : 'text-[#111827]'}`}>
+                  {market === 'de' ? 'Neuen Vertretungsbedarf aufgeben' : 'Új helyettesítési igény feladása'}
+                </h3>
+                <p className={`text-xs mt-1 ${darkMode ? 'text-violet-200' : 'text-violet-800'}`}>
+                  {market === 'de' ? 'In wenigen Schritten zur neuen Ausschreibung.' : 'Néhány gyors lépésben feladhatod az új igényt.'}
+                </p>
+              </div>
+              <button
+                onClick={() => router.push('/pharmagister?tab=calendar&create=true')}
+                className="px-4 py-2.5 bg-[#6B46C1] text-white rounded-lg hover:bg-[#5a3aa3] transition-colors font-semibold text-sm"
+              >
+                {market === 'de' ? 'Anfrage erstellen' : 'Igény feladása'}
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-1">
+            <h3 className={`text-sm font-semibold ${darkMode ? 'text-gray-100' : 'text-[#111827]'}`}>
+              {market === 'de' ? 'Aktive Anfragen' : 'Aktív igények kezelése'}
+            </h3>
+            <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-[#6B7280]'}`}>
+              {market === 'de' ? `${activeMyDemands.length} aktiv` : `${activeMyDemands.length} aktív`}
+            </span>
+          </div>
+
+          {activeMyDemands.length === 0 ? (
             <div className="text-center py-8">
               <Calendar className={`w-10 h-10 mx-auto ${darkMode ? 'text-gray-400' : 'text-[#6B7280]'} mb-2`} />
-              <p className={`${darkMode ? 'text-gray-400' : 'text-[#6B7280]'} text-sm`}>{market === 'de' ? 'Du hast noch keine Anfrage erstellt.' : 'Még nincs feladott igényed.'}</p>
-              <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-[#6B7280]'} mt-1`}>{market === 'de' ? 'Gehe zum Kalender-Tab und erstelle eine Anfrage!' : 'Menj a Naptár fülre és adj fel egy igényt!'}</p>
+              <p className={`${darkMode ? 'text-gray-400' : 'text-[#6B7280]'} text-sm`}>{market === 'de' ? 'Keine aktive Anfrage vorhanden.' : 'Jelenleg nincs aktív igényed.'}</p>
+              <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-[#6B7280]'} mt-1`}>{market === 'de' ? 'Erstelle jetzt eine neue Ausschreibung.' : 'Adj fel most egy új helyettesítési igényt.'}</p>
             </div>
           ) : (
             <div className="space-y-2">
-              {myDemands.map(demand => (
+              {activeMyDemands.map(demand => (
                 <div key={demand.id} className={`${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-[#E5E7EB]'} border-b pb-3 pt-2`}>
                   <div
                     onClick={() => {
@@ -712,6 +741,48 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
               ))}
             </div>
           )}
+
+          <div className="pt-2">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className={`text-sm font-semibold ${darkMode ? 'text-gray-100' : 'text-[#111827]'}`}>
+                {market === 'de' ? 'Aeltere Anfragen' : 'Korábbi igények'}
+              </h3>
+              <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-[#6B7280]'}`}>
+                {market === 'de' ? `${olderMyDemands.length} Eintrag` : `${olderMyDemands.length} tétel`}
+              </span>
+            </div>
+
+            {olderMyDemands.length === 0 ? (
+              <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-[#F9FAFB] border-[#E5E7EB]'} border rounded-lg p-3`}>
+                <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-[#6B7280]'}`}>
+                  {market === 'de' ? 'Noch keine aelteren Anfragen.' : 'Még nincsenek korábbi igényeid.'}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                {olderMyDemands.map(demand => (
+                  <div key={demand.id} className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-[#F9FAFB] border-[#E5E7EB]'} border rounded-lg px-3 py-2`}>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className={`text-sm font-medium truncate ${darkMode ? 'text-gray-100' : 'text-[#111827]'}`}>
+                          {demand.position === 'pharmacist' ? (market === 'de' ? 'Apotheker/in' : 'Gyógyszerész') : demand.position === 'pka' ? 'PKA' : (market === 'de' ? 'PTA' : 'Szakasszisztens')}
+                        </p>
+                        <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-[#6B7280]'}`}>
+                          {new Date(demand.date).toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' })}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => router.push('/pharmagister?tab=calendar')}
+                        className="px-2.5 py-1.5 text-xs bg-[#6B46C1] text-white rounded hover:bg-[#5a3aa3] transition-colors"
+                      >
+                        {market === 'de' ? 'Im Kalender' : 'Naptárban'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       ) : (
         // Helyettesítő Dashboard
