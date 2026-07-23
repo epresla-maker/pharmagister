@@ -280,6 +280,14 @@ export default function AdminPage() {
             >
               {market === 'de' ? '📋 Anfragen verwalten' : '📋 Igények kezelése'}
             </button>
+            {isAdmin && (
+              <button
+                onClick={() => router.push('/admin/chats')}
+                className="bg-sky-600 text-white px-3 py-2 rounded-lg hover:bg-sky-700 text-xs sm:text-sm w-full"
+              >
+                {market === 'de' ? '💬 Chats ansehen' : '💬 Chatek megtekintése'}
+              </button>
+            )}
           </div>
           
           {/* Role Statistics Cards - Active users only */}

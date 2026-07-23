@@ -2,7 +2,7 @@
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { ArrowLeft, Key, BarChart3, TestTube, Smartphone, ClipboardList, FileText, Users, Building2, Mail, ListChecks, Flag } from "lucide-react";
+import { ArrowLeft, Key, BarChart3, TestTube, Smartphone, ClipboardList, FileText, Users, Building2, Mail, ListChecks, Flag, MessageSquare } from "lucide-react";
 import { getClientMarket } from '@/lib/marketI18n';
 
 // Adminka szerepkörű felhasználók
@@ -199,6 +199,23 @@ export default function AdminkaPage() {
               </div>
             </div>
           </button>
+
+          {normalizedEmail === 'epresla@icloud.com' ? (
+            <button
+              onClick={() => router.push('/admin/chats')}
+              className="w-full bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow text-left"
+            >
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-sky-100 rounded-xl">
+                  <MessageSquare className="w-8 h-8 text-sky-600" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">{market === 'de' ? '💬 Chats' : '💬 Chatek'}</h2>
+                  <p className="text-sm text-gray-500">{market === 'de' ? 'Alle Gespraeche einsehen' : 'Összes beszélgetés megtekintése'}</p>
+                </div>
+              </div>
+            </button>
+          ) : null}
         </div>
       </div>
     </div>
