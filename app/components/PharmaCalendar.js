@@ -557,6 +557,7 @@ function DateModal({ date, demands, pharmaRole, darkMode, onClose, onDemandDelet
 function CreateDemandForm({ date, darkMode, market, locale, onSuccess, onCancel }) {
   const { user, userData } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     position: 'pharmacist',
     workHours: '',
@@ -567,7 +568,28 @@ function CreateDemandForm({ date, darkMode, market, locale, onSuccess, onCancel 
     additionalRequirements: '',
   });
 
+  const totalSteps = 4;
+  const otherSoftwareLabel = market === 'de' ? 'Sonstige' : 'Egyéb';
   const softwareOptions = ['Lx-Line', 'Novodata', 'Quadro Byte', 'Daxa', 'Primula', market === 'de' ? 'Sonstige' : 'Egyéb'];
+  const shiftPresets = [
+    market === 'de' ? '8:00-16:00' : '8:00-16:00',
+    market === 'de' ? '12:00-20:00' : '12:00-20:00',
+    market === 'de' ? 'Ganzer Tag' : 'Egész nap',
+  ];
+  const experienceOptions = [
+    { value: '', label: market === 'de' ? 'Keine Anforderung' : 'Nincs követelmény' },
+    { value: '0-1', label: market === 'de' ? '0-1 Jahr' : '0-1 év' },
+    { value: '1-3', label: market === 'de' ? '1-3 Jahre' : '1-3 év' },
+    { value: '3-5', label: market === 'de' ? '3-5 Jahre' : '3-5 év' },
+    { value: '5-10', label: market === 'de' ? '5-10 Jahre' : '5-10 év' },
+    { value: '10+', label: market === 'de' ? '10+ Jahre' : '10+ év' },
+  ];
+
+  const positionOptions = [
+    { value: 'pharmacist', label: market === 'de' ? 'Apotheker/in' : 'Gyógyszerész' },
+    { value: 'assistant', label: market === 'de' ? 'PTA' : 'Szakasszisztens' },
+    ...(market === 'de' ? [{ value: 'pka', label: 'PKA' }] : []),
+  ];
 
   const handleSoftwareToggle = (software) => {
     setFormData(prev => ({
@@ -578,8 +600,7 @@ function CreateDemandForm({ date, darkMode, market, locale, onSuccess, onCancel 
     }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     
     // Ellenőrizzük, hogy a profil ki van-e töltve
     if (userData?.pharmagisterRole === 'pharmacy' && !userData?.pharmaProfileComplete) {
@@ -694,9 +715,62 @@ function CreateDemandForm({ date, darkMode, market, locale, onSuccess, onCancel 
     }
   };
 
+  const datePreview = date.toLocaleDateString(locale, {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+
+  const canContinue = () => {
+    if (step === 1) return Boolean(formData.position);
+    if (step === 2) return true;
+    if (step === 3) {
+      if (formData.requiredSoftware.includes(otherSoftwareLabel)) {
+        return Boolean(formData.otherSoftware.trim());
+      }
+      return true;
+    }
+    return true;
+  };
+
+  const goNext = () => {
+    if (!canContinue() || step >= totalSteps) return;
+    setStep((prev) => prev + 1);
+  };
+
+  const goBack = () => {
+    if (step === 1) {
+      onCancel();
+      return;
+    }
+    setStep((prev) => prev - 1);
+  };
+
+  const togglePresetShift = (value) => {
+    setFormData((prev) => ({
+      ...prev,
+      workHours: prev.workHours === value ? '' : value,
+    }));
+  };
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <h4 className={`font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'} mb-4 text-lg`}>{market === 'de' ? 'Neue Anfrage erstellen' : 'Új igény létrehozása'}</h4>
+    <div className="space-y-4">
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <h4 className={`font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'} text-lg`}>
+            {market === 'de' ? 'Schnelles Anfrage-Setup' : 'Gyors igényfeladás'}
+          </h4>
+          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${darkMode ? 'bg-gray-700 text-gray-200' : 'bg-[#F3F4F6] text-[#374151]'}`}>
+            {step}/{totalSteps}
+          </span>
+        </div>
+        <div className={`h-2 rounded-full overflow-hidden ${darkMode ? 'bg-gray-700' : 'bg-[#E5E7EB]'}`}>
+          <div
+            className="h-full bg-[#6B46C1] transition-all duration-300"
+            style={{ width: `${(step / totalSteps) * 100}%` }}
+          />
+        </div>
+      </div>
 
       {/* Profil figyelmeztetés */}
       {userData?.pharmagisterRole === 'pharmacy' && !userData?.pharmaProfileComplete && (
@@ -707,135 +781,223 @@ function CreateDemandForm({ date, darkMode, market, locale, onSuccess, onCancel 
         </div>
       )}
 
-      <div>
-        <label className={`block text-sm font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'} mb-2`}>
-          {market === 'de' ? 'Position' : 'Pozíció'} <span className="text-red-600">*</span>
-        </label>
-        <select
-          value={formData.position}
-          onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-          className={`w-full px-4 py-2 ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-[#E5E7EB] text-[#111827]'} border rounded-xl focus:ring-2 focus:ring-[#6B46C1] focus:border-[#6B46C1]`}
-          required
-        >
-          <option value="pharmacist">{market === 'de' ? 'Apotheker/in' : 'Gyógyszerész'}</option>
-          <option value="assistant">{market === 'de' ? 'PTA' : 'Szakasszisztens'}</option>
-          {market === 'de' && <option value="pka">PKA</option>}
-        </select>
-      </div>
-
-      <div>
-        <label className={`block text-sm font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'} mb-2`}>
-          {market === 'de' ? 'Arbeitszeit' : 'Munkaidő'}
-        </label>
-        <input
-          type="text"
-          value={formData.workHours}
-          onChange={(e) => setFormData({ ...formData, workHours: e.target.value })}
-          placeholder={market === 'de' ? 'z.B. 8:00-16:00' : 'pl. 8:00-16:00'}
-          className={`w-full px-4 py-2 ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-[#E5E7EB] text-[#111827] placeholder-[#9CA3AF]'} border rounded-xl focus:ring-2 focus:ring-[#6B46C1] focus:border-[#6B46C1]`}
-        />
-      </div>
-
-      <div>
-        <label className={`block text-sm font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'} mb-2`}>
-          {market === 'de' ? 'Mindesterfahrung' : 'Minimum tapasztalat'}
-        </label>
-        <select
-          value={formData.minExperience}
-          onChange={(e) => setFormData({ ...formData, minExperience: e.target.value })}
-          className={`w-full px-4 py-2 ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-[#E5E7EB] text-[#111827]'} border rounded-xl focus:ring-2 focus:ring-[#6B46C1] focus:border-[#6B46C1]`}
-        >
-          <option value="">{market === 'de' ? 'Keine Anforderung' : 'Nincs követelmény'}</option>
-          <option value="0-1">{market === 'de' ? '0-1 Jahr' : '0-1 év'}</option>
-          <option value="1-3">{market === 'de' ? '1-3 Jahre' : '1-3 év'}</option>
-          <option value="3-5">{market === 'de' ? '3-5 Jahre' : '3-5 év'}</option>
-          <option value="5-10">{market === 'de' ? '5-10 Jahre' : '5-10 év'}</option>
-          <option value="10+">{market === 'de' ? '10+ Jahre' : '10+ év'}</option>
-        </select>
-      </div>
-
-      <div>
-        <label className={`block text-sm font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'} mb-2`}>
-          {market === 'de' ? 'Erforderliche Softwarekenntnisse' : 'Szükséges szoftverismeret'}
-        </label>
-        <div className="space-y-2">
-          {softwareOptions.map(software => (
-            <label key={software} className="flex items-center">
-              <input
-                type="checkbox"
-                checked={formData.requiredSoftware.includes(software)}
-                onChange={() => handleSoftwareToggle(software)}
-                className={`w-4 h-4 text-[#6B46C1] ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-[#E5E7EB]'} rounded focus:ring-[#6B46C1]`}
-              />
-              <span className={`ml-2 ${darkMode ? 'text-white' : 'text-[#111827]'} text-sm font-medium`}>{software}</span>
-            </label>
-          ))}
+      {step === 1 && (
+        <div className="space-y-3">
+          <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-[#4B5563]'}`}>
+            {market === 'de' ? 'Wen suchst du fuer diesen Tag?' : 'Kit keresel erre a napra?'}
+          </p>
+          <div className="grid grid-cols-1 gap-2">
+            {positionOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setFormData({ ...formData, position: option.value })}
+                className={`w-full text-left px-4 py-3 rounded-xl border transition-colors font-medium ${
+                  formData.position === option.value
+                    ? 'bg-[#6B46C1] text-white border-[#6B46C1]'
+                    : darkMode
+                      ? 'bg-gray-800 border-gray-600 text-gray-100 hover:border-[#6B46C1]'
+                      : 'bg-white border-[#E5E7EB] text-[#111827] hover:border-[#6B46C1]'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          <div className={`rounded-xl p-3 border ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-[#F9FAFB]'}`}>
+            <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-[#6B7280]'}`}>
+              {market === 'de' ? 'Datum' : 'Dátum'}: <span className="font-semibold">{datePreview}</span>
+            </p>
+          </div>
         </div>
-        
-        {formData.requiredSoftware.includes(market === 'de' ? 'Sonstige' : 'Egyéb') && (
-          <div className="mt-3">
+      )}
+
+      {step === 2 && (
+        <div className="space-y-4">
+          <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-[#4B5563]'}`}>
+            {market === 'de' ? 'Waehle eine Schicht oder gib sie manuell an.' : 'Válassz műszakot, vagy add meg kézzel.'}
+          </p>
+
+          <div className="flex flex-wrap gap-2">
+            {shiftPresets.map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                onClick={() => togglePresetShift(preset)}
+                className={`px-3 py-2 rounded-full text-sm border transition-colors ${
+                  formData.workHours === preset
+                    ? 'bg-[#6B46C1] text-white border-[#6B46C1]'
+                    : darkMode
+                      ? 'bg-gray-800 border-gray-600 text-gray-100 hover:border-[#6B46C1]'
+                      : 'bg-white border-[#E5E7EB] text-[#111827] hover:border-[#6B46C1]'
+                }`}
+              >
+                {preset}
+              </button>
+            ))}
+          </div>
+
+          <div>
+            <label className={`block text-sm font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'} mb-2`}>
+              {market === 'de' ? 'Manuelle Arbeitszeit (optional)' : 'Egyedi munkaidő (opcionális)'}
+            </label>
             <input
               type="text"
-              value={formData.otherSoftware}
-              onChange={(e) => setFormData({ ...formData, otherSoftware: e.target.value })}
-              placeholder={market === 'de' ? 'Name der sonstigen Software angeben' : 'Add meg az egyéb szoftver nevét'}
+              value={formData.workHours}
+              onChange={(e) => setFormData({ ...formData, workHours: e.target.value })}
+              placeholder={market === 'de' ? 'z.B. 9:00-17:00' : 'pl. 9:00-17:00'}
               className={`w-full px-4 py-2 ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-[#E5E7EB] text-[#111827] placeholder-[#9CA3AF]'} border rounded-xl focus:ring-2 focus:ring-[#6B46C1] focus:border-[#6B46C1]`}
             />
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      <div>
-        <label className={`block text-sm font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'} mb-2`}>
-          {market === 'de' ? 'Maximaler Stundenlohn (EUR)' : 'Maximum órabér (Ft)'}
-        </label>
-        <input
-          type="number"
-          value={formData.maxHourlyRate}
-          onChange={(e) => setFormData({ ...formData, maxHourlyRate: e.target.value })}
-          placeholder={market === 'de' ? 'z.B. 5000' : 'pl. 5000'}
-          className={`w-full px-4 py-2 ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-[#E5E7EB] text-[#111827] placeholder-[#9CA3AF]'} border rounded-xl focus:ring-2 focus:ring-[#6B46C1] focus:border-[#6B46C1]`}
-          min="0"
-        />
-      </div>
+      {step === 3 && (
+        <div className="space-y-4">
+          <div>
+            <p className={`text-sm font-semibold mb-2 ${darkMode ? 'text-white' : 'text-[#111827]'}`}>
+              {market === 'de' ? 'Minimum Erfahrung (optional)' : 'Minimum tapasztalat (opcionális)'}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {experienceOptions.map((option) => (
+                <button
+                  key={option.value || 'none'}
+                  type="button"
+                  onClick={() => setFormData({ ...formData, minExperience: option.value })}
+                  className={`px-3 py-2 rounded-full text-sm border transition-colors ${
+                    formData.minExperience === option.value
+                      ? 'bg-[#6B46C1] text-white border-[#6B46C1]'
+                      : darkMode
+                        ? 'bg-gray-800 border-gray-600 text-gray-100 hover:border-[#6B46C1]'
+                        : 'bg-white border-[#E5E7EB] text-[#111827] hover:border-[#6B46C1]'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
-      <div>
-        <label className={`block text-sm font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'} mb-2`}>
-          {market === 'de' ? 'Weitere Anforderungen' : 'További követelmények'}
-        </label>
-        <textarea
-          value={formData.additionalRequirements}
-          onChange={(e) => setFormData({ ...formData, additionalRequirements: e.target.value })}
-          rows="3"
-          className={`w-full px-4 py-2 ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-[#E5E7EB] text-[#111827] placeholder-[#9CA3AF]'} border rounded-xl focus:ring-2 focus:ring-[#6B46C1] focus:border-[#6B46C1]`}
-          placeholder={market === 'de' ? 'Weitere Erwartungen...' : 'Egyéb elvárások...'}
-        />
-      </div>
+          <div>
+            <p className={`text-sm font-semibold mb-2 ${darkMode ? 'text-white' : 'text-[#111827]'}`}>
+              {market === 'de' ? 'Softwarekenntnisse (optional)' : 'Szoftverismeret (opcionális)'}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {softwareOptions.map((software) => (
+                <button
+                  key={software}
+                  type="button"
+                  onClick={() => handleSoftwareToggle(software)}
+                  className={`px-3 py-2 rounded-full text-sm border transition-colors ${
+                    formData.requiredSoftware.includes(software)
+                      ? 'bg-[#6B46C1] text-white border-[#6B46C1]'
+                      : darkMode
+                        ? 'bg-gray-800 border-gray-600 text-gray-100 hover:border-[#6B46C1]'
+                        : 'bg-white border-[#E5E7EB] text-[#111827] hover:border-[#6B46C1]'
+                  }`}
+                >
+                  {software}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {formData.requiredSoftware.includes(otherSoftwareLabel) && (
+            <div>
+              <label className={`block text-sm font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'} mb-2`}>
+                {market === 'de' ? 'Sonstige Software' : 'Egyéb szoftver'}
+              </label>
+              <input
+                type="text"
+                value={formData.otherSoftware}
+                onChange={(e) => setFormData({ ...formData, otherSoftware: e.target.value })}
+                placeholder={market === 'de' ? 'Name eingeben' : 'Név megadása'}
+                className={`w-full px-4 py-2 ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-[#E5E7EB] text-[#111827] placeholder-[#9CA3AF]'} border rounded-xl focus:ring-2 focus:ring-[#6B46C1] focus:border-[#6B46C1]`}
+              />
+            </div>
+          )}
+        </div>
+      )}
+
+      {step === 4 && (
+        <div className="space-y-4">
+          <div>
+            <label className={`block text-sm font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'} mb-2`}>
+              {market === 'de' ? 'Maximaler Stundenlohn (optional)' : 'Maximum órabér (opcionális)'}
+            </label>
+            <input
+              type="number"
+              value={formData.maxHourlyRate}
+              onChange={(e) => setFormData({ ...formData, maxHourlyRate: e.target.value })}
+              placeholder={market === 'de' ? 'z.B. 5000' : 'pl. 5000'}
+              className={`w-full px-4 py-2 ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-[#E5E7EB] text-[#111827] placeholder-[#9CA3AF]'} border rounded-xl focus:ring-2 focus:ring-[#6B46C1] focus:border-[#6B46C1]`}
+              min="0"
+            />
+          </div>
+
+          <div>
+            <label className={`block text-sm font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'} mb-2`}>
+              {market === 'de' ? 'Weitere Anforderungen (optional)' : 'További követelmények (opcionális)'}
+            </label>
+            <textarea
+              value={formData.additionalRequirements}
+              onChange={(e) => setFormData({ ...formData, additionalRequirements: e.target.value })}
+              rows="3"
+              className={`w-full px-4 py-2 ${darkMode ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' : 'bg-white border-[#E5E7EB] text-[#111827] placeholder-[#9CA3AF]'} border rounded-xl focus:ring-2 focus:ring-[#6B46C1] focus:border-[#6B46C1]`}
+              placeholder={market === 'de' ? 'Weitere Erwartungen...' : 'Egyéb elvárások...'}
+            />
+          </div>
+
+          <div className={`rounded-xl p-3 border ${darkMode ? 'border-gray-700 bg-gray-900' : 'border-[#E5E7EB] bg-[#F9FAFB]'}`}>
+            <p className={`font-semibold text-sm mb-2 ${darkMode ? 'text-white' : 'text-[#111827]'}`}>
+              {market === 'de' ? 'Zusammenfassung' : 'Összegzés'}
+            </p>
+            <ul className={`text-sm space-y-1 ${darkMode ? 'text-gray-300' : 'text-[#4B5563]'}`}>
+              <li>{market === 'de' ? 'Datum' : 'Dátum'}: {datePreview}</li>
+              <li>{market === 'de' ? 'Position' : 'Pozíció'}: {positionOptions.find((p) => p.value === formData.position)?.label}</li>
+              <li>{market === 'de' ? 'Schicht' : 'Műszak'}: {formData.workHours || (market === 'de' ? 'Nicht angegeben' : 'Nincs megadva')}</li>
+            </ul>
+          </div>
+        </div>
+      )}
 
       <div className="flex gap-3 pt-4">
         <button
           type="button"
-          onClick={onCancel}
+          onClick={goBack}
           className={`flex-1 px-4 py-2 border ${darkMode ? 'border-gray-600 text-gray-400 hover:bg-gray-700' : 'border-[#E5E7EB] text-[#6B7280] hover:bg-[#F3F4F6]'} rounded-xl transition-colors`}
         >
-          {market === 'de' ? 'Abbrechen' : 'Mégse'}
+          {step === 1 ? (market === 'de' ? 'Abbrechen' : 'Mégse') : (market === 'de' ? 'Zurueck' : 'Vissza')}
         </button>
-        <button
-          type="submit"
-          disabled={loading}
-          className="flex-1 px-4 py-2 bg-[#6B46C1] hover:bg-[#5a3aa3] text-white rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center font-medium"
-        >
-          {loading ? (
-            <>
-              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-              {market === 'de' ? 'Erstellen...' : 'Létrehozás...'}
-            </>
-          ) : (
-            market === 'de' ? 'Anfrage erstellen' : 'Igény feladása'
-          )}
-        </button>
+
+        {step < totalSteps ? (
+          <button
+            type="button"
+            onClick={goNext}
+            disabled={!canContinue()}
+            className="flex-1 px-4 py-2 bg-[#6B46C1] hover:bg-[#5a3aa3] text-white rounded-xl transition-colors disabled:opacity-50 font-medium"
+          >
+            {market === 'de' ? 'Weiter' : 'Tovább'}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={loading}
+            className="flex-1 px-4 py-2 bg-[#6B46C1] hover:bg-[#5a3aa3] text-white rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center font-medium"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                {market === 'de' ? 'Erstellen...' : 'Létrehozás...'}
+              </>
+            ) : (
+              market === 'de' ? 'Anfrage erstellen' : 'Igény feladása'
+            )}
+          </button>
+        )}
       </div>
-    </form>
+    </div>
   );
 }
 
