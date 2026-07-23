@@ -633,6 +633,17 @@ function CreateDemandForm({ date, darkMode, market, locale, allowDateEdit = fals
       alert(market === 'de' ? 'Bitte fuelle zuerst dein Profil aus!' : 'Kérlek először töltsd ki a profilodat!');
       return;
     }
+
+    // Ellenőrizzük, hogy csak jövőbeli dátumra lehessen feladni (legalább holnap)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const demandDate = new Date(selectedDate);
+    demandDate.setHours(0, 0, 0, 0);
+
+    if (demandDate <= today) {
+      alert(market === 'de' ? 'Die Anfrage muss fuer einen zukuenftigen Tag (mindestens morgen) erstellt werden.' : 'Az igényt csak jövőbeli napra lehet feladni (leghamarabb holnap).');
+      return;
+    }
     
     setLoading(true);
 
@@ -749,6 +760,11 @@ function CreateDemandForm({ date, darkMode, market, locale, allowDateEdit = fals
 
   const editableDateValue = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
 
+  // Számítjuk holnap dátumát - csak ettől lehet feladni
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const minDateValue = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
+
   const canContinue = () => {
     if (step === 1) return Boolean(formData.position);
     if (step === 2) return true;
@@ -846,6 +862,7 @@ function CreateDemandForm({ date, darkMode, market, locale, allowDateEdit = fals
               <input
                 type="date"
                 value={editableDateValue}
+                min={minDateValue}
                 onChange={(e) => {
                   const nextDate = new Date(`${e.target.value}T00:00:00`);
                   if (!Number.isNaN(nextDate.getTime())) {
@@ -855,7 +872,7 @@ function CreateDemandForm({ date, darkMode, market, locale, allowDateEdit = fals
                 className={`w-full px-4 py-2 ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-[#E5E7EB] text-[#111827]'} border rounded-xl focus:ring-2 focus:ring-[#6B46C1] focus:border-[#6B46C1]`}
               />
               <p className={`text-xs mt-2 ${darkMode ? 'text-gray-400' : 'text-[#6B7280]'}`}>
-                {market === 'de' ? 'Direkt geoeffnet: das Datum kann hier angepasst werden.' : 'Közvetlen nyitásnál itt módosítható a dátum.'}
+                {market === 'de' ? 'Minimum morgen' : 'Leghamarabb holnap'} • {market === 'de' ? 'Das Datum kann hier angepasst werden.' : 'Közvetlen nyitásnál módosítható.'}
               </p>
             </div>
           )}
