@@ -2307,12 +2307,32 @@ export default function EszkozPiacterPage() {
                       <p className="font-semibold">{draft.title || "-"}</p>
                     </div>
                     <div className={`rounded-xl border p-3 ${darkMode ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-gray-50"}`}>
+                      <p className="text-xs opacity-70">Leírás</p>
+                      <p className="font-semibold whitespace-pre-wrap">{draft.description || "-"}</p>
+                    </div>
+                    <div className={`rounded-xl border p-3 ${darkMode ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-gray-50"}`}>
                       <p className="text-xs opacity-70">Kategória • Állapot</p>
                       <p className="font-semibold">{getCategoryLabel(draft.category)} • {getConditionLabel(draft.condition)}</p>
                     </div>
                     <div className={`rounded-xl border p-3 ${darkMode ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-gray-50"}`}>
                       <p className="text-xs opacity-70">Ár • Hely</p>
                       <p className="font-semibold">{draft.negotiable ? "Alkuképes" : `${draft.price || "0"} Ft`} • {draft.location || "-"}</p>
+                    </div>
+                    <div className={`rounded-xl border p-3 ${darkMode ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-gray-50"}`}>
+                      <p className="text-xs opacity-70">Képek</p>
+                      <p className="font-semibold">{existingImages.length + newImages.length} db / max. {MAX_IMAGES}</p>
+                    </div>
+                    <div className={`rounded-xl border p-3 ${darkMode ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-gray-50"}`}>
+                      <p className="text-xs opacity-70">Kapcsolattartó telefonszám</p>
+                      <p className="font-semibold">{draft.contactPhone.trim() || "-"}</p>
+                    </div>
+                    <div className={`rounded-xl border p-3 ${darkMode ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-gray-50"}`}>
+                      <p className="text-xs opacity-70">Címkék</p>
+                      <p className="font-semibold">{draft.tags.trim() || "-"}</p>
+                    </div>
+                    <div className={`rounded-xl border p-3 ${darkMode ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-gray-50"}`}>
+                      <p className="text-xs opacity-70">Beállítások</p>
+                      <p className="font-semibold">{draft.negotiable ? "Alkuképes: igen" : "Alkuképes: nem"} • {draft.chatEnabled ? "Chat: engedélyezve" : "Chat: kikapcsolva"}</p>
                     </div>
 
                     {validationErrors.length > 0 ? (
