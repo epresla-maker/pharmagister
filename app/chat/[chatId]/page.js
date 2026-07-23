@@ -1474,6 +1474,7 @@ export default function ChatRoomPage() {
         darkMode={darkMode}
         market={market}
         placeholder={market === 'de' ? 'Nachricht schreiben...' : 'Írj üzenetet...'}
+        keyboardOpen={keyboardInset > 0}
       />
 
       {/* Jelentés modal */}

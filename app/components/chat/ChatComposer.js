@@ -17,6 +17,7 @@ export default function ChatComposer({
   placeholder,
   sending = false,
   disabled = false,
+  keyboardOpen = false,
 }) {
   const rootRef = useRef(null);
   const localInputRef = useRef(null);
@@ -79,7 +80,7 @@ export default function ChatComposer({
         darkMode ? "bg-[#1c1c1e] border-[#2c2c2e]" : "bg-white border-gray-200"
       } border-t`}
       style={{
-        paddingBottom: "max(0.5rem, env(safe-area-inset-bottom, 0px))",
+        paddingBottom: keyboardOpen ? "0px" : "max(0.5rem, env(safe-area-inset-bottom, 0px))",
         paddingTop: "0.5rem",
       }}
     >
