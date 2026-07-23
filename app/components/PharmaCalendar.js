@@ -873,9 +873,6 @@ function CreateDemandForm({ date, darkMode, market, locale, allowDateEdit = fals
                 }}
                 className={`w-full px-4 py-2 ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-[#E5E7EB] text-[#111827]'} border rounded-xl focus:ring-2 focus:ring-[#6B46C1] focus:border-[#6B46C1]`}
               />
-              <p className={`text-xs mt-2 ${darkMode ? 'text-gray-400' : 'text-[#6B7280]'}`}>
-                {market === 'de' ? 'Minimum morgen' : 'Leghamarabb holnap'} • {market === 'de' ? 'Das Datum kann hier angepasst werden.' : 'Közvetlen nyitásnál módosítható.'}
-              </p>
             </div>
           )}
         </div>
