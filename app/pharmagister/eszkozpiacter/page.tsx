@@ -833,11 +833,9 @@ export default function EszkozPiacterPage() {
     if (!draft.description.trim()) errors.push("A leírás megadása kötelező.");
     if (!draft.location.trim()) errors.push("A hely megadása kötelező.");
 
-    if (!draft.negotiable) {
-      const price = Number(draft.price || 0);
-      if (!draft.price || Number.isNaN(price) || price <= 0) {
-        errors.push("Érvényes ár megadása kötelező.");
-      }
+    const price = Number(draft.price || 0);
+    if (!draft.price || Number.isNaN(price) || price <= 0) {
+      errors.push("Érvényes ár megadása kötelező.");
     }
 
     const blocked = FORBIDDEN_KEYWORDS.find((word) =>
@@ -879,11 +877,9 @@ export default function EszkozPiacterPage() {
     }
 
     if (composerStep === 7) {
-      if (!draft.negotiable) {
-        const price = Number(draft.price || 0);
-        if (!draft.price || Number.isNaN(price) || price <= 0) {
-          return "Érvényes ár megadása kötelező.";
-        }
+      const price = Number(draft.price || 0);
+      if (!draft.price || Number.isNaN(price) || price <= 0) {
+        return "Érvényes ár megadása kötelező.";
       }
       return "";
     }
@@ -1080,8 +1076,8 @@ export default function EszkozPiacterPage() {
       title: item.title,
       description: item.description,
       category: item.category || "other",
-      price: item.negotiable ? "" : String(item.priceAmount ?? item.price ?? ""),
-      negotiable: Boolean(item.negotiable || item.priceType === "negotiable"),
+      price: String(item.priceAmount ?? item.price ?? ""),
+      negotiable: false,
       condition: item.condition || "used",
       location: item.location || "",
       contactPhone: item.contactPhone || "",
@@ -1102,8 +1098,8 @@ export default function EszkozPiacterPage() {
       title: `${item.title} (másolat)`,
       description: item.description,
       category: item.category || "other",
-      price: item.negotiable ? "" : String(item.priceAmount ?? item.price ?? ""),
-      negotiable: Boolean(item.negotiable || item.priceType === "negotiable"),
+      price: String(item.priceAmount ?? item.price ?? ""),
+      negotiable: false,
       condition: item.condition || "used",
       location: item.location || "",
       contactPhone: item.contactPhone || "",
@@ -1203,10 +1199,10 @@ export default function EszkozPiacterPage() {
         category: draft.category,
         equipmentCategory: draft.category,
         condition: draft.condition,
-        negotiable: draft.negotiable,
-        priceType: draft.negotiable ? "negotiable" : "fixed",
-        price: draft.negotiable ? null : Number(draft.price),
-        priceAmount: draft.negotiable ? null : Number(draft.price),
+        negotiable: false,
+        priceType: "fixed",
+        price: Number(draft.price),
+        priceAmount: Number(draft.price),
         location: draft.location.trim(),
         city: draft.location.trim(),
         latitude: null,
@@ -1375,7 +1371,6 @@ export default function EszkozPiacterPage() {
             <div className="mt-3 flex flex-wrap gap-2 text-xs">
               <span className={`rounded-full px-2 py-1 ${getCategoryColor(item.category)}`}>{getCategoryLabel(item.category)}</span>
               <span className={`rounded-full px-2 py-1 ${darkMode ? "bg-gray-700 text-gray-200" : "bg-gray-100 text-gray-700"}`}>{getConditionLabel(item.condition)}</span>
-              {item.negotiable ? <span className={`rounded-full px-2 py-1 ${darkMode ? "bg-amber-900/30 text-amber-200" : "bg-amber-50 text-amber-700"}`}>Alkuképes</span> : null}
             </div>
 
             <div className={`mt-3 text-sm space-y-1.5 ${darkMode ? "text-gray-300" : "text-gray-600"}`}>
@@ -2267,10 +2262,9 @@ export default function EszkozPiacterPage() {
                   <div className="space-y-3">
                     <div className="flex justify-start">
                       <div className={`max-w-[90%] rounded-2xl rounded-bl-md px-4 py-3 text-sm ${darkMode ? "bg-purple-900/50 text-purple-100" : "bg-purple-100 text-purple-900"}`}>
-                        Mennyi az ára? Ha alkuképes, jelöld be.
+                        Mennyi az ára?
                       </div>
                     </div>
-                    <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={draft.negotiable} onChange={(e) => setDraft((prev) => ({ ...prev, negotiable: e.target.checked }))} /> Alkuképes</label>
                     <input
                       value={draft.price}
                       onChange={(e) => setDraft((prev) => ({ ...prev, price: e.target.value.replace(/[^0-9]/g, "") }))}
@@ -2280,9 +2274,8 @@ export default function EszkozPiacterPage() {
                           goToNextComposerStep();
                         }
                       }}
-                      disabled={draft.negotiable}
                       placeholder="Pl. 120000"
-                      className={`w-full rounded-xl border px-3 py-3 text-sm ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"} ${draft.negotiable ? "opacity-60" : ""}`}
+                      className={`w-full rounded-xl border px-3 py-3 text-sm ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"}`}
                     />
                   </div>
                 ) : null}
@@ -2316,7 +2309,7 @@ export default function EszkozPiacterPage() {
                     </div>
                     <div className={`rounded-xl border p-3 ${darkMode ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-gray-50"}`}>
                       <p className="text-xs opacity-70">Ár • Hely</p>
-                      <p className="font-semibold">{draft.negotiable ? "Alkuképes" : `${draft.price || "0"} Ft`} • {draft.location || "-"}</p>
+                      <p className="font-semibold">{draft.price ? `${draft.price} Ft` : "-"} • {draft.location || "-"}</p>
                     </div>
                     <div className={`rounded-xl border p-3 ${darkMode ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-gray-50"}`}>
                       <p className="text-xs opacity-70">Képek</p>
@@ -2332,7 +2325,7 @@ export default function EszkozPiacterPage() {
                     </div>
                     <div className={`rounded-xl border p-3 ${darkMode ? "border-gray-700 bg-gray-800" : "border-gray-200 bg-gray-50"}`}>
                       <p className="text-xs opacity-70">Beállítások</p>
-                      <p className="font-semibold">{draft.negotiable ? "Alkuképes: igen" : "Alkuképes: nem"} • {draft.chatEnabled ? "Chat: engedélyezve" : "Chat: kikapcsolva"}</p>
+                      <p className="font-semibold">{draft.chatEnabled ? "Chat: engedélyezve" : "Chat: kikapcsolva"}</p>
                     </div>
 
                     {validationErrors.length > 0 ? (
