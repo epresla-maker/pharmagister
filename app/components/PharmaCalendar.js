@@ -863,7 +863,12 @@ function CreateDemandForm({ date, darkMode, market, locale, allowDateEdit = fals
                 onChange={(e) => {
                   const nextDate = new Date(`${e.target.value}T00:00:00`);
                   if (!Number.isNaN(nextDate.getTime())) {
-                    setSelectedDate(nextDate);
+                    // Ellenőrizzük hogy csak jövőbeli dátum lehet (legalább holnap)
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    if (nextDate > today) {
+                      setSelectedDate(nextDate);
+                    }
                   }
                 }}
                 className={`w-full px-4 py-2 ${darkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-[#E5E7EB] text-[#111827]'} border rounded-xl focus:ring-2 focus:ring-[#6B46C1] focus:border-[#6B46C1]`}
