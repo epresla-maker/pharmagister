@@ -1874,7 +1874,7 @@ export default function EszkozPiacterPage() {
             <div
               ref={filtersSheetRef}
               className={`w-full max-w-2xl rounded-2xl border flex flex-col ${darkMode ? "bg-gray-900 border-gray-700 text-white" : "bg-white border-gray-200 text-gray-900"}`}
-              style={{ maxHeight: "calc(100% - 24px)" }}
+              style={{ height: "calc(100% - 24px)", maxHeight: "calc(100% - 24px)" }}
             >
               <div className="sticky top-0 px-4 py-3 border-b flex items-center justify-between bg-inherit">
                 <h3 className="font-bold text-lg">Szűrés és rendezés</h3>
@@ -1883,7 +1883,7 @@ export default function EszkozPiacterPage() {
 
               <div
                 className="overflow-y-auto overscroll-contain flex-1 min-h-0"
-                style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}
+                style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" } as React.CSSProperties}
               >
               <div className="p-4 space-y-4 pb-4">
                 <div>
