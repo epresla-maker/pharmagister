@@ -1039,10 +1039,36 @@ export default function EszkozPiacterPage() {
 
   const handleAdminStatus = async (listingId: string, status: ListingStatus) => {
     try {
+      const listing = items.find((item) => item.id === listingId);
+
       await updateDoc(doc(db, "equipmentMarketplacePosts", listingId), {
         status,
         updatedAt: serverTimestamp(),
       });
+
+      if (listing?.sellerId) {
+        await createNotificationWithPush({
+          userId: listing.sellerId,
+          type: status === "approved" ? "approval_approved" : "approval_rejected",
+          title: status === "approved"
+            ? (market === "de" ? "Anzeige freigegeben! ✅" : "Hirdetés jóváhagyva! ✅")
+            : (market === "de" ? "Anzeige abgelehnt ❌" : "Hirdetés elutasítva ❌"),
+          message: status === "approved"
+            ? (market === "de"
+              ? `Deine Anzeige wurde freigegeben und ist jetzt im Marktplatz sichtbar: ${listing.title}`
+              : `A hirdetésed jóváhagyásra került és most már látható a piactéren: ${listing.title}`)
+            : (market === "de"
+              ? `Deine Anzeige wurde abgelehnt. Bitte prüfe sie und bearbeite sie bei Bedarf erneut: ${listing.title}`
+              : `A hirdetésed elutasításra került. Kérjük ellenőrizd, és szükség esetén szerkeszd újra: ${listing.title}`),
+          data: {
+            listingId,
+            status,
+            marketplaceType: "equipment_marketplace",
+          },
+          url: "/pharmagister/eszkozpiacter?view=eladas",
+        });
+      }
+
       setItems((prev) => prev.map((item) => (item.id === listingId ? { ...item, status } : item)));
       if (selectedListing?.id === listingId) {
         setSelectedListing({ ...selectedListing, status });
