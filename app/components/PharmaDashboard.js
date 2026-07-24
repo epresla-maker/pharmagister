@@ -618,17 +618,19 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
                   ? 'Bis 01.09. sieht jede Apotheke 4 Credits, diese werden noch nicht verbraucht.'
                   : '09.01-ig minden gyógyszertár 4 kreditet lát, ezek még nem fogynak.')} 
             </p>
-            <button
-              type="button"
-              onClick={handleRequestCreditPackage}
-              disabled={requestingCredits}
-              className={`mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${requestingCredits
-                ? (darkMode ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-[#E5E7EB] text-[#6B7280] cursor-not-allowed')
-                : 'bg-[#6B46C1] text-white hover:bg-[#5a3aa3]'}`}
-            >
-              {requestingCredits && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-              {market === 'de' ? 'Neues Paket anfragen' : 'Uj csomag igenylese'}
-            </button>
+            {creditBalance.decreaseActive && (
+              <button
+                type="button"
+                onClick={handleRequestCreditPackage}
+                disabled={requestingCredits}
+                className={`mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${requestingCredits
+                  ? (darkMode ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-[#E5E7EB] text-[#6B7280] cursor-not-allowed')
+                  : 'bg-[#6B46C1] text-white hover:bg-[#5a3aa3]'}`}
+              >
+                {requestingCredits && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                {market === 'de' ? 'Neues Paket anfragen' : 'Uj csomag igenylese'}
+              </button>
+            )}
           </div>
 
           <div className={`${darkMode ? 'bg-gradient-to-r from-violet-900/50 to-indigo-900/50 border-violet-700' : 'bg-gradient-to-r from-violet-50 to-indigo-50 border-violet-200'} border rounded-xl p-4`}>
