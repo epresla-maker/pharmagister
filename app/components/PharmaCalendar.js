@@ -10,7 +10,7 @@ import { ChevronLeft, ChevronRight, Plus, X, Loader2, Clock, MapPin, MessageCirc
 import ResponseRateBar from '@/app/components/ResponseRateBar';
 import { getClientMarket, getLocalizedDemandPositionLabel } from '@/lib/marketI18n';
 import { isDocInMarket } from '@/lib/market';
-import { getDemandCreditBalance, getDemandPackageOffer } from '@/lib/demandCredits';
+import { getDemandCreditBalance } from '@/lib/demandCredits';
 
 // Magyar ünnepek (fix dátumok)
 const HUNGARIAN_HOLIDAYS = {
@@ -574,7 +574,6 @@ function DateModal({ date, demands, pharmaRole, darkMode, onClose, onDemandDelet
 function CreateDemandForm({ date, darkMode, market, locale, allowDateEdit = false, startImmediately = false, onSuccess, onCancel }) {
   const { user, userData } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [requestingPackage, setRequestingPackage] = useState(false);
   const [step, setStep] = useState(startImmediately ? 1 : 1);
   const [selectedDate, setSelectedDate] = useState(date);
   const [formData, setFormData] = useState({
@@ -589,8 +588,6 @@ function CreateDemandForm({ date, darkMode, market, locale, allowDateEdit = fals
 
   const totalSteps = 4;
   const creditBalance = getDemandCreditBalance(userData || {});
-  const packageOffer = getDemandPackageOffer(userData || {});
-  const founderDiscountActive = Boolean(packageOffer?.founder?.discountActive);
   const otherSoftwareLabel = market === 'de' ? 'Sonstige' : 'Egyéb';
   const softwareOptions = ['Lx-Line', 'Novodata', 'Quadro Byte', 'Daxa', 'Primula', market === 'de' ? 'Sonstige' : 'Egyéb'];
   const shiftPresets = [
@@ -630,38 +627,6 @@ function CreateDemandForm({ date, darkMode, market, locale, allowDateEdit = fals
         ? prev.requiredSoftware.filter(s => s !== software)
         : [...prev.requiredSoftware, software]
     }));
-  };
-
-  const handleRequestPackage = async () => {
-    if (!user) return;
-
-    setRequestingPackage(true);
-    try {
-      const idToken = await user.getIdToken();
-      const response = await fetch('/api/pharmagister/demand-credits/purchase-intent', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${idToken}`,
-        },
-      });
-
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(result?.error || 'PURCHASE_INTENT_FAILED');
-      }
-
-      alert(result?.message || (market === 'de'
-        ? 'Kaufanfrage gespeichert.'
-        : 'A csomagigeny rogzitve lett.'));
-    } catch (error) {
-      console.error('Error creating demand package intent:', error);
-      alert(market === 'de'
-        ? 'Fehler beim Speichern der Kaufanfrage.'
-        : 'Hiba tortent a csomagigeny rogzitese kozben.');
-    } finally {
-      setRequestingPackage(false);
-    }
   };
 
   const handleSubmit = async () => {
@@ -869,56 +834,6 @@ function CreateDemandForm({ date, darkMode, market, locale, allowDateEdit = fals
           <p className="text-sm text-orange-800">
             ⚠️ <strong>{market === 'de' ? 'Achtung!' : 'Figyelem!'}</strong> {market === 'de' ? 'Bitte fuelle dein Profil in den Einstellungen aus!' : 'Kérlek töltsd ki a profilodat a beállításokban!'}
           </p>
-        </div>
-      )}
-
-      {userData?.pharmagisterRole === 'pharmacy' && (
-        <div className={`${darkMode ? 'bg-[#1F2937] border-[#374151] text-gray-100' : 'bg-[#F9FAFB] border-[#E5E7EB] text-[#111827]'} border rounded-xl p-4 space-y-2`}>
-          <p className="text-sm font-semibold">
-            {market === 'de' ? 'Anfrage-Credits' : 'Igényfeladási keret'}: {creditBalance.remainingCredits} / {creditBalance.totalCredits}
-          </p>
-          <p className={`text-xs ${darkMode ? 'text-gray-300' : 'text-[#4B5563]'}`}>
-            {market === 'de'
-              ? `Paket: ${packageOffer.packageCredits} Anfragen fuer ${packageOffer.finalPriceHuf} Ft${founderDiscountActive ? ' (Gruendungsrabatt aktiv)' : ''}.`
-              : `Csomag: ${packageOffer.packageCredits} igény ${packageOffer.finalPriceHuf} Ft${founderDiscountActive ? ' (alapítói kedvezménnyel)' : ''}.`}
-          </p>
-          <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-[#6B7280]'}`}>
-            {market === 'de' ? 'Ab 01.09.2026 werden Credits reduziert.' : '2026.09.01-től kezd csökkenni a kredit.'}
-          </p>
-          <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-[#6B7280]'}`}>
-            {creditBalance.decreaseActive
-              ? (market === 'de'
-                ? 'Aktiv: Nutzung nur mit adminseitig gutgeschriebenen Credits.'
-                : 'Aktív: csak admin által jóváírt kreditek használhatók.')
-              : (market === 'de'
-                ? 'Bis 01.09. sind 4 Credits sichtbar und werden nicht reduziert.'
-                : '09.01-ig a 4 kredit csak tájékoztató, nem csökken.')}
-          </p>
-          {packageOffer.founder?.discountActive && (
-            <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-[#6B7280]'}`}>
-              {market === 'de'
-                ? 'Gruendungsrabatt aktiv (50%).'
-                : 'Alapítói kedvezmény aktív (50%).'}
-            </p>
-          )}
-          {packageOffer.founder?.isEligibleByJoinDate && !packageOffer.founder?.profileComplete && (
-            <p className={`text-xs ${darkMode ? 'text-amber-300' : 'text-amber-700'}`}>
-              {market === 'de'
-                ? 'Profil vervollstaendigen, damit der Gruendungsrabatt aktiv wird.'
-                : 'Az alapítói kedvezményhez teljes gyógyszertári profil szükséges.'}
-            </p>
-          )}
-          <button
-            type="button"
-            onClick={handleRequestPackage}
-            disabled={requestingPackage}
-            className={`mt-1 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${requestingPackage
-              ? (darkMode ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-[#E5E7EB] text-[#6B7280] cursor-not-allowed')
-              : 'bg-[#6B46C1] text-white hover:bg-[#5a3aa3]'}`}
-          >
-            {requestingPackage && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-            {market === 'de' ? 'Neues Paket anfragen' : 'Uj csomag igenylese'}
-          </button>
         </div>
       )}
 
