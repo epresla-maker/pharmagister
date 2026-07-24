@@ -603,22 +603,13 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
             </p>
             <p className={`text-xs mt-1 ${darkMode ? 'text-gray-300' : 'text-[#4B5563]'}`}>
               {market === 'de'
-                ? `Ab 01.09.2026: ${packageOffer.packageCredits} Anfragen = ${packageOffer.basePriceHuf} Ft.`
-                : `2026.09.01-tol: ${packageOffer.packageCredits} igeny = ${packageOffer.basePriceHuf} Ft.`}
+                ? `Ab 01.09.2026: ${packageOffer.packageCredits} Vertretungsanfragen aufgeben = ${packageOffer.basePriceHuf} Ft.`
+                : `2026.09.01-tol ${packageOffer.packageCredits} helyettesitesi igeny feladasa = ${packageOffer.basePriceHuf} Ft.`}
             </p>
             <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-[#6B7280]'}`}>
               {market === 'de'
-                ? `Gruendungsapotheken (Registrierung bis 01.09.2026 + vollstaendiges Profil) erhalten ${packageOffer.packageCredits} Anfragen fuer ${packageOffer.founderPriceHuf} Ft.`
-                : `Alapitoi gyogyszertarak (regisztracio 2026.09.01-ig + hianytalan profil) ${packageOffer.packageCredits} igenyt ${packageOffer.founderPriceHuf} Ft aron kapnak.`}
-            </p>
-            <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-[#6B7280]'}`}>
-              {creditBalance.decreaseActive
-                ? (market === 'de'
-                  ? 'Aktiv: Credits werden nur nach Admin-Gutschrift verwendet.'
-                  : 'Aktív: a krediteket csak admin jóváírás után lehet használni.')
-                : (market === 'de'
-                  ? 'Bis 01.09. sieht jede Apotheke 4 Credits, diese werden noch nicht verbraucht.'
-                  : '09.01-ig minden gyógyszertár 4 kreditet lát, ezek még nem fogynak.')} 
+                ? `Gruendungsapotheken (Registrierung bis 01.09.2026 + vollstaendiges Profil) erhalten ${packageOffer.packageCredits} Vertretungsanfragen fuer ${packageOffer.founderPriceHuf} Ft.`
+                : `Alapitoi gyogyszertarak (regisztracio 2026.09.01-ig + hianytalan profil) ${packageOffer.packageCredits} helyettesitesi igeny feladasat ${packageOffer.founderPriceHuf} Ft aron kapnak.`}
             </p>
             <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-[#6B7280]'}`}>
               {market === 'de'
