@@ -604,17 +604,17 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
             <p className={`text-xs mt-1 ${darkMode ? 'text-gray-300' : 'text-[#4B5563]'}`}>
               {market === 'de'
                 ? `Ab 01.09.2026: ${packageOffer.packageCredits} Vertretungsanfragen aufgeben = ${packageOffer.basePriceHuf} Ft.`
-                : `2026.09.01-tol ${packageOffer.packageCredits} helyettesitesi igeny feladasa = ${packageOffer.basePriceHuf} Ft.`}
+                : `2026.09.01-től ${packageOffer.packageCredits} helyettesítési igény feladása = ${packageOffer.basePriceHuf} Ft.`}
             </p>
             <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-[#6B7280]'}`}>
               {market === 'de'
                 ? `Gruendungsapotheken (Registrierung bis 01.09.2026 + vollstaendiges Profil) erhalten ${packageOffer.packageCredits} Vertretungsanfragen fuer ${packageOffer.founderPriceHuf} Ft.`
-                : `Alapitoi gyogyszertarak (regisztracio 2026.09.01-ig + hianytalan profil) ${packageOffer.packageCredits} helyettesitesi igeny feladasat ${packageOffer.founderPriceHuf} Ft aron kapnak.`}
+                : `Alapítói gyógyszertárak (regisztráció 2026.09.01-ig + hiánytalan profil) ${packageOffer.packageCredits} helyettesítési igény feladását ${packageOffer.founderPriceHuf} Ft áron kapnak.`}
             </p>
             <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-[#6B7280]'}`}>
               {market === 'de'
                 ? `Gruendungsrabatt gilt im festen Zeitraum 01.09.2026-01.03.2027${packageOffer.founder?.validUntil ? ` (bis ${new Date(packageOffer.founder.validUntil).toLocaleDateString('de-DE')})` : ''}.`
-                : `Az alapitoi kedvezmeny fix idoszakban ervenyes: 2026.09.01-2027.03.01${packageOffer.founder?.validUntil ? ` (eddig: ${new Date(packageOffer.founder.validUntil).toLocaleDateString('hu-HU')})` : ''}.`}
+                : `Az alapítói kedvezmény fix időszakban érvényes: 2026.09.01-2027.03.01${packageOffer.founder?.validUntil ? ` (eddig: ${new Date(packageOffer.founder.validUntil).toLocaleDateString('hu-HU')})` : ''}.`}
             </p>
             {creditBalance.decreaseActive && (
               <button
@@ -626,7 +626,7 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
                   : 'bg-[#6B46C1] text-white hover:bg-[#5a3aa3]'}`}
               >
                 {requestingCredits && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                {market === 'de' ? 'Neues Paket anfragen' : 'Uj csomag igenylese'}
+                {market === 'de' ? 'Neues Paket anfragen' : 'Új csomag igénylése'}
               </button>
             )}
           </div>
