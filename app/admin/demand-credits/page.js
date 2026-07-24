@@ -118,6 +118,12 @@ export default function AdminDemandCreditsPage() {
     });
   }, [purchaseIntents, intentFilter, query]);
 
+  const nonActivatedPharmacies = useMemo(() => {
+    return pharmacies
+      .filter((item) => !item.isActive)
+      .sort((a, b) => String(a.email || '').localeCompare(String(b.email || '')));
+  }, [pharmacies]);
+
   if (loading || !user || !isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -168,7 +174,7 @@ export default function AdminDemandCreditsPage() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
           <div className="bg-white rounded-xl shadow p-4">
             <p className="text-xs uppercase text-gray-500">{market === 'de' ? 'Apotheken' : 'Gyogyszertarak'}</p>
             <p className="text-2xl font-bold text-gray-900 mt-1">{pharmacies.length}</p>
@@ -181,6 +187,46 @@ export default function AdminDemandCreditsPage() {
             <p className="text-xs uppercase text-gray-500">{market === 'de' ? 'Noch offen' : 'Nyitott tetelek'}</p>
             <p className="text-2xl font-bold text-gray-900 mt-1">{purchaseIntents.filter((x) => x.status === 'pending_payment').length}</p>
           </div>
+          <div className="bg-white rounded-xl shadow p-4">
+            <p className="text-xs uppercase text-gray-500">{market === 'de' ? 'Nicht aktiviert' : 'Nem aktivalt'}</p>
+            <p className="text-2xl font-bold text-gray-900 mt-1">{nonActivatedPharmacies.length}</p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow p-4 sm:p-6">
+          <h2 className="text-lg font-bold text-gray-900 mb-4">
+            {market === 'de' ? 'Nicht aktivierte Apotheken' : 'Nem aktivalt gyogyszertarak'}
+          </h2>
+
+          {loadingData ? (
+            <div className="py-8 text-center text-gray-500">{market === 'de' ? 'Wird geladen...' : 'Betoltes...'}</div>
+          ) : nonActivatedPharmacies.length === 0 ? (
+            <div className="py-8 text-center text-gray-500">{market === 'de' ? 'Kein Eintrag' : 'Nincs nem aktivalt gyogyszertar'}</div>
+          ) : (
+            <div className="space-y-3">
+              {nonActivatedPharmacies.map((pharmacy) => (
+                <div key={pharmacy.id} className="border rounded-lg p-3">
+                  <p className="text-sm font-semibold text-gray-900">{pharmacy.pharmacyName || '-'}</p>
+                  <p className="text-xs text-gray-600">{pharmacy.email || '-'} | {pharmacy.id}</p>
+                  <p className="text-xs text-gray-700 mt-1">
+                    {market === 'de' ? 'Ort' : 'Varos'}: {pharmacy.pharmacyZipCode || '-'} {pharmacy.pharmacyCity || '-'}
+                    {' | '}
+                    {market === 'de' ? 'Telefon' : 'Telefon'}: {pharmacy.phone || '-'}
+                  </p>
+                  <p className="text-xs text-gray-700 mt-1">
+                    emailVerified: {pharmacy.emailVerified ? 'igen' : 'nem'}
+                    {' | '}
+                    passwordActivated: {pharmacy.passwordActivated ? 'igen' : 'nem'}
+                    {' | '}
+                    profileComplete: {pharmacy.profileComplete ? 'igen' : 'nem'}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {market === 'de' ? 'Registriert' : 'Regisztralva'}: {formatDate(pharmacy.createdAt, locale)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="bg-white rounded-xl shadow p-4 sm:p-6">

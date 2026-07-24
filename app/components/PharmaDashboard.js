@@ -603,11 +603,13 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
             </p>
             <p className={`text-xs mt-1 ${darkMode ? 'text-gray-300' : 'text-[#4B5563]'}`}>
               {market === 'de'
-                ? `${packageOffer.packageCredits} Anfragen pro Paket, Preis: ${packageOffer.finalPriceHuf} Ft${packageOffer.discountPercent > 0 ? ' (Gruendungsrabatt aktiv)' : ''}.`
-                : `${packageOffer.packageCredits} igény/csomag, ár: ${packageOffer.finalPriceHuf} Ft${packageOffer.discountPercent > 0 ? ' (alapítói kedvezmény aktív)' : ''}.`}
+                ? `Ab 01.09.2026: ${packageOffer.packageCredits} Anfragen = ${packageOffer.basePriceHuf} Ft.`
+                : `2026.09.01-tol: ${packageOffer.packageCredits} igeny = ${packageOffer.basePriceHuf} Ft.`}
             </p>
             <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-[#6B7280]'}`}>
-              {market === 'de' ? 'Ab 01.09.2026 werden Credits reduziert.' : '2026.09.01-től kezd csökkenni a kredit.'}
+              {market === 'de'
+                ? `Gruendungsapotheken (Registrierung bis 01.09.2026 + vollstaendiges Profil) erhalten ${packageOffer.packageCredits} Anfragen fuer ${packageOffer.founderPriceHuf} Ft.`
+                : `Alapitoi gyogyszertarak (regisztracio 2026.09.01-ig + hianytalan profil) ${packageOffer.packageCredits} igenyt ${packageOffer.founderPriceHuf} Ft aron kapnak.`}
             </p>
             <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-[#6B7280]'}`}>
               {creditBalance.decreaseActive
@@ -617,6 +619,11 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
                 : (market === 'de'
                   ? 'Bis 01.09. sieht jede Apotheke 4 Credits, diese werden noch nicht verbraucht.'
                   : '09.01-ig minden gyógyszertár 4 kreditet lát, ezek még nem fogynak.')} 
+            </p>
+            <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-[#6B7280]'}`}>
+              {market === 'de'
+                ? `Gruendungsrabatt gilt 6 Monate ab Registrierung${packageOffer.founder?.validUntil ? ` (bis ${new Date(packageOffer.founder.validUntil).toLocaleDateString('de-DE')})` : ''}.`
+                : `Az alapitoi kedvezmeny a regisztraciotol szamitott 6 honapig ervenyes${packageOffer.founder?.validUntil ? ` (eddig: ${new Date(packageOffer.founder.validUntil).toLocaleDateString('hu-HU')})` : ''}.`}
             </p>
             {creditBalance.decreaseActive && (
               <button

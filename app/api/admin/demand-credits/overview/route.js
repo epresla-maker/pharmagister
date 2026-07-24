@@ -59,14 +59,22 @@ export async function GET(request) {
       const totalCredits = Math.max(0, asNumber(data.demandCreditsTotal, 0));
       const usedCredits = Math.max(0, asNumber(data.demandCreditsUsed, 0));
       const remainingCredits = Math.max(0, totalCredits - usedCredits);
+      const emailVerified = Boolean(data.emailVerified);
+      const passwordActivated = Boolean(data.passwordActivated);
       return {
         id: doc.id,
         email: data.email || '',
         pharmacyName: data.pharmacyName || data.displayName || '',
+        pharmacyCity: data.pharmacyCity || '',
+        pharmacyZipCode: data.pharmacyZipCode || '',
+        phone: data.pharmaPhone || data.phone || '',
         market: data.market || 'hu',
         totalCredits,
         usedCredits,
         remainingCredits,
+        emailVerified,
+        passwordActivated,
+        isActive: emailVerified && passwordActivated,
         profileComplete: Boolean(data.pharmaProfileComplete),
         createdAt: toIso(data.createdAt),
         updatedAt: toIso(data.updatedAt),
