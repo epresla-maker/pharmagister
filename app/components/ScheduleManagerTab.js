@@ -7,6 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { getClientMarket, getLocalizedDemandPositionLabel } from '@/lib/marketI18n';
 import { isDocInMarket } from '@/lib/market';
+import { getDemandCreditBalance } from '@/lib/demandCredits';
 import {
   addDoc,
   collection,
@@ -6135,38 +6136,45 @@ export default function ScheduleManagerTab({ pharmaRole }) {
       }
 
       try {
-        const existingQ = query(
-          collection(db, 'pharmaApplications'),
-          where('demandId', '==', demandId),
-          where('applicantId', '==', user.uid)
-        );
-        const existingSnap = await getDocs(existingQ);
-        if (!existingSnap.empty) {
-          setBettiChatMessages((prev) => [...prev, {
-            role: 'assistant',
-            text: `Erre a napra mar jelentkeztel (${formatHuDate(demandDate)}).`,
-            intent: 'local_apply_duplicate',
-            ts: Date.now(),
-          }]);
-          return;
-        }
-
-        await addDoc(collection(db, 'pharmaApplications'), {
-          demandId,
-          applicantId: user.uid,
-          applicantName: userData.displayName || user.displayName || user.email,
-          applicantEmail: user.email,
-          applicantRole: userRole,
-          applicantExperience: userData.pharmaYearsOfExperience || '',
-          applicantHourlyRate: userData.pharmaHourlyRate || '',
-          pharmacyId,
-          pharmacyName,
-          position: demandPosition,
-          date: demandDate,
-          status: 'pending',
-          createdAt: new Date().toISOString(),
-          message: market === 'de' ? `Ich bewerbe mich fuer den ${demandDate}.` : `Jelentkezem a ${demandDate} napra.`,
+        const idToken = await user.getIdToken();
+        const response = await fetch('/api/pharmagister/demand-apply', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({
+            demandId,
+            message: market === 'de' ? `Ich bewerbe mich fuer den ${demandDate}.` : `Jelentkezem a ${demandDate} napra.`,
+          }),
         });
+
+        const applyResult = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          if (applyResult?.code === 'DUPLICATE_APPLICATION') {
+            setBettiChatMessages((prev) => [...prev, {
+              role: 'assistant',
+              text: `Erre a napra mar jelentkeztel (${formatHuDate(demandDate)}).`,
+              intent: 'local_apply_duplicate',
+              ts: Date.now(),
+            }]);
+            return;
+          }
+
+          if (applyResult?.code === 'PHARMACY_NO_CREDITS') {
+            setBettiChatMessages((prev) => [...prev, {
+              role: 'assistant',
+              text: market === 'de'
+                ? 'Achtung: Diese Apotheke hat derzeit keine verbleibenden Anfrage-Credits.'
+                : 'Figyelem: ennel a gyogyszertarnal elfogyott a jelentkezesi csomagkeret.',
+              intent: 'local_apply_no_credits',
+              ts: Date.now(),
+            }]);
+            return;
+          }
+
+          throw new Error(applyResult?.error || 'APPLY_FAILED');
+        }
 
         try {
           await createNotificationWithPush({
@@ -6707,6 +6715,20 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         return;
       }
 
+      const creditBalance = getDemandCreditBalance(userData || {});
+      if (creditBalance.decreaseActive && creditBalance.remainingCredits <= 0) {
+        setBettiChatMessages((prev) => [...prev, {
+          role: 'assistant',
+          text: market === 'de'
+            ? 'Es sind keine Anfrage-Credits mehr verfuegbar. Bitte zuerst ein neues Paket anfordern.'
+            : 'Nincs maradek igényfeladási keret. Elobb kerj uj csomagot.',
+          intent: 'local_demand_wizard_no_credits',
+          ts: Date.now(),
+          uiCommands: [{ id: 'go_calendar', type: 'set_main_tab', label: market === 'de' ? 'Kalender' : 'Naptar', tab: 'calendar' }],
+        }]);
+        return;
+      }
+
       try {
         const localDateString = resolveDemandDraftDate(draft.dateOffset);
         const fullAddress = `${userData.pharmacyZipCode || ''} ${userData.pharmacyCity || ''}, ${userData.pharmacyStreet || ''} ${userData.pharmacyHouseNumber || ''}`.trim();
@@ -6804,10 +6826,11 @@ export default function ScheduleManagerTab({ pharmaRole }) {
         console.error('Betti local_demand_wizard_submit error:', err);
         setBettiChatMessages((prev) => [...prev, {
           role: 'assistant',
-          text: 'Nem sikerult feladni az igenyt chatbol. Probald ujra, vagy hasznald a naptar modalt.',
-          intent: 'local_demand_wizard_submit_error',
+          text: market === 'de'
+            ? 'Beim Senden der Anfrage ist ein Fehler aufgetreten. Bitte versuche es erneut.'
+            : 'Hiba tortent az igeny feladasa kozben. Probald ujra.',
+          intent: 'local_demand_wizard_error',
           ts: Date.now(),
-          uiCommands: [{ id: 'open_replacement_calendar', type: 'navigate_url', label: 'Naptar megnyitasa', url: '/pharmagister?tab=calendar' }],
         }]);
       }
       return;

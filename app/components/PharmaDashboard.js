@@ -10,6 +10,7 @@ import { Loader2, Search, ChevronDown, ChevronUp, MapPin, Clock, CheckCircle, XC
 import ResponseRateBar from '@/app/components/ResponseRateBar';
 import { getClientMarket, getLocalizedDemandPositionLabel } from '@/lib/marketI18n';
 import { isDocInMarket } from '@/lib/market';
+import { getDemandCreditBalance, getDemandPackageOffer } from '@/lib/demandCredits';
 
 export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
   const { user, userData } = useAuth();
@@ -24,6 +25,7 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedDemand, setExpandedDemand] = useState(expandDemandId || null);
   const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'pending', 'accepted', 'rejected'
+  const [requestingCredits, setRequestingCredits] = useState(false);
 
   useEffect(() => {
     console.log('🔄 PharmaDashboard useEffect triggered - user:', user?.uid, 'pharmaRole:', pharmaRole);
@@ -441,18 +443,33 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
         return;
       }
 
-    const message = prompt(market === 'de' ? 'Nachricht an die Apotheke (optional):' : 'Üzenet a gyógyszertárnak (opcionális):');
-      
-      await addDoc(collection(db, 'pharmaApplications'), {
-        demandId,
-        applicantId: user.uid,
-        applicantName: user.displayName || (market === 'de' ? 'Unbekannt' : 'Ismeretlen'),
-        applicantRole: pharmaRole,
-        status: 'pending',
-        message: message || '',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+      const message = prompt(market === 'de' ? 'Nachricht an die Apotheke (optional):' : 'Üzenet a gyógyszertárnak (opcionális):');
+
+      const idToken = await user.getIdToken();
+      const response = await fetch('/api/pharmagister/demand-apply', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({
+          demandId,
+          message: message || '',
+        }),
       });
+
+      const applyResult = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        if (applyResult?.code === 'DUPLICATE_APPLICATION') {
+          alert(market === 'de' ? 'Du hast dich bereits auf diese Anfrage beworben!' : 'Már jelentkeztél erre az igényre!');
+          return;
+        }
+        if (applyResult?.code === 'PHARMACY_NO_CREDITS') {
+          alert(market === 'de' ? 'Diese Apotheke kann derzeit keine weiteren Bewerbungen empfangen.' : 'A gyógyszertár jelenleg nem tud több jelentkezést fogadni ehhez a csomagkerethez.');
+          return;
+        }
+        throw new Error(applyResult?.error || 'APPLY_FAILED');
+      }
 
       // Send notification with push to pharmacy owner
       await createNotificationWithPush({
@@ -471,6 +488,38 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
     } catch (error) {
       console.error('Error applying to demand:', error);
       alert(market === 'de' ? 'Fehler bei der Bewerbung.' : 'Hiba történt a jelentkezés során.');
+    }
+  };
+
+  const handleRequestCreditPackage = async () => {
+    if (!user) return;
+
+    setRequestingCredits(true);
+    try {
+      const idToken = await user.getIdToken();
+      const response = await fetch('/api/pharmagister/demand-credits/purchase-intent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        },
+      });
+
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result?.error || 'PURCHASE_INTENT_FAILED');
+      }
+
+      alert(result?.message || (market === 'de'
+        ? 'Kaufanfrage gespeichert.'
+        : 'A csomagigeny rogzitve lett.'));
+    } catch (error) {
+      console.error('Error requesting credit package:', error);
+      alert(market === 'de'
+        ? 'Fehler beim Speichern der Kaufanfrage.'
+        : 'Hiba tortent a csomagigeny rogzitese kozben.');
+    } finally {
+      setRequestingCredits(false);
     }
   };
 
@@ -513,6 +562,8 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   const activeMyDemands = myDemands.filter(demand => (demand.date || '') >= todayStr);
   const olderMyDemands = myDemands.filter(demand => (demand.date || '') < todayStr);
+  const creditBalance = getDemandCreditBalance(userData || {});
+  const packageOffer = getDemandPackageOffer(userData || {});
 
   if (loading) {
     return (
@@ -544,6 +595,40 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
             <p className={`text-xs ${darkMode ? 'text-purple-300' : 'text-purple-700'}`}>
               {market === 'de' ? 'Schnell neue Anfrage erstellen, laufende Ausschreibungen verwalten und aeltere Eintraege sehen.' : 'Gyorsan feladhatsz új igényt, kezelheted az aktív hirdetéseidet, és egy helyen látod a korábbiakat is.'}
             </p>
+          </div>
+
+          <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-[#F9FAFB] border-[#E5E7EB]'} border rounded-xl p-3`}>
+            <p className={`text-sm font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'}`}>
+              {market === 'de' ? 'Anfrage-Credits' : 'Igényfeladási keret'}: {creditBalance.remainingCredits} / {creditBalance.totalCredits}
+            </p>
+            <p className={`text-xs mt-1 ${darkMode ? 'text-gray-300' : 'text-[#4B5563]'}`}>
+              {market === 'de'
+                ? `${packageOffer.packageCredits} Anfragen pro Paket, Preis: ${packageOffer.finalPriceHuf} Ft${packageOffer.discountPercent > 0 ? ' (Gruendungsrabatt aktiv)' : ''}.`
+                : `${packageOffer.packageCredits} igény/csomag, ár: ${packageOffer.finalPriceHuf} Ft${packageOffer.discountPercent > 0 ? ' (alapítói kedvezmény aktív)' : ''}.`}
+            </p>
+            <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-[#6B7280]'}`}>
+              {market === 'de' ? 'Ab 01.09.2026 werden Credits reduziert.' : '2026.09.01-től kezd csökkenni a kredit.'}
+            </p>
+            <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-[#6B7280]'}`}>
+              {creditBalance.decreaseActive
+                ? (market === 'de'
+                  ? 'Aktiv: Credits werden nur nach Admin-Gutschrift verwendet.'
+                  : 'Aktív: a krediteket csak admin jóváírás után lehet használni.')
+                : (market === 'de'
+                  ? 'Bis 01.09. sieht jede Apotheke 4 Credits, diese werden noch nicht verbraucht.'
+                  : '09.01-ig minden gyógyszertár 4 kreditet lát, ezek még nem fogynak.')} 
+            </p>
+            <button
+              type="button"
+              onClick={handleRequestCreditPackage}
+              disabled={requestingCredits}
+              className={`mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${requestingCredits
+                ? (darkMode ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-[#E5E7EB] text-[#6B7280] cursor-not-allowed')
+                : 'bg-[#6B46C1] text-white hover:bg-[#5a3aa3]'}`}
+            >
+              {requestingCredits && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              {market === 'de' ? 'Neues Paket anfragen' : 'Uj csomag igenylese'}
+            </button>
           </div>
 
           <div className={`${darkMode ? 'bg-gradient-to-r from-violet-900/50 to-indigo-900/50 border-violet-700' : 'bg-gradient-to-r from-violet-50 to-indigo-50 border-violet-200'} border rounded-xl p-4`}>

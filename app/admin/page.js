@@ -288,6 +288,14 @@ export default function AdminPage() {
             </button>
             {isAdmin && (
               <button
+                onClick={() => router.push('/admin/demand-credits')}
+                className="bg-fuchsia-600 text-white px-3 py-2 rounded-lg hover:bg-fuchsia-700 text-xs sm:text-sm w-full"
+              >
+                {market === 'de' ? '💳 Kredit-Kaeufe' : '💳 Kreditvasarlasok'}
+              </button>
+            )}
+            {isAdmin && (
+              <button
                 onClick={() => router.push('/admin/chats')}
                 className="bg-sky-600 text-white px-3 py-2 rounded-lg hover:bg-sky-700 text-xs sm:text-sm w-full"
               >

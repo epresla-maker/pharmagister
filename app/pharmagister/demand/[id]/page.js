@@ -4,7 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useRouter, useParams } from 'next/navigation';
 import RouteGuard from '@/app/components/RouteGuard';
-import { doc, getDoc, updateDoc, arrayUnion, arrayRemove, Timestamp, collection, addDoc, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, query, where, getDocs, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { createNotificationWithPush } from '@/lib/notifications';
 import { getClientMarket, getLocalizedDemandPositionLabel } from '@/lib/marketI18n';
@@ -144,47 +144,33 @@ export default function DemandDetailPage() {
     try {
       setApplying(true);
 
-      const applicantData = {
-        applicantId: user.uid,
-        userId: user.uid,
-        displayName: userData.displayName || 'Névtelen',
-        photoURL: userData.photoURL || null,
-        pharmagisterRole: userData.pharmagisterRole,
-        email: userData.email,
-        phone: userData.pharmaPhone || userData.phone || null,
-        experience: userData.pharmaYearsOfExperience || null,
-        hourlyRate: userData.pharmaHourlyRate || null,
-        software: userData.pharmaSoftwareKnowledge || [],
-        bio: userData.pharmaBio || '',
-        appliedAt: Timestamp.now(),
-        status: 'pending' // pending, accepted, rejected
-      };
-
-      // 1. Mentés az igény documentbe (gyors olvasáshoz)
-      const demandRef = doc(db, 'pharmaDemands', demandId);
-      await updateDoc(demandRef, {
-        applicants: arrayUnion(applicantData)
+      const idToken = await user.getIdToken();
+      const response = await fetch('/api/pharmagister/demand-apply', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({
+          demandId,
+          message: market === 'de'
+            ? `Ich bewerbe mich fuer den ${demand.date}.`
+            : `Jelentkezem a ${demand.date} napra.`,
+        }),
       });
 
-      // 2. Külön document létrehozása a pharmaApplications collection-ben (kezeléshez)
-      await addDoc(collection(db, 'pharmaApplications'), {
-        demandId: demandId,
-        pharmacyId: demand.pharmacyId,
-        applicantId: user.uid,
-        applicantName: userData.displayName || 'Névtelen',
-        displayName: userData.displayName || 'Névtelen',
-        photoURL: userData.photoURL || null,
-        pharmagisterRole: userData.pharmagisterRole,
-        email: userData.email,
-        phone: userData.pharmaPhone || userData.phone || null,
-        experience: userData.pharmaYearsOfExperience || null,
-        hourlyRate: userData.pharmaHourlyRate || null,
-        software: userData.pharmaSoftwareKnowledge || [],
-        bio: userData.pharmaBio || '',
-        status: 'pending',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
+      const applyResult = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        if (applyResult?.code === 'DUPLICATE_APPLICATION') {
+          alert(market === 'de' ? 'Du hast dich bereits auf diese Anfrage beworben.' : 'Már jelentkeztél erre az igényre.');
+          return;
+        }
+        if (applyResult?.code === 'PHARMACY_NO_CREDITS') {
+          alert(market === 'de' ? 'Diese Apotheke kann derzeit keine weiteren Bewerbungen empfangen.' : 'A gyógyszertár jelenleg nem tud több jelentkezést fogadni ehhez a csomagkerethez.');
+          return;
+        }
+        throw new Error(applyResult?.error || 'APPLY_FAILED');
+      }
 
       // 3. Értesítés küldése gyógyszertárnak push-sal
       console.log('📧 Értesítés küldése gyógyszertárnak:', {
