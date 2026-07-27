@@ -396,6 +396,7 @@ export default function EszkozPiacterPage() {
   const [fsScale, setFsScale] = useState(1);
   const [fsPan, setFsPan] = useState({ x: 0, y: 0 });
   const fsTouchRef = useRef<{ startX: number; startY: number; startDist: number; startScale: number; startPanX: number; startPanY: number; isPinch: boolean; lastTap: number }>({ startX: 0, startY: 0, startDist: 0, startScale: 1, startPanX: 0, startPanY: 0, isPinch: false, lastTap: 0 });
+  const detailTouchRef = useRef<{ startX: number; startY: number; isSwiping: boolean }>({ startX: 0, startY: 0, isSwiping: false });
 
   const [showComposer, setShowComposer] = useState(false);
   const [composerStep, setComposerStep] = useState(1);
@@ -2524,17 +2525,56 @@ export default function EszkozPiacterPage() {
             {/* Scrollable content */}
             <div className={`flex-1 overflow-y-auto ${darkMode ? "bg-gray-950" : "bg-white"}`}>
               <div className="p-4 space-y-4 pb-32">
-                <div className="relative w-full h-72 rounded-2xl overflow-hidden bg-gray-100">
+                <div
+                  className="relative w-full h-72 rounded-2xl overflow-hidden bg-gray-100 select-none"
+                  onTouchStart={(e) => {
+                    if (e.touches.length !== 1) return;
+                    detailTouchRef.current = {
+                      startX: e.touches[0].clientX,
+                      startY: e.touches[0].clientY,
+                      isSwiping: true,
+                    };
+                  }}
+                  onTouchMove={(e) => {
+                    if (!detailTouchRef.current.isSwiping || e.touches.length !== 1) return;
+                    const deltaX = e.touches[0].clientX - detailTouchRef.current.startX;
+                    const deltaY = e.touches[0].clientY - detailTouchRef.current.startY;
+
+                    // Only treat as a swipe if horizontal movement dominates.
+                    if (Math.abs(deltaX) > Math.abs(deltaY) + 10) {
+                      e.preventDefault();
+                    }
+                  }}
+                  onTouchEnd={(e) => {
+                    if (!detailTouchRef.current.isSwiping) return;
+                    const touch = e.changedTouches[0];
+                    const deltaX = touch.clientX - detailTouchRef.current.startX;
+                    const deltaY = touch.clientY - detailTouchRef.current.startY;
+                    detailTouchRef.current.isSwiping = false;
+
+                    if (Math.abs(deltaX) < 45 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
+
+                    const total = selectedListing.images.length;
+                    if (deltaX < 0) {
+                      setDetailImageIndex((i) => (i + 1) % total);
+                    } else {
+                      setDetailImageIndex((i) => (i - 1 + total) % total);
+                    }
+                  }}
+                >
                   {selectedListing.images[detailImageIndex] ? (
                     <>
                       <Image
                         src={selectedListing.images[detailImageIndex]}
                         alt={selectedListing.title}
                         fill
-                        className="object-cover cursor-zoom-in"
+                        className="object-cover cursor-grab active:cursor-grabbing"
                         sizes="(max-width: 768px) 100vw, 75vw"
                         onClick={() => setFullScreenImage(true)}
                       />
+                      <div className="absolute left-3 top-3 rounded-full bg-black/60 text-white px-3 py-1 text-xs font-semibold">
+                        {detailImageIndex + 1} / {selectedListing.images.length}
+                      </div>
                       <button
                         onClick={() => setFullScreenImage(true)}
                         className="absolute bottom-3 right-3 rounded-full bg-black/60 text-white px-3 py-1 text-xs"
@@ -2546,20 +2586,6 @@ export default function EszkozPiacterPage() {
                     <div className="w-full h-full flex items-center justify-center"><Package className="w-8 h-8 text-gray-400" /></div>
                   )}
                 </div>
-
-                {selectedListing.images.length > 1 ? (
-                  <div className="flex gap-2 overflow-x-auto pb-1">
-                    {selectedListing.images.map((image, idx) => (
-                      <button
-                        key={`${image}-${idx}`}
-                        onClick={() => setDetailImageIndex(idx)}
-                        className={`relative h-16 w-16 shrink-0 rounded-lg overflow-hidden border ${detailImageIndex === idx ? "border-emerald-500" : "border-transparent"}`}
-                      >
-                        <Image src={image} alt={`kép ${idx + 1}`} fill className="object-cover" sizes="80px" />
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
 
                 <div className="flex items-start justify-between gap-2">
                   <div>
