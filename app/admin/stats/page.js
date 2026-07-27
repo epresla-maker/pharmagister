@@ -269,7 +269,7 @@ export default function StatsPage() {
                 <MiniCard icon={UserCog} label="Szakasszisztens" value={stats.users.assistants} color="text-orange-600" bg="bg-orange-50" />
                 <MiniCard icon={UserCheck} label="Profil kész" value={stats.users.profileComplete} color="text-emerald-600" bg="bg-emerald-50" />
                 <MiniCard icon={UserX} label="Profil hiányos" value={stats.users.profileIncomplete} color="text-red-500" bg="bg-red-50" />
-                <MiniCard icon={AlertCircle} label="Nincs szerepkör" value={stats.users.noRole} color="text-gray-500" bg="bg-gray-100" />
+                <MiniCard icon={AlertCircle} label="Félbehagyott regisztráció" value={stats.users.noRole} color="text-gray-500" bg="bg-gray-100" />
               </div>
             </section>
 
@@ -299,7 +299,7 @@ export default function StatsPage() {
                   </div>
                   <div className="bg-gray-50 rounded-xl p-4 text-center">
                     <p className="text-2xl font-bold text-gray-500">{stats.de.noRole}</p>
-                    <p className="text-xs text-gray-600 mt-1">Nincs szerepkör</p>
+                    <p className="text-xs text-gray-600 mt-1">Félbehagyott regisztráció</p>
                   </div>
                 </div>
               </section>
@@ -325,7 +325,7 @@ export default function StatsPage() {
                         <th className="py-2 px-4 text-center">Gyógyszerész</th>
                         <th className="py-2 px-4 text-center">Gyógyszertár</th>
                         <th className="py-2 px-4 text-center">Szakasszisztens</th>
-                        <th className="py-2 px-4 text-center">Nincs szerep</th>
+                        <th className="py-2 px-4 text-center">Félbehagyott reg.</th>
                         <th className="py-2 px-4 text-center font-bold">Összesen</th>
                       </tr>
                     </thead>
