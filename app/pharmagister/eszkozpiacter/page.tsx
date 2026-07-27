@@ -408,7 +408,7 @@ export default function EszkozPiacterPage() {
   const [pullDistance, setPullDistance] = useState(0);
   const [headerVisible, setHeaderVisible] = useState(true);
   const lastScrollRef = useRef(0);
-  const scrollTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   const [draft, setDraft] = useState<ComposerDraft>({
     title: "",
@@ -628,7 +628,7 @@ export default function EszkozPiacterPage() {
     let pulling = false;
 
     const onTouchStart = (e: TouchEvent) => {
-      if (window.scrollY > 0) return;
+      if ((scrollContainerRef.current?.scrollTop ?? 0) > 0) return;
       startY = e.touches[0].clientY;
       pulling = true;
     };
@@ -636,7 +636,7 @@ export default function EszkozPiacterPage() {
     const onTouchMove = (e: TouchEvent) => {
       if (!pulling) return;
       const diff = e.touches[0].clientY - startY;
-      if (diff > 0 && window.scrollY <= 0) {
+      if (diff > 0 && (scrollContainerRef.current?.scrollTop ?? 0) <= 0) {
         setPullDistance(Math.min(120, diff));
       }
     };
@@ -661,37 +661,26 @@ export default function EszkozPiacterPage() {
   }, [pullDistance, refreshing, reloadAll]);
 
   useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+
     let ticking = false;
-
-    const getScrollY = () =>
-      window.scrollY !== undefined
-        ? window.scrollY
-        : document.documentElement.scrollTop !== undefined
-          ? document.documentElement.scrollTop
-          : document.body.scrollTop ?? 0;
-
-    const updateHeader = () => {
-      const currentScrollY = getScrollY();
-      const isScrollingDown = currentScrollY > lastScrollRef.current;
-      setHeaderVisible(!isScrollingDown || currentScrollY < 60);
-      lastScrollRef.current = currentScrollY;
-      ticking = false;
-    };
 
     const handleScroll = () => {
       if (!ticking) {
-        requestAnimationFrame(updateHeader);
+        requestAnimationFrame(() => {
+          const currentScrollY = el.scrollTop;
+          const isScrollingDown = currentScrollY > lastScrollRef.current;
+          setHeaderVisible(!isScrollingDown || currentScrollY < 60);
+          lastScrollRef.current = currentScrollY;
+          ticking = false;
+        });
         ticking = true;
       }
     };
 
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    document.addEventListener("scroll", handleScroll, { passive: true });
-
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-      document.removeEventListener("scroll", handleScroll);
-    };
+    el.addEventListener("scroll", handleScroll, { passive: true });
+    return () => el.removeEventListener("scroll", handleScroll);
   }, []);
 
   const categoryCountMap = useMemo(() => {
@@ -1570,7 +1559,7 @@ export default function EszkozPiacterPage() {
 
   return (
     <RouteGuard>
-      <div className={`min-h-screen pb-24 ${darkMode ? "bg-gray-950 text-white" : "bg-[#f4f7fb] text-gray-900"}`}>
+      <div ref={scrollContainerRef} className={`h-[100dvh] overflow-y-auto pb-24 ${darkMode ? "bg-gray-950 text-white" : "bg-[#f4f7fb] text-gray-900"}`}>
         <div className={`fixed top-0 left-0 right-0 z-30 border-b pt-safe-small backdrop-blur-xl transition-transform duration-300 ease-in-out ${darkMode ? "bg-gray-950/88 border-gray-800" : "bg-white/88 border-gray-200"}`} style={{ transform: headerVisible ? "translateY(0)" : "translateY(-100%)" }}>
           <div className="absolute inset-x-0 top-0 h-24 pointer-events-none bg-gradient-to-b from-blue-500/10 to-transparent" />
 
