@@ -393,6 +393,9 @@ export default function EszkozPiacterPage() {
   const [selectedListing, setSelectedListing] = useState<MarketplaceListing | null>(null);
   const [detailImageIndex, setDetailImageIndex] = useState(0);
   const [fullScreenImage, setFullScreenImage] = useState(false);
+  const [fsScale, setFsScale] = useState(1);
+  const [fsPan, setFsPan] = useState({ x: 0, y: 0 });
+  const fsTouchRef = useRef<{ startX: number; startY: number; startDist: number; startScale: number; startPanX: number; startPanY: number; isPinch: boolean; lastTap: number }>({ startX: 0, startY: 0, startDist: 0, startScale: 1, startPanX: 0, startPanY: 0, isPinch: false, lastTap: 0 });
 
   const [showComposer, setShowComposer] = useState(false);
   const [composerStep, setComposerStep] = useState(1);
@@ -2709,17 +2712,54 @@ export default function EszkozPiacterPage() {
 
         {fullScreenImage && selectedListing?.images[detailImageIndex] ? (
           <div
-            className="fixed inset-0 z-[90] bg-black flex flex-col"
+            className="fixed inset-0 z-[90] bg-black flex flex-col select-none"
             onTouchStart={(e) => {
-              const touch = e.touches[0];
-              (e.currentTarget as any)._touchStartX = touch.clientX;
+              const now = Date.now();
+              if (e.touches.length === 2) {
+                const dx = e.touches[0].clientX - e.touches[1].clientX;
+                const dy = e.touches[0].clientY - e.touches[1].clientY;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                fsTouchRef.current = { ...fsTouchRef.current, startDist: dist, startScale: fsScale, startPanX: fsPan.x, startPanY: fsPan.y, isPinch: true };
+              } else {
+                // Double-tap to toggle zoom
+                if (now - fsTouchRef.current.lastTap < 300) {
+                  if (fsScale > 1) { setFsScale(1); setFsPan({ x: 0, y: 0 }); }
+                  else { setFsScale(2.5); }
+                  fsTouchRef.current.lastTap = 0;
+                } else {
+                  fsTouchRef.current.lastTap = now;
+                }
+                fsTouchRef.current = { ...fsTouchRef.current, startX: e.touches[0].clientX, startY: e.touches[0].clientY, startPanX: fsPan.x, startPanY: fsPan.y, isPinch: false };
+              }
+            }}
+            onTouchMove={(e) => {
+              if (e.touches.length === 2) {
+                e.preventDefault();
+                const dx = e.touches[0].clientX - e.touches[1].clientX;
+                const dy = e.touches[0].clientY - e.touches[1].clientY;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const ratio = dist / (fsTouchRef.current.startDist || dist);
+                const newScale = Math.min(6, Math.max(1, fsTouchRef.current.startScale * ratio));
+                setFsScale(newScale);
+              } else if (e.touches.length === 1 && fsScale > 1) {
+                const dx = e.touches[0].clientX - fsTouchRef.current.startX;
+                const dy = e.touches[0].clientY - fsTouchRef.current.startY;
+                setFsPan({ x: fsTouchRef.current.startPanX + dx, y: fsTouchRef.current.startPanY + dy });
+              }
             }}
             onTouchEnd={(e) => {
-              const startX = (e.currentTarget as any)._touchStartX ?? 0;
+              if (fsTouchRef.current.isPinch) {
+                fsTouchRef.current.isPinch = false;
+                if (fsScale < 1.1) { setFsScale(1); setFsPan({ x: 0, y: 0 }); }
+                return;
+              }
+              if (fsScale > 1.05) return; // no swipe when zoomed
+              const startX = fsTouchRef.current.startX;
               const endX = e.changedTouches[0].clientX;
               const diff = startX - endX;
               const total = selectedListing.images.length;
               if (Math.abs(diff) > 40) {
+                setFsScale(1); setFsPan({ x: 0, y: 0 });
                 if (diff > 0) setDetailImageIndex((i) => (i + 1) % total);
                 else setDetailImageIndex((i) => (i - 1 + total) % total);
               }
@@ -2729,36 +2769,40 @@ export default function EszkozPiacterPage() {
             <div className="shrink-0 flex items-center justify-between px-4 py-3 pt-safe-small">
               <span className="text-white/70 text-sm font-medium">
                 {detailImageIndex + 1} / {selectedListing.images.length}
+                {fsScale > 1 ? <span className="ml-2 text-white/40 text-xs">{Math.round(fsScale * 100)}%</span> : null}
               </span>
-              <button onClick={() => setFullScreenImage(false)} className="rounded-full bg-white/20 text-white p-2">
+              <button onClick={() => { setFullScreenImage(false); setFsScale(1); setFsPan({ x: 0, y: 0 }); }} className="rounded-full bg-white/20 text-white p-2">
                 <X className="w-5 h-5" />
               </button>
             </div>
             {/* Image */}
-            <div className="flex-1 relative">
-              <Image src={selectedListing.images[detailImageIndex]} alt="teljes kép" fill className="object-contain" sizes="100vw" />
+            <div className="flex-1 relative overflow-hidden" style={{ touchAction: "none" }}>
+              <Image
+                src={selectedListing.images[detailImageIndex]}
+                alt="teljes kép"
+                fill
+                className="object-contain"
+                style={{ transform: `scale(${fsScale}) translate(${fsPan.x / fsScale}px, ${fsPan.y / fsScale}px)`, transition: fsTouchRef.current.isPinch ? "none" : "transform 0.15s ease-out" }}
+                sizes="100vw"
+                draggable={false}
+              />
             </div>
-            {/* Prev / Next buttons */}
+            {/* Prev / Next */}
             {selectedListing.images.length > 1 ? (
               <div className="shrink-0 flex items-center justify-between px-6 py-4 pb-safe-small">
                 <button
-                  onClick={() => setDetailImageIndex((i) => (i - 1 + selectedListing.images.length) % selectedListing.images.length)}
+                  onClick={() => { setFsScale(1); setFsPan({ x: 0, y: 0 }); setDetailImageIndex((i) => (i - 1 + selectedListing.images.length) % selectedListing.images.length); }}
                   className="rounded-full bg-white/20 text-white px-5 py-2.5 font-semibold text-sm"
                 >
                   ← Előző
                 </button>
-                {/* Dot indicators */}
                 <div className="flex gap-1.5">
                   {selectedListing.images.map((_, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setDetailImageIndex(idx)}
-                      className={`w-2 h-2 rounded-full transition-all ${idx === detailImageIndex ? "bg-white scale-125" : "bg-white/40"}`}
-                    />
+                    <button key={idx} onClick={() => { setFsScale(1); setFsPan({ x: 0, y: 0 }); setDetailImageIndex(idx); }} className={`w-2 h-2 rounded-full transition-all ${idx === detailImageIndex ? "bg-white scale-125" : "bg-white/40"}`} />
                   ))}
                 </div>
                 <button
-                  onClick={() => setDetailImageIndex((i) => (i + 1) % selectedListing.images.length)}
+                  onClick={() => { setFsScale(1); setFsPan({ x: 0, y: 0 }); setDetailImageIndex((i) => (i + 1) % selectedListing.images.length); }}
                   className="rounded-full bg-white/20 text-white px-5 py-2.5 font-semibold text-sm"
                 >
                   Következő →
