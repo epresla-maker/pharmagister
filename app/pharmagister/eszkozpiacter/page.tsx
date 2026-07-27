@@ -2708,11 +2708,65 @@ export default function EszkozPiacterPage() {
         ) : null}
 
         {fullScreenImage && selectedListing?.images[detailImageIndex] ? (
-          <div className="fixed inset-0 z-[90] bg-black/95 flex items-center justify-center p-4">
-            <button onClick={() => setFullScreenImage(false)} className="absolute top-4 right-4 rounded-full bg-white/20 text-white p-2"><X className="w-5 h-5" /></button>
-            <div className="relative w-full max-w-5xl h-[85vh]">
+          <div
+            className="fixed inset-0 z-[90] bg-black flex flex-col"
+            onTouchStart={(e) => {
+              const touch = e.touches[0];
+              (e.currentTarget as any)._touchStartX = touch.clientX;
+            }}
+            onTouchEnd={(e) => {
+              const startX = (e.currentTarget as any)._touchStartX ?? 0;
+              const endX = e.changedTouches[0].clientX;
+              const diff = startX - endX;
+              const total = selectedListing.images.length;
+              if (Math.abs(diff) > 40) {
+                if (diff > 0) setDetailImageIndex((i) => (i + 1) % total);
+                else setDetailImageIndex((i) => (i - 1 + total) % total);
+              }
+            }}
+          >
+            {/* Top bar */}
+            <div className="shrink-0 flex items-center justify-between px-4 py-3 pt-safe-small">
+              <span className="text-white/70 text-sm font-medium">
+                {detailImageIndex + 1} / {selectedListing.images.length}
+              </span>
+              <button onClick={() => setFullScreenImage(false)} className="rounded-full bg-white/20 text-white p-2">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            {/* Image */}
+            <div className="flex-1 relative">
               <Image src={selectedListing.images[detailImageIndex]} alt="teljes kép" fill className="object-contain" sizes="100vw" />
             </div>
+            {/* Prev / Next buttons */}
+            {selectedListing.images.length > 1 ? (
+              <div className="shrink-0 flex items-center justify-between px-6 py-4 pb-safe-small">
+                <button
+                  onClick={() => setDetailImageIndex((i) => (i - 1 + selectedListing.images.length) % selectedListing.images.length)}
+                  className="rounded-full bg-white/20 text-white px-5 py-2.5 font-semibold text-sm"
+                >
+                  ← Előző
+                </button>
+                {/* Dot indicators */}
+                <div className="flex gap-1.5">
+                  {selectedListing.images.map((_, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setDetailImageIndex(idx)}
+                      className={`w-2 h-2 rounded-full transition-all ${idx === detailImageIndex ? "bg-white scale-125" : "bg-white/40"}`}
+                    />
+                  ))}
+                </div>
+                <button
+                  onClick={() => setDetailImageIndex((i) => (i + 1) % selectedListing.images.length)}
+                  className="rounded-full bg-white/20 text-white px-5 py-2.5 font-semibold text-sm"
+                >
+                  Következő →
+                </button>
+              </div>
+            ) : (
+              <div className="pb-safe-small" />
+            )}
           </div>
         ) : null}
 
