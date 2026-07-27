@@ -661,34 +661,36 @@ export default function EszkozPiacterPage() {
   }, [pullDistance, refreshing, reloadAll]);
 
   useEffect(() => {
-    let scrollTimeout: NodeJS.Timeout | null = null;
+    let ticking = false;
+
+    const getScrollY = () =>
+      window.scrollY !== undefined
+        ? window.scrollY
+        : document.documentElement.scrollTop !== undefined
+          ? document.documentElement.scrollTop
+          : document.body.scrollTop ?? 0;
+
+    const updateHeader = () => {
+      const currentScrollY = getScrollY();
+      const isScrollingDown = currentScrollY > lastScrollRef.current;
+      setHeaderVisible(!isScrollingDown || currentScrollY < 60);
+      lastScrollRef.current = currentScrollY;
+      ticking = false;
+    };
 
     const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      const scrollDiff = Math.abs(currentScrollY - lastScrollRef.current);
-
-      // Only trigger state update if significant scroll
-      if (scrollDiff > 5 || currentScrollY < 80) {
-        const isScrollingDown = currentScrollY > lastScrollRef.current;
-        setHeaderVisible(!isScrollingDown || currentScrollY < 80);
+      if (!ticking) {
+        requestAnimationFrame(updateHeader);
+        ticking = true;
       }
-
-      lastScrollRef.current = currentScrollY;
-
-      // Clear existing timeout
-      if (scrollTimeout) clearTimeout(scrollTimeout);
-
-      // Debounce final position update
-      scrollTimeout = setTimeout(() => {
-        lastScrollRef.current = currentScrollY;
-      }, 100);
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
+    document.addEventListener("scroll", handleScroll, { passive: true });
 
     return () => {
       window.removeEventListener("scroll", handleScroll);
-      if (scrollTimeout) clearTimeout(scrollTimeout);
+      document.removeEventListener("scroll", handleScroll);
     };
   }, []);
 
