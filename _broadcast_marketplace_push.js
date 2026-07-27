@@ -15,11 +15,26 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-const title = "pharmagister";
-const body = "Találd meg, amire szükséged van, vagy add el felesleges eszközeid a pharmagisteren.";
+const title = "Uj a Piacteren";
+const body = "Uj termek kerult fel a Piacterre. Nezd meg, hatha pont ezt keresed.";
 const targetUrl = "/pharmagister/eszkozpiacter?view=eladas";
 
+function getExcludedUserIds() {
+  const cliArg = process.argv.find((arg) => arg.startsWith("--excludeUserIds="));
+  const rawValue = cliArg
+    ? cliArg.split("=").slice(1).join("=")
+    : process.env.MARKETPLACE_PUSH_EXCLUDE_USER_IDS || "";
+
+  return new Set(
+    rawValue
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean)
+  );
+}
+
 async function sendBroadcast() {
+  const excludedUserIds = getExcludedUserIds();
   const vapidPublic = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.trim().replace(/=+$/, "");
   const vapidPrivate = process.env.VAPID_PRIVATE_KEY?.trim().replace(/=+$/, "");
   if (vapidPublic && vapidPrivate) {
@@ -37,7 +52,7 @@ async function sendBroadcast() {
   const userIds = new Set();
   for (const subDoc of subsSnap.docs) {
     const uid = subDoc.data()?.userId;
-    if (uid) userIds.add(uid);
+    if (uid && !excludedUserIds.has(uid)) userIds.add(uid);
   }
 
   let inAppOk = 0;
@@ -65,6 +80,11 @@ async function sendBroadcast() {
   let pushFail = 0;
 
   for (const subDoc of subsSnap.docs) {
+    const userId = subDoc.data()?.userId;
+    if (userId && excludedUserIds.has(userId)) {
+      continue;
+    }
+
     const sub = subDoc.data()?.subscription;
     if (!sub?.endpoint) {
       pushFail += 1;
