@@ -661,25 +661,34 @@ export default function EszkozPiacterPage() {
   }, [pullDistance, refreshing, reloadAll]);
 
   useEffect(() => {
+    let scrollTimeout: NodeJS.Timeout | null = null;
+
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-      const isScrollingDown = currentScrollY > lastScrollRef.current;
+      const scrollDiff = Math.abs(currentScrollY - lastScrollRef.current);
 
-      // Show header at top or when scrolling up
-      setHeaderVisible(!isScrollingDown || currentScrollY < 100);
+      // Only trigger state update if significant scroll
+      if (scrollDiff > 5 || currentScrollY < 80) {
+        const isScrollingDown = currentScrollY > lastScrollRef.current;
+        setHeaderVisible(!isScrollingDown || currentScrollY < 80);
+      }
+
       lastScrollRef.current = currentScrollY;
 
-      // Debounce to prevent excessive state updates
-      clearTimeout(scrollTimeoutRef.current);
-      scrollTimeoutRef.current = setTimeout(() => {
+      // Clear existing timeout
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+
+      // Debounce final position update
+      scrollTimeout = setTimeout(() => {
         lastScrollRef.current = currentScrollY;
-      }, 150);
+      }, 100);
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
+
     return () => {
       window.removeEventListener("scroll", handleScroll);
-      clearTimeout(scrollTimeoutRef.current);
+      if (scrollTimeout) clearTimeout(scrollTimeout);
     };
   }, []);
 
