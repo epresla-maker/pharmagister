@@ -2507,14 +2507,20 @@ export default function EszkozPiacterPage() {
         ) : null}
 
         {selectedListing ? (
-          <div className="fixed inset-0 z-[75] bg-black/70 flex items-end md:items-center justify-center p-3 pb-[calc(108px+env(safe-area-inset-bottom,0px))] md:pb-3">
-            <div className={`w-full max-w-4xl rounded-2xl border max-h-[90vh] overflow-y-auto ${darkMode ? "bg-gray-900 border-gray-700 text-white" : "bg-white border-gray-200 text-gray-900"}`}>
-              <div className="sticky top-0 z-10 px-4 py-3 border-b flex items-center justify-between bg-inherit">
-                <h3 className="font-bold text-lg">Hirdetés részletei</h3>
-                <button onClick={() => setSelectedListing(null)} className="p-2 rounded-lg hover:bg-gray-200/20"><X className="w-5 h-5" /></button>
-              </div>
-
-              <div className="p-4 space-y-4">
+          <div className="fixed inset-0 z-[75] flex flex-col" style={{ background: darkMode ? "#030712" : "#f4f7fb" }}>
+            {/* Back bar */}
+            <div className={`shrink-0 flex items-center gap-3 px-4 py-3 border-b pt-safe-small ${darkMode ? "bg-gray-950 border-gray-800 text-white" : "bg-white border-gray-200 text-gray-900"}`}>
+              <button
+                onClick={() => setSelectedListing(null)}
+                className={`inline-flex items-center gap-1 rounded-full px-3 py-2 text-sm font-semibold ${darkMode ? "bg-gray-800 text-gray-100" : "bg-gray-100 text-gray-900"}`}
+              >
+                <ArrowLeft className="w-4 h-4" /> Vissza
+              </button>
+              <h3 className="font-bold text-base truncate flex-1">{selectedListing.title}</h3>
+            </div>
+            {/* Scrollable content */}
+            <div className={`flex-1 overflow-y-auto ${darkMode ? "bg-gray-950" : "bg-white"}`}>
+              <div className="p-4 space-y-4 pb-32">
                 <div className="relative w-full h-72 rounded-2xl overflow-hidden bg-gray-100">
                   {selectedListing.images[detailImageIndex] ? (
                     <>
