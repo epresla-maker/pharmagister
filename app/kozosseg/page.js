@@ -2171,6 +2171,69 @@ export default function KozossegPage() {
 
   return (
     <div className={`min-h-screen pb-24 ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
+      <style jsx global>{`
+        @keyframes piacterSpotlightPass {
+          0% {
+            transform: translateX(-140%) scale(1);
+            opacity: 0;
+          }
+          18% {
+            opacity: 0.35;
+          }
+          45% {
+            transform: translateX(0%) scale(2);
+            opacity: 1;
+          }
+          72% {
+            transform: translateX(140%) scale(1.15);
+            opacity: 0.18;
+          }
+          100% {
+            transform: translateX(140%) scale(1);
+            opacity: 0;
+          }
+        }
+
+        .piacter-spotlight {
+          position: relative;
+          display: inline-flex;
+          align-items: center;
+          justify-content: flex-start;
+          overflow: visible;
+        }
+
+        .piacter-spotlight-base {
+          position: relative;
+          z-index: 2;
+        }
+
+        .piacter-spotlight-copy {
+          position: absolute;
+          inset: 0;
+          z-index: 3;
+          display: inline-flex;
+          align-items: center;
+          justify-content: flex-start;
+          color: #7c3aed;
+          text-shadow: 0 0 18px rgba(124, 58, 237, 0.22);
+          animation: piacterSpotlightPass 7.5s ease-in-out infinite;
+          transform-origin: center center;
+          pointer-events: none;
+          will-change: transform, opacity;
+        }
+
+        .piacter-spotlight-sheen {
+          position: absolute;
+          inset: -0.2rem -0.4rem;
+          z-index: 1;
+          border-radius: 999px;
+          background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.55) 46%, rgba(255,255,255,0.95) 50%, rgba(255,255,255,0.55) 54%, transparent 100%);
+          filter: blur(1px);
+          animation: piacterSpotlightPass 7.5s ease-in-out infinite;
+          pointer-events: none;
+          mix-blend-mode: screen;
+        }
+      `}</style>
       {/* Header + Navigációs gombok + Írj valamit */}
       <div
         className="pt-safe-small pb-4"
@@ -2228,7 +2291,11 @@ export default function KozossegPage() {
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-fuchsia-50 text-fuchsia-600">
                 <MarketCubeGlyph className="w-4 h-4 flex-shrink-0" />
               </span>
-              <span>Piactér</span>
+              <span className="piacter-spotlight min-w-[4.6rem] h-6">
+                <span className="piacter-spotlight-sheen" aria-hidden="true" />
+                <span className="piacter-spotlight-base">Piactér</span>
+                <span className="piacter-spotlight-copy" aria-hidden="true">Piactér</span>
+              </span>
             </button>
           </div>
         </div>
