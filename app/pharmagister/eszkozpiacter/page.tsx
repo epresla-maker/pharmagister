@@ -407,7 +407,8 @@ export default function EszkozPiacterPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
   const [headerVisible, setHeaderVisible] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
+  const lastScrollRef = useRef(0);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout>();
 
   const [draft, setDraft] = useState<ComposerDraft>({
     title: "",
@@ -662,25 +663,25 @@ export default function EszkozPiacterPage() {
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-      const scrollingDown = currentScrollY > lastScrollY;
-      
-      if (currentScrollY < 50) {
-        // Always show header at top of page
-        setHeaderVisible(true);
-      } else if (scrollingDown && currentScrollY > lastScrollY + 10) {
-        // Scrolling down significantly - hide header
-        setHeaderVisible(false);
-      } else if (!scrollingDown && currentScrollY < lastScrollY - 10) {
-        // Scrolling up significantly - show header
-        setHeaderVisible(true);
-      }
-      
-      setLastScrollY(currentScrollY);
+      const isScrollingDown = currentScrollY > lastScrollRef.current;
+
+      // Show header at top or when scrolling up
+      setHeaderVisible(!isScrollingDown || currentScrollY < 100);
+      lastScrollRef.current = currentScrollY;
+
+      // Debounce to prevent excessive state updates
+      clearTimeout(scrollTimeoutRef.current);
+      scrollTimeoutRef.current = setTimeout(() => {
+        lastScrollRef.current = currentScrollY;
+      }, 150);
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [lastScrollY]);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      clearTimeout(scrollTimeoutRef.current);
+    };
+  }, []);
 
   const categoryCountMap = useMemo(() => {
     const map = new Map<string, number>();
@@ -1559,7 +1560,7 @@ export default function EszkozPiacterPage() {
   return (
     <RouteGuard>
       <div className={`min-h-screen pb-24 ${darkMode ? "bg-gray-950 text-white" : "bg-[#f4f7fb] text-gray-900"}`}>
-        <div className={`sticky top-0 z-30 border-b pt-safe-small backdrop-blur-xl transition-all duration-300 ease-in-out overflow-hidden ${darkMode ? "bg-gray-950/88 border-gray-800" : "bg-white/88 border-gray-200"}`} style={{ maxHeight: headerVisible ? "500px" : "0px" }}>
+        <div className={`fixed top-0 left-0 right-0 z-30 border-b pt-safe-small backdrop-blur-xl transition-transform duration-300 ease-in-out ${darkMode ? "bg-gray-950/88 border-gray-800" : "bg-white/88 border-gray-200"}`} style={{ transform: headerVisible ? "translateY(0)" : "translateY(-100%)" }}>
           <div className="absolute inset-x-0 top-0 h-24 pointer-events-none bg-gradient-to-b from-blue-500/10 to-transparent" />
 
           <div className="max-w-6xl mx-auto px-4 pt-3 pb-2 flex items-center gap-3 relative z-10">
@@ -1709,7 +1710,7 @@ export default function EszkozPiacterPage() {
           </div>
         </div>
 
-        <main className="max-w-6xl mx-auto px-4 py-5 space-y-6">
+        <main className="max-w-6xl mx-auto px-4 py-5 space-y-6 pt-[280px]">
           {viewMode === "eladas" ? (
             <>
               <section className={`rounded-[2rem] p-4 md:p-5 border shadow-[0_12px_40px_rgba(15,23,42,0.08)] ${darkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200"}`}>
