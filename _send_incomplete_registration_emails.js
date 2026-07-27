@@ -5,6 +5,8 @@ const { Resend } = require('resend');
 
 const SAMPLE_RECIPIENT = 'epresla@icloud.com';
 const APP_URL = (process.env.NEXT_PUBLIC_APP_URL || 'https://pharmagister.hu').trim().replace(/\/$/, '');
+const CAMPAIGN_COLLECTION = 'emailCampaigns';
+const CAMPAIGN_TYPE = 'incomplete_registration_reminder';
 
 function getArgValue(name) {
   const prefix = `--${name}=`;
@@ -157,6 +159,32 @@ async function sendEmail({ to, subject, html }) {
   });
 }
 
+async function createCampaignLog({ recipients, includeAll, hours, subject, mode }) {
+  const db = admin.firestore();
+  const campaignRef = db.collection(CAMPAIGN_COLLECTION).doc();
+  const sentAt = admin.firestore.Timestamp.now();
+
+  await campaignRef.set({
+    type: CAMPAIGN_TYPE,
+    subject,
+    audienceMode: includeAll ? 'all' : 'recent',
+    lookbackHours: includeAll ? null : hours,
+    mode,
+    recipientCount: recipients.length,
+    recipients: recipients.map((user) => ({
+      userId: user.id,
+      email: user.email,
+      displayName: user.displayName || null,
+    })),
+    sentAt,
+    createdAt: sentAt,
+    appUrl: `${APP_URL}/pharmagister`,
+    createdBy: 'script:_send_incomplete_registration_emails.js',
+  });
+
+  return { campaignId: campaignRef.id, sentAt };
+}
+
 async function main() {
   initFirebase();
 
@@ -164,10 +192,11 @@ async function main() {
   const includeAll = hasFlag('all');
   const sampleOnly = hasFlag('sample');
   const previewLive = hasFlag('preview-live');
+  const logOnly = hasFlag('log-only');
   const sendBulk = hasFlag('send');
 
-  if (!sampleOnly && !previewLive && !sendBulk) {
-    throw new Error('Hasznalat: node _send_incomplete_registration_emails.js --sample vagy --preview-live vagy --send [--hours=24] [--all]');
+  if (!sampleOnly && !previewLive && !logOnly && !sendBulk) {
+    throw new Error('Hasznalat: node _send_incomplete_registration_emails.js --sample vagy --preview-live vagy --log-only vagy --send [--hours=24] [--all]');
   }
 
   const recipients = await loadIncompleteUsers(hours, includeAll);
@@ -203,6 +232,33 @@ async function main() {
     return;
   }
 
+  if (logOnly) {
+    const email = buildRecipientEmail(recipients[0]);
+    const campaign = await createCampaignLog({
+      recipients,
+      includeAll,
+      hours,
+      subject: email.subject,
+      mode: 'log-only',
+    });
+    console.log(JSON.stringify({
+      logged: true,
+      campaignId: campaign.campaignId,
+      recipientCount: recipients.length,
+      sentAt: campaign.sentAt.toDate().toISOString(),
+    }, null, 2));
+    return;
+  }
+
+  const email = buildRecipientEmail(recipients[0]);
+  const campaign = await createCampaignLog({
+    recipients,
+    includeAll,
+    hours,
+    subject: email.subject,
+    mode: 'send',
+  });
+
   let sent = 0;
   const failed = [];
 
@@ -222,7 +278,7 @@ async function main() {
     }
   }
 
-  console.log(JSON.stringify({ sent, failed }, null, 2));
+  console.log(JSON.stringify({ sent, failed, campaignId: campaign.campaignId }, null, 2));
 }
 
 main().catch((error) => {
