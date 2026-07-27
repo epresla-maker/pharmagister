@@ -406,6 +406,8 @@ export default function EszkozPiacterPage() {
 
   const [refreshing, setRefreshing] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
+  const [headerVisible, setHeaderVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
 
   const [draft, setDraft] = useState<ComposerDraft>({
     title: "",
@@ -656,6 +658,29 @@ export default function EszkozPiacterPage() {
       window.removeEventListener("touchend", onTouchEnd);
     };
   }, [pullDistance, refreshing, reloadAll]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      const scrollingDown = currentScrollY > lastScrollY;
+      
+      if (currentScrollY < 50) {
+        // Always show header at top of page
+        setHeaderVisible(true);
+      } else if (scrollingDown && currentScrollY > lastScrollY + 10) {
+        // Scrolling down significantly - hide header
+        setHeaderVisible(false);
+      } else if (!scrollingDown && currentScrollY < lastScrollY - 10) {
+        // Scrolling up significantly - show header
+        setHeaderVisible(true);
+      }
+      
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [lastScrollY]);
 
   const categoryCountMap = useMemo(() => {
     const map = new Map<string, number>();
@@ -1534,7 +1559,7 @@ export default function EszkozPiacterPage() {
   return (
     <RouteGuard>
       <div className={`min-h-screen pb-24 ${darkMode ? "bg-gray-950 text-white" : "bg-[#f4f7fb] text-gray-900"}`}>
-        <div className={`sticky top-0 z-30 border-b pt-safe-small backdrop-blur-xl ${darkMode ? "bg-gray-950/88 border-gray-800" : "bg-white/88 border-gray-200"}`}>
+        <div className={`sticky top-0 z-30 border-b pt-safe-small backdrop-blur-xl transition-all duration-300 ease-in-out ${darkMode ? "bg-gray-950/88 border-gray-800" : "bg-white/88 border-gray-200"}`} style={{ transform: `translateY(${headerVisible ? 0 : -200}px)` }}>
           <div className="absolute inset-x-0 top-0 h-24 pointer-events-none bg-gradient-to-b from-blue-500/10 to-transparent" />
 
           <div className="max-w-6xl mx-auto px-4 pt-3 pb-2 flex items-center gap-3 relative z-10">
