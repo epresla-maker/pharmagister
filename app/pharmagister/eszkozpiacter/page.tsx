@@ -1559,7 +1559,7 @@ export default function EszkozPiacterPage() {
   return (
     <RouteGuard>
       <div className={`min-h-screen pb-24 ${darkMode ? "bg-gray-950 text-white" : "bg-[#f4f7fb] text-gray-900"}`}>
-        <div className={`sticky top-0 z-30 border-b pt-safe-small backdrop-blur-xl transition-all duration-300 ease-in-out ${darkMode ? "bg-gray-950/88 border-gray-800" : "bg-white/88 border-gray-200"}`} style={{ transform: `translateY(${headerVisible ? 0 : -200}px)` }}>
+        <div className={`sticky top-0 z-30 border-b pt-safe-small backdrop-blur-xl transition-all duration-300 ease-in-out overflow-hidden ${darkMode ? "bg-gray-950/88 border-gray-800" : "bg-white/88 border-gray-200"}`} style={{ maxHeight: headerVisible ? "500px" : "0px" }}>
           <div className="absolute inset-x-0 top-0 h-24 pointer-events-none bg-gradient-to-b from-blue-500/10 to-transparent" />
 
           <div className="max-w-6xl mx-auto px-4 pt-3 pb-2 flex items-center gap-3 relative z-10">
