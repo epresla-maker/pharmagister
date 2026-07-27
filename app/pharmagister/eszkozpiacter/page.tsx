@@ -408,7 +408,7 @@ export default function EszkozPiacterPage() {
   const [pullDistance, setPullDistance] = useState(0);
   const [headerVisible, setHeaderVisible] = useState(true);
   const lastScrollRef = useRef(0);
-  const scrollTimeoutRef = useRef<NodeJS.Timeout>();
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const [draft, setDraft] = useState<ComposerDraft>({
     title: "",
