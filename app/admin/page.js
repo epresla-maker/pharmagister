@@ -281,6 +281,12 @@ export default function AdminPage() {
               {market === 'de' ? '📨 Kampagnen-E-Mail Text' : '📨 Kampány levél szöveg'}
             </button>
             <button
+              onClick={() => router.push('/admin/restored-pharmacy-registrations')}
+              className="bg-emerald-700 text-white px-3 py-2 rounded-lg hover:bg-emerald-800 text-xs sm:text-sm w-full"
+            >
+              {market === 'de' ? '✅ Wiederhergestellte Apotheken-Registrierungen' : '✅ Helyreállított gyógyszertári regisztrációk'}
+            </button>
+            <button
               onClick={() => router.push('/admin/demands')}
               className="bg-violet-600 text-white px-3 py-2 rounded-lg hover:bg-violet-700 text-xs sm:text-sm w-full"
             >
