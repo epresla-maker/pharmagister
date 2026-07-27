@@ -665,13 +665,34 @@ export default function EszkozPiacterPage() {
     if (!el) return;
 
     let ticking = false;
+    let peakScrollY = 0; // track highest scroll position reached
 
     const handleScroll = () => {
       if (!ticking) {
         requestAnimationFrame(() => {
           const currentScrollY = el.scrollTop;
           const isScrollingDown = currentScrollY > lastScrollRef.current;
-          setHeaderVisible(!isScrollingDown || currentScrollY < 60);
+
+          // Track the peak (furthest down we've been)
+          if (currentScrollY > peakScrollY) {
+            peakScrollY = currentScrollY;
+          }
+
+          if (currentScrollY < 60) {
+            // Always show at top
+            setHeaderVisible(true);
+          } else if (isScrollingDown) {
+            // Hide when scrolling down
+            setHeaderVisible(false);
+          } else {
+            // Only show when scrolling up if we've actually moved up 50px+ from peak
+            // This ignores iOS elastic bounce at the bottom
+            if (peakScrollY - currentScrollY > 50) {
+              setHeaderVisible(true);
+              peakScrollY = currentScrollY; // reset peak so next hide works cleanly
+            }
+          }
+
           lastScrollRef.current = currentScrollY;
           ticking = false;
         });
