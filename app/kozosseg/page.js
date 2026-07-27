@@ -2177,16 +2177,16 @@ export default function KozossegPage() {
             transform: translateX(-140%) scale(1);
             opacity: 0;
           }
-          18% {
-            opacity: 0.35;
+          22% {
+            opacity: 0.16;
           }
-          45% {
-            transform: translateX(0%) scale(2);
-            opacity: 1;
+          48% {
+            transform: translateX(0%) scale(1.45);
+            opacity: 0.78;
           }
           72% {
-            transform: translateX(140%) scale(1.15);
-            opacity: 0.18;
+            transform: translateX(140%) scale(1.08);
+            opacity: 0.12;
           }
           100% {
             transform: translateX(140%) scale(1);
@@ -2214,9 +2214,9 @@ export default function KozossegPage() {
           display: inline-flex;
           align-items: center;
           justify-content: flex-start;
-          color: #7c3aed;
-          text-shadow: 0 0 18px rgba(124, 58, 237, 0.22);
-          animation: piacterSpotlightPass 7.5s ease-in-out infinite;
+          color: #5b21b6;
+          text-shadow: 0 0 10px rgba(91, 33, 182, 0.14);
+          animation: piacterSpotlightPass 10.5s ease-in-out infinite;
           transform-origin: center center;
           pointer-events: none;
           will-change: transform, opacity;
@@ -2227,11 +2227,11 @@ export default function KozossegPage() {
           inset: -0.2rem -0.4rem;
           z-index: 1;
           border-radius: 999px;
-          background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.55) 46%, rgba(255,255,255,0.95) 50%, rgba(255,255,255,0.55) 54%, transparent 100%);
-          filter: blur(1px);
-          animation: piacterSpotlightPass 7.5s ease-in-out infinite;
+          background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.18) 44%, rgba(255,255,255,0.82) 50%, rgba(255,255,255,0.18) 56%, transparent 100%);
+          filter: blur(1.6px);
+          animation: piacterSpotlightPass 10.5s ease-in-out infinite;
           pointer-events: none;
-          mix-blend-mode: screen;
+          mix-blend-mode: soft-light;
         }
       `}</style>
       {/* Header + Navigációs gombok + Írj valamit */}
@@ -2291,7 +2291,7 @@ export default function KozossegPage() {
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-fuchsia-50 text-fuchsia-600">
                 <MarketCubeGlyph className="w-4 h-4 flex-shrink-0" />
               </span>
-              <span className="piacter-spotlight min-w-[4.6rem] h-6">
+              <span className="piacter-spotlight min-w-[4.8rem] h-6 tracking-[0.01em]">
                 <span className="piacter-spotlight-sheen" aria-hidden="true" />
                 <span className="piacter-spotlight-base">Piactér</span>
                 <span className="piacter-spotlight-copy" aria-hidden="true">Piactér</span>
