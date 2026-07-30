@@ -86,6 +86,7 @@ export default function ProfessionalCampaignComposerPage() {
   const [dragTarget, setDragTarget] = useState(null);
   const [editingTarget, setEditingTarget] = useState(null);
   const [pinchEnabled, setPinchEnabled] = useState(false);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
 
   const previewRef = useRef(null);
   const titleBoxRef = useRef(null);
@@ -106,6 +107,7 @@ export default function ProfessionalCampaignComposerPage() {
     if (typeof window === "undefined") return;
 
     const coarsePointer = typeof window.matchMedia === "function" ? window.matchMedia("(pointer: coarse)").matches : window.navigator.maxTouchPoints > 0;
+    setIsTouchDevice(coarsePointer);
     setPinchEnabled(!coarsePointer);
   }, []);
 
@@ -244,7 +246,7 @@ export default function ProfessionalCampaignComposerPage() {
   };
 
   const handleTextPointerDown = (event, target) => {
-    if (editingTarget === target || pinchStateRef.current.active) {
+    if (isTouchDevice || editingTarget === target || pinchStateRef.current.active) {
       return;
     }
 
@@ -526,7 +528,7 @@ export default function ProfessionalCampaignComposerPage() {
                       style={{
                         left: `${titlePosition.x}%`,
                         top: `${titlePosition.y}%`,
-                        touchAction: "none",
+                        touchAction: isTouchDevice ? "manipulation" : "none",
                       }}
                     >
                       {editingTarget === "title" ? (
@@ -573,7 +575,7 @@ export default function ProfessionalCampaignComposerPage() {
                       style={{
                         left: `${messagePosition.x}%`,
                         top: `${messagePosition.y}%`,
-                        touchAction: "none",
+                        touchAction: isTouchDevice ? "manipulation" : "none",
                       }}
                     >
                       {editingTarget === "message" ? (
