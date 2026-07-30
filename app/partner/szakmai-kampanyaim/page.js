@@ -216,7 +216,7 @@ export default function ProfessionalCampaignListPage() {
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <h2 className="text-lg font-semibold text-slate-900">{item.title || "Névtelen kampány"}</h2>
-                        <p className="mt-1 text-sm text-slate-600">{item.campaignType || "Kampány"}</p>
+                        <p className="mt-1 text-sm text-slate-600">Szakmai kampány</p>
                         {isAdmin && (
                           <p className="mt-1 text-xs text-slate-500">Tulajdonos: {item.ownerName || item.ownerEmail || "-"}</p>
                         )}
