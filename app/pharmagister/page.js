@@ -38,12 +38,12 @@ function PharmagisterContent() {
   
   // Pharmagister szerepkör: 'pharmacy' (Gyógyszertár), 'pharmacist' (Gyógyszerész), 'assistant' (Szakasszisztens)
   const pharmaRole = getEffectivePharmagisterRole(userData);
+  const partnerAccountTypes = new Set(['partner_advertiser', 'partner_marketplace', 'partner_professional']);
+  const normalizedAccountType = String(userData?.accountType || '').trim().toLowerCase();
   const isPartnerAccount = Boolean(
-    userData?.partnerAdvertiser ||
-    userData?.partnerProfessional ||
-    userData?.accountType === 'partner_advertiser' ||
-    userData?.accountType === 'partner_marketplace' ||
-    userData?.accountType === 'partner_professional'
+    userData?.partnerAdvertiser === true ||
+    userData?.partnerProfessional === true ||
+    partnerAccountTypes.has(normalizedAccountType)
   );
   const showPharmaNavbar = pharmaRole && activeTab !== 'schedule-manager';
   const profileComplete = Boolean(userData?.pharmaProfileComplete || hasPharmagisterProfileData(userData));
