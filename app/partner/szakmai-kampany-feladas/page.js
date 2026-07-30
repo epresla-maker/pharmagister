@@ -246,6 +246,15 @@ export default function ProfessionalCampaignComposerPage() {
     }
   };
 
+  const handlePreviewTap = () => {
+    if (!coverImageDataUrl) return;
+
+    setShowTextEditor(true);
+    if (!editingTarget) {
+      setEditingTarget("title");
+    }
+  };
+
   const handleTextPointerDown = (event, target) => {
     if (isTouchDevice || editingTarget === target || pinchStateRef.current.active) {
       return;
@@ -521,12 +530,22 @@ export default function ProfessionalCampaignComposerPage() {
                   <div className="mb-1 text-sm text-slate-300">Elonezet</div>
                   <div className="mb-4 text-xs text-slate-400">Koppints a szovegre szerkeszteshez. Ket ujjal csippents a meretezeshez.</div>
 
-                  <div ref={previewRef} className="relative mx-auto aspect-[9/16] w-full max-w-[320px] overflow-hidden rounded-[24px] border border-white/10 bg-gradient-to-br from-slate-900 to-slate-800">
+                  <div
+                    ref={previewRef}
+                    onClick={handlePreviewTap}
+                    className="relative mx-auto aspect-[9/16] w-full max-w-[320px] cursor-pointer overflow-hidden rounded-[24px] border border-white/10 bg-gradient-to-br from-slate-900 to-slate-800"
+                  >
                     {coverImageDataUrl ? (
                       <img src={coverImageDataUrl} alt="Kampany kep" className="absolute inset-0 h-full w-full object-cover" />
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-emerald-500/30 via-cyan-500/20 to-violet-500/30 text-center text-sm text-slate-200">
                         Kep helye - ide kerul a kampany vizualis eleme
+                      </div>
+                    )}
+
+                    {coverImageDataUrl && !showTextEditor && (
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/80 to-transparent px-4 py-4 text-center text-sm font-medium text-slate-100">
+                        Koppints a szöveg szerkesztéséhez
                       </div>
                     )}
 
