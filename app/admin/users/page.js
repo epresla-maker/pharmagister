@@ -22,6 +22,7 @@ export default function AdminUsersPage() {
   const [pushSubs, setPushSubs] = useState([]);
   const [loadingData, setLoadingData] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [deletingUserId, setDeletingUserId] = useState(null);
 
   useEffect(() => {
     if (!loading) {
@@ -69,6 +70,55 @@ export default function AdminUsersPage() {
       console.error('Error loading users:', error);
     } finally {
       setLoadingData(false);
+    }
+  };
+
+  const copyUserId = async (userId) => {
+    try {
+      await navigator.clipboard.writeText(userId);
+      alert(market === 'de' ? 'UID kopiert.' : 'UID másolva.');
+    } catch (error) {
+      console.error('Clipboard error:', error);
+      alert(market === 'de' ? 'Kopieren fehlgeschlagen.' : 'Másolás sikertelen.');
+    }
+  };
+
+  const deleteUserCompletely = async (targetUserId, targetEmail) => {
+    const confirmed = window.confirm(
+      market === 'de'
+        ? `Benutzer wirklich loeschen?\n\nUID: ${targetUserId}\nE-Mail: ${targetEmail || '-'}\n\nDer Account wird aus Firebase Auth und Firestore geloescht.`
+        : `Biztosan törlöd a felhasználót?\n\nUID: ${targetUserId}\nEmail: ${targetEmail || '-'}\n\nA fiók törlődik Firebase Auth-ból és Firestore-ból is.`
+    );
+    if (!confirmed) return;
+
+    setDeletingUserId(targetUserId);
+    try {
+      const idToken = await user.getIdToken();
+      const response = await fetch('/api/admin/delete-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ userId: targetUserId }),
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result?.error || (market === 'de' ? 'Loeschung fehlgeschlagen' : 'Törlés sikertelen'));
+      }
+
+      setUsers((prev) => prev.filter((u) => u.id !== targetUserId));
+      alert(
+        market === 'de'
+          ? `Benutzer geloescht.\n${result?.message || ''}`
+          : `Felhasználó törölve.\n${result?.message || ''}`
+      );
+    } catch (error) {
+      console.error('Delete user error:', error);
+      alert((market === 'de' ? 'Hiba törlés közben: ' : 'Hiba törlés közben: ') + error.message);
+    } finally {
+      setDeletingUserId(null);
     }
   };
 
@@ -225,6 +275,7 @@ export default function AdminUsersPage() {
                     <th className="py-3 px-4">{market === 'de' ? 'Letzte Anmeldung' : 'Utolsó belépés'}</th>
                     <th className="py-3 px-4 text-center">Push</th>
                     <th className="py-3 px-4 text-center">{market === 'de' ? 'Status' : 'Státusz'}</th>
+                    <th className="py-3 px-4 text-center">{market === 'de' ? 'Aktionen' : 'Műveletek'}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -234,7 +285,7 @@ export default function AdminUsersPage() {
                     const hasPush = pushUserIds.has(u.id);
                     const isActivated = !!(u.lastLogin || u.lastSeen);
                     return (
-                      <tr key={u.id} className="border-b last:border-0 hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => router.push(`/profil/${u.id}`)}>
+                      <tr key={u.id} className="border-b last:border-0 hover:bg-gray-50 transition-colors">
                         <td className="py-3 px-4 text-center text-gray-400 text-xs font-mono">{index + 1}</td>
                         <td className="py-3 px-4">
                           <p className="font-medium text-gray-800">
@@ -287,6 +338,34 @@ export default function AdminUsersPage() {
                             </span>
                           )}
                         </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => router.push(`/profil/${u.id}`)}
+                              className="rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100"
+                            >
+                              {market === 'de' ? 'Profil' : 'Profil'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => copyUserId(u.id)}
+                              className="rounded bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-200"
+                            >
+                              UID
+                            </button>
+                            <button
+                              type="button"
+                              disabled={deletingUserId === u.id}
+                              onClick={() => deleteUserCompletely(u.id, u.email)}
+                              className="rounded bg-red-50 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
+                            >
+                              {deletingUserId === u.id
+                                ? (market === 'de' ? 'Loeschen...' : 'Törlés...')
+                                : (market === 'de' ? 'Loeschen' : 'Törlés')}
+                            </button>
+                          </div>
+                        </td>
                       </tr>
                     );
                   })}
@@ -302,7 +381,7 @@ export default function AdminUsersPage() {
                 const hasPush = pushUserIds.has(u.id);
                 const isActivated = !!(u.lastLogin || u.lastSeen);
                 return (
-                  <div key={u.id} className="p-4 cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => router.push(`/profil/${u.id}`)}>
+                  <div key={u.id} className="p-4 hover:bg-gray-50 transition-colors">
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-start gap-2">
                         <span className="text-xs text-gray-400 font-mono mt-0.5">{index + 1}.</span>
@@ -341,6 +420,32 @@ export default function AdminUsersPage() {
                           <span className="text-red-400">{market === 'de' ? 'Nie' : 'Soha'}</span>
                         )}
                       </span>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => router.push(`/profil/${u.id}`)}
+                        className="rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700"
+                      >
+                        {market === 'de' ? 'Profil' : 'Profil'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => copyUserId(u.id)}
+                        className="rounded bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700"
+                      >
+                        UID
+                      </button>
+                      <button
+                        type="button"
+                        disabled={deletingUserId === u.id}
+                        onClick={() => deleteUserCompletely(u.id, u.email)}
+                        className="rounded bg-red-50 px-2 py-1 text-xs font-medium text-red-700 disabled:opacity-50"
+                      >
+                        {deletingUserId === u.id
+                          ? (market === 'de' ? 'Loeschen...' : 'Törlés...')
+                          : (market === 'de' ? 'Loeschen' : 'Törlés')}
+                      </button>
                     </div>
                   </div>
                 );

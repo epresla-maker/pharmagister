@@ -58,8 +58,27 @@ export async function POST(request) {
     console.log('🗑️ Törlés indul:', userId);
 
     let deletedPosts = 0;
+    let authDeleted = false;
 
-    // 1. Firestore-ból törlés
+    // 1. Firebase Auth törlés (email ezzel szabadul fel új regisztrációhoz)
+    try {
+      await admin.auth().deleteUser(userId);
+      authDeleted = true;
+      console.log('✅ User törölve Firebase Auth-ból:', userId);
+    } catch (authError) {
+      if (authError?.code === 'auth/user-not-found') {
+        // Már nincs auth user - email nincs foglalva Auth-ban
+        console.warn('ℹ️ Auth user nem található, folytatás Firestore törléssel:', userId);
+      } else {
+        console.error('❌ Auth törlés sikertelen:', authError.message);
+        return NextResponse.json({
+          error: copy.warningManualAuthDelete,
+          details: authError.message,
+        }, { status: 500 });
+      }
+    }
+
+    // 2. Firestore-ból törlés
     try {
       await admin.firestore().collection('users').doc(userId).delete();
       console.log('✅ User törölve Firestore-ból:', userId);
@@ -67,7 +86,7 @@ export async function POST(request) {
       console.error('⚠️ Firestore törlési hiba:', firestoreError.message);
     }
 
-    // 2. Kapcsolódó adatok törlése (posztok)
+    // 3. Kapcsolódó adatok törlése (posztok)
     try {
       const postsSnapshot = await admin.firestore()
         .collection('servicePosts')
@@ -82,26 +101,12 @@ export async function POST(request) {
       console.error('⚠️ Posztok törlési hiba:', postsError.message);
     }
 
-    // 3. Firebase Auth törlés (utoljára, ha sikertelen se probléma)
-    try {
-      await admin.auth().deleteUser(userId);
-      console.log('✅ User törölve Firebase Auth-ból is:', userId);
-      
-      return NextResponse.json({ 
-        success: true, 
-        message: copy.successFull,
-        deletedPosts: deletedPosts
-      });
-    } catch (authError) {
-      console.error('⚠️ Auth törlés nem sikerült, de Firestore törölve:', authError.message);
-      
-      return NextResponse.json({ 
-        success: true, 
-        message: copy.successPartial,
-        deletedPosts: deletedPosts,
-        warning: copy.warningManualAuthDelete
-      });
-    }
+    return NextResponse.json({ 
+      success: true,
+      message: authDeleted ? copy.successFull : copy.successPartial,
+      deletedPosts: deletedPosts,
+      authDeleted,
+    });
 
   } catch (error) {
     console.error('❌ User törlési hiba:', error);
