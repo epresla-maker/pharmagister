@@ -30,7 +30,7 @@ export default function LoginPage() {
         return;
       }
 
-      router.push('/pharmagister');
+      router.push('/');
     } catch (err) {
       setError(market === 'de' ? 'Falsche E-Mail oder falsches Passwort' : 'Hibás email vagy jelszó');
     } finally {

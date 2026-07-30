@@ -347,7 +347,12 @@ export default function EszkozPiacterPage() {
   const { darkMode } = useTheme();
 
   const role = getEffectivePharmagisterRole(userData);
-  const canUseMarketplace = Boolean(role);
+  const isMarketplacePartner = Boolean(
+    userData?.partnerAdvertiser ||
+      userData?.accountType === "partner_advertiser" ||
+      userData?.accountType === "partner_marketplace"
+  );
+  const canUseMarketplace = Boolean(role || isMarketplacePartner);
   const isAdmin = ADMIN_EMAILS.has(String(user?.email || "").toLowerCase());
   const market = getClientMarket();
   const userLocation = [
@@ -1313,13 +1318,13 @@ export default function EszkozPiacterPage() {
 
       const payload: Record<string, any> = {
         postType: "equipment_marketplace",
-        market: "hu",
+        market: userData?.market || market || "hu",
         status: isAdmin ? "approved" : "pending",
         sellerId: user.uid,
         userId: user.uid,
         sellerName:
           userData?.displayName || userData?.pharmacyName || user.displayName || "Felhasználó",
-        sellerType: role || "szakmai",
+        sellerType: isMarketplacePartner ? "partner_marketplace" : role || "szakmai",
         title: draft.title.trim(),
         description: draft.description.trim(),
         category: draft.category,
@@ -1575,7 +1580,7 @@ export default function EszkozPiacterPage() {
           <div>
             <ShieldAlert className="w-10 h-10 mx-auto mb-3 text-amber-500" />
             <h2 className="text-lg font-semibold mb-2">Nincs hozzáférés</h2>
-            <p className={darkMode ? "text-gray-300" : "text-gray-600"}>A Piactér csak szakmai Pharmagister profiloknak érhető el.</p>
+            <p className={darkMode ? "text-gray-300" : "text-gray-600"}>A Piactér szakmai Pharmagister profiloknak és partner hirdetőknek érhető el.</p>
           </div>
         </div>
       </RouteGuard>
@@ -1589,7 +1594,7 @@ export default function EszkozPiacterPage() {
           <div className="absolute inset-x-0 top-0 h-24 pointer-events-none bg-gradient-to-b from-blue-500/10 to-transparent" />
 
           <div className="max-w-6xl mx-auto px-4 pt-3 pb-2 flex items-center gap-3 relative z-10">
-            <button onClick={() => router.push("/kozosseg")} className={`inline-flex items-center gap-1 rounded-full px-3 py-2 text-sm font-semibold ${darkMode ? "bg-gray-900 text-gray-100" : "bg-gray-100 text-gray-900"}`}>
+            <button onClick={() => router.push(isMarketplacePartner ? "/partner" : "/kozosseg")} className={`inline-flex items-center gap-1 rounded-full px-3 py-2 text-sm font-semibold ${darkMode ? "bg-gray-900 text-gray-100" : "bg-gray-100 text-gray-900"}`}>
               <ArrowLeft className="w-4 h-4" /> Vissza
             </button>
             <div className="ml-auto text-right">

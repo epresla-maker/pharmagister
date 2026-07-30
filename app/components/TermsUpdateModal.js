@@ -1,5 +1,5 @@
 "use client";
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { doc, updateDoc } from 'firebase/firestore';
@@ -18,10 +18,15 @@ export default function TermsUpdateModal() {
   const { darkMode } = useTheme();
   const market = getClientMarket();
   const [accepting, setAccepting] = useState(false);
+  const [acceptedVersion, setAcceptedVersion] = useState(null);
+
+  useEffect(() => {
+    setAcceptedVersion(userData?.termsAcceptedVersion || null);
+  }, [userData?.termsAcceptedVersion]);
 
   // Csak bejelentkezett felhasználóknak jelenik meg, akik még nem fogadták el az aktuális verziót
   if (!user || !userData) return null;
-  if (userData.termsAcceptedVersion === CURRENT_TERMS_VERSION) return null;
+  if (acceptedVersion === CURRENT_TERMS_VERSION) return null;
 
   const handleAccept = async () => {
     setAccepting(true);
@@ -30,6 +35,7 @@ export default function TermsUpdateModal() {
         termsAcceptedVersion: CURRENT_TERMS_VERSION,
         termsAcceptedAt: new Date().toISOString(),
       });
+      setAcceptedVersion(CURRENT_TERMS_VERSION);
     } catch (error) {
       console.error('Error accepting terms:', error);
       alert(market === 'de' ? 'Ein Fehler ist aufgetreten. Bitte versuche es erneut.' : 'Hiba történt. Kérjük, próbáld újra.');

@@ -201,6 +201,14 @@ const getFontFamilyCSS = (family) => {
   }
 };
 
+function toTimestampMs(value) {
+  if (!value) return 0;
+  if (typeof value.toMillis === 'function') return value.toMillis();
+  if (typeof value.toDate === 'function') return value.toDate().getTime();
+  const raw = new Date(value).getTime();
+  return Number.isFinite(raw) ? raw : 0;
+}
+
 // ============================================
 // POST CREATION MODAL
 // ============================================
@@ -1504,6 +1512,8 @@ function CommentThread({ postId, postText, postUserId, postIsAnonymous, darkMode
 // ============================================
 function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonClick, compactView, hideReactions }) {
   const market = getClientMarket();
+  const isCommunityPost = (post.sourceCollection || 'communityPosts') === 'communityPosts';
+  const canManagePost = isCommunityPost && (isAdmin || post.userId === user?.uid);
   const [showReactions, setShowReactions] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showCommentThread, setShowCommentThread] = useState(false);
@@ -1567,7 +1577,7 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonCli
   };
 
   const handleReaction = async (type) => {
-    if (!user) return;
+    if (!user || !isCommunityPost) return;
     setShowReactions(false);
 
     try {
@@ -1618,6 +1628,7 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonCli
   };
 
   const handleDelete = async () => {
+    if (!isCommunityPost) return;
     if (!window.confirm('Biztosan törölni szeretnéd ezt a posztot?')) return;
     setShowMenu(false);
     try {
@@ -1635,6 +1646,7 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonCli
   };
 
   const handleSaveEdit = async () => {
+    if (!isCommunityPost) return;
     if (!editText.trim() || editSubmitting) return;
     setEditSubmitting(true);
     try {
@@ -1730,6 +1742,11 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonCli
               <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${categoryData.color}`}>
                 {categoryData.emoji} {getCategoryLabel(categoryData.id, market)}
               </span>
+              {post.postType === 'professional_campaign' && (
+                <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${darkMode ? 'bg-emerald-900/40 text-emerald-300' : 'bg-emerald-100 text-emerald-700'}`}>
+                  Szakmai kampány
+                </span>
+              )}
 
             </div>
             <p className="text-xs text-gray-500 mt-0.5">
@@ -1761,7 +1778,7 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonCli
                 <Flag className="w-4 h-4" />
                 {market === 'de' ? 'Melden' : 'Jelentés'}
               </button>
-              {(isAdmin || post.userId === user?.uid) && (
+              {canManagePost && (
                 <button
                   onClick={handleStartEdit}
                   className={`w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left ${
@@ -1772,7 +1789,7 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonCli
                   {market === 'de' ? 'Bearbeiten' : 'Szerkesztés'}
                 </button>
               )}
-              {(isAdmin || post.userId === user?.uid) && (
+              {canManagePost && (
                 <button
                   onClick={handleDelete}
                   className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
@@ -1788,6 +1805,11 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonCli
 
       {/* Content */}
       <div className="pb-2">
+        {post.postType === 'professional_campaign' && post.campaignTitle && (
+          <h3 className={`px-3 sm:px-4 pb-2 text-base font-bold ${darkMode ? 'text-emerald-300' : 'text-emerald-700'}`}>
+            {post.campaignTitle}
+          </h3>
+        )}
         {isEditing ? (
           <div className="px-3 sm:px-4">
             <textarea
@@ -1889,70 +1911,78 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonCli
       <div className={`border-t py-2 flex items-center justify-around px-3 sm:px-4 ${
         darkMode ? 'border-gray-700' : 'border-gray-200'
       }`}>
-        {/* Reaction button */}
-        <div className="relative" ref={reactionsRef}>
-          <button
-            onClick={() => userReaction ? handleReaction(userReaction) : setShowReactions(!showReactions)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              userReaction
-                ? 'text-blue-600 dark:text-blue-400'
-                : darkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-50'
-            }`}
-          >
-            {userReaction ? (
-              <span className="text-lg">{REACTIONS.find(r => r.type === userReaction)?.emoji}</span>
-            ) : (
-              <Star className="w-4 h-4" />
-            )}
-            <span>{userReaction ? getReactionLabel(userReaction, market) : t('reaction', market)}</span>
-          </button>
+        {isCommunityPost ? (
+          <>
+            {/* Reaction button */}
+            <div className="relative" ref={reactionsRef}>
+              <button
+                onClick={() => userReaction ? handleReaction(userReaction) : setShowReactions(!showReactions)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  userReaction
+                    ? 'text-blue-600 dark:text-blue-400'
+                    : darkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-50'
+                }`}
+              >
+                {userReaction ? (
+                  <span className="text-lg">{REACTIONS.find(r => r.type === userReaction)?.emoji}</span>
+                ) : (
+                  <Star className="w-4 h-4" />
+                )}
+                <span>{userReaction ? getReactionLabel(userReaction, market) : t('reaction', market)}</span>
+              </button>
 
-          {/* Reaction picker */}
-          {showReactions && (
-            <div className={`absolute bottom-full left-0 mb-2 flex gap-1 p-2 rounded-2xl shadow-xl border z-20 ${
-              darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-200'
-            }`}>
-              {REACTIONS.map((r) => (
-                <button
-                  key={r.type}
-                  onClick={() => handleReaction(r.type)}
-                  className="text-2xl hover:scale-125 transition-transform p-1"
-                  title={getReactionLabel(r.type, market)}
-                >
-                  {r.emoji}
-                </button>
-              ))}
+              {/* Reaction picker */}
+              {showReactions && (
+                <div className={`absolute bottom-full left-0 mb-2 flex gap-1 p-2 rounded-2xl shadow-xl border z-20 ${
+                  darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-200'
+                }`}>
+                  {REACTIONS.map((r) => (
+                    <button
+                      key={r.type}
+                      onClick={() => handleReaction(r.type)}
+                      className="text-2xl hover:scale-125 transition-transform p-1"
+                      title={getReactionLabel(r.type, market)}
+                    >
+                      {r.emoji}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        {/* Comment count button */}
-        {commentCount > 0 && (
-          <button
-            onClick={() => { setAutoFocusComment(false); setShowCommentThread(true); }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              darkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-50'
-            }`}
-          >
-            <MessageCircle className="w-4 h-4" />
-            <span>{commentCount} {t('commentsSuffix', market)}</span>
-          </button>
+            {/* Comment count button */}
+            {commentCount > 0 && (
+              <button
+                onClick={() => { setAutoFocusComment(false); setShowCommentThread(true); }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  darkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-50'
+                }`}
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>{commentCount} {t('commentsSuffix', market)}</span>
+              </button>
+            )}
+
+            {/* Reply button */}
+            <button
+              onClick={() => { setAutoFocusComment(true); setShowCommentThread(true); }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                darkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-50'
+              }`}
+            >
+              <Send className="w-4 h-4" />
+              <span>{t('reply', market)}</span>
+            </button>
+          </>
+        ) : (
+          <div className={`text-sm font-medium ${darkMode ? 'text-emerald-300' : 'text-emerald-700'}`}>
+            Partner kampány bejegyzés
+          </div>
         )}
-
-        {/* Reply button */}
-        <button
-          onClick={() => { setAutoFocusComment(true); setShowCommentThread(true); }}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-            darkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-50'
-          }`}
-        >
-          <Send className="w-4 h-4" />
-          <span>{t('reply', market)}</span>
-        </button>
       </div>
 
       {/* Comment thread fullscreen - portal to body */}
-      {showCommentThread && typeof document !== 'undefined' && createPortal(
+      {isCommunityPost && showCommentThread && typeof document !== 'undefined' && createPortal(
         <CommentThread
           postId={post.id}
           postText={post.text}
@@ -2121,8 +2151,53 @@ export default function KozossegPage() {
       }
 
       const snapshot = await getDocs(q);
-      const fetchedPosts = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      setPosts(fetchedPosts);
+      const communityPosts = snapshot.docs.map(d => ({ id: d.id, ...d.data(), sourceCollection: 'communityPosts' }));
+
+      const campaignsQuery = query(
+        collection(db, 'partnerProfessionalCampaigns'),
+        where('status', '==', 'active'),
+        limit(30)
+      );
+      const campaignsSnapshot = await getDocs(campaignsQuery);
+      const campaignPosts = campaignsSnapshot.docs.map((d) => {
+        const row = d.data();
+        const ownerName = row.ownerName || (market === 'de' ? 'Fachpartner' : 'Szakmai partner');
+        const summaryText = row.description || row.targetAudience || (market === 'de' ? 'Fachkampagne' : 'Szakmai kampány');
+
+        return {
+          id: `campaign_${d.id}`,
+          sourceCollection: 'partnerProfessionalCampaigns',
+          sourceId: d.id,
+          postType: 'professional_campaign',
+          campaignType: row.campaignType || 'promotion',
+          campaignTitle: row.title || (market === 'de' ? 'Fachkampagne' : 'Szakmai kampány'),
+          campaignLandingUrl: row.landingUrl || null,
+          text: summaryText,
+          category: 'szakmai',
+          tags: ['szakmai-kampany'],
+          market: row.market || 'hu',
+          userId: row.ownerId || null,
+          isAnonymous: false,
+          style: null,
+          imageUrl: null,
+          createdAt: row.createdAt || row.updatedAt || null,
+          updatedAt: row.updatedAt || null,
+          reactions: {},
+          commentCount: 0,
+          reportCount: 0,
+          isHidden: false,
+          authorData: {
+            displayName: ownerName,
+            photoURL: null,
+          },
+        };
+      });
+
+      const mergedPosts = [...communityPosts, ...campaignPosts]
+        .sort((a, b) => toTimestampMs(b.createdAt || b.updatedAt) - toTimestampMs(a.createdAt || a.updatedAt))
+        .slice(0, 80);
+
+      setPosts(mergedPosts);
     } catch (error) {
       console.error('Error fetching community posts:', error);
     } finally {

@@ -127,6 +127,18 @@ export default function RegisterPage() {
           <div className="w-full max-w-md rounded-lg border border-white/70 bg-white/90 p-6 shadow-xl shadow-emerald-950/10 backdrop-blur-md sm:p-8">
         <h1 className="text-3xl font-bold text-center mb-2 text-emerald-950">{market === 'de' ? 'Registrierung' : 'Regisztráció'}</h1>
         <p className="text-emerald-800 text-center mb-6">Pharmagister</p>
+        <div className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-center">
+          <p className="text-sm text-emerald-900 mb-2">
+            {market === 'de' ? 'Partner-Werbekunde?' : 'Partner hirdető vagy?'}
+          </p>
+          <button
+            type="button"
+            onClick={() => router.push('/register/partner')}
+            className="inline-flex items-center justify-center rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
+          >
+            {market === 'de' ? 'Partner-Registrierung' : 'Partner regisztráció'}
+          </button>
+        </div>
 
         {success ? (
           <div className="text-center py-6">
