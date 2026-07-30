@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import RouteGuard from "@/app/components/RouteGuard";
 import { useAuth } from "@/context/AuthContext";
@@ -63,10 +63,17 @@ export default function ProfessionalCampaignComposerPage() {
   const [landingUrl, setLandingUrl] = useState("");
   const [coverImageDataUrl, setCoverImageDataUrl] = useState("");
   const [ctaLabel, setCtaLabel] = useState("Megnyitas");
+  const [textTransparent, setTextTransparent] = useState(false);
+  const [textPosition, setTextPosition] = useState({ x: 7, y: 70 });
   const [submitting, setSubmitting] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [loadingDraft, setLoadingDraft] = useState(false);
   const [error, setError] = useState("");
+  const [isDraggingText, setIsDraggingText] = useState(false);
+
+  const previewRef = useRef(null);
+  const textBoxRef = useRef(null);
+  const dragOffsetRef = useRef({ x: 0, y: 0 });
 
   const isProfessionalPartner = useMemo(
     () => Boolean(userData?.partnerProfessional || userData?.accountType === "partner_professional"),
@@ -95,6 +102,11 @@ export default function ProfessionalCampaignComposerPage() {
         setLandingUrl(row.landingUrl || "");
         setCoverImageDataUrl(row.coverImageDataUrl || row.coverImageUrl || "");
         setCtaLabel(row.ctaLabel || "Megnyitas");
+        setTextTransparent(Boolean(row.textTransparent));
+        setTextPosition({
+          x: Number.isFinite(row?.textPosition?.x) ? row.textPosition.x : 7,
+          y: Number.isFinite(row?.textPosition?.y) ? row.textPosition.y : 70,
+        });
       } catch (e) {
         console.error("Campaign load error:", e);
       } finally {
@@ -133,6 +145,8 @@ export default function ProfessionalCampaignComposerPage() {
       ctaLabel: ctaLabel.trim() || "Megnyitas",
       coverImageDataUrl: coverImageDataUrl || null,
       coverImageUrl: coverImageDataUrl || null,
+      textTransparent,
+      textPosition,
       landingUrl: landingUrl.trim() || null,
       status: "pending",
       market: userData?.market || "hu",
@@ -176,6 +190,52 @@ export default function ProfessionalCampaignComposerPage() {
       event.target.value = "";
     }
   };
+
+  const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
+  const handleTextPointerDown = (event) => {
+    if (!previewRef.current || !textBoxRef.current) return;
+
+    const boxRect = textBoxRef.current.getBoundingClientRect();
+    dragOffsetRef.current = {
+      x: event.clientX - boxRect.left,
+      y: event.clientY - boxRect.top,
+    };
+    setIsDraggingText(true);
+    event.preventDefault();
+  };
+
+  useEffect(() => {
+    if (!isDraggingText) return;
+
+    const handlePointerMove = (event) => {
+      if (!previewRef.current || !textBoxRef.current) return;
+
+      const containerRect = previewRef.current.getBoundingClientRect();
+      const boxRect = textBoxRef.current.getBoundingClientRect();
+
+      const maxLeft = Math.max(0, containerRect.width - boxRect.width);
+      const maxTop = Math.max(0, containerRect.height - boxRect.height);
+
+      const leftPx = clamp(event.clientX - containerRect.left - dragOffsetRef.current.x, 0, maxLeft);
+      const topPx = clamp(event.clientY - containerRect.top - dragOffsetRef.current.y, 0, maxTop);
+
+      setTextPosition({
+        x: (leftPx / Math.max(1, containerRect.width)) * 100,
+        y: (topPx / Math.max(1, containerRect.height)) * 100,
+      });
+    };
+
+    const handlePointerUp = () => setIsDraggingText(false);
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+    };
+  }, [isDraggingText]);
 
   return (
     <RouteGuard>
@@ -254,14 +314,32 @@ export default function ProfessionalCampaignComposerPage() {
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2">
+                  <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={textTransparent}
+                      onChange={(e) => setTextTransparent(e.target.checked)}
+                      className="h-4 w-4 accent-emerald-600"
+                    />
+                    Szoveg hattere atlatszo
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setTextPosition({ x: 7, y: 70 })}
+                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                  >
+                    Szoveg pozicio visszaallitasa
+                  </button>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
                   <div>
                     <label className="mb-2 block text-sm font-semibold text-slate-700">Kep feltoltese (opcionalis)</label>
                     <label className="flex cursor-pointer items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-100">
-                      {uploadingImage ? "Feldolgozas..." : "Kep kivalasztasa telefonrol"}
+                      {uploadingImage ? "Feldolgozas..." : "Kep kivalasztasa galeriabol"}
                       <input
                         type="file"
                         accept="image/*"
-                        capture="environment"
                         className="hidden"
                         onChange={handleImagePick}
                       />
@@ -304,21 +382,35 @@ export default function ProfessionalCampaignComposerPage() {
                 <div className="rounded-[28px] border border-slate-200 bg-slate-950 p-4 text-white shadow-[0_20px_60px_-20px_rgba(15,23,42,0.5)]">
                   <div className="mb-4 text-sm text-slate-300">Előnézet</div>
 
-                  <div className="overflow-hidden rounded-[24px] border border-white/10 bg-gradient-to-br from-slate-900 to-slate-800">
+                  <div
+                    ref={previewRef}
+                    className="relative mx-auto aspect-[9/16] w-full max-w-[320px] overflow-hidden rounded-[24px] border border-white/10 bg-gradient-to-br from-slate-900 to-slate-800"
+                  >
                     {coverImageDataUrl ? (
-                      <img src={coverImageDataUrl} alt="Kampany kep" className="h-40 w-full object-cover" />
+                      <img src={coverImageDataUrl} alt="Kampany kep" className="absolute inset-0 h-full w-full object-cover" />
                     ) : (
-                      <div className="flex h-40 items-center justify-center bg-gradient-to-br from-emerald-500/30 via-cyan-500/20 to-violet-500/30 text-center text-sm text-slate-200">
+                      <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-emerald-500/30 via-cyan-500/20 to-violet-500/30 text-center text-sm text-slate-200">
                         Kep helye - ide kerul a kampany vizualis eleme
                       </div>
                     )}
 
-                    <div className="space-y-3 p-4">
-                      <h2 className="text-xl font-semibold text-white">{title.trim() || "Az új kampányod"}</h2>
-                      <p className="text-sm leading-6 text-slate-300">{description.trim() || "Ird meg a fo uzenetet, es az elonezet automatikusan megjeleniti."}</p>
-                      <div className="flex items-center justify-between border-t border-white/10 pt-3 text-sm">
-                        <span className="text-slate-400">Szakmai kampany</span>
-                        <span className="rounded-full bg-emerald-500/20 px-3 py-1 font-semibold text-emerald-300">{ctaLabel.trim() || "Megnyitas"}</span>
+                    <div
+                      ref={textBoxRef}
+                      onPointerDown={handleTextPointerDown}
+                      className={`absolute w-[86%] cursor-grab select-none rounded-2xl border border-white/20 p-4 active:cursor-grabbing ${
+                        textTransparent ? 'bg-transparent' : 'bg-black/55 backdrop-blur-[1px]'
+                      } ${isDraggingText ? 'scale-[1.01]' : ''}`}
+                      style={{
+                        left: `${textPosition.x}%`,
+                        top: `${textPosition.y}%`,
+                        touchAction: 'none',
+                      }}
+                    >
+                      <h2 className="text-lg font-semibold text-white">{title.trim() || "Az uj kampanyod"}</h2>
+                      <p className="mt-2 text-sm leading-5 text-slate-100">{description.trim() || "Ird meg a fo uzenetet, es huzd a szoveget oda, ahol a legjobb."}</p>
+                      <div className="mt-3 flex items-center justify-between border-t border-white/15 pt-3 text-sm">
+                        <span className="text-slate-200">Szakmai kampany</span>
+                        <span className="rounded-full bg-emerald-500/30 px-3 py-1 font-semibold text-emerald-100">{ctaLabel.trim() || "Megnyitas"}</span>
                       </div>
                     </div>
                   </div>

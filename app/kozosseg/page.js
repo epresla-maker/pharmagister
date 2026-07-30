@@ -1699,6 +1699,21 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonCli
 
   const reactionSummary = getReactionSummary();
   const categoryData = CATEGORIES.find(c => c.id === post.category) || CATEGORIES[0];
+  const normalizedCampaignUrl = useMemo(() => {
+    const rawUrl = String(post.campaignLandingUrl || '').trim();
+    if (!rawUrl) return null;
+    if (/^https?:\/\//i.test(rawUrl)) return rawUrl;
+    return `https://${rawUrl}`;
+  }, [post.campaignLandingUrl]);
+  const campaignCtaLabel = String(post.campaignCtaLabel || '').trim() || 'Megnyitás';
+  const campaignTextPosition = useMemo(() => {
+    const rawX = Number(post?.campaignTextPosition?.x);
+    const rawY = Number(post?.campaignTextPosition?.y);
+    const x = Number.isFinite(rawX) ? Math.min(90, Math.max(2, rawX)) : 7;
+    const y = Number.isFinite(rawY) ? Math.min(90, Math.max(2, rawY)) : 70;
+    return { x, y };
+  }, [post?.campaignTextPosition?.x, post?.campaignTextPosition?.y]);
+  const campaignTextTransparent = Boolean(post.campaignTextTransparent);
 
   return (
     <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
@@ -1810,7 +1825,36 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonCli
             {post.campaignTitle}
           </h3>
         )}
-        {isEditing ? (
+        {post.postType === 'professional_campaign' ? (
+          <div className="px-3 sm:px-4">
+            <div className="relative mx-auto aspect-[9/16] w-full max-w-[320px] overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900 to-slate-800">
+              {post.campaignImageUrl ? (
+                <img src={post.campaignImageUrl} alt="Kampany kep" className="absolute inset-0 h-full w-full object-cover" />
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/35 via-cyan-500/20 to-violet-500/35" />
+              )}
+
+              <div
+                className={`absolute w-[86%] rounded-2xl border border-white/20 p-4 ${
+                  campaignTextTransparent ? 'bg-transparent' : 'bg-black/55 backdrop-blur-[1px]'
+                }`}
+                style={{
+                  left: `${campaignTextPosition.x}%`,
+                  top: `${campaignTextPosition.y}%`,
+                }}
+              >
+                <h4 className="text-base font-semibold text-white">{post.campaignTitle || 'Szakmai kampany'}</h4>
+                <p className="mt-2 text-sm leading-5 text-slate-100">{post.text || ''}</p>
+                <div className="mt-3 flex items-center justify-between border-t border-white/15 pt-2.5 text-sm">
+                  <span className="text-slate-200">Szakmai kampany</span>
+                  {normalizedCampaignUrl && (
+                    <span className="rounded-full bg-emerald-500/30 px-3 py-1 font-semibold text-emerald-100">{campaignCtaLabel}</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : isEditing ? (
           <div className="px-3 sm:px-4">
             <textarea
               value={editText}
@@ -1859,7 +1903,7 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonCli
         )}
 
         {/* Poszt kép */}
-        {post.imageUrl && (
+        {post.postType !== 'professional_campaign' && post.imageUrl && (
           <div className="px-3 sm:px-4 pt-2">
             <img
               src={post.imageUrl}
@@ -1867,6 +1911,23 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonCli
               className="w-full max-h-96 object-cover rounded-xl cursor-pointer"
               onClick={() => window.open(post.imageUrl, '_blank')}
             />
+          </div>
+        )}
+
+        {post.postType === 'professional_campaign' && normalizedCampaignUrl && (
+          <div className="px-3 sm:px-4 pt-3">
+            <a
+              href={normalizedCampaignUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`inline-flex items-center rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                darkMode
+                  ? 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30'
+                  : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+              }`}
+            >
+              {campaignCtaLabel}
+            </a>
           </div>
         )}
       </div>
@@ -2182,6 +2243,10 @@ export default function KozossegPage() {
             campaignType: row.campaignType || 'promotion',
             campaignTitle: row.title || (market === 'de' ? 'Fachkampagne' : 'Szakmai kampány'),
             campaignLandingUrl: row.landingUrl || null,
+            campaignCtaLabel: row.ctaLabel || null,
+            campaignImageUrl: row.coverImageDataUrl || row.coverImageUrl || null,
+            campaignTextPosition: row.textPosition || null,
+            campaignTextTransparent: Boolean(row.textTransparent),
             text: summaryText,
             category: 'szakmai',
             tags: ['szakmai-kampany'],
