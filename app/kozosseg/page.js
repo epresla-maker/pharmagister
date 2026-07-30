@@ -1713,7 +1713,43 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonCli
     const y = Number.isFinite(rawY) ? Math.min(90, Math.max(2, rawY)) : 70;
     return { x, y };
   }, [post?.campaignTextPosition?.x, post?.campaignTextPosition?.y]);
+  const campaignTitlePosition = useMemo(() => {
+    const rawX = Number(post?.campaignTitlePosition?.x);
+    const rawY = Number(post?.campaignTitlePosition?.y);
+    const x = Number.isFinite(rawX) ? Math.min(90, Math.max(2, rawX)) : 7;
+    const y = Number.isFinite(rawY) ? Math.min(90, Math.max(2, rawY)) : 12;
+    return { x, y };
+  }, [post?.campaignTitlePosition?.x, post?.campaignTitlePosition?.y]);
+  const campaignMessagePosition = useMemo(() => {
+    const rawX = Number(post?.campaignMessagePosition?.x);
+    const rawY = Number(post?.campaignMessagePosition?.y);
+    if (Number.isFinite(rawX) && Number.isFinite(rawY)) {
+      return {
+        x: Math.min(90, Math.max(2, rawX)),
+        y: Math.min(90, Math.max(2, rawY)),
+      };
+    }
+    return campaignTextPosition;
+  }, [post?.campaignMessagePosition?.x, post?.campaignMessagePosition?.y, campaignTextPosition]);
   const campaignTextTransparent = Boolean(post.campaignTextTransparent);
+  const campaignTitleStyle = useMemo(() => {
+    const fontSize = Number(post?.campaignTitleStyle?.fontSize);
+    return {
+      color: String(post?.campaignTitleStyle?.color || '#ffffff'),
+      fontSize: Number.isFinite(fontSize) ? `${Math.min(44, Math.max(16, fontSize))}px` : '28px',
+      fontWeight: String(post?.campaignTitleStyle?.fontWeight || '700'),
+      lineHeight: 1.15,
+    };
+  }, [post?.campaignTitleStyle]);
+  const campaignMessageStyle = useMemo(() => {
+    const fontSize = Number(post?.campaignMessageStyle?.fontSize);
+    return {
+      color: String(post?.campaignMessageStyle?.color || '#e2e8f0'),
+      fontSize: Number.isFinite(fontSize) ? `${Math.min(32, Math.max(11, fontSize))}px` : '15px',
+      fontWeight: String(post?.campaignMessageStyle?.fontWeight || '400'),
+      lineHeight: 1.4,
+    };
+  }, [post?.campaignMessageStyle]);
 
   return (
     <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
@@ -1757,11 +1793,6 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonCli
               <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${categoryData.color}`}>
                 {categoryData.emoji} {getCategoryLabel(categoryData.id, market)}
               </span>
-              {post.postType === 'professional_campaign' && (
-                <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${darkMode ? 'bg-emerald-900/40 text-emerald-300' : 'bg-emerald-100 text-emerald-700'}`}>
-                  Szakmai kampány
-                </span>
-              )}
 
             </div>
             <p className="text-xs text-gray-500 mt-0.5">
@@ -1839,14 +1870,24 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonCli
                   campaignTextTransparent ? 'bg-transparent' : 'bg-black/55 backdrop-blur-[1px]'
                 }`}
                 style={{
-                  left: `${campaignTextPosition.x}%`,
-                  top: `${campaignTextPosition.y}%`,
+                  left: `${campaignTitlePosition.x}%`,
+                  top: `${campaignTitlePosition.y}%`,
                 }}
               >
-                <h4 className="text-base font-semibold text-white">{post.campaignTitle || 'Szakmai kampany'}</h4>
-                <p className="mt-2 text-sm leading-5 text-slate-100">{post.text || ''}</p>
-                <div className="mt-3 flex items-center justify-between border-t border-white/15 pt-2.5 text-sm">
-                  <span className="text-slate-200">Szakmai kampany</span>
+                <h4 style={campaignTitleStyle}>{post.campaignTitle || 'Kampany'}</h4>
+              </div>
+
+              <div
+                className={`absolute w-[86%] rounded-2xl border border-white/20 p-4 ${
+                  campaignTextTransparent ? 'bg-transparent' : 'bg-black/55 backdrop-blur-[1px]'
+                }`}
+                style={{
+                  left: `${campaignMessagePosition.x}%`,
+                  top: `${campaignMessagePosition.y}%`,
+                }}
+              >
+                <p className="mt-2" style={campaignMessageStyle}>{post.text || ''}</p>
+                <div className="mt-3 flex items-center justify-end border-t border-white/15 pt-2.5 text-sm">
                   {normalizedCampaignUrl && (
                     <span className="rounded-full bg-emerald-500/30 px-3 py-1 font-semibold text-emerald-100">{campaignCtaLabel}</span>
                   )}
@@ -2247,6 +2288,10 @@ export default function KozossegPage() {
             campaignImageUrl: row.coverImageDataUrl || row.coverImageUrl || null,
             campaignTextPosition: row.textPosition || null,
             campaignTextTransparent: Boolean(row.textTransparent),
+            campaignTitlePosition: row.titlePosition || null,
+            campaignMessagePosition: row.messagePosition || null,
+            campaignTitleStyle: row.titleStyle || null,
+            campaignMessageStyle: row.messageStyle || null,
             text: summaryText,
             category: 'szakmai',
             tags: ['szakmai-kampany'],

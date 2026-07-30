@@ -1,18 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import RouteGuard from "@/app/components/RouteGuard";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase";
 import { addDoc, collection, doc, getDoc, serverTimestamp, updateDoc } from "firebase/firestore";
-
-const STORY_THEMES = [
-  { id: "energetikus", label: "Energetikus", badge: "⚡" },
-  { id: "elegans", label: "Elegans", badge: "✨" },
-  { id: "oktato", label: "Oktato", badge: "🎓" },
-  { id: "exkluziv", label: "Exkluziv", badge: "💎" },
-];
 
 function readImageAsDataUrl(file) {
   return new Promise((resolve, reject) => {
@@ -49,6 +42,10 @@ async function compressImageFile(file, maxWidth = 1280, quality = 0.82) {
   return canvas.toDataURL("image/jpeg", quality);
 }
 
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
 export default function ProfessionalCampaignComposerPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -59,30 +56,35 @@ export default function ProfessionalCampaignComposerPage() {
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [storyTheme, setStoryTheme] = useState("energetikus");
+
+  const [titleColor, setTitleColor] = useState("#ffffff");
+  const [titleFontSize, setTitleFontSize] = useState(28);
+  const [titleFontWeight, setTitleFontWeight] = useState("700");
+
+  const [messageColor, setMessageColor] = useState("#e2e8f0");
+  const [messageFontSize, setMessageFontSize] = useState(15);
+  const [messageFontWeight, setMessageFontWeight] = useState("400");
+
   const [landingUrl, setLandingUrl] = useState("");
   const [coverImageDataUrl, setCoverImageDataUrl] = useState("");
   const [ctaLabel, setCtaLabel] = useState("Megnyitas");
+
   const [textTransparent, setTextTransparent] = useState(false);
-  const [textPosition, setTextPosition] = useState({ x: 7, y: 70 });
+  const [titlePosition, setTitlePosition] = useState({ x: 7, y: 12 });
+  const [messagePosition, setMessagePosition] = useState({ x: 7, y: 62 });
+
   const [submitting, setSubmitting] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [loadingDraft, setLoadingDraft] = useState(false);
   const [error, setError] = useState("");
-  const [isDraggingText, setIsDraggingText] = useState(false);
+  const [dragTarget, setDragTarget] = useState(null);
 
   const previewRef = useRef(null);
-  const textBoxRef = useRef(null);
+  const titleBoxRef = useRef(null);
+  const messageBoxRef = useRef(null);
   const dragOffsetRef = useRef({ x: 0, y: 0 });
 
-  const isProfessionalPartner = useMemo(
-    () => Boolean(userData?.partnerProfessional || userData?.accountType === "partner_professional"),
-    [userData]
-  );
-  const selectedStoryTheme = useMemo(
-    () => STORY_THEMES.find((item) => item.id === storyTheme) || STORY_THEMES[0],
-    [storyTheme]
-  );
+  const isProfessionalPartner = Boolean(userData?.partnerProfessional || userData?.accountType === "partner_professional");
 
   useEffect(() => {
     if (!isEditMode || !editId || !user?.uid) return;
@@ -98,14 +100,31 @@ export default function ProfessionalCampaignComposerPage() {
 
         setTitle(row.title || "");
         setDescription(row.description || "");
-        setStoryTheme(row.storyTheme || "energetikus");
+
+        setTitleColor(row?.titleStyle?.color || "#ffffff");
+        setTitleFontSize(Number.isFinite(row?.titleStyle?.fontSize) ? row.titleStyle.fontSize : 28);
+        setTitleFontWeight(String(row?.titleStyle?.fontWeight || "700"));
+
+        setMessageColor(row?.messageStyle?.color || "#e2e8f0");
+        setMessageFontSize(Number.isFinite(row?.messageStyle?.fontSize) ? row.messageStyle.fontSize : 15);
+        setMessageFontWeight(String(row?.messageStyle?.fontWeight || "400"));
+
         setLandingUrl(row.landingUrl || "");
         setCoverImageDataUrl(row.coverImageDataUrl || row.coverImageUrl || "");
         setCtaLabel(row.ctaLabel || "Megnyitas");
+
         setTextTransparent(Boolean(row.textTransparent));
-        setTextPosition({
-          x: Number.isFinite(row?.textPosition?.x) ? row.textPosition.x : 7,
-          y: Number.isFinite(row?.textPosition?.y) ? row.textPosition.y : 70,
+        setTitlePosition({
+          x: Number.isFinite(row?.titlePosition?.x) ? row.titlePosition.x : 7,
+          y: Number.isFinite(row?.titlePosition?.y) ? row.titlePosition.y : 12,
+        });
+        setMessagePosition({
+          x: Number.isFinite(row?.messagePosition?.x)
+            ? row.messagePosition.x
+            : (Number.isFinite(row?.textPosition?.x) ? row.textPosition.x : 7),
+          y: Number.isFinite(row?.messagePosition?.y)
+            ? row.messagePosition.y
+            : (Number.isFinite(row?.textPosition?.y) ? row.textPosition.y : 62),
         });
       } catch (e) {
         console.error("Campaign load error:", e);
@@ -122,31 +141,41 @@ export default function ProfessionalCampaignComposerPage() {
     setError("");
 
     if (!isProfessionalPartner) {
-      setError("Ehhez szakmai partner fiók szükséges.");
+      setError("Ehhez szakmai partner fiok szukseges.");
       return;
     }
 
     if (!title.trim() || !description.trim()) {
-      setError("A cím és a fő üzenet kötelező.");
+      setError("A cim es a fo uzenet kotelezo.");
       return;
     }
 
-    const ownerName =
-      userData?.partnerProfile?.companyName || userData?.displayName || userData?.email || "Szakmai partner";
+    const ownerName = userData?.partnerProfile?.companyName || userData?.displayName || userData?.email || "Szakmai partner";
 
     const payload = {
       ownerId: user.uid,
       ownerName,
       ownerEmail: userData?.email || user?.email || null,
       campaignType: "professional_campaign",
-      storyTheme,
       title: title.trim(),
       description: description.trim(),
+      titleStyle: {
+        color: titleColor,
+        fontSize: titleFontSize,
+        fontWeight: titleFontWeight,
+      },
+      messageStyle: {
+        color: messageColor,
+        fontSize: messageFontSize,
+        fontWeight: messageFontWeight,
+      },
       ctaLabel: ctaLabel.trim() || "Megnyitas",
       coverImageDataUrl: coverImageDataUrl || null,
       coverImageUrl: coverImageDataUrl || null,
       textTransparent,
-      textPosition,
+      titlePosition,
+      messagePosition,
+      textPosition: messagePosition,
       landingUrl: landingUrl.trim() || null,
       status: "pending",
       market: userData?.market || "hu",
@@ -167,7 +196,7 @@ export default function ProfessionalCampaignComposerPage() {
       router.push("/partner/szakmai-kampanyaim");
     } catch (e) {
       console.error("Campaign submit error:", e);
-      setError("Nem sikerült menteni a kampányt.");
+      setError("Nem sikerult menteni a kampanyt.");
     } finally {
       setSubmitting(false);
     }
@@ -191,28 +220,28 @@ export default function ProfessionalCampaignComposerPage() {
     }
   };
 
-  const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+  const handleTextPointerDown = (event, target) => {
+    const boxRef = target === "title" ? titleBoxRef : messageBoxRef;
+    if (!previewRef.current || !boxRef.current) return;
 
-  const handleTextPointerDown = (event) => {
-    if (!previewRef.current || !textBoxRef.current) return;
-
-    const boxRect = textBoxRef.current.getBoundingClientRect();
+    const boxRect = boxRef.current.getBoundingClientRect();
     dragOffsetRef.current = {
       x: event.clientX - boxRect.left,
       y: event.clientY - boxRect.top,
     };
-    setIsDraggingText(true);
+    setDragTarget(target);
     event.preventDefault();
   };
 
   useEffect(() => {
-    if (!isDraggingText) return;
+    if (!dragTarget) return;
 
     const handlePointerMove = (event) => {
-      if (!previewRef.current || !textBoxRef.current) return;
+      const boxRef = dragTarget === "title" ? titleBoxRef : messageBoxRef;
+      if (!previewRef.current || !boxRef.current) return;
 
       const containerRect = previewRef.current.getBoundingClientRect();
-      const boxRect = textBoxRef.current.getBoundingClientRect();
+      const boxRect = boxRef.current.getBoundingClientRect();
 
       const maxLeft = Math.max(0, containerRect.width - boxRect.width);
       const maxTop = Math.max(0, containerRect.height - boxRect.height);
@@ -220,13 +249,19 @@ export default function ProfessionalCampaignComposerPage() {
       const leftPx = clamp(event.clientX - containerRect.left - dragOffsetRef.current.x, 0, maxLeft);
       const topPx = clamp(event.clientY - containerRect.top - dragOffsetRef.current.y, 0, maxTop);
 
-      setTextPosition({
+      const nextPosition = {
         x: (leftPx / Math.max(1, containerRect.width)) * 100,
         y: (topPx / Math.max(1, containerRect.height)) * 100,
-      });
+      };
+
+      if (dragTarget === "title") {
+        setTitlePosition(nextPosition);
+      } else {
+        setMessagePosition(nextPosition);
+      }
     };
 
-    const handlePointerUp = () => setIsDraggingText(false);
+    const handlePointerUp = () => setDragTarget(null);
 
     window.addEventListener("pointermove", handlePointerMove);
     window.addEventListener("pointerup", handlePointerUp);
@@ -235,32 +270,30 @@ export default function ProfessionalCampaignComposerPage() {
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", handlePointerUp);
     };
-  }, [isDraggingText]);
+  }, [dragTarget]);
 
   return (
     <RouteGuard>
       <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.12),_transparent_35%),linear-gradient(135deg,#f8fafc_0%,#eefbf5_100%)] px-4 py-6 pb-32">
         <div className="mx-auto max-w-6xl">
           <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900">
-                {isEditMode ? "Szakmai kampány szerkesztése" : "Új szakmai kampány varázsló"}
-              </h1>
-            </div>
+            <h1 className="text-2xl font-bold text-slate-900">
+              {isEditMode ? "Szakmai kampany szerkesztese" : "Uj szakmai kampany varazslo"}
+            </h1>
             <button
               type="button"
               onClick={() => router.push("/partner")}
               className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-100"
             >
-              Vissza a központba
+              Vissza a kozpontba
             </button>
           </div>
 
           {loading || loadingDraft ? (
-            <div className="rounded-3xl border border-slate-200 bg-white/80 p-6 text-slate-600 shadow-sm">Betöltés...</div>
+            <div className="rounded-3xl border border-slate-200 bg-white/80 p-6 text-slate-600 shadow-sm">Betoltes...</div>
           ) : !isProfessionalPartner ? (
             <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5 text-amber-900 shadow-sm">
-              Ehhez szakmai partner fiók szükséges.
+              Ehhez szakmai partner fiok szukseges.
             </div>
           ) : (
             <div className="grid gap-6 lg:grid-cols-[1.15fr,0.85fr]">
@@ -275,60 +308,84 @@ export default function ProfessionalCampaignComposerPage() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">Kampány címe</label>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">Kampany cime</label>
                   <input
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-emerald-500 focus:bg-white"
-                    placeholder="Pl. Téli tudásnap a patikákban"
+                    placeholder="Pl. Teli tudasnap a patikakban"
                     required
                   />
                 </div>
 
+                <div className="grid gap-3 md:grid-cols-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Cim szine</label>
+                    <input type="color" value={titleColor} onChange={(e) => setTitleColor(e.target.value)} className="h-10 w-full rounded-lg border border-slate-200 bg-white" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Cim merete</label>
+                    <input type="range" min="18" max="44" value={titleFontSize} onChange={(e) => setTitleFontSize(Number(e.target.value))} className="w-full" />
+                    <p className="text-xs text-slate-500">{titleFontSize}px</p>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Cim vastagsag</label>
+                    <select value={titleFontWeight} onChange={(e) => setTitleFontWeight(e.target.value)} className="h-10 w-full rounded-lg border border-slate-200 bg-white px-2">
+                      <option value="500">Normal</option>
+                      <option value="600">Felemelt</option>
+                      <option value="700">Felkover</option>
+                      <option value="800">Extra felkover</option>
+                    </select>
+                  </div>
+                </div>
+
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">Fő üzenet</label>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">Fo uzenet</label>
                   <textarea
                     rows={4}
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-emerald-500 focus:bg-white"
-                    placeholder="Írd le röviden, miért fontos ez a kampány, miért érdemes megnyitni, és mi legyen az üzenet."
+                    placeholder="Ird le roviden, miert fontos ez a kampany, miert erdemes megnyitni, es mi legyen az uzenet."
                     required
                   />
                 </div>
 
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">Story stílus</label>
-                  <div className="flex flex-wrap gap-2">
-                    {STORY_THEMES.map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => setStoryTheme(item.id)}
-                        className={`rounded-full border px-3 py-2 text-sm font-medium transition ${storyTheme === item.id ? "border-emerald-500 bg-emerald-500 text-white" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}
-                      >
-                        {item.badge} {item.label}
-                      </button>
-                    ))}
+                <div className="grid gap-3 md:grid-cols-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Uzenet szine</label>
+                    <input type="color" value={messageColor} onChange={(e) => setMessageColor(e.target.value)} className="h-10 w-full rounded-lg border border-slate-200 bg-white" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Uzenet merete</label>
+                    <input type="range" min="12" max="28" value={messageFontSize} onChange={(e) => setMessageFontSize(Number(e.target.value))} className="w-full" />
+                    <p className="text-xs text-slate-500">{messageFontSize}px</p>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Uzenet vastagsag</label>
+                    <select value={messageFontWeight} onChange={(e) => setMessageFontWeight(e.target.value)} className="h-10 w-full rounded-lg border border-slate-200 bg-white px-2">
+                      <option value="400">Normal</option>
+                      <option value="500">Felemelt</option>
+                      <option value="600">Felkover</option>
+                      <option value="700">Extra felkover</option>
+                    </select>
                   </div>
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700">
-                    <input
-                      type="checkbox"
-                      checked={textTransparent}
-                      onChange={(e) => setTextTransparent(e.target.checked)}
-                      className="h-4 w-4 accent-emerald-600"
-                    />
+                    <input type="checkbox" checked={textTransparent} onChange={(e) => setTextTransparent(e.target.checked)} className="h-4 w-4 accent-emerald-600" />
                     Szoveg hattere atlatszo
                   </label>
                   <button
                     type="button"
-                    onClick={() => setTextPosition({ x: 7, y: 70 })}
+                    onClick={() => {
+                      setTitlePosition({ x: 7, y: 12 });
+                      setMessagePosition({ x: 7, y: 62 });
+                    }}
                     className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-100"
                   >
-                    Szoveg pozicio visszaallitasa
+                    Szoveg poziciok visszaallitasa
                   </button>
                 </div>
 
@@ -337,19 +394,10 @@ export default function ProfessionalCampaignComposerPage() {
                     <label className="mb-2 block text-sm font-semibold text-slate-700">Kep feltoltese (opcionalis)</label>
                     <label className="flex cursor-pointer items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-100">
                       {uploadingImage ? "Feldolgozas..." : "Kep kivalasztasa galeriabol"}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleImagePick}
-                      />
+                      <input type="file" accept="image/*" className="hidden" onChange={handleImagePick} />
                     </label>
                     {coverImageDataUrl && (
-                      <button
-                        type="button"
-                        onClick={() => setCoverImageDataUrl("")}
-                        className="mt-2 text-xs font-semibold text-rose-600 hover:text-rose-700"
-                      >
+                      <button type="button" onClick={() => setCoverImageDataUrl("")} className="mt-2 text-xs font-semibold text-rose-600 hover:text-rose-700">
                         Kep torlese
                       </button>
                     )}
@@ -375,17 +423,13 @@ export default function ProfessionalCampaignComposerPage() {
                     placeholder="https://"
                   />
                 </div>
-
               </form>
 
               <div className="space-y-4">
                 <div className="rounded-[28px] border border-slate-200 bg-slate-950 p-4 text-white shadow-[0_20px_60px_-20px_rgba(15,23,42,0.5)]">
-                  <div className="mb-4 text-sm text-slate-300">Előnézet</div>
+                  <div className="mb-4 text-sm text-slate-300">Elonezet</div>
 
-                  <div
-                    ref={previewRef}
-                    className="relative mx-auto aspect-[9/16] w-full max-w-[320px] overflow-hidden rounded-[24px] border border-white/10 bg-gradient-to-br from-slate-900 to-slate-800"
-                  >
+                  <div ref={previewRef} className="relative mx-auto aspect-[9/16] w-full max-w-[320px] overflow-hidden rounded-[24px] border border-white/10 bg-gradient-to-br from-slate-900 to-slate-800">
                     {coverImageDataUrl ? (
                       <img src={coverImageDataUrl} alt="Kampany kep" className="absolute inset-0 h-full w-full object-cover" />
                     ) : (
@@ -395,21 +439,38 @@ export default function ProfessionalCampaignComposerPage() {
                     )}
 
                     <div
-                      ref={textBoxRef}
-                      onPointerDown={handleTextPointerDown}
-                      className={`absolute w-[86%] cursor-grab select-none rounded-2xl border border-white/20 p-4 active:cursor-grabbing ${
-                        textTransparent ? 'bg-transparent' : 'bg-black/55 backdrop-blur-[1px]'
-                      } ${isDraggingText ? 'scale-[1.01]' : ''}`}
+                      ref={titleBoxRef}
+                      onPointerDown={(event) => handleTextPointerDown(event, "title")}
+                      className={`absolute w-[86%] cursor-grab select-none rounded-2xl border border-white/20 p-4 active:cursor-grabbing ${textTransparent ? "bg-transparent" : "bg-black/55 backdrop-blur-[1px]"} ${
+                        dragTarget === "title" ? "scale-[1.01]" : ""
+                      }`}
                       style={{
-                        left: `${textPosition.x}%`,
-                        top: `${textPosition.y}%`,
-                        touchAction: 'none',
+                        left: `${titlePosition.x}%`,
+                        top: `${titlePosition.y}%`,
+                        touchAction: "none",
                       }}
                     >
-                      <h2 className="text-lg font-semibold text-white">{title.trim() || "Az uj kampanyod"}</h2>
-                      <p className="mt-2 text-sm leading-5 text-slate-100">{description.trim() || "Ird meg a fo uzenetet, es huzd a szoveget oda, ahol a legjobb."}</p>
-                      <div className="mt-3 flex items-center justify-between border-t border-white/15 pt-3 text-sm">
-                        <span className="text-slate-200">Szakmai kampany</span>
+                      <h2 style={{ color: titleColor, fontSize: `${titleFontSize}px`, fontWeight: titleFontWeight, lineHeight: 1.15 }}>
+                        {title.trim() || "Az uj kampanyod"}
+                      </h2>
+                    </div>
+
+                    <div
+                      ref={messageBoxRef}
+                      onPointerDown={(event) => handleTextPointerDown(event, "message")}
+                      className={`absolute w-[86%] cursor-grab select-none rounded-2xl border border-white/20 p-4 active:cursor-grabbing ${textTransparent ? "bg-transparent" : "bg-black/55 backdrop-blur-[1px]"} ${
+                        dragTarget === "message" ? "scale-[1.01]" : ""
+                      }`}
+                      style={{
+                        left: `${messagePosition.x}%`,
+                        top: `${messagePosition.y}%`,
+                        touchAction: "none",
+                      }}
+                    >
+                      <p style={{ color: messageColor, fontSize: `${messageFontSize}px`, fontWeight: messageFontWeight, lineHeight: 1.4 }}>
+                        {description.trim() || "Ird meg a fo uzenetet, es huzd a szoveget oda, ahol a legjobb."}
+                      </p>
+                      <div className="mt-3 flex items-center justify-end border-t border-white/15 pt-3 text-sm">
                         <span className="rounded-full bg-emerald-500/30 px-3 py-1 font-semibold text-emerald-100">{ctaLabel.trim() || "Megnyitas"}</span>
                       </div>
                     </div>
@@ -422,7 +483,7 @@ export default function ProfessionalCampaignComposerPage() {
                   disabled={submitting || uploadingImage}
                   className="w-full rounded-2xl bg-emerald-700 px-4 py-3 font-semibold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-800 disabled:opacity-50"
                 >
-                  {submitting ? "Mentés..." : isEditMode ? "Kampány frissítése" : "Kampány beküldése"}
+                  {submitting ? "Mentes..." : isEditMode ? "Kampany frissitese" : "Kampany bekuldese"}
                 </button>
               </div>
             </div>
