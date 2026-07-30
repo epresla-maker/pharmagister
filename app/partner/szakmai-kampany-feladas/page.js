@@ -86,6 +86,7 @@ export default function ProfessionalCampaignComposerPage() {
   const [dragTarget, setDragTarget] = useState(null);
   const [editingTarget, setEditingTarget] = useState(null);
   const [showTextEditor, setShowTextEditor] = useState(false);
+  const [showFullscreenEditor, setShowFullscreenEditor] = useState(false);
   const [pinchEnabled, setPinchEnabled] = useState(false);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
 
@@ -246,13 +247,25 @@ export default function ProfessionalCampaignComposerPage() {
     }
   };
 
-  const handlePreviewTap = () => {
+  const handlePreviewTap = (event) => {
     if (!coverImageDataUrl) return;
+    if (event.target !== event.currentTarget) return;
+    openFullscreenEditor();
+  };
 
+  const openFullscreenEditor = () => {
+    if (!coverImageDataUrl) return;
     setShowTextEditor(true);
+    setShowFullscreenEditor(true);
     if (!editingTarget) {
       setEditingTarget("title");
     }
+  };
+
+  const closeFullscreenEditor = () => {
+    setShowFullscreenEditor(false);
+    setShowTextEditor(false);
+    setEditingTarget(null);
   };
 
   const handleTextPointerDown = (event, target) => {
@@ -404,8 +417,8 @@ export default function ProfessionalCampaignComposerPage() {
                   </label>
                   {coverImageDataUrl && (
                     <div className="mt-3 flex flex-wrap items-center gap-2">
-                      <button type="button" onClick={() => setShowTextEditor((prev) => !prev)} className="rounded-full bg-emerald-600 px-3 py-2 text-sm font-semibold text-white">
-                        {showTextEditor ? "Szöveg szerkesztő elrejtése" : "Szöveg hozzáadása"}
+                      <button type="button" onClick={openFullscreenEditor} className="rounded-full bg-emerald-600 px-3 py-2 text-sm font-semibold text-white">
+                        {showFullscreenEditor ? "Szerkeszto bezarasa" : "Kép szerkesztése"}
                       </button>
                       <button type="button" onClick={() => setCoverImageDataUrl("")} className="rounded-full border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50">
                         Kép törlése
@@ -413,92 +426,6 @@ export default function ProfessionalCampaignComposerPage() {
                     </div>
                   )}
                 </div>
-
-                {coverImageDataUrl && showTextEditor && (
-                  <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <div>
-                      <label className="mb-2 block text-sm font-semibold text-slate-700">Cím a képre</label>
-                      <input
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-emerald-500"
-                        placeholder="Pl. Teli tudasnap a patikakban"
-                        required
-                      />
-                    </div>
-
-                    <div className="grid gap-3 md:grid-cols-3">
-                      <div>
-                        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Cim szine</label>
-                        <input type="color" value={titleColor} onChange={(e) => setTitleColor(e.target.value)} className="h-10 w-full rounded-lg border border-slate-200 bg-white" />
-                      </div>
-                      <div>
-                        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Cim merete</label>
-                        <input type="range" min="18" max="44" value={titleFontSize} onChange={(e) => setTitleFontSize(Number(e.target.value))} className="w-full" />
-                        <p className="text-xs text-slate-500">{titleFontSize}px</p>
-                      </div>
-                      <div>
-                        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Cim vastagsag</label>
-                        <select value={titleFontWeight} onChange={(e) => setTitleFontWeight(e.target.value)} className="h-10 w-full rounded-lg border border-slate-200 bg-white px-2">
-                          <option value="500">Normal</option>
-                          <option value="600">Felemelt</option>
-                          <option value="700">Felkover</option>
-                          <option value="800">Extra felkover</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="mb-2 block text-sm font-semibold text-slate-700">Fő üzenet a képre</label>
-                      <textarea
-                        rows={3}
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-emerald-500"
-                        placeholder="Írd ide a fő üzenetet, amit a képre teszel..."
-                        required
-                      />
-                    </div>
-
-                    <div className="grid gap-3 md:grid-cols-3">
-                      <div>
-                        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Üzenet szine</label>
-                        <input type="color" value={messageColor} onChange={(e) => setMessageColor(e.target.value)} className="h-10 w-full rounded-lg border border-slate-200 bg-white" />
-                      </div>
-                      <div>
-                        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Üzenet merete</label>
-                        <input type="range" min="12" max="28" value={messageFontSize} onChange={(e) => setMessageFontSize(Number(e.target.value))} className="w-full" />
-                        <p className="text-xs text-slate-500">{messageFontSize}px</p>
-                      </div>
-                      <div>
-                        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Üzenet vastagsag</label>
-                        <select value={messageFontWeight} onChange={(e) => setMessageFontWeight(e.target.value)} className="h-10 w-full rounded-lg border border-slate-200 bg-white px-2">
-                          <option value="400">Normal</option>
-                          <option value="500">Felemelt</option>
-                          <option value="600">Felkover</option>
-                          <option value="700">Extra felkover</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700">
-                        <input type="checkbox" checked={textTransparent} onChange={(e) => setTextTransparent(e.target.checked)} className="h-4 w-4 accent-emerald-600" />
-                        Szöveg háttér áttetsző
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setTitlePosition({ x: 7, y: 12 });
-                          setMessagePosition({ x: 7, y: 62 });
-                        }}
-                        className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-100"
-                      >
-                        Pozíciók visszaállítása
-                      </button>
-                    </div>
-                  </div>
-                )}
 
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <div className="grid gap-4 md:grid-cols-2">
@@ -649,7 +576,154 @@ export default function ProfessionalCampaignComposerPage() {
             </div>
           )}
         </div>
-      </div>
+      {showFullscreenEditor && coverImageDataUrl && (
+        <div className="fixed inset-0 z-[70] bg-slate-950/95 px-3 py-3 sm:px-6 sm:py-6">
+          <div className="mx-auto flex h-full max-w-6xl flex-col">
+            <div className="mb-3 flex items-center justify-between rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm text-white backdrop-blur">
+              <div>
+                <p className="font-semibold">Teljes képernyős szerkesztő</p>
+                <p className="text-xs text-slate-300">A kép teljes méretben nyílik meg, a szöveg közvetlenül rá szerkeszthető.</p>
+              </div>
+              <button type="button" onClick={closeFullscreenEditor} className="rounded-full bg-white/15 px-3 py-2 font-medium text-white hover:bg-white/25">
+                Bezárás
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-hidden rounded-[32px] border border-white/10 bg-slate-900 p-2 sm:p-3">
+              <div className="flex h-full flex-col gap-3 lg:flex-row">
+                <div className="relative flex-1 overflow-hidden rounded-[24px] bg-slate-950">
+                  <img src={coverImageDataUrl} alt="Kampany kep" className="absolute inset-0 h-full w-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-900/20 to-transparent" />
+
+                  <div
+                    ref={previewRef}
+                    className="absolute inset-0"
+                  >
+                    <div
+                      ref={titleBoxRef}
+                      onPointerDown={(event) => handleTextPointerDown(event, "title")}
+                      onTouchStart={isTouchDevice ? undefined : (event) => handlePinchStart(event, "title")}
+                      onTouchMove={isTouchDevice ? undefined : (event) => handlePinchMove(event, "title")}
+                      onTouchEnd={isTouchDevice ? undefined : handlePinchEnd}
+                      onTouchCancel={isTouchDevice ? undefined : handlePinchEnd}
+                      className={`absolute w-[86%] cursor-grab select-none rounded-2xl border border-white/20 p-4 active:cursor-grabbing ${textTransparent ? "bg-transparent" : "bg-black/55 backdrop-blur-[1px]"} ${dragTarget === "title" ? "scale-[1.01]" : ""}`}
+                      style={{ left: `${titlePosition.x}%`, top: `${titlePosition.y}%`, touchAction: isTouchDevice ? "manipulation" : "none" }}
+                    >
+                      {editingTarget === "title" ? (
+                        <input
+                          ref={titleInputRef}
+                          value={title}
+                          onChange={(event) => setTitle(event.target.value)}
+                          onBlur={() => setEditingTarget(null)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              event.preventDefault();
+                              setEditingTarget(null);
+                            }
+                          }}
+                          className="w-full rounded-lg border border-white/30 bg-black/35 px-2 py-1 outline-none"
+                          style={{ color: titleColor, fontSize: `${titleFontSize}px`, fontWeight: titleFontWeight, lineHeight: 1.15 }}
+                          placeholder="Az uj kampanyod"
+                        />
+                      ) : (
+                        <h2
+                          onPointerDown={(event) => event.stopPropagation()}
+                          onClick={() => setEditingTarget("title")}
+                          className="cursor-text"
+                          style={{ color: titleColor, fontSize: `${titleFontSize}px`, fontWeight: titleFontWeight, lineHeight: 1.15 }}
+                        >
+                          {title.trim() || "Az uj kampanyod"}
+                        </h2>
+                      )}
+                    </div>
+
+                    <div
+                      ref={messageBoxRef}
+                      onPointerDown={(event) => handleTextPointerDown(event, "message")}
+                      onTouchStart={isTouchDevice ? undefined : (event) => handlePinchStart(event, "message")}
+                      onTouchMove={isTouchDevice ? undefined : (event) => handlePinchMove(event, "message")}
+                      onTouchEnd={isTouchDevice ? undefined : handlePinchEnd}
+                      onTouchCancel={isTouchDevice ? undefined : handlePinchEnd}
+                      className={`absolute w-[86%] cursor-grab select-none rounded-2xl border border-white/20 p-4 active:cursor-grabbing ${textTransparent ? "bg-transparent" : "bg-black/55 backdrop-blur-[1px]"} ${dragTarget === "message" ? "scale-[1.01]" : ""}`}
+                      style={{ left: `${messagePosition.x}%`, top: `${messagePosition.y}%`, touchAction: isTouchDevice ? "manipulation" : "none" }}
+                    >
+                      {editingTarget === "message" ? (
+                        <textarea
+                          ref={messageInputRef}
+                          value={description}
+                          onChange={(event) => setDescription(event.target.value)}
+                          onBlur={() => setEditingTarget(null)}
+                          rows={3}
+                          className="w-full resize-none rounded-lg border border-white/30 bg-black/35 px-2 py-1 outline-none"
+                          style={{ color: messageColor, fontSize: `${messageFontSize}px`, fontWeight: messageFontWeight, lineHeight: 1.4 }}
+                          placeholder="Ird meg a fo uzenetet..."
+                        />
+                      ) : (
+                        <p
+                          onPointerDown={(event) => event.stopPropagation()}
+                          onClick={() => setEditingTarget("message")}
+                          className="cursor-text"
+                          style={{ color: messageColor, fontSize: `${messageFontSize}px`, fontWeight: messageFontWeight, lineHeight: 1.4 }}
+                        >
+                          {description.trim() || "Ird meg a fo uzenetet, es huzd a szoveget oda, ahol a legjobb."}
+                        </p>
+                      )}
+                      <div className="mt-3 flex items-center justify-end border-t border-white/15 pt-3 text-sm">
+                        <span className="rounded-full bg-emerald-500/30 px-3 py-1 font-semibold text-emerald-100">{ctaLabel.trim() || "Megnyitas"}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="w-full max-w-[360px] rounded-[24px] border border-white/10 bg-white/10 p-3 text-white backdrop-blur lg:w-[340px]">
+                  <div className="mb-3 text-sm font-semibold text-white">Szerkesztés</div>
+                  <div className="space-y-3 text-sm">
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-300">Cím</label>
+                      <input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2 outline-none" placeholder="Pl. Teli tudasnap a patikakban" />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-300">Fő üzenet</label>
+                      <textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2 outline-none" placeholder="Írd ide a fő üzenetet..." />
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div>
+                        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-300">Cím színe</label>
+                        <input type="color" value={titleColor} onChange={(e) => setTitleColor(e.target.value)} className="h-10 w-full rounded-lg border border-white/10 bg-white" />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-300">Üzenet színe</label>
+                        <input type="color" value={messageColor} onChange={(e) => setMessageColor(e.target.value)} className="h-10 w-full rounded-lg border border-white/10 bg-white" />
+                      </div>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div>
+                        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-300">Cím méret</label>
+                        <input type="range" min="18" max="44" value={titleFontSize} onChange={(e) => setTitleFontSize(Number(e.target.value))} className="w-full" />
+                        <p className="text-xs text-slate-400">{titleFontSize}px</p>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-300">Üzenet méret</label>
+                        <input type="range" min="12" max="28" value={messageFontSize} onChange={(e) => setMessageFontSize(Number(e.target.value))} className="w-full" />
+                        <p className="text-xs text-slate-400">{messageFontSize}px</p>
+                      </div>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <label className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2 text-sm text-slate-200">
+                        <input type="checkbox" checked={textTransparent} onChange={(e) => setTextTransparent(e.target.checked)} className="h-4 w-4 accent-emerald-600" />
+                        Áttetsző háttér
+                      </label>
+                      <button type="button" onClick={() => { setTitlePosition({ x: 7, y: 12 }); setMessagePosition({ x: 7, y: 62 }); }} className="rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2 text-sm font-medium text-slate-200">
+                        Pozíciók alapra
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </RouteGuard>
   );
 }
