@@ -2153,45 +2153,51 @@ export default function KozossegPage() {
       const snapshot = await getDocs(q);
       const communityPosts = snapshot.docs.map(d => ({ id: d.id, ...d.data(), sourceCollection: 'communityPosts' }));
 
-      const campaignsQuery = query(
-        collection(db, 'partnerProfessionalCampaigns'),
-        where('status', '==', 'active'),
-        limit(30)
-      );
-      const campaignsSnapshot = await getDocs(campaignsQuery);
-      const campaignPosts = campaignsSnapshot.docs.map((d) => {
-        const row = d.data();
-        const ownerName = row.ownerName || (market === 'de' ? 'Fachpartner' : 'Szakmai partner');
-        const summaryText = row.description || row.targetAudience || (market === 'de' ? 'Fachkampagne' : 'Szakmai kampány');
+      let campaignPosts = [];
+      try {
+        const campaignsQuery = query(
+          collection(db, 'partnerProfessionalCampaigns'),
+          where('status', '==', 'active'),
+          limit(30)
+        );
+        const campaignsSnapshot = await getDocs(campaignsQuery);
+        campaignPosts = campaignsSnapshot.docs.map((d) => {
+          const row = d.data();
+          const ownerName = row.ownerName || (market === 'de' ? 'Fachpartner' : 'Szakmai partner');
+          const summaryText = row.description || row.targetAudience || (market === 'de' ? 'Fachkampagne' : 'Szakmai kampány');
 
-        return {
-          id: `campaign_${d.id}`,
-          sourceCollection: 'partnerProfessionalCampaigns',
-          sourceId: d.id,
-          postType: 'professional_campaign',
-          campaignType: row.campaignType || 'promotion',
-          campaignTitle: row.title || (market === 'de' ? 'Fachkampagne' : 'Szakmai kampány'),
-          campaignLandingUrl: row.landingUrl || null,
-          text: summaryText,
-          category: 'szakmai',
-          tags: ['szakmai-kampany'],
-          market: row.market || 'hu',
-          userId: row.ownerId || null,
-          isAnonymous: false,
-          style: null,
-          imageUrl: null,
-          createdAt: row.createdAt || row.updatedAt || null,
-          updatedAt: row.updatedAt || null,
-          reactions: {},
-          commentCount: 0,
-          reportCount: 0,
-          isHidden: false,
-          authorData: {
-            displayName: ownerName,
-            photoURL: null,
-          },
-        };
-      });
+          return {
+            id: `campaign_${d.id}`,
+            sourceCollection: 'partnerProfessionalCampaigns',
+            sourceId: d.id,
+            postType: 'professional_campaign',
+            campaignType: row.campaignType || 'promotion',
+            campaignTitle: row.title || (market === 'de' ? 'Fachkampagne' : 'Szakmai kampány'),
+            campaignLandingUrl: row.landingUrl || null,
+            text: summaryText,
+            category: 'szakmai',
+            tags: ['szakmai-kampany'],
+            market: row.market || 'hu',
+            userId: row.ownerId || null,
+            isAnonymous: false,
+            style: null,
+            imageUrl: null,
+            createdAt: row.createdAt || row.updatedAt || null,
+            updatedAt: row.updatedAt || null,
+            reactions: {},
+            commentCount: 0,
+            reportCount: 0,
+            isHidden: false,
+            authorData: {
+              displayName: ownerName,
+              photoURL: null,
+            },
+          };
+        });
+      } catch (campaignError) {
+        // A fő hírfolyam akkor is működjön, ha a kampány kollekció olvasása tiltott.
+        console.warn('Professional campaign feed skipped:', campaignError);
+      }
 
       const mergedPosts = [...communityPosts, ...campaignPosts]
         .sort((a, b) => toTimestampMs(b.createdAt || b.updatedAt) - toTimestampMs(a.createdAt || a.updatedAt))
