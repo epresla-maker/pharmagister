@@ -38,8 +38,22 @@ function PharmagisterContent() {
   
   // Pharmagister szerepkör: 'pharmacy' (Gyógyszertár), 'pharmacist' (Gyógyszerész), 'assistant' (Szakasszisztens)
   const pharmaRole = getEffectivePharmagisterRole(userData);
+  const isPartnerAccount = Boolean(
+    userData?.partnerAdvertiser ||
+    userData?.partnerProfessional ||
+    userData?.accountType === 'partner_advertiser' ||
+    userData?.accountType === 'partner_marketplace' ||
+    userData?.accountType === 'partner_professional'
+  );
   const showPharmaNavbar = pharmaRole && activeTab !== 'schedule-manager';
   const profileComplete = Boolean(userData?.pharmaProfileComplete || hasPharmagisterProfileData(userData));
+
+  useEffect(() => {
+    if (!user || !userData) return;
+    if (isPartnerAccount) {
+      router.replace('/partner');
+    }
+  }, [user, userData, isPartnerAccount, router]);
 
   useEffect(() => {
     if (!user?.uid || !userData || !pharmaRole) return;
@@ -55,6 +69,10 @@ function PharmagisterContent() {
       console.error('Error recovering Pharmagister role:', error);
     });
   }, [user?.uid, userData, pharmaRole, profileComplete]);
+
+  if (isPartnerAccount) {
+    return null;
+  }
 
   // Detect standalone mode once on mount
   useEffect(() => {

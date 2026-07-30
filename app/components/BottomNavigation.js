@@ -106,12 +106,24 @@ function BottomNavigation({ isVisible = true }) {
     setMarket(readMarketCookie());
   }, [pathname]);
 
+  const isPartnerAccount = Boolean(
+    userData?.partnerAdvertiser ||
+    userData?.partnerProfessional ||
+    userData?.accountType === 'partner_advertiser' ||
+    userData?.accountType === 'partner_marketplace' ||
+    userData?.accountType === 'partner_professional'
+  );
+
+  const isProfessionalPartner = Boolean(
+    userData?.partnerProfessional || userData?.accountType === 'partner_professional'
+  );
+
   // Memoize nav items to prevent recreation on every render
   const navItems = useMemo(() => [
     {
       icon: HomeGlyph,
       label: t('navHome', market),
-      path: '/kozosseg',
+      path: isPartnerAccount ? '/partner' : '/kozosseg',
       iconColor: darkMode ? 'text-emerald-300' : 'text-emerald-500',
       activeIconColor: 'text-emerald-600',
       badge: 0
@@ -134,8 +146,10 @@ function BottomNavigation({ isVisible = true }) {
     },
     {
       icon: GridGlyph,
-      label: 'Pharmagister',
-      path: '/pharmagister',
+      label: isPartnerAccount ? 'Partner' : 'Pharmagister',
+      path: isPartnerAccount
+        ? (isProfessionalPartner ? '/partner/szakmai-kampanyaim' : '/partner/hirdeteseim')
+        : '/pharmagister',
       iconColor: darkMode ? 'text-violet-300' : 'text-violet-500',
       activeIconColor: 'text-violet-600',
       isLarge: true,
@@ -149,7 +163,7 @@ function BottomNavigation({ isVisible = true }) {
       activeIconColor: 'text-rose-600',
       badge: 0
     }
-  ], [badges.messages, badges.notifications, darkMode, market]);
+  ], [badges.messages, badges.notifications, darkMode, market, isPartnerAccount, isProfessionalPartner]);
 
   // Memoize navigation handler
   const handleNavigation = useCallback((path) => {

@@ -2064,6 +2064,14 @@ export default function KozossegPage() {
   const { user, userData, loading: authLoading } = useAuth();
   const { darkMode } = useTheme();
   const pharmaRole = getEffectivePharmagisterRole(userData);
+  const isPartnerAccount = Boolean(
+    userData?.partnerAdvertiser ||
+    userData?.partnerProfessional ||
+    userData?.accountType === 'partner_advertiser' ||
+    userData?.accountType === 'partner_marketplace' ||
+    userData?.accountType === 'partner_professional'
+  );
+  const noRoleRedirectPath = isPartnerAccount ? '/partner' : '/pharmagister';
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -2116,7 +2124,7 @@ export default function KozossegPage() {
 
   const openCreateModal = () => {
     if (!pharmaRole) {
-      router.replace('/pharmagister');
+      router.replace(noRoleRedirectPath);
       return;
     }
     setShowCreateModal(true);
@@ -2125,9 +2133,9 @@ export default function KozossegPage() {
   useEffect(() => {
     if (authLoading || !user) return;
     if (!pharmaRole) {
-      router.replace('/pharmagister');
+      router.replace(noRoleRedirectPath);
     }
-  }, [authLoading, user, pharmaRole, router]);
+  }, [authLoading, user, pharmaRole, noRoleRedirectPath, router]);
 
   // Fetch posts
   const fetchPosts = useCallback(async () => {
