@@ -10,7 +10,6 @@ import {
   deleteDoc,
   doc,
   getDocs,
-  orderBy,
   query,
   serverTimestamp,
   updateDoc,
@@ -67,17 +66,21 @@ export default function ProfessionalCampaignListPage() {
 
     try {
       const baseRef = collection(db, "partnerProfessionalCampaigns");
-      const q = isAdmin
-        ? query(baseRef, orderBy("createdAt", "desc"))
-        : query(baseRef, where("ownerId", "==", user.uid), orderBy("createdAt", "desc"));
+      const q = isAdmin ? query(baseRef) : query(baseRef, where("ownerId", "==", user.uid));
       const snap = await getDocs(q);
 
-      setItems(
-        snap.docs.map((d) => ({
+      const rows = snap.docs
+        .map((d) => ({
           id: d.id,
           ...d.data(),
         }))
-      );
+        .sort((a, b) => {
+          const timeA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : new Date(a.createdAt || 0).getTime();
+          const timeB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : new Date(b.createdAt || 0).getTime();
+          return timeB - timeA;
+        });
+
+      setItems(rows);
     } catch (e) {
       console.error("Professional campaigns load error:", e);
       setError("Nem sikerült betölteni a kampányokat.");
@@ -171,7 +174,7 @@ export default function ProfessionalCampaignListPage() {
 
   return (
     <RouteGuard>
-      <div className="min-h-screen bg-slate-50 px-4 py-6">
+      <div className="min-h-screen bg-slate-50 px-4 py-6 pb-32">
         <div className="mx-auto max-w-5xl">
           <div className="mb-4 flex items-center justify-between">
             <h1 className="text-2xl font-bold text-slate-900">Saját szakmai kampányok</h1>
@@ -208,7 +211,6 @@ export default function ProfessionalCampaignListPage() {
           ) : (
             <div className="space-y-3">
               {items.map((item) => {
-                const isActive = item.status === "active";
                 return (
                   <div key={item.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                     <div className="flex flex-wrap items-start justify-between gap-3">

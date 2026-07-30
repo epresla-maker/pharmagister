@@ -89,7 +89,7 @@ export default function PartnerDashboardPage() {
 
   return (
     <RouteGuard>
-      <div className="min-h-screen bg-slate-50 px-4 py-6">
+      <div className="min-h-screen bg-slate-50 px-4 py-6 pb-32">
         <div className="mx-auto max-w-4xl space-y-5">
           <div className="rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-600 to-teal-600 p-6 text-white shadow-lg">
             <p className="text-xs uppercase tracking-[0.25em] text-emerald-100">Pharmagister</p>
