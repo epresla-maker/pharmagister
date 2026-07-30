@@ -250,7 +250,13 @@ export default function ProfessionalCampaignComposerPage() {
 
   const handlePreviewTap = (event) => {
     if (!coverImageDataUrl) return;
-    if (event.target !== event.currentTarget) return;
+
+    const target = event.target;
+    if (target instanceof HTMLElement) {
+      const isInteractiveTarget = target.closest("button, input, textarea, select, a, [data-editor-layer]");
+      if (isInteractiveTarget) return;
+    }
+
     openFullscreenEditor();
   };
 
@@ -480,6 +486,8 @@ export default function ProfessionalCampaignComposerPage() {
 
                     <div
                       ref={titleBoxRef}
+                      data-editor-layer="true"
+                      data-editor-layer="true"
                       onPointerDown={(event) => handleTextPointerDown(event, "title")}
                       onTouchStart={isTouchDevice ? undefined : (event) => handlePinchStart(event, "title")}
                       onTouchMove={isTouchDevice ? undefined : (event) => handlePinchMove(event, "title")}
@@ -645,6 +653,7 @@ export default function ProfessionalCampaignComposerPage() {
                   <div ref={previewRef} className="absolute inset-0">
                     <div
                       ref={titleBoxRef}
+                      data-editor-layer="true"
                       onPointerDown={(event) => handleTextPointerDown(event, "title")}
                       onTouchStart={isTouchDevice ? undefined : (event) => handlePinchStart(event, "title")}
                       onTouchMove={isTouchDevice ? undefined : (event) => handlePinchMove(event, "title")}
