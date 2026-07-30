@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { doc, updateDoc } from 'firebase/firestore';
@@ -14,17 +14,16 @@ import { getClientMarket } from '@/lib/marketI18n';
 export const CURRENT_TERMS_VERSION = '2026-03-04';
 
 export default function TermsUpdateModal() {
-  const { user, userData } = useAuth();
+  const { user, userData, loading } = useAuth();
   const { darkMode } = useTheme();
   const market = getClientMarket();
   const [accepting, setAccepting] = useState(false);
-  const [acceptedVersion, setAcceptedVersion] = useState(null);
+  const [acceptedVersionOverride, setAcceptedVersionOverride] = useState(null);
+  const acceptedVersion = acceptedVersionOverride ?? userData?.termsAcceptedVersion ?? null;
 
-  useEffect(() => {
-    setAcceptedVersion(userData?.termsAcceptedVersion || null);
-  }, [userData?.termsAcceptedVersion]);
-
-  // Csak bejelentkezett felhasználóknak jelenik meg, akik még nem fogadták el az aktuális verziót
+  // Csak auth betöltés után döntsünk a modalról, különben villanhat induláskor.
+  if (loading) return null;
+  // Csak bejelentkezett felhasználóknak jelenik meg, akik még nem fogadták el az aktuális verziót.
   if (!user || !userData) return null;
   if (acceptedVersion === CURRENT_TERMS_VERSION) return null;
 
@@ -35,7 +34,7 @@ export default function TermsUpdateModal() {
         termsAcceptedVersion: CURRENT_TERMS_VERSION,
         termsAcceptedAt: new Date().toISOString(),
       });
-      setAcceptedVersion(CURRENT_TERMS_VERSION);
+      setAcceptedVersionOverride(CURRENT_TERMS_VERSION);
     } catch (error) {
       console.error('Error accepting terms:', error);
       alert(market === 'de' ? 'Ein Fehler ist aufgetreten. Bitte versuche es erneut.' : 'Hiba történt. Kérjük, próbáld újra.');
