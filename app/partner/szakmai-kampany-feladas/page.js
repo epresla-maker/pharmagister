@@ -87,6 +87,7 @@ export default function ProfessionalCampaignComposerPage() {
   const [editingTarget, setEditingTarget] = useState(null);
   const [showTextEditor, setShowTextEditor] = useState(false);
   const [showFullscreenEditor, setShowFullscreenEditor] = useState(false);
+  const [activeTextTool, setActiveTextTool] = useState("title");
   const [pinchEnabled, setPinchEnabled] = useState(false);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
 
@@ -257,6 +258,7 @@ export default function ProfessionalCampaignComposerPage() {
     if (!coverImageDataUrl) return;
     setShowTextEditor(true);
     setShowFullscreenEditor(true);
+    setActiveTextTool("title");
     if (!editingTarget) {
       setEditingTarget("title");
     }
@@ -455,7 +457,7 @@ export default function ProfessionalCampaignComposerPage() {
               <div className="space-y-4">
                 <div className="rounded-[28px] border border-slate-200 bg-slate-950 p-4 text-white shadow-[0_20px_60px_-20px_rgba(15,23,42,0.5)]">
                   <div className="mb-1 text-sm text-slate-300">Elonezet</div>
-                  <div className="mb-4 text-xs text-slate-400">Koppints a szovegre szerkeszteshez. Ket ujjal csippents a meretezeshez.</div>
+                    <div className="mb-4 text-xs text-slate-400">Koppints a kepre, es teljes kepernyon nyilik a szerkeszto.</div>
 
                   <div
                     ref={previewRef}
@@ -511,7 +513,10 @@ export default function ProfessionalCampaignComposerPage() {
                       ) : (
                         <h2
                           onPointerDown={(event) => event.stopPropagation()}
-                          onClick={() => setEditingTarget("title")}
+                          onClick={() => {
+                            setEditingTarget("title");
+                            setActiveTextTool("title");
+                          }}
                           className="cursor-text"
                           style={{ color: titleColor, fontSize: `${titleFontSize}px`, fontWeight: titleFontWeight, lineHeight: 1.15 }}
                         >
@@ -550,7 +555,10 @@ export default function ProfessionalCampaignComposerPage() {
                       ) : (
                         <p
                           onPointerDown={(event) => event.stopPropagation()}
-                          onClick={() => setEditingTarget("message")}
+                          onClick={() => {
+                            setEditingTarget("message");
+                            setActiveTextTool("message");
+                          }}
                           className="cursor-text"
                           style={{ color: messageColor, fontSize: `${messageFontSize}px`, fontWeight: messageFontWeight, lineHeight: 1.4 }}
                         >
@@ -579,26 +587,62 @@ export default function ProfessionalCampaignComposerPage() {
         {showFullscreenEditor && coverImageDataUrl && (
         <div className="fixed inset-0 z-[70] bg-slate-950/95 px-3 py-3 sm:px-6 sm:py-6">
           <div className="mx-auto flex h-full max-w-6xl flex-col">
-            <div className="mb-3 flex items-center justify-between rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm text-white backdrop-blur">
-              <div>
-                <p className="font-semibold">Teljes képernyős szerkesztő</p>
-                <p className="text-xs text-slate-300">A kép teljes méretben nyílik meg, a szöveg közvetlenül rá szerkeszthető.</p>
-              </div>
-              <button type="button" onClick={closeFullscreenEditor} className="rounded-full bg-white/15 px-3 py-2 font-medium text-white hover:bg-white/25">
-                Bezárás
-              </button>
+              <div className="mb-3 flex items-center justify-between rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm text-white backdrop-blur">
+                <button type="button" onClick={closeFullscreenEditor} className="rounded-full bg-white/15 px-3 py-2 font-medium text-white hover:bg-white/25">
+                  Bezárás
+                </button>
+                <div className="text-center">
+                  <p className="font-semibold">Story szerkeszto</p>
+                  <p className="text-xs text-slate-300">Koppints a szovegre, huzd, es ket ujjal meretezz.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTitlePosition({ x: 7, y: 12 });
+                    setMessagePosition({ x: 7, y: 62 });
+                  }}
+                  className="rounded-full bg-white/15 px-3 py-2 font-medium text-white hover:bg-white/25"
+                >
+                  Alaphelyzet
+                </button>
             </div>
 
             <div className="flex-1 overflow-hidden rounded-[32px] border border-white/10 bg-slate-900 p-2 sm:p-3">
-              <div className="flex h-full flex-col gap-3 lg:flex-row">
-                <div className="relative flex-1 overflow-hidden rounded-[24px] bg-slate-950">
+                <div className="relative h-full overflow-hidden rounded-[24px] bg-slate-950">
                   <img src={coverImageDataUrl} alt="Kampany kep" className="absolute inset-0 h-full w-full object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-900/20 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-900/20 to-slate-900/10" />
 
-                  <div
-                    ref={previewRef}
-                    className="absolute inset-0"
-                  >
+                  <div className="absolute right-3 top-3 z-30 flex flex-col gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTextTool("title");
+                        setEditingTarget("title");
+                      }}
+                      className={`rounded-full px-3 py-2 text-xs font-semibold ${activeTextTool === "title" ? "bg-white text-slate-900" : "bg-black/45 text-white"}`}
+                    >
+                      Cím
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTextTool("message");
+                        setEditingTarget("message");
+                      }}
+                      className={`rounded-full px-3 py-2 text-xs font-semibold ${activeTextTool === "message" ? "bg-white text-slate-900" : "bg-black/45 text-white"}`}
+                    >
+                      Üzenet
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTextTransparent((prev) => !prev)}
+                      className="rounded-full bg-black/45 px-3 py-2 text-xs font-semibold text-white"
+                    >
+                      {textTransparent ? "Háttér ON" : "Háttér OFF"}
+                    </button>
+                  </div>
+
+                  <div ref={previewRef} className="absolute inset-0">
                     <div
                       ref={titleBoxRef}
                       onPointerDown={(event) => handleTextPointerDown(event, "title")}
@@ -628,7 +672,10 @@ export default function ProfessionalCampaignComposerPage() {
                       ) : (
                         <h2
                           onPointerDown={(event) => event.stopPropagation()}
-                          onClick={() => setEditingTarget("title")}
+                          onClick={() => {
+                            setEditingTarget("title");
+                            setActiveTextTool("title");
+                          }}
                           className="cursor-text"
                           style={{ color: titleColor, fontSize: `${titleFontSize}px`, fontWeight: titleFontWeight, lineHeight: 1.15 }}
                         >
@@ -661,7 +708,10 @@ export default function ProfessionalCampaignComposerPage() {
                       ) : (
                         <p
                           onPointerDown={(event) => event.stopPropagation()}
-                          onClick={() => setEditingTarget("message")}
+                          onClick={() => {
+                            setEditingTarget("message");
+                            setActiveTextTool("message");
+                          }}
                           className="cursor-text"
                           style={{ color: messageColor, fontSize: `${messageFontSize}px`, fontWeight: messageFontWeight, lineHeight: 1.4 }}
                         >
@@ -673,51 +723,97 @@ export default function ProfessionalCampaignComposerPage() {
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="w-full max-w-[360px] rounded-[24px] border border-white/10 bg-white/10 p-3 text-white backdrop-blur lg:w-[340px]">
-                  <div className="mb-3 text-sm font-semibold text-white">Szerkesztés</div>
-                  <div className="space-y-3 text-sm">
-                    <div>
-                      <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-300">Cím</label>
-                      <input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2 outline-none" placeholder="Pl. Teli tudasnap a patikakban" />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-300">Fő üzenet</label>
-                      <textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2 outline-none" placeholder="Írd ide a fő üzenetet..." />
-                    </div>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <div>
-                        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-300">Cím színe</label>
-                        <input type="color" value={titleColor} onChange={(e) => setTitleColor(e.target.value)} className="h-10 w-full rounded-lg border border-white/10 bg-white" />
+                  <div className="absolute inset-x-0 bottom-0 z-30 bg-gradient-to-t from-slate-950/95 via-slate-950/80 to-transparent px-3 pb-3 pt-10">
+                    <div className="mx-auto max-w-[680px] rounded-2xl border border-white/15 bg-black/45 p-3 backdrop-blur">
+                      <div className="mb-2 flex items-center justify-between text-xs text-slate-200">
+                        <span className="font-semibold">{activeTextTool === "title" ? "Cím szerkesztése" : "Üzenet szerkesztése"}</span>
+                        <span>Story eszkozok</span>
                       </div>
-                      <div>
-                        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-300">Üzenet színe</label>
-                        <input type="color" value={messageColor} onChange={(e) => setMessageColor(e.target.value)} className="h-10 w-full rounded-lg border border-white/10 bg-white" />
+                      <div className="space-y-3">
+                        {activeTextTool === "title" ? (
+                          <input
+                            value={title}
+                            onChange={(event) => setTitle(event.target.value)}
+                            className="w-full rounded-xl border border-white/15 bg-slate-950/70 px-3 py-2 text-sm text-white outline-none"
+                            placeholder="Pl. Teli tudasnap a patikakban"
+                          />
+                        ) : (
+                          <textarea
+                            rows={2}
+                            value={description}
+                            onChange={(event) => setDescription(event.target.value)}
+                            className="w-full resize-none rounded-xl border border-white/15 bg-slate-950/70 px-3 py-2 text-sm text-white outline-none"
+                            placeholder="Ird ide a fo uzenetet..."
+                          />
+                        )}
+                        <div className="grid gap-3 sm:grid-cols-3">
+                          <div>
+                            <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-300">Szin</label>
+                            <input
+                              type="color"
+                              value={activeTextTool === "title" ? titleColor : messageColor}
+                              onChange={(event) => {
+                                if (activeTextTool === "title") {
+                                  setTitleColor(event.target.value);
+                                } else {
+                                  setMessageColor(event.target.value);
+                                }
+                              }}
+                              className="h-10 w-full rounded-lg border border-white/10 bg-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-300">Meret</label>
+                            <input
+                              type="range"
+                              min={activeTextTool === "title" ? "18" : "12"}
+                              max={activeTextTool === "title" ? "44" : "28"}
+                              value={activeTextTool === "title" ? titleFontSize : messageFontSize}
+                              onChange={(event) => {
+                                if (activeTextTool === "title") {
+                                  setTitleFontSize(Number(event.target.value));
+                                } else {
+                                  setMessageFontSize(Number(event.target.value));
+                                }
+                              }}
+                              className="w-full"
+                            />
+                            <p className="text-[11px] text-slate-300">{activeTextTool === "title" ? titleFontSize : messageFontSize}px</p>
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-300">Vastagsag</label>
+                            <select
+                              value={activeTextTool === "title" ? titleFontWeight : messageFontWeight}
+                              onChange={(event) => {
+                                if (activeTextTool === "title") {
+                                  setTitleFontWeight(event.target.value);
+                                } else {
+                                  setMessageFontWeight(event.target.value);
+                                }
+                              }}
+                              className="h-10 w-full rounded-lg border border-white/15 bg-slate-950/70 px-2 text-sm text-white"
+                            >
+                              {activeTextTool === "title" ? (
+                                <>
+                                  <option value="500">Normal</option>
+                                  <option value="600">Felemelt</option>
+                                  <option value="700">Felkover</option>
+                                  <option value="800">Extra felkover</option>
+                                </>
+                              ) : (
+                                <>
+                                  <option value="400">Normal</option>
+                                  <option value="500">Felemelt</option>
+                                  <option value="600">Felkover</option>
+                                  <option value="700">Extra felkover</option>
+                                </>
+                              )}
+                            </select>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <div>
-                        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-300">Cím méret</label>
-                        <input type="range" min="18" max="44" value={titleFontSize} onChange={(e) => setTitleFontSize(Number(e.target.value))} className="w-full" />
-                        <p className="text-xs text-slate-400">{titleFontSize}px</p>
-                      </div>
-                      <div>
-                        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-300">Üzenet méret</label>
-                        <input type="range" min="12" max="28" value={messageFontSize} onChange={(e) => setMessageFontSize(Number(e.target.value))} className="w-full" />
-                        <p className="text-xs text-slate-400">{messageFontSize}px</p>
-                      </div>
-                    </div>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <label className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2 text-sm text-slate-200">
-                        <input type="checkbox" checked={textTransparent} onChange={(e) => setTextTransparent(e.target.checked)} className="h-4 w-4 accent-emerald-600" />
-                        Áttetsző háttér
-                      </label>
-                      <button type="button" onClick={() => { setTitlePosition({ x: 7, y: 12 }); setMessagePosition({ x: 7, y: 62 }); }} className="rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2 text-sm font-medium text-slate-200">
-                        Pozíciók alapra
-                      </button>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
