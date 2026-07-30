@@ -576,7 +576,7 @@ export default function ProfessionalCampaignComposerPage() {
             </div>
           )}
         </div>
-      {showFullscreenEditor && coverImageDataUrl && (
+        {showFullscreenEditor && coverImageDataUrl && (
         <div className="fixed inset-0 z-[70] bg-slate-950/95 px-3 py-3 sm:px-6 sm:py-6">
           <div className="mx-auto flex h-full max-w-6xl flex-col">
             <div className="mb-3 flex items-center justify-between rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm text-white backdrop-blur">
@@ -724,6 +724,7 @@ export default function ProfessionalCampaignComposerPage() {
           </div>
         </div>
       )}
+      </div>
     </RouteGuard>
   );
 }
