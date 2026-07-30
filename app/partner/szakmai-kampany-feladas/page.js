@@ -263,7 +263,7 @@ export default function ProfessionalCampaignComposerPage() {
   };
 
   const handlePinchStart = (event, target) => {
-    if (!pinchEnabled || editingTarget || dragTarget || event.touches.length !== 2) {
+    if (isTouchDevice || !pinchEnabled || editingTarget || dragTarget || event.touches.length !== 2) {
       return;
     }
 
@@ -278,7 +278,7 @@ export default function ProfessionalCampaignComposerPage() {
   };
 
   const handlePinchMove = (event, target) => {
-    if (!pinchEnabled || !pinchStateRef.current.active || pinchStateRef.current.target !== target) {
+    if (isTouchDevice || !pinchEnabled || !pinchStateRef.current.active || pinchStateRef.current.target !== target) {
       return;
     }
     if (event.touches.length !== 2) {
@@ -298,7 +298,7 @@ export default function ProfessionalCampaignComposerPage() {
   };
 
   const handlePinchEnd = () => {
-    if (!pinchEnabled || !pinchStateRef.current.active) {
+    if (isTouchDevice || !pinchEnabled || !pinchStateRef.current.active) {
       return;
     }
     pinchStateRef.current = {
@@ -518,10 +518,10 @@ export default function ProfessionalCampaignComposerPage() {
                     <div
                       ref={titleBoxRef}
                       onPointerDown={(event) => handleTextPointerDown(event, "title")}
-                      onTouchStart={(event) => handlePinchStart(event, "title")}
-                      onTouchMove={(event) => handlePinchMove(event, "title")}
-                      onTouchEnd={handlePinchEnd}
-                      onTouchCancel={handlePinchEnd}
+                      onTouchStart={isTouchDevice ? undefined : (event) => handlePinchStart(event, "title")}
+                      onTouchMove={isTouchDevice ? undefined : (event) => handlePinchMove(event, "title")}
+                      onTouchEnd={isTouchDevice ? undefined : handlePinchEnd}
+                      onTouchCancel={isTouchDevice ? undefined : handlePinchEnd}
                       className={`absolute w-[86%] cursor-grab select-none rounded-2xl border border-white/20 p-4 active:cursor-grabbing ${textTransparent ? "bg-transparent" : "bg-black/55 backdrop-blur-[1px]"} ${
                         dragTarget === "title" ? "scale-[1.01]" : ""
                       }`}
@@ -550,10 +550,7 @@ export default function ProfessionalCampaignComposerPage() {
                       ) : (
                         <h2
                           onPointerDown={(event) => event.stopPropagation()}
-                          onClick={() => {
-                            setEditingTarget("title");
-                            window.requestAnimationFrame(() => titleInputRef.current?.focus());
-                          }}
+                          onClick={() => setEditingTarget("title")}
                           className="cursor-text"
                           style={{ color: titleColor, fontSize: `${titleFontSize}px`, fontWeight: titleFontWeight, lineHeight: 1.15 }}
                         >
@@ -565,10 +562,10 @@ export default function ProfessionalCampaignComposerPage() {
                     <div
                       ref={messageBoxRef}
                       onPointerDown={(event) => handleTextPointerDown(event, "message")}
-                      onTouchStart={(event) => handlePinchStart(event, "message")}
-                      onTouchMove={(event) => handlePinchMove(event, "message")}
-                      onTouchEnd={handlePinchEnd}
-                      onTouchCancel={handlePinchEnd}
+                      onTouchStart={isTouchDevice ? undefined : (event) => handlePinchStart(event, "message")}
+                      onTouchMove={isTouchDevice ? undefined : (event) => handlePinchMove(event, "message")}
+                      onTouchEnd={isTouchDevice ? undefined : handlePinchEnd}
+                      onTouchCancel={isTouchDevice ? undefined : handlePinchEnd}
                       className={`absolute w-[86%] cursor-grab select-none rounded-2xl border border-white/20 p-4 active:cursor-grabbing ${textTransparent ? "bg-transparent" : "bg-black/55 backdrop-blur-[1px]"} ${
                         dragTarget === "message" ? "scale-[1.01]" : ""
                       }`}
@@ -592,10 +589,7 @@ export default function ProfessionalCampaignComposerPage() {
                       ) : (
                         <p
                           onPointerDown={(event) => event.stopPropagation()}
-                          onClick={() => {
-                            setEditingTarget("message");
-                            window.requestAnimationFrame(() => messageInputRef.current?.focus());
-                          }}
+                          onClick={() => setEditingTarget("message")}
                           className="cursor-text"
                           style={{ color: messageColor, fontSize: `${messageFontSize}px`, fontWeight: messageFontWeight, lineHeight: 1.4 }}
                         >
