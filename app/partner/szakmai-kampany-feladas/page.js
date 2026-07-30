@@ -85,6 +85,7 @@ export default function ProfessionalCampaignComposerPage() {
   const [error, setError] = useState("");
   const [dragTarget, setDragTarget] = useState(null);
   const [editingTarget, setEditingTarget] = useState(null);
+  const [showTextEditor, setShowTextEditor] = useState(false);
   const [pinchEnabled, setPinchEnabled] = useState(false);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
 
@@ -383,121 +384,135 @@ export default function ProfessionalCampaignComposerPage() {
                   </p>
                 </div>
 
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">Kampany cime</label>
-                  <input
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-emerald-500 focus:bg-white"
-                    placeholder="Pl. Teli tudasnap a patikakban"
-                    required
-                  />
-                </div>
-
-                <div className="grid gap-3 md:grid-cols-3">
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Cim szine</label>
-                    <input type="color" value={titleColor} onChange={(e) => setTitleColor(e.target.value)} className="h-10 w-full rounded-lg border border-slate-200 bg-white" />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Cim merete</label>
-                    <input type="range" min="18" max="44" value={titleFontSize} onChange={(e) => setTitleFontSize(Number(e.target.value))} className="w-full" />
-                    <p className="text-xs text-slate-500">{titleFontSize}px</p>
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Cim vastagsag</label>
-                    <select value={titleFontWeight} onChange={(e) => setTitleFontWeight(e.target.value)} className="h-10 w-full rounded-lg border border-slate-200 bg-white px-2">
-                      <option value="500">Normal</option>
-                      <option value="600">Felemelt</option>
-                      <option value="700">Felkover</option>
-                      <option value="800">Extra felkover</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">Fo uzenet</label>
-                  <textarea
-                    rows={4}
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-emerald-500 focus:bg-white"
-                    placeholder="Ird le roviden, miert fontos ez a kampany, miert erdemes megnyitni, es mi legyen az uzenet."
-                    required
-                  />
-                </div>
-
-                <div className="grid gap-3 md:grid-cols-3">
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Uzenet szine</label>
-                    <input type="color" value={messageColor} onChange={(e) => setMessageColor(e.target.value)} className="h-10 w-full rounded-lg border border-slate-200 bg-white" />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Uzenet merete</label>
-                    <input type="range" min="12" max="28" value={messageFontSize} onChange={(e) => setMessageFontSize(Number(e.target.value))} className="w-full" />
-                    <p className="text-xs text-slate-500">{messageFontSize}px</p>
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Uzenet vastagsag</label>
-                    <select value={messageFontWeight} onChange={(e) => setMessageFontWeight(e.target.value)} className="h-10 w-full rounded-lg border border-slate-200 bg-white px-2">
-                      <option value="400">Normal</option>
-                      <option value="500">Felemelt</option>
-                      <option value="600">Felkover</option>
-                      <option value="700">Extra felkover</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700">
-                    <input type="checkbox" checked={textTransparent} onChange={(e) => setTextTransparent(e.target.checked)} className="h-4 w-4 accent-emerald-600" />
-                    Szoveg hattere atlatszo
+                <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4">
+                  <p className="text-sm font-semibold text-emerald-800">1. Kép hozzáadása</p>
+                  <p className="mt-1 text-sm text-emerald-700">
+                    Először válassz képet a galériából. Utána a szöveget közvetlenül a képre rakhatod, mint egy Instagram story-ban.
+                  </p>
+                  <label className="mt-3 flex cursor-pointer items-center justify-center rounded-2xl border border-dashed border-emerald-300 bg-white px-4 py-3 text-sm font-medium text-emerald-700 hover:bg-emerald-100">
+                    {uploadingImage ? "Feldolgozas..." : coverImageDataUrl ? "Új kép választása" : "Kép választása galériából"}
+                    <input type="file" accept="image/*" className="hidden" onChange={handleImagePick} />
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setTitlePosition({ x: 7, y: 12 });
-                      setMessagePosition({ x: 7, y: 62 });
-                    }}
-                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-100"
-                  >
-                    Szoveg poziciok visszaallitasa
-                  </button>
-                </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <label className="mb-2 block text-sm font-semibold text-slate-700">Kep feltoltese (opcionalis)</label>
-                    <label className="flex cursor-pointer items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-100">
-                      {uploadingImage ? "Feldolgozas..." : "Kep kivalasztasa galeriabol"}
-                      <input type="file" accept="image/*" className="hidden" onChange={handleImagePick} />
-                    </label>
-                    {coverImageDataUrl && (
-                      <button type="button" onClick={() => setCoverImageDataUrl("")} className="mt-2 text-xs font-semibold text-rose-600 hover:text-rose-700">
-                        Kep torlese
+                  {coverImageDataUrl && (
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <button type="button" onClick={() => setShowTextEditor((prev) => !prev)} className="rounded-full bg-emerald-600 px-3 py-2 text-sm font-semibold text-white">
+                        {showTextEditor ? "Szöveg szerkesztő elrejtése" : "Szöveg hozzáadása"}
                       </button>
-                    )}
-                  </div>
-                  <div>
-                    <label className="mb-2 block text-sm font-semibold text-slate-700">Gomb felirata</label>
-                    <input
-                      value={ctaLabel}
-                      onChange={(e) => setCtaLabel(e.target.value)}
-                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-emerald-500 focus:bg-white"
-                      placeholder="Megnyitas"
-                    />
-                  </div>
+                      <button type="button" onClick={() => setCoverImageDataUrl("")} className="rounded-full border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50">
+                        Kép törlése
+                      </button>
+                    </div>
+                  )}
                 </div>
 
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">Weboldal cime (opcionalis)</label>
-                  <input
-                    value={landingUrl}
-                    onChange={(e) => setLandingUrl(e.target.value)}
-                    type="url"
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-emerald-500 focus:bg-white"
-                    placeholder="https://"
-                  />
+                {coverImageDataUrl && showTextEditor && (
+                  <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div>
+                      <label className="mb-2 block text-sm font-semibold text-slate-700">Cím a képre</label>
+                      <input
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-emerald-500"
+                        placeholder="Pl. Teli tudasnap a patikakban"
+                        required
+                      />
+                    </div>
+
+                    <div className="grid gap-3 md:grid-cols-3">
+                      <div>
+                        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Cim szine</label>
+                        <input type="color" value={titleColor} onChange={(e) => setTitleColor(e.target.value)} className="h-10 w-full rounded-lg border border-slate-200 bg-white" />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Cim merete</label>
+                        <input type="range" min="18" max="44" value={titleFontSize} onChange={(e) => setTitleFontSize(Number(e.target.value))} className="w-full" />
+                        <p className="text-xs text-slate-500">{titleFontSize}px</p>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Cim vastagsag</label>
+                        <select value={titleFontWeight} onChange={(e) => setTitleFontWeight(e.target.value)} className="h-10 w-full rounded-lg border border-slate-200 bg-white px-2">
+                          <option value="500">Normal</option>
+                          <option value="600">Felemelt</option>
+                          <option value="700">Felkover</option>
+                          <option value="800">Extra felkover</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="mb-2 block text-sm font-semibold text-slate-700">Fő üzenet a képre</label>
+                      <textarea
+                        rows={3}
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-emerald-500"
+                        placeholder="Írd ide a fő üzenetet, amit a képre teszel..."
+                        required
+                      />
+                    </div>
+
+                    <div className="grid gap-3 md:grid-cols-3">
+                      <div>
+                        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Üzenet szine</label>
+                        <input type="color" value={messageColor} onChange={(e) => setMessageColor(e.target.value)} className="h-10 w-full rounded-lg border border-slate-200 bg-white" />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Üzenet merete</label>
+                        <input type="range" min="12" max="28" value={messageFontSize} onChange={(e) => setMessageFontSize(Number(e.target.value))} className="w-full" />
+                        <p className="text-xs text-slate-500">{messageFontSize}px</p>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Üzenet vastagsag</label>
+                        <select value={messageFontWeight} onChange={(e) => setMessageFontWeight(e.target.value)} className="h-10 w-full rounded-lg border border-slate-200 bg-white px-2">
+                          <option value="400">Normal</option>
+                          <option value="500">Felemelt</option>
+                          <option value="600">Felkover</option>
+                          <option value="700">Extra felkover</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700">
+                        <input type="checkbox" checked={textTransparent} onChange={(e) => setTextTransparent(e.target.checked)} className="h-4 w-4 accent-emerald-600" />
+                        Szöveg háttér áttetsző
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTitlePosition({ x: 7, y: 12 });
+                          setMessagePosition({ x: 7, y: 62 });
+                        }}
+                        className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                      >
+                        Pozíciók visszaállítása
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="mb-2 block text-sm font-semibold text-slate-700">Gomb felirata</label>
+                      <input
+                        value={ctaLabel}
+                        onChange={(e) => setCtaLabel(e.target.value)}
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-emerald-500"
+                        placeholder="Megnyitas"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-sm font-semibold text-slate-700">Weboldal címe (opcionális)</label>
+                      <input
+                        value={landingUrl}
+                        onChange={(e) => setLandingUrl(e.target.value)}
+                        type="url"
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-emerald-500"
+                        placeholder="https://"
+                      />
+                    </div>
+                  </div>
                 </div>
               </form>
 
