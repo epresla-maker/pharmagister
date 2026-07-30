@@ -85,6 +85,7 @@ export default function ProfessionalCampaignComposerPage() {
   const [error, setError] = useState("");
   const [dragTarget, setDragTarget] = useState(null);
   const [editingTarget, setEditingTarget] = useState(null);
+  const [pinchEnabled, setPinchEnabled] = useState(false);
 
   const previewRef = useRef(null);
   const titleBoxRef = useRef(null);
@@ -100,6 +101,13 @@ export default function ProfessionalCampaignComposerPage() {
   });
 
   const isProfessionalPartner = Boolean(userData?.partnerProfessional || userData?.accountType === "partner_professional");
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const coarsePointer = typeof window.matchMedia === "function" ? window.matchMedia("(pointer: coarse)").matches : window.navigator.maxTouchPoints > 0;
+    setPinchEnabled(!coarsePointer);
+  }, []);
 
   useEffect(() => {
     if (!isEditMode || !editId || !user?.uid) return;
@@ -253,7 +261,7 @@ export default function ProfessionalCampaignComposerPage() {
   };
 
   const handlePinchStart = (event, target) => {
-    if (event.touches.length !== 2) {
+    if (!pinchEnabled || editingTarget || dragTarget || event.touches.length !== 2) {
       return;
     }
 
@@ -268,7 +276,7 @@ export default function ProfessionalCampaignComposerPage() {
   };
 
   const handlePinchMove = (event, target) => {
-    if (!pinchStateRef.current.active || pinchStateRef.current.target !== target) {
+    if (!pinchEnabled || !pinchStateRef.current.active || pinchStateRef.current.target !== target) {
       return;
     }
     if (event.touches.length !== 2) {
@@ -288,7 +296,7 @@ export default function ProfessionalCampaignComposerPage() {
   };
 
   const handlePinchEnd = () => {
-    if (!pinchStateRef.current.active) {
+    if (!pinchEnabled || !pinchStateRef.current.active) {
       return;
     }
     pinchStateRef.current = {
@@ -337,17 +345,6 @@ export default function ProfessionalCampaignComposerPage() {
       window.removeEventListener("pointerup", handlePointerUp);
     };
   }, [dragTarget]);
-
-  useEffect(() => {
-    if (editingTarget === "title") {
-      titleInputRef.current?.focus();
-      titleInputRef.current?.select();
-    }
-    if (editingTarget === "message") {
-      messageInputRef.current?.focus();
-      messageInputRef.current?.select();
-    }
-  }, [editingTarget]);
 
   return (
     <RouteGuard>
@@ -551,7 +548,10 @@ export default function ProfessionalCampaignComposerPage() {
                       ) : (
                         <h2
                           onPointerDown={(event) => event.stopPropagation()}
-                          onClick={() => setEditingTarget("title")}
+                          onClick={() => {
+                            setEditingTarget("title");
+                            window.requestAnimationFrame(() => titleInputRef.current?.focus());
+                          }}
                           className="cursor-text"
                           style={{ color: titleColor, fontSize: `${titleFontSize}px`, fontWeight: titleFontWeight, lineHeight: 1.15 }}
                         >
@@ -590,7 +590,10 @@ export default function ProfessionalCampaignComposerPage() {
                       ) : (
                         <p
                           onPointerDown={(event) => event.stopPropagation()}
-                          onClick={() => setEditingTarget("message")}
+                          onClick={() => {
+                            setEditingTarget("message");
+                            window.requestAnimationFrame(() => messageInputRef.current?.focus());
+                          }}
                           className="cursor-text"
                           style={{ color: messageColor, fontSize: `${messageFontSize}px`, fontWeight: messageFontWeight, lineHeight: 1.4 }}
                         >
