@@ -46,6 +46,12 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
+function getTouchDistance(touchA, touchB) {
+  const dx = touchA.clientX - touchB.clientX;
+  const dy = touchA.clientY - touchB.clientY;
+  return Math.hypot(dx, dy);
+}
+
 export default function ProfessionalCampaignComposerPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -78,11 +84,20 @@ export default function ProfessionalCampaignComposerPage() {
   const [loadingDraft, setLoadingDraft] = useState(false);
   const [error, setError] = useState("");
   const [dragTarget, setDragTarget] = useState(null);
+  const [editingTarget, setEditingTarget] = useState(null);
 
   const previewRef = useRef(null);
   const titleBoxRef = useRef(null);
   const messageBoxRef = useRef(null);
   const dragOffsetRef = useRef({ x: 0, y: 0 });
+  const titleInputRef = useRef(null);
+  const messageInputRef = useRef(null);
+  const pinchStateRef = useRef({
+    active: false,
+    target: null,
+    startDistance: 0,
+    startFontSize: 0,
+  });
 
   const isProfessionalPartner = Boolean(userData?.partnerProfessional || userData?.accountType === "partner_professional");
 
@@ -221,6 +236,10 @@ export default function ProfessionalCampaignComposerPage() {
   };
 
   const handleTextPointerDown = (event, target) => {
+    if (editingTarget === target || pinchStateRef.current.active) {
+      return;
+    }
+
     const boxRef = target === "title" ? titleBoxRef : messageBoxRef;
     if (!previewRef.current || !boxRef.current) return;
 
@@ -231,6 +250,53 @@ export default function ProfessionalCampaignComposerPage() {
     };
     setDragTarget(target);
     event.preventDefault();
+  };
+
+  const handlePinchStart = (event, target) => {
+    if (event.touches.length !== 2) {
+      return;
+    }
+
+    const distance = getTouchDistance(event.touches[0], event.touches[1]);
+    pinchStateRef.current = {
+      active: true,
+      target,
+      startDistance: distance,
+      startFontSize: target === "title" ? titleFontSize : messageFontSize,
+    };
+    setDragTarget(null);
+  };
+
+  const handlePinchMove = (event, target) => {
+    if (!pinchStateRef.current.active || pinchStateRef.current.target !== target) {
+      return;
+    }
+    if (event.touches.length !== 2) {
+      return;
+    }
+
+    event.preventDefault();
+    const currentDistance = getTouchDistance(event.touches[0], event.touches[1]);
+    const ratio = currentDistance / Math.max(1, pinchStateRef.current.startDistance);
+    const nextSize = pinchStateRef.current.startFontSize * ratio;
+
+    if (target === "title") {
+      setTitleFontSize(Math.round(clamp(nextSize, 18, 44)));
+    } else {
+      setMessageFontSize(Math.round(clamp(nextSize, 12, 28)));
+    }
+  };
+
+  const handlePinchEnd = () => {
+    if (!pinchStateRef.current.active) {
+      return;
+    }
+    pinchStateRef.current = {
+      active: false,
+      target: null,
+      startDistance: 0,
+      startFontSize: 0,
+    };
   };
 
   useEffect(() => {
@@ -271,6 +337,17 @@ export default function ProfessionalCampaignComposerPage() {
       window.removeEventListener("pointerup", handlePointerUp);
     };
   }, [dragTarget]);
+
+  useEffect(() => {
+    if (editingTarget === "title") {
+      titleInputRef.current?.focus();
+      titleInputRef.current?.select();
+    }
+    if (editingTarget === "message") {
+      messageInputRef.current?.focus();
+      messageInputRef.current?.select();
+    }
+  }, [editingTarget]);
 
   return (
     <RouteGuard>
@@ -427,7 +504,8 @@ export default function ProfessionalCampaignComposerPage() {
 
               <div className="space-y-4">
                 <div className="rounded-[28px] border border-slate-200 bg-slate-950 p-4 text-white shadow-[0_20px_60px_-20px_rgba(15,23,42,0.5)]">
-                  <div className="mb-4 text-sm text-slate-300">Elonezet</div>
+                  <div className="mb-1 text-sm text-slate-300">Elonezet</div>
+                  <div className="mb-4 text-xs text-slate-400">Koppints a szovegre szerkeszteshez. Ket ujjal csippents a meretezeshez.</div>
 
                   <div ref={previewRef} className="relative mx-auto aspect-[9/16] w-full max-w-[320px] overflow-hidden rounded-[24px] border border-white/10 bg-gradient-to-br from-slate-900 to-slate-800">
                     {coverImageDataUrl ? (
@@ -441,6 +519,10 @@ export default function ProfessionalCampaignComposerPage() {
                     <div
                       ref={titleBoxRef}
                       onPointerDown={(event) => handleTextPointerDown(event, "title")}
+                      onTouchStart={(event) => handlePinchStart(event, "title")}
+                      onTouchMove={(event) => handlePinchMove(event, "title")}
+                      onTouchEnd={handlePinchEnd}
+                      onTouchCancel={handlePinchEnd}
                       className={`absolute w-[86%] cursor-grab select-none rounded-2xl border border-white/20 p-4 active:cursor-grabbing ${textTransparent ? "bg-transparent" : "bg-black/55 backdrop-blur-[1px]"} ${
                         dragTarget === "title" ? "scale-[1.01]" : ""
                       }`}
@@ -450,14 +532,41 @@ export default function ProfessionalCampaignComposerPage() {
                         touchAction: "none",
                       }}
                     >
-                      <h2 style={{ color: titleColor, fontSize: `${titleFontSize}px`, fontWeight: titleFontWeight, lineHeight: 1.15 }}>
-                        {title.trim() || "Az uj kampanyod"}
-                      </h2>
+                      {editingTarget === "title" ? (
+                        <input
+                          ref={titleInputRef}
+                          value={title}
+                          onChange={(event) => setTitle(event.target.value)}
+                          onBlur={() => setEditingTarget(null)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              event.preventDefault();
+                              setEditingTarget(null);
+                            }
+                          }}
+                          className="w-full rounded-lg border border-white/30 bg-black/35 px-2 py-1 outline-none"
+                          style={{ color: titleColor, fontSize: `${titleFontSize}px`, fontWeight: titleFontWeight, lineHeight: 1.15 }}
+                          placeholder="Az uj kampanyod"
+                        />
+                      ) : (
+                        <h2
+                          onPointerDown={(event) => event.stopPropagation()}
+                          onClick={() => setEditingTarget("title")}
+                          className="cursor-text"
+                          style={{ color: titleColor, fontSize: `${titleFontSize}px`, fontWeight: titleFontWeight, lineHeight: 1.15 }}
+                        >
+                          {title.trim() || "Az uj kampanyod"}
+                        </h2>
+                      )}
                     </div>
 
                     <div
                       ref={messageBoxRef}
                       onPointerDown={(event) => handleTextPointerDown(event, "message")}
+                      onTouchStart={(event) => handlePinchStart(event, "message")}
+                      onTouchMove={(event) => handlePinchMove(event, "message")}
+                      onTouchEnd={handlePinchEnd}
+                      onTouchCancel={handlePinchEnd}
                       className={`absolute w-[86%] cursor-grab select-none rounded-2xl border border-white/20 p-4 active:cursor-grabbing ${textTransparent ? "bg-transparent" : "bg-black/55 backdrop-blur-[1px]"} ${
                         dragTarget === "message" ? "scale-[1.01]" : ""
                       }`}
@@ -467,9 +576,27 @@ export default function ProfessionalCampaignComposerPage() {
                         touchAction: "none",
                       }}
                     >
-                      <p style={{ color: messageColor, fontSize: `${messageFontSize}px`, fontWeight: messageFontWeight, lineHeight: 1.4 }}>
-                        {description.trim() || "Ird meg a fo uzenetet, es huzd a szoveget oda, ahol a legjobb."}
-                      </p>
+                      {editingTarget === "message" ? (
+                        <textarea
+                          ref={messageInputRef}
+                          value={description}
+                          onChange={(event) => setDescription(event.target.value)}
+                          onBlur={() => setEditingTarget(null)}
+                          rows={3}
+                          className="w-full resize-none rounded-lg border border-white/30 bg-black/35 px-2 py-1 outline-none"
+                          style={{ color: messageColor, fontSize: `${messageFontSize}px`, fontWeight: messageFontWeight, lineHeight: 1.4 }}
+                          placeholder="Ird meg a fo uzenetet..."
+                        />
+                      ) : (
+                        <p
+                          onPointerDown={(event) => event.stopPropagation()}
+                          onClick={() => setEditingTarget("message")}
+                          className="cursor-text"
+                          style={{ color: messageColor, fontSize: `${messageFontSize}px`, fontWeight: messageFontWeight, lineHeight: 1.4 }}
+                        >
+                          {description.trim() || "Ird meg a fo uzenetet, es huzd a szoveget oda, ahol a legjobb."}
+                        </p>
+                      )}
                       <div className="mt-3 flex items-center justify-end border-t border-white/15 pt-3 text-sm">
                         <span className="rounded-full bg-emerald-500/30 px-3 py-1 font-semibold text-emerald-100">{ctaLabel.trim() || "Megnyitas"}</span>
                       </div>
