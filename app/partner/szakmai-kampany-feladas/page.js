@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import RouteGuard from "@/app/components/RouteGuard";
 import { useAuth } from "@/context/AuthContext";
@@ -52,6 +52,118 @@ function getTouchDistance(touchA, touchB) {
   return Math.hypot(dx, dy);
 }
 
+const GENERATED_BACKGROUNDS = {
+  aurora: "linear-gradient(145deg,#0f766e 0%,#1d4ed8 45%,#7c3aed 100%)",
+  sunrise: "linear-gradient(145deg,#f97316 0%,#ef4444 45%,#7c2d12 100%)",
+  mint: "linear-gradient(145deg,#064e3b 0%,#10b981 45%,#99f6e4 100%)",
+  steel: "linear-gradient(145deg,#0f172a 0%,#334155 45%,#94a3b8 100%)",
+};
+
+function createStoryObject(type = "sticker") {
+  const seed = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const baseObject = {
+    rotation: 0,
+    opacity: 1,
+    scale: 1,
+    color: "#ffffff",
+    fontWeight: "700",
+    imageUrl: "",
+    stickerType: "general",
+    interactionType: "none",
+    startMs: 0,
+    endMs: 15000,
+    entryAnimation: "fade",
+    loopAnimation: "none",
+    exitAnimation: "none",
+  };
+
+  if (type === "text") {
+    return {
+      ...baseObject,
+      id: `obj_${seed}`,
+      type: "text",
+      value: "Uj szoveg",
+      x: 8,
+      y: 45,
+      width: 70,
+      height: 12,
+      fontSize: 22,
+    };
+  }
+
+  if (type === "gif") {
+    return {
+      ...baseObject,
+      id: `obj_${seed}`,
+      type: "gif",
+      value: "GIF",
+      x: 10,
+      y: 58,
+      width: 34,
+      height: 14,
+      fontSize: 20,
+    };
+  }
+
+  if (type === "image") {
+    return {
+      ...baseObject,
+      id: `obj_${seed}`,
+      type: "image",
+      value: "Kep objektum",
+      x: 12,
+      y: 58,
+      width: 42,
+      height: 20,
+      fontSize: 14,
+    };
+  }
+
+  return {
+    ...baseObject,
+    id: `obj_${seed}`,
+    type: "sticker",
+    value: "✨",
+    x: 12,
+    y: 68,
+    width: 22,
+    height: 12,
+    fontSize: 34,
+  };
+}
+
+function normalizeStoryObject(raw, fallbackType = "sticker") {
+  const base = createStoryObject(fallbackType);
+  const next = {
+    ...base,
+    ...raw,
+  };
+
+  next.type = ["text", "sticker", "gif", "image"].includes(next.type) ? next.type : fallbackType;
+  next.id = String(next.id || base.id);
+  next.value = String(next.value ?? base.value);
+  next.x = clamp(Number(next.x), 0, 92);
+  next.y = clamp(Number(next.y), 0, 92);
+  next.width = clamp(Number(next.width), 12, 92);
+  next.height = clamp(Number(next.height), 8, 70);
+  next.rotation = clamp(Number(next.rotation), -180, 180);
+  next.opacity = clamp(Number(next.opacity), 0.1, 1);
+  next.scale = clamp(Number(next.scale), 0.4, 2.5);
+  next.fontSize = clamp(Number(next.fontSize), 10, 72);
+  next.color = String(next.color || base.color);
+  next.fontWeight = String(next.fontWeight || base.fontWeight);
+  next.imageUrl = String(next.imageUrl || "");
+  next.stickerType = String(next.stickerType || "general");
+  next.interactionType = String(next.interactionType || "none");
+  next.startMs = clamp(Number(next.startMs), 0, 120000);
+  next.endMs = clamp(Number(next.endMs), next.startMs + 300, 120000);
+  next.entryAnimation = String(next.entryAnimation || "fade");
+  next.loopAnimation = String(next.loopAnimation || "none");
+  next.exitAnimation = String(next.exitAnimation || "none");
+
+  return next;
+}
+
 export default function ProfessionalCampaignComposerPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -74,10 +186,24 @@ export default function ProfessionalCampaignComposerPage() {
   const [landingUrl, setLandingUrl] = useState("");
   const [coverImageDataUrl, setCoverImageDataUrl] = useState("");
   const [ctaLabel, setCtaLabel] = useState("Megnyitas");
+  const [backgroundMode, setBackgroundMode] = useState("image");
+  const [backgroundColor, setBackgroundColor] = useState("#0f172a");
+  const [generatedBackground, setGeneratedBackground] = useState("aurora");
 
   const [textTransparent, setTextTransparent] = useState(false);
   const [titlePosition, setTitlePosition] = useState({ x: 7, y: 12 });
   const [messagePosition, setMessagePosition] = useState({ x: 7, y: 62 });
+  const [storyObjects, setStoryObjects] = useState([]);
+  const [activeObjectId, setActiveObjectId] = useState(null);
+  const [musicTrack, setMusicTrack] = useState("");
+  const [musicArtist, setMusicArtist] = useState("");
+  const [musicStartSec, setMusicStartSec] = useState(0);
+  const [musicDurationSec, setMusicDurationSec] = useState(15);
+  const [showLyrics, setShowLyrics] = useState(false);
+  const [videoTrimStartSec, setVideoTrimStartSec] = useState(0);
+  const [videoDurationSec, setVideoDurationSec] = useState(15);
+  const [videoSpeed, setVideoSpeed] = useState(1);
+  const [videoMuted, setVideoMuted] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -103,8 +229,132 @@ export default function ProfessionalCampaignComposerPage() {
     startDistance: 0,
     startFontSize: 0,
   });
+  const objectDragRef = useRef({
+    objectId: null,
+    offsetX: 0,
+    offsetY: 0,
+  });
+  const storyObjectsRef = useRef([]);
+  const objectImageInputRef = useRef(null);
 
   const isProfessionalPartner = Boolean(userData?.partnerProfessional || userData?.accountType === "partner_professional");
+  const activeObject = useMemo(
+    () => storyObjects.find((item) => item.id === activeObjectId) || null,
+    [storyObjects, activeObjectId]
+  );
+
+  const setObjectField = (id, field, value) => {
+    setStoryObjects((prev) => prev.map((item) => {
+      if (item.id !== id) return item;
+      return normalizeStoryObject({ ...item, [field]: value }, item.type);
+    }));
+  };
+
+  useEffect(() => {
+    storyObjectsRef.current = storyObjects;
+  }, [storyObjects]);
+
+  const activeBackgroundStyle = useMemo(() => {
+    if (backgroundMode === "color") {
+      return { background: backgroundColor || "#0f172a" };
+    }
+    if (backgroundMode === "generated") {
+      return { background: GENERATED_BACKGROUNDS[generatedBackground] || GENERATED_BACKGROUNDS.aurora };
+    }
+    return { background: "linear-gradient(145deg,#0f172a 0%,#334155 100%)" };
+  }, [backgroundMode, backgroundColor, generatedBackground]);
+
+  const addObject = (type) => {
+    const next = createStoryObject(type);
+    setStoryObjects((prev) => [...prev, next]);
+    setActiveObjectId(next.id);
+  };
+
+  const addStickerPreset = (value, stickerType = "info") => {
+    const next = normalizeStoryObject({
+      ...createStoryObject("sticker"),
+      value,
+      stickerType,
+    }, "sticker");
+    setStoryObjects((prev) => [...prev, next]);
+    setActiveObjectId(next.id);
+  };
+
+  const deleteActiveObject = () => {
+    if (!activeObjectId) return;
+    setStoryObjects((prev) => prev.filter((item) => item.id !== activeObjectId));
+    setActiveObjectId(null);
+  };
+
+  const duplicateActiveObject = () => {
+    if (!activeObject) return;
+    const copy = normalizeStoryObject({
+      ...activeObject,
+      id: `obj_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      x: clamp(Number(activeObject.x) + 3, 0, 92),
+      y: clamp(Number(activeObject.y) + 3, 0, 92),
+    }, activeObject.type);
+    setStoryObjects((prev) => [...prev, copy]);
+    setActiveObjectId(copy.id);
+  };
+
+  const moveActiveObjectLayer = (direction) => {
+    if (!activeObjectId) return;
+    setStoryObjects((prev) => {
+      const index = prev.findIndex((item) => item.id === activeObjectId);
+      if (index === -1) return prev;
+      const target = direction === "up" ? index + 1 : index - 1;
+      if (target < 0 || target >= prev.length) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(index, 1);
+      next.splice(target, 0, moved);
+      return next;
+    });
+  };
+
+  const handleStoryObjectPointerDown = (event, objectId) => {
+    if (isTouchDevice) return;
+    if (!previewRef.current) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    const boxRect = event.currentTarget.getBoundingClientRect();
+    objectDragRef.current = {
+      objectId,
+      offsetX: event.clientX - boxRect.left,
+      offsetY: event.clientY - boxRect.top,
+    };
+    setActiveObjectId(objectId);
+  };
+
+  const triggerObjectImagePick = () => {
+    if (!activeObject) return;
+    objectImageInputRef.current?.click();
+  };
+
+  const handleObjectImagePick = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file || !activeObject) return;
+
+    setError("");
+    try {
+      const dataUrl = await compressImageFile(file);
+      setStoryObjects((prev) => prev.map((item) => {
+        if (item.id !== activeObject.id) return item;
+        return normalizeStoryObject({
+          ...item,
+          type: "image",
+          imageUrl: dataUrl,
+          value: item.value || "Kep objektum",
+        }, "image");
+      }));
+    } catch (e) {
+      console.error("Object image error:", e);
+      setError("Nem sikerult az objektumkep feldolgozasa.");
+    } finally {
+      event.target.value = "";
+    }
+  };
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -141,6 +391,18 @@ export default function ProfessionalCampaignComposerPage() {
         setCoverImageDataUrl(row.coverImageDataUrl || row.coverImageUrl || "");
         setCtaLabel(row.ctaLabel || "Megnyitas");
 
+        const bgType = String(row?.storyCanvas?.background?.type || "");
+        if (["image", "color", "generated"].includes(bgType)) {
+          setBackgroundMode(bgType);
+        }
+        if (bgType === "color") {
+          setBackgroundColor(String(row?.storyCanvas?.background?.value || "#0f172a"));
+        }
+        if (bgType === "generated") {
+          const key = String(row?.storyCanvas?.background?.value || "aurora");
+          setGeneratedBackground(Object.prototype.hasOwnProperty.call(GENERATED_BACKGROUNDS, key) ? key : "aurora");
+        }
+
         setTextTransparent(Boolean(row.textTransparent));
         setTitlePosition({
           x: Number.isFinite(row?.titlePosition?.x) ? row.titlePosition.x : 7,
@@ -154,6 +416,28 @@ export default function ProfessionalCampaignComposerPage() {
             ? row.messagePosition.y
             : (Number.isFinite(row?.textPosition?.y) ? row.textPosition.y : 62),
         });
+
+        const loadedStoryObjects = Array.isArray(row?.storyCanvas?.objects)
+          ? row.storyCanvas.objects
+              .filter((item) => item && ["text", "sticker", "gif", "image"].includes(String(item.type || "")) && !["title", "message"].includes(String(item.role || "")))
+              .map((item) => normalizeStoryObject(item, item.type))
+          : [];
+        setStoryObjects(loadedStoryObjects);
+        setActiveObjectId(loadedStoryObjects[loadedStoryObjects.length - 1]?.id || null);
+
+        if (row.musicLayer) {
+          setMusicTrack(String(row.musicLayer.track || ""));
+          setMusicArtist(String(row.musicLayer.artist || ""));
+          setMusicStartSec(Number.isFinite(row.musicLayer.startSec) ? row.musicLayer.startSec : 0);
+          setMusicDurationSec(Number.isFinite(row.musicLayer.durationSec) ? row.musicLayer.durationSec : 15);
+          setShowLyrics(Boolean(row.musicLayer.showLyrics));
+        }
+        if (row.videoSettings) {
+          setVideoTrimStartSec(Number.isFinite(row.videoSettings.trimStartSec) ? row.videoSettings.trimStartSec : 0);
+          setVideoDurationSec(Number.isFinite(row.videoSettings.durationSec) ? row.videoSettings.durationSec : 15);
+          setVideoSpeed(Number.isFinite(row.videoSettings.speed) ? row.videoSettings.speed : 1);
+          setVideoMuted(Boolean(row.videoSettings.muted));
+        }
       } catch (e) {
         console.error("Campaign load error:", e);
       } finally {
@@ -204,6 +488,67 @@ export default function ProfessionalCampaignComposerPage() {
       titlePosition,
       messagePosition,
       textPosition: messagePosition,
+      storyCanvas: {
+        width: 1080,
+        height: 1920,
+        ratio: "9:16",
+        background: {
+          type: backgroundMode,
+          value: backgroundMode === "image"
+            ? (coverImageDataUrl || null)
+            : (backgroundMode === "generated" ? generatedBackground : backgroundColor),
+        },
+        objects: [
+          {
+            id: "core_title",
+            type: "text",
+            role: "title",
+            value: title.trim(),
+            x: titlePosition.x,
+            y: titlePosition.y,
+            width: 86,
+            height: 18,
+            rotation: 0,
+            opacity: 1,
+            scale: 1,
+            fontSize: titleFontSize,
+            color: titleColor,
+            fontWeight: titleFontWeight,
+            backgroundMode: textTransparent ? "transparent" : "box",
+          },
+          {
+            id: "core_message",
+            type: "text",
+            role: "message",
+            value: description.trim(),
+            x: messagePosition.x,
+            y: messagePosition.y,
+            width: 86,
+            height: 24,
+            rotation: 0,
+            opacity: 1,
+            scale: 1,
+            fontSize: messageFontSize,
+            color: messageColor,
+            fontWeight: messageFontWeight,
+            backgroundMode: textTransparent ? "transparent" : "box",
+          },
+          ...storyObjects.map((item) => normalizeStoryObject(item, item.type)),
+        ],
+      },
+      musicLayer: {
+        track: musicTrack.trim() || null,
+        artist: musicArtist.trim() || null,
+        startSec: clamp(Number(musicStartSec), 0, 120),
+        durationSec: clamp(Number(musicDurationSec), 3, 30),
+        showLyrics: Boolean(showLyrics),
+      },
+      videoSettings: {
+        trimStartSec: clamp(Number(videoTrimStartSec), 0, 120),
+        durationSec: clamp(Number(videoDurationSec), 3, 30),
+        speed: clamp(Number(videoSpeed), 0.5, 2),
+        muted: Boolean(videoMuted),
+      },
       landingUrl: landingUrl.trim() || null,
       status: "pending",
       market: userData?.market || "hu",
@@ -249,8 +594,6 @@ export default function ProfessionalCampaignComposerPage() {
   };
 
   const handlePreviewTap = (event) => {
-    if (!coverImageDataUrl) return;
-
     const target = event.target;
     if (target instanceof HTMLElement) {
       const isInteractiveTarget = target.closest("button, input, textarea, select, a, [data-editor-layer]");
@@ -261,7 +604,6 @@ export default function ProfessionalCampaignComposerPage() {
   };
 
   const openFullscreenEditor = () => {
-    if (!coverImageDataUrl) return;
     setShowTextEditor(true);
     setShowFullscreenEditor(true);
     setActiveTextTool("title");
@@ -277,7 +619,7 @@ export default function ProfessionalCampaignComposerPage() {
   };
 
   const handleTextPointerDown = (event, target) => {
-    if (isTouchDevice || editingTarget === target || pinchStateRef.current.active) {
+    if (isTouchDevice || editingTarget === target || pinchStateRef.current.active || objectDragRef.current.objectId) {
       return;
     }
 
@@ -379,6 +721,96 @@ export default function ProfessionalCampaignComposerPage() {
     };
   }, [dragTarget]);
 
+  useEffect(() => {
+    const handlePointerMove = (event) => {
+      const dragId = objectDragRef.current.objectId;
+      if (!dragId || !previewRef.current) return;
+
+      const item = storyObjectsRef.current.find((row) => row.id === dragId);
+      if (!item) return;
+
+      const containerRect = previewRef.current.getBoundingClientRect();
+      const visualWidth = clamp(item.width * item.scale, 12, 95);
+      const visualHeight = clamp(item.height * item.scale, 8, 80);
+
+      const maxLeft = Math.max(0, containerRect.width - ((visualWidth / 100) * containerRect.width));
+      const maxTop = Math.max(0, containerRect.height - ((visualHeight / 100) * containerRect.height));
+
+      const leftPx = clamp(event.clientX - containerRect.left - objectDragRef.current.offsetX, 0, maxLeft);
+      const topPx = clamp(event.clientY - containerRect.top - objectDragRef.current.offsetY, 0, maxTop);
+
+      const x = (leftPx / Math.max(1, containerRect.width)) * 100;
+      const y = (topPx / Math.max(1, containerRect.height)) * 100;
+
+      setObjectField(dragId, "x", x);
+      setObjectField(dragId, "y", y);
+    };
+
+    const handlePointerUp = () => {
+      objectDragRef.current = {
+        objectId: null,
+        offsetX: 0,
+        offsetY: 0,
+      };
+    };
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+    };
+  }, [setObjectField]);
+
+  const renderStoryObject = (item) => {
+    const isActive = activeObjectId === item.id;
+    const isGifUrl = item.type === "gif" && /^https?:\/\//i.test(String(item.value || ""));
+    const objectImageSrc = item.type === "image" ? (item.imageUrl || (String(item.value || "").startsWith("data:image") ? item.value : "")) : "";
+
+    return (
+      <div
+        key={item.id}
+        data-editor-layer="true"
+        onPointerDown={(event) => handleStoryObjectPointerDown(event, item.id)}
+        onClick={(event) => {
+          event.stopPropagation();
+          setActiveObjectId(item.id);
+        }}
+        className={`absolute cursor-grab rounded-xl border p-2 text-left active:cursor-grabbing ${isActive ? "border-emerald-300 ring-2 ring-emerald-300/50" : "border-white/20"} ${textTransparent ? "bg-transparent" : "bg-black/40 backdrop-blur-[1px]"}`}
+        style={{
+          left: `${item.x}%`,
+          top: `${item.y}%`,
+          width: `${item.width}%`,
+          minHeight: `${item.height}%`,
+          opacity: item.opacity,
+          transform: `rotate(${item.rotation}deg) scale(${item.scale})`,
+          transformOrigin: "top left",
+        }}
+      >
+        {objectImageSrc ? (
+          <img src={objectImageSrc} alt="Objektum kep" className="h-full w-full rounded-lg object-cover" />
+        ) : isGifUrl ? (
+          <img src={item.value} alt="GIF" className="h-full w-full rounded-lg object-cover" />
+        ) : item.type === "text" ? (
+          <p
+            className="whitespace-pre-wrap break-words"
+            style={{ color: item.color, fontSize: `${item.fontSize}px`, fontWeight: item.fontWeight, lineHeight: 1.2 }}
+          >
+            {item.value || "Uj szoveg"}
+          </p>
+        ) : (
+          <div
+            className="flex min-h-[20px] items-center justify-center whitespace-pre-wrap break-words text-center"
+            style={{ color: item.color, fontSize: `${item.fontSize}px`, fontWeight: item.fontWeight, lineHeight: 1.1 }}
+          >
+            {item.value || (item.type === "gif" ? "GIF" : "✨")}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <RouteGuard>
       <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.12),_transparent_35%),linear-gradient(135deg,#f8fafc_0%,#eefbf5_100%)] px-4 py-6 pb-32">
@@ -433,6 +865,49 @@ export default function ProfessionalCampaignComposerPage() {
                       </button>
                     </div>
                   )}
+
+                  <div className="mt-4 grid gap-3 md:grid-cols-3">
+                    <label className="text-xs text-emerald-900">
+                      Háttér mód
+                      <select
+                        value={backgroundMode}
+                        onChange={(e) => setBackgroundMode(e.target.value)}
+                        className="mt-1 h-10 w-full rounded-xl border border-emerald-200 bg-white px-2 text-sm"
+                      >
+                        <option value="image">Kép háttér</option>
+                        <option value="color">Egyszínű háttér</option>
+                        <option value="generated">Generált háttér</option>
+                      </select>
+                    </label>
+
+                    {backgroundMode === "color" && (
+                      <label className="text-xs text-emerald-900">
+                        Háttérszín
+                        <input
+                          type="color"
+                          value={backgroundColor}
+                          onChange={(e) => setBackgroundColor(e.target.value)}
+                          className="mt-1 h-10 w-full rounded-xl border border-emerald-200 bg-white"
+                        />
+                      </label>
+                    )}
+
+                    {backgroundMode === "generated" && (
+                      <label className="text-xs text-emerald-900">
+                        Generált stílus
+                        <select
+                          value={generatedBackground}
+                          onChange={(e) => setGeneratedBackground(e.target.value)}
+                          className="mt-1 h-10 w-full rounded-xl border border-emerald-200 bg-white px-2 text-sm"
+                        >
+                          <option value="aurora">Aurora</option>
+                          <option value="sunrise">Sunrise</option>
+                          <option value="mint">Mint</option>
+                          <option value="steel">Steel</option>
+                        </select>
+                      </label>
+                    )}
+                  </div>
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -458,6 +933,199 @@ export default function ProfessionalCampaignComposerPage() {
                     </div>
                   </div>
                 </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="mr-2 text-sm font-semibold text-slate-700">2. Story objektumok</p>
+                    <button type="button" onClick={() => addObject("text")} className="rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white">+ Szoveg</button>
+                    <button type="button" onClick={() => addObject("sticker")} className="rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white">+ Matrica</button>
+                    <button type="button" onClick={() => addObject("gif")} className="rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white">+ GIF</button>
+                    <button type="button" onClick={() => addObject("image")} className="rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white">+ Kép</button>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button type="button" onClick={() => addStickerPreset("#hashtag", "info_hashtag")} className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs">#hashtag</button>
+                    <button type="button" onClick={() => addStickerPreset("@emlites", "info_mention")} className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs">@emlites</button>
+                    <button type="button" onClick={() => addStickerPreset("📍 Helyszin", "info_location")} className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs">📍 Helyszín</button>
+                    <button type="button" onClick={() => addStickerPreset("❓ Kerdes", "interactive_question")} className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs">❓ Kérdés</button>
+                    <button type="button" onClick={() => addStickerPreset("📊 Szavazas", "interactive_poll")} className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs">📊 Szavazás</button>
+                    <button type="button" onClick={() => addStickerPreset("🔗 Link", "interactive_link")} className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs">🔗 Link</button>
+                  </div>
+
+                  {storyObjects.length === 0 ? (
+                    <p className="mt-3 text-xs text-slate-500">Még nincs extra objektum. Adj hozzá szöveget, matricát vagy GIF elemet.</p>
+                  ) : (
+                    <div className="mt-3 space-y-2">
+                      {storyObjects.map((item, index) => {
+                        const isActive = item.id === activeObjectId;
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => setActiveObjectId(item.id)}
+                            className={`flex w-full items-center justify-between rounded-xl border px-3 py-2 text-left text-xs ${isActive ? "border-emerald-300 bg-emerald-50" : "border-slate-200 bg-white"}`}
+                          >
+                            <span className="font-semibold text-slate-700">{index + 1}. {item.type.toUpperCase()}</span>
+                            <span className="max-w-[170px] truncate text-slate-500">{item.value || "(ures)"}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {activeObject && (
+                    <div className="mt-4 space-y-3 rounded-xl border border-slate-200 bg-white p-3">
+                      <div className="flex flex-wrap gap-2">
+                        <button type="button" onClick={() => moveActiveObjectLayer("down")} className="rounded-full border border-slate-200 px-3 py-1 text-xs">Réteg le</button>
+                        <button type="button" onClick={() => moveActiveObjectLayer("up")} className="rounded-full border border-slate-200 px-3 py-1 text-xs">Réteg fel</button>
+                        <button type="button" onClick={duplicateActiveObject} className="rounded-full border border-slate-200 px-3 py-1 text-xs">Duplikálás</button>
+                        <button type="button" onClick={deleteActiveObject} className="rounded-full border border-rose-200 px-3 py-1 text-xs text-rose-600">Törlés</button>
+                      </div>
+
+                      <div>
+                        <label className="mb-1 block text-xs font-semibold text-slate-600">Tartalom</label>
+                        <input
+                          value={activeObject.value}
+                          onChange={(e) => setObjectField(activeObject.id, "value", e.target.value)}
+                          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                          placeholder={activeObject.type === "gif" ? "GIF URL vagy cimke" : "Objektum tartalom"}
+                        />
+                      </div>
+
+                      {activeObject.type === "image" && (
+                        <div>
+                          <button type="button" onClick={triggerObjectImagePick} className="rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white">
+                            Kép feltöltése objektumhoz
+                          </button>
+                          <input ref={objectImageInputRef} type="file" accept="image/*" className="hidden" onChange={handleObjectImagePick} />
+                        </div>
+                      )}
+
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <label className="text-xs text-slate-600">X: {Math.round(activeObject.x)}%
+                          <input type="range" min="0" max="92" value={activeObject.x} onChange={(e) => setObjectField(activeObject.id, "x", Number(e.target.value))} className="mt-1 w-full" />
+                        </label>
+                        <label className="text-xs text-slate-600">Y: {Math.round(activeObject.y)}%
+                          <input type="range" min="0" max="92" value={activeObject.y} onChange={(e) => setObjectField(activeObject.id, "y", Number(e.target.value))} className="mt-1 w-full" />
+                        </label>
+                        <label className="text-xs text-slate-600">Szélesség: {Math.round(activeObject.width)}%
+                          <input type="range" min="12" max="92" value={activeObject.width} onChange={(e) => setObjectField(activeObject.id, "width", Number(e.target.value))} className="mt-1 w-full" />
+                        </label>
+                        <label className="text-xs text-slate-600">Magasság: {Math.round(activeObject.height)}%
+                          <input type="range" min="8" max="70" value={activeObject.height} onChange={(e) => setObjectField(activeObject.id, "height", Number(e.target.value))} className="mt-1 w-full" />
+                        </label>
+                        <label className="text-xs text-slate-600">Forgatás: {Math.round(activeObject.rotation)}°
+                          <input type="range" min="-180" max="180" value={activeObject.rotation} onChange={(e) => setObjectField(activeObject.id, "rotation", Number(e.target.value))} className="mt-1 w-full" />
+                        </label>
+                        <label className="text-xs text-slate-600">Átlátszóság: {Math.round(activeObject.opacity * 100)}%
+                          <input type="range" min="0.1" max="1" step="0.05" value={activeObject.opacity} onChange={(e) => setObjectField(activeObject.id, "opacity", Number(e.target.value))} className="mt-1 w-full" />
+                        </label>
+                        <label className="text-xs text-slate-600">Skála: {activeObject.scale.toFixed(2)}
+                          <input type="range" min="0.4" max="2.5" step="0.05" value={activeObject.scale} onChange={(e) => setObjectField(activeObject.id, "scale", Number(e.target.value))} className="mt-1 w-full" />
+                        </label>
+                        <label className="text-xs text-slate-600">Betűméret: {Math.round(activeObject.fontSize)}px
+                          <input type="range" min="10" max="72" value={activeObject.fontSize} onChange={(e) => setObjectField(activeObject.id, "fontSize", Number(e.target.value))} className="mt-1 w-full" />
+                        </label>
+                      </div>
+
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <label className="text-xs text-slate-600">Szín
+                          <input type="color" value={activeObject.color} onChange={(e) => setObjectField(activeObject.id, "color", e.target.value)} className="mt-1 h-10 w-full rounded-lg border border-slate-200" />
+                        </label>
+                        <label className="text-xs text-slate-600">Vastagság
+                          <select value={activeObject.fontWeight} onChange={(e) => setObjectField(activeObject.id, "fontWeight", e.target.value)} className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm">
+                            <option value="400">Normal</option>
+                            <option value="500">Felemelt</option>
+                            <option value="600">Felkover</option>
+                            <option value="700">Extra felkover</option>
+                            <option value="800">Eros</option>
+                          </select>
+                        </label>
+                        <label className="text-xs text-slate-600">Interakció
+                          <select value={activeObject.interactionType || "none"} onChange={(e) => setObjectField(activeObject.id, "interactionType", e.target.value)} className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm">
+                            <option value="none">Nincs</option>
+                            <option value="question">Kérdés</option>
+                            <option value="poll">Szavazás</option>
+                            <option value="quiz">Kvíz</option>
+                            <option value="emoji_slider">Emoji csúszka</option>
+                            <option value="link">Link</option>
+                          </select>
+                        </label>
+                        <label className="text-xs text-slate-600">Belépési animáció
+                          <select value={activeObject.entryAnimation || "fade"} onChange={(e) => setObjectField(activeObject.id, "entryAnimation", e.target.value)} className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm">
+                            <option value="fade">Megjelenés</option>
+                            <option value="float_up">Felúszás</option>
+                            <option value="zoom_in">Nagyítás</option>
+                            <option value="slide_in">Oldalról érkezés</option>
+                          </select>
+                        </label>
+                        <label className="text-xs text-slate-600">Folyamatos animáció
+                          <select value={activeObject.loopAnimation || "none"} onChange={(e) => setObjectField(activeObject.id, "loopAnimation", e.target.value)} className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm">
+                            <option value="none">Nincs</option>
+                            <option value="move">Mozgás</option>
+                            <option value="pulse">Pulzálás</option>
+                            <option value="blink">Villogás</option>
+                          </select>
+                        </label>
+                        <label className="text-xs text-slate-600">Kilépési animáció
+                          <select value={activeObject.exitAnimation || "none"} onChange={(e) => setObjectField(activeObject.id, "exitAnimation", e.target.value)} className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm">
+                            <option value="none">Nincs</option>
+                            <option value="fade_out">Eltűnés</option>
+                            <option value="shrink">Zsugorodás</option>
+                          </select>
+                        </label>
+                        <label className="text-xs text-slate-600">Kezdés (mp)
+                          <input type="number" min="0" max="120" step="0.1" value={Math.round((activeObject.startMs || 0) / 100) / 10} onChange={(e) => setObjectField(activeObject.id, "startMs", Number(e.target.value) * 1000)} className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm" />
+                        </label>
+                        <label className="text-xs text-slate-600">Vége (mp)
+                          <input type="number" min="0.3" max="120" step="0.1" value={Math.round((activeObject.endMs || 15000) / 100) / 10} onChange={(e) => setObjectField(activeObject.id, "endMs", Number(e.target.value) * 1000)} className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm" />
+                        </label>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="mb-3 text-sm font-semibold text-slate-700">3. Zene és videó időzítés</p>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <label className="text-xs text-slate-600">Zene címe
+                      <input value={musicTrack} onChange={(e) => setMusicTrack(e.target.value)} className="mt-1 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm" placeholder="Pl. Motivacios intro" />
+                    </label>
+                    <label className="text-xs text-slate-600">Előadó
+                      <input value={musicArtist} onChange={(e) => setMusicArtist(e.target.value)} className="mt-1 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm" placeholder="Pl. Pharmagister Audio" />
+                    </label>
+                    <label className="text-xs text-slate-600">Zene kezdés (mp)
+                      <input type="number" min="0" max="120" step="0.5" value={musicStartSec} onChange={(e) => setMusicStartSec(Number(e.target.value))} className="mt-1 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm" />
+                    </label>
+                    <label className="text-xs text-slate-600">Zene hossz (mp)
+                      <input type="number" min="3" max="30" step="0.5" value={musicDurationSec} onChange={(e) => setMusicDurationSec(Number(e.target.value))} className="mt-1 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm" />
+                    </label>
+                    <label className="text-xs text-slate-600">Videó kezdés (mp)
+                      <input type="number" min="0" max="120" step="0.5" value={videoTrimStartSec} onChange={(e) => setVideoTrimStartSec(Number(e.target.value))} className="mt-1 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm" />
+                    </label>
+                    <label className="text-xs text-slate-600">Videó hossz (mp)
+                      <input type="number" min="3" max="30" step="0.5" value={videoDurationSec} onChange={(e) => setVideoDurationSec(Number(e.target.value))} className="mt-1 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm" />
+                    </label>
+                    <label className="text-xs text-slate-600">Sebesség
+                      <select value={videoSpeed} onChange={(e) => setVideoSpeed(Number(e.target.value))} className="mt-1 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm">
+                        <option value={0.5}>0.5x</option>
+                        <option value={0.75}>0.75x</option>
+                        <option value={1}>1x</option>
+                        <option value={1.25}>1.25x</option>
+                        <option value={1.5}>1.5x</option>
+                        <option value={2}>2x</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-4">
+                    <label className="inline-flex items-center gap-2 text-xs text-slate-600">
+                      <input type="checkbox" checked={showLyrics} onChange={(e) => setShowLyrics(e.target.checked)} /> Dalszöveg megjelenítés
+                    </label>
+                    <label className="inline-flex items-center gap-2 text-xs text-slate-600">
+                      <input type="checkbox" checked={videoMuted} onChange={(e) => setVideoMuted(e.target.checked)} /> Videó hang kikapcsolás
+                    </label>
+                  </div>
+                </div>
               </form>
 
               <div className="space-y-4">
@@ -469,16 +1137,17 @@ export default function ProfessionalCampaignComposerPage() {
                     ref={previewRef}
                     onClick={handlePreviewTap}
                     className="relative mx-auto aspect-[9/16] w-full max-w-[320px] cursor-pointer overflow-hidden rounded-[24px] border border-white/10 bg-gradient-to-br from-slate-900 to-slate-800"
+                    style={activeBackgroundStyle}
                   >
-                    {coverImageDataUrl ? (
+                    {backgroundMode === "image" && coverImageDataUrl ? (
                       <img src={coverImageDataUrl} alt="Kampany kep" className="absolute inset-0 h-full w-full object-cover" />
                     ) : (
-                      <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-emerald-500/30 via-cyan-500/20 to-violet-500/30 text-center text-sm text-slate-200">
+                      <div className="absolute inset-0 flex items-center justify-center text-center text-sm text-slate-200" style={activeBackgroundStyle}>
                         Kep helye - ide kerul a kampany vizualis eleme
                       </div>
                     )}
 
-                    {coverImageDataUrl && !showTextEditor && (
+                    {!showTextEditor && (
                       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/80 to-transparent px-4 py-4 text-center text-sm font-medium text-slate-100">
                         Koppints a szöveg szerkesztéséhez
                       </div>
@@ -577,6 +1246,8 @@ export default function ProfessionalCampaignComposerPage() {
                         <span className="rounded-full bg-emerald-500/30 px-3 py-1 font-semibold text-emerald-100">{ctaLabel.trim() || "Megnyitas"}</span>
                       </div>
                     </div>
+
+                    {storyObjects.map((item) => renderStoryObject(item))}
                   </div>
                 </div>
 
@@ -592,7 +1263,7 @@ export default function ProfessionalCampaignComposerPage() {
             </div>
           )}
         </div>
-        {showFullscreenEditor && coverImageDataUrl && (
+        {showFullscreenEditor && (
         <div className="fixed inset-0 z-[70] bg-slate-950/95 px-3 py-3 sm:px-6 sm:py-6">
           <div className="mx-auto flex h-full max-w-6xl flex-col">
               <div className="mb-3 flex items-center justify-between rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm text-white backdrop-blur">
@@ -617,7 +1288,11 @@ export default function ProfessionalCampaignComposerPage() {
 
             <div className="flex-1 overflow-hidden rounded-[32px] border border-white/10 bg-slate-900 p-2 sm:p-3">
                 <div className="relative h-full overflow-hidden rounded-[24px] bg-slate-950">
-                  <img src={coverImageDataUrl} alt="Kampany kep" className="absolute inset-0 h-full w-full object-cover" />
+                  {backgroundMode === "image" && coverImageDataUrl ? (
+                    <img src={coverImageDataUrl} alt="Kampany kep" className="absolute inset-0 h-full w-full object-cover" />
+                  ) : (
+                    <div className="absolute inset-0" style={activeBackgroundStyle} />
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-900/20 to-slate-900/10" />
 
                   <div className="absolute right-3 top-3 z-30 flex flex-col gap-2">
@@ -731,6 +1406,8 @@ export default function ProfessionalCampaignComposerPage() {
                         <span className="rounded-full bg-emerald-500/30 px-3 py-1 font-semibold text-emerald-100">{ctaLabel.trim() || "Megnyitas"}</span>
                       </div>
                     </div>
+
+                    {storyObjects.map((item) => renderStoryObject(item))}
                   </div>
 
                   <div className="absolute inset-x-0 bottom-0 z-30 bg-gradient-to-t from-slate-950/95 via-slate-950/80 to-transparent px-3 pb-3 pt-10">

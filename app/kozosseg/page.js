@@ -1750,6 +1750,43 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonCli
       lineHeight: 1.4,
     };
   }, [post?.campaignMessageStyle]);
+  const campaignStoryObjects = useMemo(() => {
+    const raw = post?.campaignStoryCanvas?.objects;
+    if (!Array.isArray(raw)) return [];
+
+    return raw
+      .filter((item) => item && ['text', 'sticker', 'gif', 'image'].includes(String(item.type || '')))
+      .map((item) => {
+        const x = Number(item.x);
+        const y = Number(item.y);
+        const width = Number(item.width);
+        const height = Number(item.height);
+        const rotation = Number(item.rotation);
+        const opacity = Number(item.opacity);
+        const scale = Number(item.scale);
+        const fontSize = Number(item.fontSize);
+
+        return {
+          id: String(item.id || `obj_${Math.random().toString(36).slice(2, 8)}`),
+          type: String(item.type),
+          role: String(item.role || ''),
+          value: String(item.value || ''),
+          imageUrl: String(item.imageUrl || ''),
+          x: Number.isFinite(x) ? Math.min(92, Math.max(0, x)) : 8,
+          y: Number.isFinite(y) ? Math.min(92, Math.max(0, y)) : 8,
+          width: Number.isFinite(width) ? Math.min(92, Math.max(12, width)) : 70,
+          height: Number.isFinite(height) ? Math.min(70, Math.max(8, height)) : 12,
+          rotation: Number.isFinite(rotation) ? Math.min(180, Math.max(-180, rotation)) : 0,
+          opacity: Number.isFinite(opacity) ? Math.min(1, Math.max(0.1, opacity)) : 1,
+          scale: Number.isFinite(scale) ? Math.min(2.5, Math.max(0.4, scale)) : 1,
+          fontSize: Number.isFinite(fontSize) ? Math.min(72, Math.max(10, fontSize)) : 20,
+          color: String(item.color || '#ffffff'),
+          fontWeight: String(item.fontWeight || '700'),
+          backgroundMode: String(item.backgroundMode || ''),
+        };
+      });
+  }, [post?.campaignStoryCanvas?.objects]);
+  const hasCampaignStoryObjects = campaignStoryObjects.length > 0;
 
   return (
     <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
@@ -1865,34 +1902,76 @@ function PostCard({ post, darkMode, user, userData, isAdmin, onUpdate, onAnonCli
                 <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/35 via-cyan-500/20 to-violet-500/35" />
               )}
 
-              <div
-                className={`absolute w-[86%] rounded-2xl border border-white/20 p-4 ${
-                  campaignTextTransparent ? 'bg-transparent' : 'bg-black/55 backdrop-blur-[1px]'
-                }`}
-                style={{
-                  left: `${campaignTitlePosition.x}%`,
-                  top: `${campaignTitlePosition.y}%`,
-                }}
-              >
-                <h4 style={campaignTitleStyle}>{post.campaignTitle || 'Kampany'}</h4>
-              </div>
+              {hasCampaignStoryObjects ? (
+                campaignStoryObjects.map((item) => {
+                  const isGifUrl = item.type === 'gif' && /^https?:\/\//i.test(item.value);
+                  const objectImageSrc = item.type === 'image'
+                    ? (item.imageUrl || (String(item.value || '').startsWith('data:image') ? item.value : ''))
+                    : '';
+                  const showPanel = item.backgroundMode === 'box' || (item.backgroundMode !== 'transparent' && !campaignTextTransparent);
 
-              <div
-                className={`absolute w-[86%] rounded-2xl border border-white/20 p-4 ${
-                  campaignTextTransparent ? 'bg-transparent' : 'bg-black/55 backdrop-blur-[1px]'
-                }`}
-                style={{
-                  left: `${campaignMessagePosition.x}%`,
-                  top: `${campaignMessagePosition.y}%`,
-                }}
-              >
-                <p className="mt-2" style={campaignMessageStyle}>{post.text || ''}</p>
-                <div className="mt-3 flex items-center justify-end border-t border-white/15 pt-2.5 text-sm">
-                  {normalizedCampaignUrl && (
-                    <span className="rounded-full bg-emerald-500/30 px-3 py-1 font-semibold text-emerald-100">{campaignCtaLabel}</span>
-                  )}
-                </div>
-              </div>
+                  return (
+                    <div
+                      key={item.id}
+                      className={`absolute rounded-2xl border border-white/20 p-3 ${showPanel ? 'bg-black/55 backdrop-blur-[1px]' : 'bg-transparent'}`}
+                      style={{
+                        left: `${item.x}%`,
+                        top: `${item.y}%`,
+                        width: `${item.width}%`,
+                        minHeight: `${item.height}%`,
+                        opacity: item.opacity,
+                        transform: `rotate(${item.rotation}deg) scale(${item.scale})`,
+                        transformOrigin: 'top left',
+                      }}
+                    >
+                      {objectImageSrc ? (
+                        <img src={objectImageSrc} alt="Objektum kep" className="h-full w-full rounded-lg object-cover" />
+                      ) : isGifUrl ? (
+                        <img src={item.value} alt="GIF" className="h-full w-full rounded-lg object-cover" />
+                      ) : item.type === 'text' ? (
+                        <p style={{ color: item.color, fontSize: `${item.fontSize}px`, fontWeight: item.fontWeight, lineHeight: 1.2 }}>
+                          {item.value || ''}
+                        </p>
+                      ) : (
+                        <div className="text-center" style={{ color: item.color, fontSize: `${item.fontSize}px`, fontWeight: item.fontWeight, lineHeight: 1.1 }}>
+                          {item.value || ''}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              ) : (
+                <>
+                  <div
+                    className={`absolute w-[86%] rounded-2xl border border-white/20 p-4 ${
+                      campaignTextTransparent ? 'bg-transparent' : 'bg-black/55 backdrop-blur-[1px]'
+                    }`}
+                    style={{
+                      left: `${campaignTitlePosition.x}%`,
+                      top: `${campaignTitlePosition.y}%`,
+                    }}
+                  >
+                    <h4 style={campaignTitleStyle}>{post.campaignTitle || 'Kampany'}</h4>
+                  </div>
+
+                  <div
+                    className={`absolute w-[86%] rounded-2xl border border-white/20 p-4 ${
+                      campaignTextTransparent ? 'bg-transparent' : 'bg-black/55 backdrop-blur-[1px]'
+                    }`}
+                    style={{
+                      left: `${campaignMessagePosition.x}%`,
+                      top: `${campaignMessagePosition.y}%`,
+                    }}
+                  >
+                    <p className="mt-2" style={campaignMessageStyle}>{post.text || ''}</p>
+                    <div className="mt-3 flex items-center justify-end border-t border-white/15 pt-2.5 text-sm">
+                      {normalizedCampaignUrl && (
+                        <span className="rounded-full bg-emerald-500/30 px-3 py-1 font-semibold text-emerald-100">{campaignCtaLabel}</span>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         ) : isEditing ? (
@@ -2292,6 +2371,7 @@ export default function KozossegPage() {
             campaignMessagePosition: row.messagePosition || null,
             campaignTitleStyle: row.titleStyle || null,
             campaignMessageStyle: row.messageStyle || null,
+            campaignStoryCanvas: row.storyCanvas || null,
             text: summaryText,
             category: 'szakmai',
             tags: ['szakmai-kampany'],
