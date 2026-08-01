@@ -838,281 +838,278 @@ export default function ProfessionalCampaignComposerPage() {
     );
   };
 
+  const coverImageInputRef = useRef(null);
+
   return (
     <RouteGuard>
-      <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.12),_transparent_35%),linear-gradient(135deg,#f8fafc_0%,#eefbf5_100%)] px-4 py-6 pb-[calc(8rem+env(safe-area-inset-bottom))]">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-            <h1 className="text-2xl font-bold text-slate-900">
-              {isEditMode ? "Szakmai kampany szerkesztese" : "Uj szakmai kampany varazslo"}
-            </h1>
-            <button
-              type="button"
-              onClick={() => router.push("/partner")}
-              className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-100"
-            >
-              Vissza a kozpontba
-            </button>
-          </div>
+      <div className="min-h-screen bg-black">
 
           {loading || loadingDraft ? (
-            <div className="rounded-3xl border border-slate-200 bg-white/80 p-6 text-slate-600 shadow-sm">Betoltes...</div>
+            <div className="flex min-h-screen items-center justify-center text-white">Betöltés...</div>
           ) : !isProfessionalPartner ? (
-            <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5 text-amber-900 shadow-sm">
-              Ehhez szakmai partner fiok szukseges.
+            <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center">
+              <p className="text-amber-300">Ehhez szakmai partner fiok szükséges.</p>
+              <button type="button" onClick={() => router.push("/partner")} className="rounded-full bg-white/15 px-5 py-3 text-sm font-semibold text-white">Vissza</button>
             </div>
           ) : (
-            <div className="mx-auto w-full max-w-xl space-y-4">
-              {error && <div className="rounded-2xl bg-rose-50 p-3 text-sm text-rose-700">{error}</div>}
+            /* full-screen editor — egyetlen nézet, minden panel belül */
+            <div className="fixed inset-0 z-50 flex flex-col bg-black text-white">
 
-              <div className="overflow-hidden rounded-[30px] bg-black text-white shadow-[0_30px_80px_-30px_rgba(2,6,23,0.85)]">
-                <div className="flex items-center justify-between p-4">
-                  <button
-                    type="button"
-                    onClick={() => router.push("/partner")}
-                    className="h-11 w-11 rounded-full bg-white/15 text-2xl leading-none"
-                    aria-label="Bezárás"
-                  >
-                    ×
-                  </button>
-                  <button
-                    type="button"
-                    onClick={closeFullscreenEditor}
-                    className="rounded-full bg-white/15 px-4 py-2 text-sm font-semibold"
-                  >
-                    Kész
-                  </button>
-                </div>
+              {/* Top bar */}
+              <div className="flex flex-shrink-0 items-center justify-between px-4 pt-[calc(0.75rem+env(safe-area-inset-top))] pb-3">
+                <button type="button" onClick={() => router.push("/partner")} className="flex h-11 w-11 items-center justify-center rounded-full bg-white/15" aria-label="Vissza">
+                  <X className="h-5 w-5" />
+                </button>
+                <span className="text-sm font-semibold opacity-60">{isEditMode ? "Szerkesztés" : "Új kampány"}</span>
+                <button type="button" onClick={() => setShowPublishScreen(true)} className="rounded-full bg-white px-4 py-2 text-sm font-bold text-slate-900">
+                  <Check className="mr-1 inline h-4 w-4" />Tovább
+                </button>
+              </div>
 
-                <div className="px-4 pb-2">
+              {error && <div className="mx-4 mb-2 rounded-2xl bg-rose-900/60 px-3 py-2 text-sm text-rose-200">{error}</div>}
+
+              {/* Preview canvas — fills remaining space */}
+              <div className="relative min-h-0 flex-1 overflow-hidden">
+                <div
+                  ref={previewRef}
+                  className="relative mx-auto h-full max-w-[440px] overflow-hidden"
+                  style={activeBackgroundStyle}
+                  onClick={(e) => {
+                    if (e.target === previewRef.current) setActiveQuickTool("none");
+                  }}
+                >
+                  {backgroundMode === "image" && coverImageDataUrl ? (
+                    <img src={coverImageDataUrl} alt="Kampany kep" className="absolute inset-0 h-full w-full object-cover" />
+                  ) : (
+                    <div className="absolute inset-0" style={activeBackgroundStyle} />
+                  )}
+
+                  {/* No image placeholder */}
+                  {backgroundMode === "image" && !coverImageDataUrl && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => coverImageInputRef.current?.click()}
+                        className="flex flex-col items-center gap-2 rounded-3xl bg-white/10 px-8 py-6 text-white backdrop-blur-sm"
+                      >
+                        <span className="text-4xl">📷</span>
+                        <span className="text-sm font-semibold">Háttérkép hozzáadása</span>
+                        <span className="text-xs opacity-60">Érintsd meg a feltöltéshez</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Title box */}
                   <div
-                    ref={previewRef}
-                    onClick={handlePreviewTap}
-                    className="relative mx-auto aspect-[9/16] w-full max-w-[360px] overflow-hidden rounded-[26px] border border-white/10"
-                    style={activeBackgroundStyle}
+                    ref={titleBoxRef}
+                    data-editor-layer="true"
+                    onPointerDown={(e) => handleTextPointerDown(e, "title")}
+                    onClick={(e) => { e.stopPropagation(); setActiveQuickTool("text"); setActiveTextTool("title"); titleInputRef.current?.focus(); }}
+                    className={`absolute w-[86%] cursor-pointer rounded-2xl border border-white/20 p-3 ${textTransparent ? "bg-transparent" : "bg-black/45 backdrop-blur-[1px]"} ${activeQuickTool === "text" && activeTextTool === "title" ? "ring-2 ring-white/60" : ""}`}
+                    style={{ left: `${titlePosition.x}%`, top: `${titlePosition.y}%` }}
                   >
-                    {backgroundMode === "image" && coverImageDataUrl ? (
-                      <img src={coverImageDataUrl} alt="Kampany kep" className="absolute inset-0 h-full w-full object-cover" />
-                    ) : (
-                      <div className="absolute inset-0" style={activeBackgroundStyle} />
+                    <p style={{ color: titleColor, fontSize: `${titleFontSize}px`, fontWeight: titleFontWeight, lineHeight: 1.15 }}>
+                      {title.trim() || <span className="opacity-40">Cím — érintsd meg</span>}
+                    </p>
+                  </div>
+
+                  {/* Message box */}
+                  <div
+                    ref={messageBoxRef}
+                    data-editor-layer="true"
+                    onPointerDown={(e) => handleTextPointerDown(e, "message")}
+                    onClick={(e) => { e.stopPropagation(); setActiveQuickTool("text"); setActiveTextTool("message"); messageInputRef.current?.focus(); }}
+                    className={`absolute w-[86%] cursor-pointer rounded-2xl border border-white/20 p-3 ${textTransparent ? "bg-transparent" : "bg-black/45 backdrop-blur-[1px]"} ${activeQuickTool === "text" && activeTextTool === "message" ? "ring-2 ring-white/60" : ""}`}
+                    style={{ left: `${messagePosition.x}%`, top: `${messagePosition.y}%` }}
+                  >
+                    <p style={{ color: messageColor, fontSize: `${messageFontSize}px`, fontWeight: messageFontWeight, lineHeight: 1.3 }}>
+                      {description.trim() || <span className="opacity-40">Üzenet — érintsd meg</span>}
+                    </p>
+                    <div className="mt-2 flex items-center justify-end border-t border-white/15 pt-2">
+                      <span className="rounded-full bg-emerald-500/30 px-2.5 py-1 text-xs font-semibold text-emerald-100">{ctaLabel.trim() || "Megnyitás"}</span>
+                    </div>
+                  </div>
+
+                  {storyObjects.map((item) => renderStoryObject(item))}
+                </div>
+              </div>
+
+              {/* Bottom panel — tool content + toolbar, all inside the black screen */}
+              <div className="flex-shrink-0">
+
+                {/* Tool content panel */}
+                <div className={`overflow-hidden transition-all duration-300 ${activeQuickTool !== "none" ? "max-h-[55vh]" : "max-h-0"}`}>
+                  <div className="overflow-y-auto border-t border-white/10 bg-[#111] px-4 pb-3 pt-4" style={{ maxHeight: "55vh" }}>
+
+                    {activeQuickTool === "text" && (
+                      <div className="space-y-3">
+                        <div className="flex gap-2 pb-1">
+                          <button type="button" onClick={() => { setActiveTextTool("title"); titleInputRef.current?.focus(); }} className={`rounded-full px-4 py-1.5 text-sm font-semibold ${activeTextTool === "title" ? "bg-white text-black" : "bg-white/15"}`}>Cím</button>
+                          <button type="button" onClick={() => { setActiveTextTool("message"); messageInputRef.current?.focus(); }} className={`rounded-full px-4 py-1.5 text-sm font-semibold ${activeTextTool === "message" ? "bg-white text-black" : "bg-white/15"}`}>Üzenet</button>
+                        </div>
+                        {activeTextTool === "title" ? (
+                          <input
+                            ref={titleInputRef}
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                            placeholder="Kampány címe..."
+                            className="h-12 w-full rounded-2xl bg-white/10 px-4 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/40"
+                          />
+                        ) : (
+                          <textarea
+                            ref={messageInputRef}
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            placeholder="Fő üzenet..."
+                            rows={3}
+                            className="w-full rounded-2xl bg-white/10 px-4 py-3 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/40"
+                          />
+                        )}
+                        <div className="grid grid-cols-2 gap-2">
+                          <label className="text-xs text-white/50">CTA felirat
+                            <input value={ctaLabel} onChange={(e) => setCtaLabel(e.target.value)} className="mt-1 h-10 w-full rounded-xl bg-white/10 px-3 text-sm text-white placeholder:text-white/30 focus:outline-none" placeholder="Megnyitás" />
+                          </label>
+                          <label className="text-xs text-white/50">Háttér mód
+                            <select value={backgroundMode} onChange={(e) => setBackgroundMode(e.target.value)} className="mt-1 h-10 w-full rounded-xl bg-white/10 px-2 text-sm text-white focus:outline-none">
+                              <option value="image">Kép</option>
+                              <option value="color">Szín</option>
+                              <option value="generated">Gradiens</option>
+                            </select>
+                          </label>
+                        </div>
+                        {backgroundMode === "generated" && (
+                          <div className="flex gap-2">
+                            {Object.keys(GENERATED_BACKGROUNDS).map((key) => (
+                              <button key={key} type="button" onClick={() => setGeneratedBackground(key)} className={`h-9 flex-1 rounded-xl text-xs font-semibold capitalize ${generatedBackground === key ? "ring-2 ring-white" : ""}`} style={{ background: GENERATED_BACKGROUNDS[key] }}>{key}</button>
+                            ))}
+                          </div>
+                        )}
+                        {backgroundMode === "color" && (
+                          <label className="flex items-center gap-3 text-xs text-white/50">Háttérszín
+                            <input type="color" value={backgroundColor} onChange={(e) => setBackgroundColor(e.target.value)} className="h-9 w-14 cursor-pointer rounded-lg border-0 bg-transparent" />
+                          </label>
+                        )}
+                        <label className="flex items-center gap-2 text-xs text-white/50">
+                          <input type="checkbox" checked={textTransparent} onChange={(e) => setTextTransparent(e.target.checked)} className="h-4 w-4 rounded" />
+                          Átlátszó szövegdoboz
+                        </label>
+                      </div>
                     )}
 
-                    <div
-                      ref={titleBoxRef}
-                      data-editor-layer="true"
-                      onPointerDown={(event) => handleTextPointerDown(event, "title")}
-                      onTouchStart={isTouchDevice ? undefined : (event) => handlePinchStart(event, "title")}
-                      onTouchMove={isTouchDevice ? undefined : (event) => handlePinchMove(event, "title")}
-                      onTouchEnd={isTouchDevice ? undefined : handlePinchEnd}
-                      onTouchCancel={isTouchDevice ? undefined : handlePinchEnd}
-                      className={`absolute w-[86%] cursor-grab select-none rounded-2xl border border-white/20 p-3 ${textTransparent ? "bg-transparent" : "bg-black/45 backdrop-blur-[1px]"}`}
-                      style={{ left: `${titlePosition.x}%`, top: `${titlePosition.y}%` }}
-                    >
-                      <h2 className="cursor-text" style={{ color: titleColor, fontSize: `${titleFontSize}px`, fontWeight: titleFontWeight, lineHeight: 1.15 }}>
-                        {title.trim() || "Az uj kampanyod"}
-                      </h2>
-                    </div>
-
-                    <div
-                      ref={messageBoxRef}
-                      onPointerDown={(event) => handleTextPointerDown(event, "message")}
-                      onTouchStart={isTouchDevice ? undefined : (event) => handlePinchStart(event, "message")}
-                      onTouchMove={isTouchDevice ? undefined : (event) => handlePinchMove(event, "message")}
-                      onTouchEnd={isTouchDevice ? undefined : handlePinchEnd}
-                      onTouchCancel={isTouchDevice ? undefined : handlePinchEnd}
-                      className={`absolute w-[86%] cursor-grab select-none rounded-2xl border border-white/20 p-3 ${textTransparent ? "bg-transparent" : "bg-black/45 backdrop-blur-[1px]"}`}
-                      style={{ left: `${messagePosition.x}%`, top: `${messagePosition.y}%` }}
-                    >
-                      <p style={{ color: messageColor, fontSize: `${messageFontSize}px`, fontWeight: messageFontWeight, lineHeight: 1.3 }}>
-                        {description.trim() || "Ird meg a fo uzenetet"}
-                      </p>
-                      <div className="mt-2 flex items-center justify-end border-t border-white/15 pt-2 text-xs">
-                        <span className="rounded-full bg-emerald-500/30 px-2.5 py-1 font-semibold text-emerald-100">{ctaLabel.trim() || "Megnyitas"}</span>
+                    {activeQuickTool === "audio" && (
+                      <div className="grid grid-cols-2 gap-3">
+                        <label className="col-span-2 text-xs text-white/50">Zene neve
+                          <input value={musicTrack} onChange={(e) => setMusicTrack(e.target.value)} placeholder="pl. Imagine - John Lennon" className="mt-1 h-11 w-full rounded-xl bg-white/10 px-3 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/30" />
+                        </label>
+                        <label className="text-xs text-white/50">Előadó
+                          <input value={musicArtist} onChange={(e) => setMusicArtist(e.target.value)} className="mt-1 h-10 w-full rounded-xl bg-white/10 px-3 text-sm text-white focus:outline-none" />
+                        </label>
+                        <label className="text-xs text-white/50">Kezdés (mp)
+                          <input type="number" min="0" max="120" step="0.5" value={musicStartSec} onChange={(e) => setMusicStartSec(Number(e.target.value))} className="mt-1 h-10 w-full rounded-xl bg-white/10 px-3 text-sm text-white focus:outline-none" />
+                        </label>
+                        <label className="text-xs text-white/50">Hossz (mp)
+                          <input type="number" min="3" max="30" step="0.5" value={musicDurationSec} onChange={(e) => setMusicDurationSec(Number(e.target.value))} className="mt-1 h-10 w-full rounded-xl bg-white/10 px-3 text-sm text-white focus:outline-none" />
+                        </label>
+                        <label className="flex items-center gap-2 text-xs text-white/50">
+                          <input type="checkbox" checked={showLyrics} onChange={(e) => setShowLyrics(e.target.checked)} className="h-4 w-4 rounded" />
+                          Szöveg mutatása
+                        </label>
                       </div>
-                    </div>
+                    )}
 
-                    {storyObjects.map((item) => renderStoryObject(item))}
-                  </div>
-                </div>
+                    {activeQuickTool === "layers" && (
+                      <div className="space-y-4">
+                        {/* Background image upload — prominent */}
+                        <div>
+                          <p className="mb-2 text-xs font-semibold text-white/50">HÁTTÉRKÉP</p>
+                          <button
+                            type="button"
+                            onClick={() => coverImageInputRef.current?.click()}
+                            className="flex w-full items-center gap-3 rounded-2xl bg-white/10 px-4 py-3 text-sm font-semibold text-white active:bg-white/20"
+                          >
+                            <span className="text-2xl">📷</span>
+                            {coverImageDataUrl ? "Csere — új kép választása" : "Háttérkép feltöltése"}
+                          </button>
+                          {uploadingImage && <p className="mt-1 text-xs text-white/50">Feltöltés...</p>}
+                        </div>
+                        {/* Extra objects */}
+                        <div>
+                          <p className="mb-2 text-xs font-semibold text-white/50">RÉTEGEK HOZZÁADÁSA</p>
+                          <div className="flex flex-wrap gap-2">
+                            <button type="button" onClick={() => addObject("text")} className="rounded-2xl bg-white/10 px-4 py-2.5 text-sm font-semibold active:bg-white/20">＋ Szöveg</button>
+                            <button type="button" onClick={() => addObject("sticker")} className="rounded-2xl bg-white/10 px-4 py-2.5 text-sm font-semibold active:bg-white/20">＋ Matrica</button>
+                            <button type="button" onClick={() => { addObject("image"); objectImageInputRef.current?.click(); }} className="rounded-2xl bg-white/10 px-4 py-2.5 text-sm font-semibold active:bg-white/20">＋ Kép</button>
+                          </div>
+                        </div>
+                        {/* Active object controls */}
+                        {activeObjectId && (() => {
+                          const obj = storyObjects.find(o => o.id === activeObjectId);
+                          if (!obj) return null;
+                          return (
+                            <div className="space-y-2 rounded-2xl bg-white/5 p-3">
+                              <p className="text-xs font-semibold text-white/50">KIVÁLASZTOTT RÉTEG</p>
+                              {obj.type === "text" && (
+                                <input value={obj.content ?? ""} onChange={(e) => setObjectField(activeObjectId, "content", e.target.value)} className="h-10 w-full rounded-xl bg-white/10 px-3 text-sm text-white focus:outline-none" placeholder="Szöveg..." />
+                              )}
+                              <div className="flex gap-2">
+                                <button type="button" onClick={duplicateActiveObject} className="flex-1 rounded-xl bg-white/10 py-2 text-xs font-semibold active:bg-white/20">Másolat</button>
+                                <button type="button" onClick={deleteActiveObject} className="flex-1 rounded-xl bg-rose-500/30 py-2 text-xs font-semibold text-rose-300 active:bg-rose-500/50">Törlés</button>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    )}
 
-                <div className="px-4 pb-2 text-center text-sm text-slate-300">Felfelé húzással nyílnak a részletes eszközök</div>
-
-                <div className="flex justify-center px-4 pb-3">
-                  <button
-                    type="button"
-                    onClick={() => setToolSheetExpanded((prev) => !prev)}
-                    className="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-1.5 text-xs font-semibold text-white"
-                  >
-                    <ChevronUp className={`h-4 w-4 transition-transform ${toolSheetExpanded ? "rotate-0" : "rotate-180"}`} />
-                    {toolSheetExpanded ? "Eszközök elrejtése" : "Eszközök megnyitása"}
-                  </button>
-                </div>
-
-                <div className="flex gap-2 overflow-x-auto px-4 pb-4">
-                  <button type="button" onClick={() => setActiveQuickTool("audio")} className={`flex min-w-[92px] items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition-all ${activeQuickTool === "audio" ? "bg-white text-slate-900" : "bg-white/15"}`}><Music2 className="h-4 w-4" />Hang</button>
-                  <button type="button" onClick={() => setActiveQuickTool("text")} className={`flex min-w-[92px] items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition-all ${activeQuickTool === "text" ? "bg-white text-slate-900" : "bg-white/15"}`}><Type className="h-4 w-4" />Szöveg</button>
-                  <button type="button" onClick={() => setActiveQuickTool("layers")} className={`flex min-w-[92px] items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition-all ${activeQuickTool === "layers" ? "bg-white text-slate-900" : "bg-white/15"}`}><Layers className="h-4 w-4" />Rétegek</button>
-                  <button type="button" onClick={() => setActiveQuickTool("publish")} className={`flex min-w-[92px] items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition-all ${activeQuickTool === "publish" ? "bg-white text-slate-900" : "bg-white/15"}`}><Captions className="h-4 w-4" />Poszt</button>
-                </div>
-
-                <div className="flex items-center justify-between gap-3 border-t border-white/10 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4">
-                  <button type="button" onClick={openFullscreenEditor} className="rounded-full bg-white/15 px-5 py-3 text-sm font-semibold">Részletes szerkesztő</button>
-                  <button
-                    type="button"
-                    onClick={() => setShowPublishScreen(true)}
-                    disabled={submitting || uploadingImage}
-                    className="rounded-full bg-blue-600 px-6 py-3 text-sm font-semibold disabled:opacity-50"
-                  >
-                    Tovább
-                  </button>
-                </div>
-              </div>
-
-              <div className={`overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition-all duration-300 ${toolSheetExpanded && activeQuickTool !== "none" ? "max-h-[680px] translate-y-0 opacity-100" : "max-h-0 -translate-y-1 opacity-0"}`}>
-                {activeQuickTool !== "none" && (
-                  <div className="p-4">
-                  {activeQuickTool === "text" && (
-                    <div className="space-y-3">
-                      <label className="block text-xs font-semibold text-slate-600">Cím
-                        <input value={title} onChange={(e) => setTitle(e.target.value)} className="mt-1 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm" />
-                      </label>
-                      <label className="block text-xs font-semibold text-slate-600">Üzenet
-                        <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" />
-                      </label>
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <label className="text-xs text-slate-600">Háttér mód
-                          <select value={backgroundMode} onChange={(e) => setBackgroundMode(e.target.value)} className="mt-1 h-10 w-full rounded-xl border border-slate-200 px-2 text-sm">
-                            <option value="image">Kép</option>
-                            <option value="color">Szín</option>
-                            <option value="generated">Generált</option>
+                    {activeQuickTool === "publish" && (
+                      <div className="space-y-3">
+                        <label className="block text-xs text-white/50">Képaláírás
+                          <textarea value={postCaption} onChange={(e) => setPostCaption(e.target.value)} rows={3} className="mt-1 w-full rounded-2xl bg-white/10 px-4 py-3 text-white placeholder:text-white/30 focus:outline-none" placeholder="Képaláírás..." />
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <label className="text-xs text-white/50">Címkék
+                            <input value={postTags} onChange={(e) => setPostTags(e.target.value)} className="mt-1 h-10 w-full rounded-xl bg-white/10 px-3 text-sm text-white focus:outline-none" placeholder="kampany, nyitas" />
+                          </label>
+                          <label className="text-xs text-white/50">Hely
+                            <input value={postLocation} onChange={(e) => setPostLocation(e.target.value)} className="mt-1 h-10 w-full rounded-xl bg-white/10 px-3 text-sm text-white focus:outline-none" placeholder="Budapest" />
+                          </label>
+                        </div>
+                        <label className="block text-xs text-white/50">Láthatóság
+                          <select value={postVisibility} onChange={(e) => setPostVisibility(e.target.value)} className="mt-1 h-10 w-full rounded-xl bg-white/10 px-3 text-sm text-white focus:outline-none">
+                            <option value="followers">Követők</option>
+                            <option value="public">Nyilvános</option>
+                            <option value="private">Privát</option>
                           </select>
                         </label>
-                        <label className="text-xs text-slate-600">CTA
-                          <input value={ctaLabel} onChange={(e) => setCtaLabel(e.target.value)} className="mt-1 h-10 w-full rounded-xl border border-slate-200 px-3 text-sm" />
-                        </label>
+                        <button type="button" onClick={() => setShowPublishScreen(true)} className="mt-2 w-full rounded-2xl bg-blue-600 py-3 text-sm font-bold">Előnézet és közzétevés</button>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {activeQuickTool === "audio" && (
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <label className="text-xs text-slate-600">Zene címe
-                        <input value={musicTrack} onChange={(e) => setMusicTrack(e.target.value)} className="mt-1 h-10 w-full rounded-xl border border-slate-200 px-3 text-sm" />
-                      </label>
-                      <label className="text-xs text-slate-600">Előadó
-                        <input value={musicArtist} onChange={(e) => setMusicArtist(e.target.value)} className="mt-1 h-10 w-full rounded-xl border border-slate-200 px-3 text-sm" />
-                      </label>
-                      <label className="text-xs text-slate-600">Kezdés (mp)
-                        <input type="number" min="0" max="120" step="0.5" value={musicStartSec} onChange={(e) => setMusicStartSec(Number(e.target.value))} className="mt-1 h-10 w-full rounded-xl border border-slate-200 px-3 text-sm" />
-                      </label>
-                      <label className="text-xs text-slate-600">Hossz (mp)
-                        <input type="number" min="3" max="30" step="0.5" value={musicDurationSec} onChange={(e) => setMusicDurationSec(Number(e.target.value))} className="mt-1 h-10 w-full rounded-xl border border-slate-200 px-3 text-sm" />
-                      </label>
-                    </div>
-                  )}
-
-                  {activeQuickTool === "layers" && (
-                    <div className="space-y-3">
-                      <div className="flex flex-wrap gap-2">
-                        <button type="button" onClick={() => addObject("text")} className="rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white">+ Szöveg</button>
-                        <button type="button" onClick={() => addObject("sticker")} className="rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white">+ Matrica</button>
-                        <button type="button" onClick={() => addObject("gif")} className="rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white">+ GIF</button>
-                        <button type="button" onClick={() => addObject("image")} className="rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white">+ Kép</button>
-                      </div>
-                      <label className="block text-xs text-slate-600">Háttérkép
-                        <input type="file" accept="image/*" onChange={handleImagePick} className="mt-1 block w-full text-xs" />
-                      </label>
-                    </div>
-                  )}
-
-                  {activeQuickTool === "publish" && (
-                    <div className="space-y-3">
-                      <label className="block text-xs text-slate-600">Képaláírás
-                        <textarea value={postCaption} onChange={(e) => setPostCaption(e.target.value)} rows={3} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm" placeholder="Képaláírás..." />
-                      </label>
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <label className="text-xs text-slate-600">Címkék (vesszővel)
-                          <input value={postTags} onChange={(e) => setPostTags(e.target.value)} className="mt-1 h-10 w-full rounded-xl border border-slate-200 px-3 text-sm" placeholder="kampany, nyitas" />
-                        </label>
-                        <label className="text-xs text-slate-600">Hely
-                          <input value={postLocation} onChange={(e) => setPostLocation(e.target.value)} className="mt-1 h-10 w-full rounded-xl border border-slate-200 px-3 text-sm" placeholder="Budapest" />
-                        </label>
-                      </div>
-                      <label className="block text-xs text-slate-600">Láthatóság
-                        <select value={postVisibility} onChange={(e) => setPostVisibility(e.target.value)} className="mt-1 h-10 w-full rounded-xl border border-slate-200 px-2 text-sm">
-                          <option value="followers">Követők</option>
-                          <option value="public">Nyilvános</option>
-                          <option value="private">Privát</option>
-                        </select>
-                      </label>
-                    </div>
-                  )}
                   </div>
-                )}
+                </div>
+
+                {/* Toolbar */}
+                <div className="flex gap-2 overflow-x-auto px-3 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+                  <button type="button" onClick={() => setActiveQuickTool((p) => p === "audio" ? "none" : "audio")} className={`flex min-w-[80px] flex-1 items-center justify-center gap-1.5 rounded-2xl px-3 py-3 text-xs font-semibold transition-all ${activeQuickTool === "audio" ? "bg-white text-black" : "bg-white/15 text-white"}`}>
+                    <Music2 className="h-4 w-4" />Hang
+                  </button>
+                  <button type="button" onClick={() => setActiveQuickTool((p) => p === "text" ? "none" : "text")} className={`flex min-w-[80px] flex-1 items-center justify-center gap-1.5 rounded-2xl px-3 py-3 text-xs font-semibold transition-all ${activeQuickTool === "text" ? "bg-white text-black" : "bg-white/15 text-white"}`}>
+                    <Type className="h-4 w-4" />Szöveg
+                  </button>
+                  <button type="button" onClick={() => setActiveQuickTool((p) => p === "layers" ? "none" : "layers")} className={`flex min-w-[80px] flex-1 items-center justify-center gap-1.5 rounded-2xl px-3 py-3 text-xs font-semibold transition-all ${activeQuickTool === "layers" ? "bg-white text-black" : "bg-white/15 text-white"}`}>
+                    <Layers className="h-4 w-4" />Rétegek
+                  </button>
+                  <button type="button" onClick={() => setActiveQuickTool((p) => p === "publish" ? "none" : "publish")} className={`flex min-w-[80px] flex-1 items-center justify-center gap-1.5 rounded-2xl px-3 py-3 text-xs font-semibold transition-all ${activeQuickTool === "publish" ? "bg-white text-black" : "bg-white/15 text-white"}`}>
+                    <Captions className="h-4 w-4" />Poszt
+                  </button>
+                </div>
               </div>
 
+              {/* Hidden file inputs */}
+              <input ref={coverImageInputRef} type="file" accept="image/*" className="hidden" onChange={handleImagePick} />
               <input ref={objectImageInputRef} type="file" accept="image/*" className="hidden" onChange={handleObjectImagePick} />
             </div>
           )}
-        </div>
-        {showFullscreenEditor && (
-          <div className="fixed inset-0 z-[70] bg-black px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-[calc(0.75rem+env(safe-area-inset-top))]">
-            <div className="mx-auto flex h-full max-w-xl flex-col">
-              <div className="mb-3 flex items-center justify-between">
-                <button type="button" onClick={closeFullscreenEditor} className="flex h-11 w-11 items-center justify-center rounded-full bg-white/15 text-white">
-                  <X className="h-6 w-6" />
-                </button>
-                <button type="button" onClick={closeFullscreenEditor} className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-900">
-                  <Check className="mr-1 inline h-4 w-4" />Kész
-                </button>
-              </div>
-
-              <div className="relative flex-1 overflow-hidden rounded-[26px] border border-white/10" style={activeBackgroundStyle}>
-                {backgroundMode === "image" && coverImageDataUrl ? (
-                  <img src={coverImageDataUrl} alt="Kampany kep" className="absolute inset-0 h-full w-full object-cover" />
-                ) : (
-                  <div className="absolute inset-0" style={activeBackgroundStyle} />
-                )}
-
-                <div
-                  ref={titleBoxRef}
-                  data-editor-layer="true"
-                  onPointerDown={(event) => handleTextPointerDown(event, "title")}
-                  className={`absolute w-[86%] cursor-grab select-none rounded-2xl border border-white/20 p-3 ${textTransparent ? "bg-transparent" : "bg-black/45 backdrop-blur-[1px]"}`}
-                  style={{ left: `${titlePosition.x}%`, top: `${titlePosition.y}%` }}
-                >
-                  <h2 style={{ color: titleColor, fontSize: `${titleFontSize}px`, fontWeight: titleFontWeight, lineHeight: 1.15 }}>
-                    {title.trim() || "Az uj kampanyod"}
-                  </h2>
-                </div>
-
-                <div
-                  ref={messageBoxRef}
-                  onPointerDown={(event) => handleTextPointerDown(event, "message")}
-                  className={`absolute w-[86%] cursor-grab select-none rounded-2xl border border-white/20 p-3 ${textTransparent ? "bg-transparent" : "bg-black/45 backdrop-blur-[1px]"}`}
-                  style={{ left: `${messagePosition.x}%`, top: `${messagePosition.y}%` }}
-                >
-                  <p style={{ color: messageColor, fontSize: `${messageFontSize}px`, fontWeight: messageFontWeight, lineHeight: 1.3 }}>
-                    {description.trim() || "Ird meg a fo uzenetet"}
-                  </p>
-                </div>
-
-                {storyObjects.map((item) => renderStoryObject(item))}
-
-                <div className="absolute inset-x-0 bottom-0 p-3">
-                  <div className="rounded-2xl border border-white/15 bg-black/55 p-3 backdrop-blur">
-                    <div className="flex gap-2 overflow-x-auto">
-                      <button type="button" onClick={() => setActiveQuickTool("audio")} className={`flex min-w-[94px] items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold ${activeQuickTool === "audio" ? "bg-white text-slate-900" : "bg-white/15 text-white"}`}><Music2 className="h-4 w-4" />Hang</button>
-                      <button type="button" onClick={() => setActiveQuickTool("text")} className={`flex min-w-[94px] items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold ${activeQuickTool === "text" ? "bg-white text-slate-900" : "bg-white/15 text-white"}`}><Type className="h-4 w-4" />Szöveg</button>
-                      <button type="button" onClick={() => setActiveQuickTool("layers")} className={`flex min-w-[94px] items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold ${activeQuickTool === "layers" ? "bg-white text-slate-900" : "bg-white/15 text-white"}`}><Layers className="h-4 w-4" />Rétegek</button>
-                      <button type="button" onClick={() => setActiveQuickTool("publish")} className={`flex min-w-[94px] items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold ${activeQuickTool === "publish" ? "bg-white text-slate-900" : "bg-white/15 text-white"}`}><Captions className="h-4 w-4" />Poszt</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {showPublishScreen && (
           <div className="fixed inset-0 z-[80] overflow-y-auto bg-white">
