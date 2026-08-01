@@ -1222,7 +1222,6 @@ export default function ProfessionalCampaignComposerPage() {
   );
 }
 
-            /* full-screen editor — egyetlen nézet, minden panel belül */
             <div className="fixed inset-0 z-50 flex flex-col bg-black text-white">
 
               {/* Top bar */}
