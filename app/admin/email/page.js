@@ -104,6 +104,7 @@ export default function AdminEmailPage() {
   const [bulkSendProgress, setBulkSendProgress] = useState(null); // { sent, failed, total }
   const [bulkSendResult, setBulkSendResult] = useState(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const mobileBottomNavOffset = 88;
 
   useEffect(() => {
     if (!loading) {
@@ -773,8 +774,8 @@ export default function AdminEmailPage() {
             </div>
 
             <div
-              className="fixed left-3 right-3 z-40 sm:hidden"
-              style={{ bottom: `${Math.max(12, keyboardHeight + 12)}px` }}
+              className="fixed left-3 right-3 z-[70] sm:hidden"
+              style={{ bottom: `${Math.max(mobileBottomNavOffset, keyboardHeight + 12)}px` }}
             >
               <button
                 onClick={sendEmail}
