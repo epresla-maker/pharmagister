@@ -79,6 +79,7 @@ type MarketplaceListing = {
   condition: ConditionOption;
   location: string;
   city?: string;
+  postalCode?: string;
   latitude?: number | null;
   longitude?: number | null;
   sellerId: string;
@@ -300,6 +301,7 @@ function mapFirestoreDoc(id: string, raw: any): MarketplaceListing {
     condition: raw.condition || "used",
     location: raw.location || raw.city || "Nincs megadva",
     city: raw.city || raw.location,
+    postalCode: raw.postalCode || raw.zipCode || "",
     latitude: raw.latitude ?? null,
     longitude: raw.longitude ?? null,
     sellerId,
@@ -756,9 +758,11 @@ export default function EszkozPiacterPage() {
     publicItems.forEach((item) => {
       const title = item.title?.trim();
       const location = item.location?.trim();
+      const postalCode = item.postalCode?.trim();
       const seller = item.sellerName?.trim();
       if (title) pool.add(title);
       if (location) pool.add(location);
+      if (postalCode) pool.add(postalCode);
       if (seller) pool.add(seller);
     });
 
@@ -774,7 +778,7 @@ export default function EszkozPiacterPage() {
       if (item.status === "rejected" && !isAdmin && item.sellerId !== user?.uid) return false;
 
       const haystack = normalizeText(
-        `${item.title} ${item.description} ${item.sellerName} ${item.location} ${getCategoryLabel(item.category)}`
+        `${item.title} ${item.description} ${item.sellerName} ${item.location} ${item.city || ""} ${item.postalCode || ""} ${getCategoryLabel(item.category)}`
       );
       if (q && !haystack.includes(q)) return false;
 
@@ -785,7 +789,10 @@ export default function EszkozPiacterPage() {
       if (withImagesOnly && item.images.length === 0) return false;
 
       const locQuery = normalizeText(filterLocation);
-      if (locQuery && !normalizeText(item.location).includes(locQuery)) return false;
+      if (locQuery) {
+        const locationPool = normalizeText(`${item.location} ${item.city || ""} ${item.postalCode || ""}`);
+        if (!locationPool.includes(locQuery)) return false;
+      }
 
       const numericPrice = item.negotiable ? null : Number(item.priceAmount ?? item.price ?? 0);
       if (minPrice && numericPrice != null && numericPrice < Number(minPrice)) return false;
@@ -849,7 +856,7 @@ export default function EszkozPiacterPage() {
     if (!locationQuery) return publicVisibleListings.slice(0, 16);
 
     const matched = publicVisibleListings.filter((item) => {
-      const haystack = normalizeText(`${item.location} ${item.city} ${item.description} ${item.title}`);
+      const haystack = normalizeText(`${item.location} ${item.city} ${item.postalCode || ""} ${item.description} ${item.title}`);
       return haystack.includes(locationQuery) || locationQuery.includes(normalizeText(item.location));
     });
 
@@ -2153,7 +2160,7 @@ export default function EszkozPiacterPage() {
 
                 <div>
                   <label className="text-sm font-semibold">Hely</label>
-                  <input value={filterLocation} onChange={(e) => setFilterLocation(e.target.value)} placeholder="Város vagy térség" className={`mt-1 w-full rounded-xl border px-3 py-2 text-sm ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"}`} />
+                  <input value={filterLocation} onChange={(e) => setFilterLocation(e.target.value)} placeholder="Város, térség vagy irányítószám" className={`mt-1 w-full rounded-xl border px-3 py-2 text-sm ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"}`} />
                 </div>
 
                 <div className="space-y-2 text-sm">

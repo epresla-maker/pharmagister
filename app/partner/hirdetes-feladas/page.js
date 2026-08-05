@@ -37,6 +37,7 @@ export default function PartnerListingComposerPage() {
   const [price, setPrice] = useState("");
   const [negotiable, setNegotiable] = useState(false);
   const [location, setLocation] = useState("");
+  const [postalCode, setPostalCode] = useState("");
   const [contactPhone, setContactPhone] = useState("");
   const [tags, setTags] = useState("");
   const [existingImages, setExistingImages] = useState([]);
@@ -84,6 +85,7 @@ export default function PartnerListingComposerPage() {
         setPrice(data.priceAmount != null ? String(data.priceAmount) : data.price != null ? String(data.price) : "");
         setNegotiable(Boolean(data.negotiable) || data.priceType === "negotiable");
         setLocation(data.location || data.city || "");
+        setPostalCode(data.postalCode || data.zipCode || "");
         setContactPhone(data.contactPhone || "");
         setTags(Array.isArray(data.tags) ? data.tags.join(", ") : "");
         setExistingImages(
@@ -167,6 +169,12 @@ export default function PartnerListingComposerPage() {
       return;
     }
 
+    const normalizedPostalCode = String(postalCode || "").trim();
+    if (!/^\d{4,5}$/.test(normalizedPostalCode)) {
+      setError("Adj meg érvényes irányítószámot (4-5 számjegy).");
+      return;
+    }
+
     const parsedPrice = Number(String(price).replace(/\s+/g, "").replace(",", "."));
     const normalizedPrice = Number.isFinite(parsedPrice) ? Math.max(0, Math.round(parsedPrice)) : null;
 
@@ -215,6 +223,16 @@ export default function PartnerListingComposerPage() {
         condition,
         location: location.trim(),
         city: location.trim(),
+        postalCode: normalizedPostalCode,
+        zipCode: normalizedPostalCode,
+        locationSearchText: `${normalizedPostalCode} ${location.trim()}`.toLowerCase(),
+        distanceSearch: {
+          postalCode: normalizedPostalCode,
+          lat: null,
+          lng: null,
+          provider: null,
+          resolvedAt: null,
+        },
         price: negotiable ? null : normalizedPrice,
         priceAmount: negotiable ? null : normalizedPrice,
         priceType: negotiable ? "negotiable" : "fixed",
@@ -368,6 +386,20 @@ export default function PartnerListingComposerPage() {
                     required
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">Irányítószám</label>
+                <input
+                  value={postalCode}
+                  onChange={(e) => setPostalCode(e.target.value.replace(/[^0-9]/g, "").slice(0, 5))}
+                  inputMode="numeric"
+                  maxLength={5}
+                  className="w-full rounded-lg border px-4 py-2 outline-none focus:ring-2 focus:ring-emerald-500"
+                  placeholder="1037"
+                  required
+                />
+                <p className="mt-1 text-xs text-slate-500">A távolság alapú keresőhöz ezt is figyelembe vesszük.</p>
               </div>
 
               <label className="flex items-center gap-2 text-sm text-slate-700">

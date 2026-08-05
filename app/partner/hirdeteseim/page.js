@@ -10,7 +10,6 @@ import {
   deleteDoc,
   doc,
   getDocs,
-  orderBy,
   query,
   serverTimestamp,
   updateDoc,
@@ -73,19 +72,23 @@ export default function PartnerListingsPage() {
       const snap = await getDocs(
         query(
           collection(db, "equipmentMarketplacePosts"),
-          where("sellerId", "==", user.uid),
-          orderBy("createdAt", "desc")
+          where("sellerId", "==", user.uid)
         )
       );
 
-      setItems(
-        snap.docs
-          .map((d) => ({
-            id: d.id,
-            ...d.data(),
-          }))
-          .filter((x) => ["partner_advertiser", "partner_marketplace"].includes(String(x.sellerType || "")))
-      );
+      const rows = snap.docs
+        .map((d) => ({
+          id: d.id,
+          ...d.data(),
+        }))
+        .filter((x) => ["partner_advertiser", "partner_marketplace"].includes(String(x.sellerType || "")))
+        .sort((a, b) => {
+          const timeA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : new Date(a.createdAt || 0).getTime();
+          const timeB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : new Date(b.createdAt || 0).getTime();
+          return timeB - timeA;
+        });
+
+      setItems(rows);
     } catch (e) {
       console.error("Partner listings load error:", e);
       setError("Nem sikerült betölteni a hirdetéseket.");
@@ -182,7 +185,7 @@ export default function PartnerListingsPage() {
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <h2 className="text-lg font-semibold text-slate-900">{item.title || "Névtelen hirdetés"}</h2>
-                        <p className="mt-1 text-sm text-slate-600">{item.location || "Nincs helyszín"}</p>
+                        <p className="mt-1 text-sm text-slate-600">{item.postalCode ? `${item.postalCode} ` : ""}{item.location || "Nincs helyszín"}</p>
                         <p className="mt-1 text-xs text-slate-500">Létrehozva: {formatDate(item.createdAt)}</p>
                       </div>
                       <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusClass(item.status)}`}>
