@@ -103,6 +103,14 @@ export default function SettingsPage() {
     return null;
   }
 
+  const isPartnerAccount = Boolean(
+    userData?.accountType === 'partner_marketplace' ||
+    userData?.accountType === 'partner_advertiser' ||
+    userData?.accountType === 'partner_professional' ||
+    userData?.partnerAdvertiser ||
+    userData?.partnerProfessional
+  );
+
   const settingsSections = [
     {
       title: t('accountSection', market),
@@ -110,7 +118,7 @@ export default function SettingsPage() {
         {
           icon: User,
           label: t('profileEdit', market),
-          onClick: () => router.push('/pharmagister/setup?edit=true'),
+          onClick: () => router.push(isPartnerAccount ? '/partner' : '/pharmagister/setup?edit=true'),
           color: 'text-purple-600',
           bgColor: darkMode ? 'bg-purple-900/30' : 'bg-purple-100'
         },

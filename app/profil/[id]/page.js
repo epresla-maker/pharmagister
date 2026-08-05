@@ -111,7 +111,10 @@ export default function ProfilePage() {
             {/* Szerkesztés gomb - csak saját profilnál */}
             {isOwnProfile ? (
               <button
-                onClick={() => router.push('/pharmagister/setup?edit=true')}
+                onClick={() => {
+                  const isPartner = userData?.accountType === 'partner_marketplace' || userData?.accountType === 'partner_advertiser' || userData?.accountType === 'partner_professional' || userData?.partnerAdvertiser || userData?.partnerProfessional;
+                  router.push(isPartner ? '/partner' : '/pharmagister/setup?edit=true');
+                }}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
                   darkMode 
                     ? 'bg-purple-600 hover:bg-purple-700 text-white' 
