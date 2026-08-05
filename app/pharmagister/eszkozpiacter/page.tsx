@@ -228,6 +228,13 @@ function formatHuPrice(value: number | null | undefined, negotiable?: boolean): 
   return `${Number(value).toLocaleString("hu-HU")} Ft`;
 }
 
+function formatDistanceKm(distanceKm: number): string {
+  if (!Number.isFinite(distanceKm)) return "";
+  if (distanceKm < 1) return `${Math.max(0.1, distanceKm).toFixed(1)} km`;
+  if (distanceKm < 10) return `${distanceKm.toFixed(1)} km`;
+  return `${Math.round(distanceKm)} km`;
+}
+
 function getCategoryLabel(categoryId?: string): string {
   return CATEGORY_DEFS.find((c) => c.id === categoryId)?.label || "Egyéb";
 }
@@ -1535,6 +1542,14 @@ export default function EszkozPiacterPage() {
     const canDeleteListing = isOwner || isAdmin;
     const favorited = favoriteIds.has(item.id);
     const firstImage = item.images[0];
+    const itemDistanceKm = distanceCenter
+      ? (() => {
+          const lat = toFiniteNumber(item.latitude);
+          const lng = toFiniteNumber(item.longitude);
+          if (lat == null || lng == null) return null;
+          return haversineKm(distanceCenter.lat, distanceCenter.lng, lat, lng);
+        })()
+      : null;
 
     return (
       <article
@@ -1600,6 +1615,12 @@ export default function EszkozPiacterPage() {
 
             <div className={`mt-3 text-sm space-y-1.5 ${darkMode ? "text-gray-300" : "text-gray-600"}`}>
               <div className="flex items-center gap-1.5"><MapPin className="w-4 h-4" /> {item.location}</div>
+              {itemDistanceKm != null ? (
+                <div className="flex items-center gap-1.5 text-emerald-600 font-semibold">
+                  <MapPin className="w-4 h-4" />
+                  {formatDistanceKm(itemDistanceKm)} távolság
+                </div>
+              ) : null}
               <div className="flex items-center gap-1.5"><User className="w-4 h-4" /> {item.sellerName}</div>
               <div>{formatHuDateTime(item.createdAt)}</div>
             </div>
@@ -2730,6 +2751,21 @@ export default function EszkozPiacterPage() {
                     <p className="text-xs opacity-70">Hely</p>
                     <p className="font-semibold">{selectedListing.location}</p>
                   </div>
+                  {distanceCenter && toFiniteNumber(selectedListing.latitude) != null && toFiniteNumber(selectedListing.longitude) != null ? (
+                    <div className={`rounded-xl px-3 py-2 ${darkMode ? "bg-gray-800" : "bg-gray-100"}`}>
+                      <p className="text-xs opacity-70">Távolság</p>
+                      <p className="font-semibold">
+                        {formatDistanceKm(
+                          haversineKm(
+                            distanceCenter.lat,
+                            distanceCenter.lng,
+                            Number(selectedListing.latitude),
+                            Number(selectedListing.longitude)
+                          )
+                        )}
+                      </p>
+                    </div>
+                  ) : null}
                   <div className={`rounded-xl px-3 py-2 ${darkMode ? "bg-gray-800" : "bg-gray-100"}`}>
                     <p className="text-xs opacity-70">Feladás ideje</p>
                     <p className="font-semibold">{formatHuDate(selectedListing.createdAt)}</p>
