@@ -482,7 +482,7 @@ export default function AdminEmailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-2 sm:p-4">
+    <div className="min-h-[100dvh] overflow-y-auto overscroll-contain bg-gray-50 p-2 sm:p-4 pb-[calc(10rem+env(safe-area-inset-bottom,0px))]">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 mb-4">
@@ -534,7 +534,7 @@ export default function AdminEmailPage() {
         </div>
 
         {/* COMPOSE TAB */}
-        {activeTab === 'compose' && (<div className="pb-28 sm:pb-8">
+        {activeTab === 'compose' && (<div className="pb-[calc(16rem+env(safe-area-inset-bottom,0px))] sm:pb-8">
         {/* Recipients section */}
         <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 mb-4">
           <div className="flex items-center justify-between mb-3">
