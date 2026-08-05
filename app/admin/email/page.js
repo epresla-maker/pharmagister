@@ -91,7 +91,7 @@ export default function AdminEmailPage() {
   const [expandedEmail, setExpandedEmail] = useState(null);
   const [activeTab, setActiveTab] = useState('compose'); // 'compose' | 'sent' | 'tokens'
 
-  const isAdmin = user && ADMIN_EMAILS.includes(user.email);
+  const isAdmin = user && ALL_ADMIN_EMAILS.includes(user.email);
 
   // Token generation state
   const [generatingTokens, setGeneratingTokens] = useState(false);
