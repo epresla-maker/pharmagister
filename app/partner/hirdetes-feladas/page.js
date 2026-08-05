@@ -39,7 +39,9 @@ export default function PartnerListingComposerPage() {
   const [location, setLocation] = useState("");
   const [contactPhone, setContactPhone] = useState("");
   const [tags, setTags] = useState("");
-  const [imageUrls, setImageUrls] = useState("");
+  const [existingImages, setExistingImages] = useState([]);
+  const [newImages, setNewImages] = useState([]);
+  const [newImagePreviews, setNewImagePreviews] = useState([]);
   const [chatEnabled, setChatEnabled] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -84,7 +86,13 @@ export default function PartnerListingComposerPage() {
         setLocation(data.location || data.city || "");
         setContactPhone(data.contactPhone || "");
         setTags(Array.isArray(data.tags) ? data.tags.join(", ") : "");
-        setImageUrls(Array.isArray(data.images) ? data.images.join("\n") : data.imageUrl ? String(data.imageUrl) : "");
+        setExistingImages(
+          Array.isArray(data.images)
+            ? data.images.filter(Boolean).slice(0, 10)
+            : data.imageUrl
+            ? [String(data.imageUrl)]
+            : []
+        );
         setChatEnabled(data.chatEnabled !== false);
       } catch (e) {
         console.error("Partner edit load error:", e);
@@ -96,6 +104,54 @@ export default function PartnerListingComposerPage() {
 
     loadExisting();
   }, [isEditMode, editId, user?.uid]);
+
+  const handleImagePick = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const freeSlots = Math.max(0, 10 - existingImages.length - newImages.length);
+    if (freeSlots <= 0) {
+      setError("Maximum 10 kép tölthető fel.");
+      e.target.value = "";
+      return;
+    }
+
+    const acceptedFiles = [];
+    const acceptedPreviews = [];
+
+    for (const file of files.slice(0, freeSlots)) {
+      if (!file.type.startsWith("image/")) {
+        setError("Csak képfájl tölthető fel.");
+        continue;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        setError("Egy kép maximum 5MB lehet.");
+        continue;
+      }
+      acceptedFiles.push(file);
+      acceptedPreviews.push(URL.createObjectURL(file));
+    }
+
+    if (acceptedFiles.length > 0) {
+      setNewImages((prev) => [...prev, ...acceptedFiles]);
+      setNewImagePreviews((prev) => [...prev, ...acceptedPreviews]);
+    }
+
+    e.target.value = "";
+  };
+
+  const removeExistingImage = (index) => {
+    setExistingImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const removeNewImage = (index) => {
+    setNewImages((prev) => prev.filter((_, i) => i !== index));
+    setNewImagePreviews((prev) => {
+      const removed = prev[index];
+      if (removed) URL.revokeObjectURL(removed);
+      return prev.filter((_, i) => i !== index);
+    });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -114,11 +170,7 @@ export default function PartnerListingComposerPage() {
     const parsedPrice = Number(String(price).replace(/\s+/g, "").replace(",", "."));
     const normalizedPrice = Number.isFinite(parsedPrice) ? Math.max(0, Math.round(parsedPrice)) : null;
 
-    const imageList = imageUrls
-      .split("\n")
-      .map((s) => s.trim())
-      .filter(Boolean)
-      .slice(0, 10);
+    let imageList = [...existingImages];
 
     const tagList = tags
       .split(",")
@@ -132,41 +184,62 @@ export default function PartnerListingComposerPage() {
       userData?.email ||
       "Partner hirdető";
 
-    const payload = {
-      title: title.trim(),
-      description: description.trim(),
-      category,
-      equipmentCategory: category,
-      condition,
-      location: location.trim(),
-      city: location.trim(),
-      price: negotiable ? null : normalizedPrice,
-      priceAmount: negotiable ? null : normalizedPrice,
-      priceType: negotiable ? "negotiable" : "fixed",
-      negotiable,
-      contactPhone: contactPhone.trim(),
-      chatEnabled,
-      images: imageList,
-      imageUrl: imageList[0] || null,
-      tags: tagList,
-      sellerId: user.uid,
-      userId: user.uid,
-      sellerName,
-      sellerType: "partner_marketplace",
-      market: userData?.market || getClientMarket(),
-      authorData: {
-        displayName: sellerName,
-        photoURL: userData?.photoURL || null,
-        email: userData?.email || user?.email || null,
-      },
-      status: "pending",
-      featured: false,
-      verified: false,
-      updatedAt: serverTimestamp(),
-    };
-
     setSubmitting(true);
     try {
+      for (const file of newImages) {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("userId", user.uid);
+        formData.append("folder", "posts");
+
+        const idToken = await user.getIdToken();
+        const uploadRes = await fetch("/api/upload", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${idToken}` },
+          body: formData,
+        });
+
+        const uploadData = await uploadRes.json();
+        if (!uploadRes.ok || !uploadData?.url) {
+          throw new Error(uploadData?.error || "Képfeltöltési hiba");
+        }
+
+        imageList.push(uploadData.url);
+      }
+
+      const payload = {
+        title: title.trim(),
+        description: description.trim(),
+        category,
+        equipmentCategory: category,
+        condition,
+        location: location.trim(),
+        city: location.trim(),
+        price: negotiable ? null : normalizedPrice,
+        priceAmount: negotiable ? null : normalizedPrice,
+        priceType: negotiable ? "negotiable" : "fixed",
+        negotiable,
+        contactPhone: contactPhone.trim(),
+        chatEnabled,
+        images: imageList,
+        imageUrl: imageList[0] || null,
+        tags: tagList,
+        sellerId: user.uid,
+        userId: user.uid,
+        sellerName,
+        sellerType: "partner_marketplace",
+        market: userData?.market || getClientMarket(),
+        authorData: {
+          displayName: sellerName,
+          photoURL: userData?.photoURL || null,
+          email: userData?.email || user?.email || null,
+        },
+        status: "pending",
+        featured: false,
+        verified: false,
+        updatedAt: serverTimestamp(),
+      };
+
       if (isEditMode && editId) {
         await updateDoc(doc(db, "equipmentMarketplacePosts", editId), payload);
       } else {
@@ -181,7 +254,7 @@ export default function PartnerListingComposerPage() {
       router.push("/partner/hirdeteseim");
     } catch (e) {
       console.error("Partner submit error:", e);
-      setError("Nem sikerült menteni a hirdetést.");
+      setError(e?.message || "Nem sikerült menteni a hirdetést.");
     } finally {
       setSubmitting(false);
     }
@@ -324,15 +397,45 @@ export default function PartnerListingComposerPage() {
                 </div>
               </div>
 
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">Képek URL-jei (soronként egy)</label>
-                <textarea
-                  value={imageUrls}
-                  onChange={(e) => setImageUrls(e.target.value)}
-                  rows={4}
-                  className="w-full rounded-lg border px-4 py-2 font-mono text-sm outline-none focus:ring-2 focus:ring-emerald-500"
-                  placeholder="https://.../kep1.jpg"
+              <div className="space-y-2">
+                <label className="mb-1 block text-sm font-medium text-slate-700">Képek feltöltése (galériából)</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImagePick}
+                  className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 file:mr-3 file:rounded-md file:border-0 file:bg-emerald-100 file:px-3 file:py-1.5 file:text-emerald-800"
                 />
+                <p className="text-xs text-slate-500">Maximum 10 kép, képenként legfeljebb 5MB.</p>
+
+                {(existingImages.length > 0 || newImagePreviews.length > 0) && (
+                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                    {existingImages.map((url, idx) => (
+                      <div key={`existing-${idx}`} className="relative overflow-hidden rounded-lg border border-slate-200">
+                        <img src={url} alt="Feltöltött kép" className="h-24 w-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => removeExistingImage(idx)}
+                          className="absolute right-1 top-1 rounded bg-black/70 px-2 py-1 text-xs font-semibold text-white"
+                        >
+                          Törlés
+                        </button>
+                      </div>
+                    ))}
+                    {newImagePreviews.map((preview, idx) => (
+                      <div key={`new-${idx}`} className="relative overflow-hidden rounded-lg border border-slate-200">
+                        <img src={preview} alt="Új kép" className="h-24 w-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => removeNewImage(idx)}
+                          className="absolute right-1 top-1 rounded bg-black/70 px-2 py-1 text-xs font-semibold text-white"
+                        >
+                          Törlés
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <label className="flex items-center gap-2 text-sm text-slate-700">
