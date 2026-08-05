@@ -91,8 +91,6 @@ export default function AdminEmailPage() {
   const [expandedEmail, setExpandedEmail] = useState(null);
   const [activeTab, setActiveTab] = useState('compose'); // 'compose' | 'sent' | 'tokens'
 
-  const isAdmin = user && ALL_ADMIN_EMAILS.includes(user.email);
-
   // Token generation state
   const [generatingTokens, setGeneratingTokens] = useState(false);
   const [generatedTokens, setGeneratedTokens] = useState([]);
@@ -753,8 +751,7 @@ export default function AdminEmailPage() {
         )}
 
         {/* Send button */}
-        {isAdmin && (
-          <>
+        <>
             <div className="hidden sm:flex justify-end">
               <button
                 onClick={sendEmail}
@@ -798,7 +795,6 @@ export default function AdminEmailPage() {
               </button>
             </div>
           </>
-        )}
         </div>)}
 
         {/* TOKEN GENERATION TAB */}
