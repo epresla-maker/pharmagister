@@ -77,6 +77,8 @@ export default function AdminEmailPage() {
   
   // Email state
   const [selectedRecipients, setSelectedRecipients] = useState([]);
+  const [manualRecipientInput, setManualRecipientInput] = useState('');
+  const [manualRecipientError, setManualRecipientError] = useState('');
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
@@ -306,6 +308,69 @@ export default function AdminEmailPage() {
     });
   };
 
+  const normalizeEmail = (value) => String(value || '').trim().toLowerCase();
+
+  const parseManualRecipientTokens = (raw) => {
+    return String(raw || '')
+      .split(/[\n;,]+/)
+      .map(token => token.trim())
+      .filter(Boolean)
+      .map(token => {
+        const angleMatch = token.match(/^(.*)<([^>]+)>$/);
+        if (angleMatch) {
+          return {
+            displayName: angleMatch[1].trim().replace(/^"|"$/g, '') || angleMatch[2].trim(),
+            email: normalizeEmail(angleMatch[2]),
+          };
+        }
+
+        return {
+          displayName: token,
+          email: normalizeEmail(token),
+        };
+      });
+  };
+
+  const addManualRecipients = () => {
+    const entries = parseManualRecipientTokens(manualRecipientInput);
+    if (entries.length === 0) {
+      setManualRecipientError(market === 'de' ? 'Gib mindestens eine E-Mail-Adresse ein!' : 'Adj meg legalább egy email címet!');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const seen = new Set(selectedRecipients.map(r => normalizeEmail(r.email)));
+    const validRecipients = [];
+    const invalidEntries = [];
+
+    for (const entry of entries) {
+      if (!emailRegex.test(entry.email)) {
+        invalidEntries.push(entry.email || entry.displayName);
+        continue;
+      }
+      if (seen.has(entry.email)) continue;
+      seen.add(entry.email);
+      validRecipients.push({
+        email: entry.email,
+        displayName: entry.displayName || entry.email,
+      });
+    }
+
+    if (validRecipients.length > 0) {
+      setSelectedRecipients(prev => [...prev, ...validRecipients]);
+      setManualRecipientInput('');
+      setManualRecipientError('');
+    }
+
+    if (invalidEntries.length > 0) {
+      setManualRecipientError(
+        market === 'de'
+          ? `Ungültige E-Mail-Adressen: ${invalidEntries.join(', ')}`
+          : `Érvénytelen email cím(ek): ${invalidEntries.join(', ')}`
+      );
+    }
+  };
+
   const isSelected = (email) => selectedRecipients.some(r => r.email === email);
 
   const selectAll = () => {
@@ -463,6 +528,43 @@ export default function AdminEmailPage() {
               {showUserList ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
               {showUserList ? (market === 'de' ? 'Schliessen' : 'Bezárás') : (market === 'de' ? 'Benutzer' : 'Felhasználók')}
             </button>
+          </div>
+
+          <div className="mb-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
+            <label className="block text-xs font-medium text-gray-600 mb-1">
+              {market === 'de' ? 'Manuelle Empfaenger' : 'Kézi címzett hozzáadása'}
+            </label>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="text"
+                value={manualRecipientInput}
+                onChange={(e) => {
+                  setManualRecipientInput(e.target.value);
+                  setManualRecipientError('');
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addManualRecipients();
+                  }
+                }}
+                placeholder={market === 'de' ? 'name@domain.hu, Muster <email@domain.com>' : 'nev@domain.hu, Név <email@domain.com>'}
+                className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
+              <button
+                type="button"
+                onClick={addManualRecipients}
+                className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700"
+              >
+                {market === 'de' ? 'Hinzufuegen' : 'Hozzáadás'}
+              </button>
+            </div>
+            <p className="mt-1 text-xs text-gray-500">
+              {market === 'de' ? 'Mehrere Adressen mit Komma, Semikolon oder Zeilenumbruch trennen.' : 'Több címet vesszővel, pontosvesszővel vagy sor töréssel is megadhatsz.'}
+            </p>
+            {manualRecipientError ? (
+              <p className="mt-2 text-xs text-red-600">{manualRecipientError}</p>
+            ) : null}
           </div>
 
           {/* Selected recipients chips */}
