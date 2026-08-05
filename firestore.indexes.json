@@ -167,6 +167,14 @@
       ]
     },
     {
+      "collectionGroup": "equipmentMarketplacePosts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "sellerId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "pharmacySchedules",
       "queryScope": "COLLECTION",
       "fields": [
