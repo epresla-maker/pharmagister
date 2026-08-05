@@ -22,7 +22,18 @@ export default function ProfileEditPage() {
     email: '',
     phone: '',
     bio: '',
+    companyName: '',
+    contactName: '',
+    website: '',
   });
+
+  const isPartnerAccount = Boolean(
+    userData?.accountType === 'partner_marketplace' ||
+    userData?.accountType === 'partner_advertiser' ||
+    userData?.accountType === 'partner_professional' ||
+    userData?.partnerAdvertiser ||
+    userData?.partnerProfessional
+  );
 
   useEffect(() => {
     if (userData) {
@@ -31,6 +42,9 @@ export default function ProfileEditPage() {
         email: userData.email || '',
         phone: userData.phone || '',
         bio: userData.bio || '',
+        companyName: userData.partnerProfile?.companyName || '',
+        contactName: userData.partnerProfile?.contactName || '',
+        website: userData.partnerProfile?.website || '',
       });
     }
   }, [userData]);
@@ -105,12 +119,20 @@ export default function ProfileEditPage() {
   const handleSave = async () => {
     setLoading(true);
     try {
-      await updateDoc(doc(db, 'users', user.uid), {
+      const update = {
         displayName: formData.displayName,
         email: formData.email || null,
         phone: formData.phone || null,
         bio: formData.bio || null,
-      });
+      };
+
+      if (isPartnerAccount) {
+        update['partnerProfile.companyName'] = formData.companyName.trim() || null;
+        update['partnerProfile.contactName'] = formData.contactName.trim() || null;
+        update['partnerProfile.website'] = formData.website.trim() || null;
+      }
+
+      await updateDoc(doc(db, 'users', user.uid), update);
       alert(market === 'de' ? '✅ Profil erfolgreich gespeichert.' : '✅ Profil sikeresen mentve!');
       router.push('/settings');
     } catch (error) {
@@ -259,6 +281,68 @@ export default function ProfileEditPage() {
                 placeholder={market === 'de' ? 'Schreibe ein paar Zeilen ueber dich...' : 'Írj magadról néhány sort...'}
               />
             </div>
+
+            {/* Partner-specifikus mezők */}
+            {isPartnerAccount && (
+              <>
+                <div className={`pt-2 pb-1 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                  <p className={`text-sm font-semibold ${darkMode ? 'text-emerald-400' : 'text-emerald-700'}`}>
+                    {market === 'de' ? 'Partnerprofil' : 'Partner adatok'}
+                  </p>
+                </div>
+
+                <div>
+                  <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-[#374151]'} mb-1`}>
+                    {market === 'de' ? 'Firmenname' : 'Cégnév'}
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.companyName}
+                    onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
+                    className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#6B46C1] focus:border-[#6B46C1] ${
+                      darkMode
+                        ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
+                        : 'bg-white border-[#E5E7EB] text-[#111827]'
+                    }`}
+                    placeholder={market === 'de' ? 'Ihr Firmenname' : 'Pl. Pharma Kft.'}
+                  />
+                </div>
+
+                <div>
+                  <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-[#374151]'} mb-1`}>
+                    {market === 'de' ? 'Ansprechpartner' : 'Kapcsolattartó neve'}
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.contactName}
+                    onChange={(e) => setFormData(prev => ({ ...prev, contactName: e.target.value }))}
+                    className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#6B46C1] focus:border-[#6B46C1] ${
+                      darkMode
+                        ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
+                        : 'bg-white border-[#E5E7EB] text-[#111827]'
+                    }`}
+                    placeholder={market === 'de' ? 'Name der Kontaktperson' : 'Pl. Kiss János'}
+                  />
+                </div>
+
+                <div>
+                  <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-[#374151]'} mb-1`}>
+                    {market === 'de' ? 'Website' : 'Weboldal'}
+                  </label>
+                  <input
+                    type="url"
+                    value={formData.website}
+                    onChange={(e) => setFormData(prev => ({ ...prev, website: e.target.value }))}
+                    className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#6B46C1] focus:border-[#6B46C1] ${
+                      darkMode
+                        ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
+                        : 'bg-white border-[#E5E7EB] text-[#111827]'
+                    }`}
+                    placeholder="https://..."
+                  />
+                </div>
+              </>
+            )}
           </div>
 
           {/* Pharmagister link */}
