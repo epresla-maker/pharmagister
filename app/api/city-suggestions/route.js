@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { resolveMarketFromRequest } from "@/lib/market";
+import huPostalCodes from "hu-postal-codes/postal-codes.json";
 
 function normalizeQuery(raw) {
   return String(raw || "").trim();
@@ -7,6 +8,73 @@ function normalizeQuery(raw) {
 
 function getCountryCode(market) {
   return String(market || "").toLowerCase() === "de" ? "de" : "hu";
+}
+
+function normalizeText(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
+function getHuLocalSuggestions(query) {
+  const q = normalizeText(query);
+  if (q.length < 2) return [];
+
+  const rows = Array.isArray(huPostalCodes) ? huPostalCodes : [];
+  const scored = [];
+
+  for (const row of rows) {
+    const city = String(row?.city || "").trim();
+    const zipRaw = row?.zip;
+    if (!city || zipRaw == null) continue;
+
+    const postalCode = String(zipRaw).replace(/[^0-9]/g, "").slice(0, 4);
+    if (postalCode.length !== 4) continue;
+
+    const cityNorm = normalizeText(city);
+    const regionNorm = normalizeText(row?.region || "");
+
+    const matchesCity = cityNorm.includes(q);
+    const matchesRegion = regionNorm.includes(q);
+    const matchesZip = postalCode.startsWith(q);
+    if (!matchesCity && !matchesRegion && !matchesZip) continue;
+
+    const startsWith = matchesCity && cityNorm.startsWith(q);
+    const score = startsWith ? 0 : matchesCity ? 1 : matchesZip ? 2 : 3;
+
+    scored.push({
+      city,
+      postalCode,
+      region: row?.region || null,
+      score,
+      cityLen: city.length,
+    });
+  }
+
+  scored.sort((a, b) => {
+    if (a.score !== b.score) return a.score - b.score;
+    if (a.cityLen !== b.cityLen) return a.cityLen - b.cityLen;
+    return a.city.localeCompare(b.city, "hu");
+  });
+
+  const unique = new Map();
+  for (const item of scored) {
+    const key = `${item.city.toLowerCase()}::${item.postalCode}`;
+    if (unique.has(key)) continue;
+    unique.set(key, {
+      city: item.city,
+      postalCode: item.postalCode,
+      region: item.region,
+      displayName: item.region
+        ? `${item.postalCode} ${item.city} (${item.region})`
+        : `${item.postalCode} ${item.city}`,
+    });
+    if (unique.size >= 12) break;
+  }
+
+  return Array.from(unique.values());
 }
 
 function pickCityName(row) {
@@ -37,6 +105,13 @@ export async function GET(request) {
     }
 
     const countryCode = getCountryCode(market);
+
+    if (countryCode === "hu") {
+      const localSuggestions = getHuLocalSuggestions(q);
+      if (localSuggestions.length > 0) {
+        return NextResponse.json({ suggestions: localSuggestions });
+      }
+    }
 
     const url = new URL("https://nominatim.openstreetmap.org/search");
     url.searchParams.set("format", "jsonv2");
