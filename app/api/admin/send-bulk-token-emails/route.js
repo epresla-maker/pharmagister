@@ -5,6 +5,8 @@ import { verifyAdmin } from '@/lib/apiAuth';
 import { resolveMarketFromRequest } from '@/lib/market';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+const DEFAULT_FROM = 'Pharmagister <noreply@pharmagister.hu>';
+const DEFAULT_REPLY_TO = 'epresla@icloud.com';
 
 function getBulkTokenEmailApiCopy(market) {
   if (market === 'de') {
@@ -160,10 +162,12 @@ export async function POST(request) {
         );
 
         await resend.emails.send({
-          from: 'Pharmagister <noreply@pharmagister.hu>',
+          from: DEFAULT_FROM,
           to: tokenData.email,
           subject,
           html: generateHtmlEmail(subject, body.replace(/\n/g, '<br>'), copy),
+          text: body,
+          replyTo: DEFAULT_REPLY_TO,
         });
         results.push({ 
           email: tokenData.email, 
@@ -197,7 +201,8 @@ export async function POST(request) {
         sentAt: admin.firestore.FieldValue.serverTimestamp(),
         sentCount: results.length,
         failedCount: errors.length,
-        from: 'noreply@pharmagister.hu',
+        from: DEFAULT_FROM,
+        replyTo: DEFAULT_REPLY_TO,
         type: 'bulk-token-email',
       });
     } catch (saveErr) {

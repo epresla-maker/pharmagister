@@ -497,7 +497,7 @@ export default function AdminEmailPage() {
               Admin
             </button>
           </div>
-          <p className="text-sm text-gray-500">{market === 'de' ? 'Absender' : 'Feladó'}: epresla@icloud.com</p>
+          <p className="text-sm text-gray-500">{market === 'de' ? 'Absender' : 'Feladó'}: noreply@pharmagister.hu</p>
 
           {/* Tabs */}
           <div className="flex gap-2 mt-4">

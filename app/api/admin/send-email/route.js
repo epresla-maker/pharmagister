@@ -5,6 +5,8 @@ import { verifyAdmin } from '@/lib/apiAuth';
 import { resolveMarketFromRequest } from '@/lib/market';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+const DEFAULT_FROM = 'Pharmagister <noreply@pharmagister.hu>';
+const DEFAULT_REPLY_TO = 'epresla@icloud.com';
 
 function getAdminSendEmailCopy(market) {
   if (market === 'de') {
@@ -56,15 +58,19 @@ export async function POST(request) {
 
     const results = [];
     const errors = [];
+    const plainTextBody = isHtml ? htmlToText(body) : body;
 
     // Send emails individually to each recipient
     for (const recipient of to) {
       try {
+        const htmlBody = isHtml ? body : body.replace(/\n/g, '<br>');
         await resend.emails.send({
-          from: 'Pharmagister <noreply@pharmagister.hu>',
+          from: DEFAULT_FROM,
           to: recipient,
           subject: subject,
-          html: isHtml ? generateHtmlEmail(subject, body, copy) : generateHtmlEmail(subject, body.replace(/\n/g, '<br>'), copy),
+          html: generateHtmlEmail(subject, htmlBody, copy),
+          text: plainTextBody,
+          replyTo: DEFAULT_REPLY_TO,
         });
         results.push({ email: recipient, success: true });
       } catch (err) {
@@ -85,7 +91,8 @@ export async function POST(request) {
         sentAt: admin.firestore.FieldValue.serverTimestamp(),
         sentCount: results.length,
         failedCount: errors.length,
-        from: 'epresla@icloud.com',
+        from: DEFAULT_FROM,
+        replyTo: DEFAULT_REPLY_TO,
       });
     } catch (saveErr) {
       console.error('Failed to save sent email log:', saveErr);
@@ -150,4 +157,17 @@ function generateHtmlEmail(subject, bodyHtml, copy) {
   </div>
 </body>
 </html>`;
+}
+
+function htmlToText(value) {
+  if (!value) return '';
+  return value
+    .replace(/<br\s*\/?\s*>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .trim();
 }
