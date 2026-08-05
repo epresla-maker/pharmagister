@@ -105,6 +105,7 @@ export default function AdminEmailPage() {
   const [bulkSending, setBulkSending] = useState(false);
   const [bulkSendProgress, setBulkSendProgress] = useState(null); // { sent, failed, total }
   const [bulkSendResult, setBulkSendResult] = useState(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   useEffect(() => {
     if (!loading) {
@@ -120,6 +121,26 @@ export default function AdminEmailPage() {
       loadSentEmails();
     }
   }, [user]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const viewport = window.visualViewport;
+    const updateKeyboardHeight = () => {
+      if (!viewport) return;
+      const inset = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
+      setKeyboardHeight(inset > 20 ? inset : 0);
+    };
+
+    updateKeyboardHeight();
+    viewport?.addEventListener('resize', updateKeyboardHeight);
+    viewport?.addEventListener('scroll', updateKeyboardHeight);
+
+    return () => {
+      viewport?.removeEventListener('resize', updateKeyboardHeight);
+      viewport?.removeEventListener('scroll', updateKeyboardHeight);
+    };
+  }, []);
 
   const loadUsers = async () => {
     setLoadingUsers(true);
@@ -513,7 +534,7 @@ export default function AdminEmailPage() {
         </div>
 
         {/* COMPOSE TAB */}
-        {activeTab === 'compose' && (<>
+        {activeTab === 'compose' && (<div className="pb-28 sm:pb-8">
         {/* Recipients section */}
         <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 mb-4">
           <div className="flex items-center justify-between mb-3">
@@ -733,27 +754,52 @@ export default function AdminEmailPage() {
 
         {/* Send button */}
         {isAdmin && (
-        <div className="flex justify-end">
-          <button
-            onClick={sendEmail}
-            disabled={sending || selectedRecipients.length === 0 || !subject.trim() || !body.trim()}
-            className="flex items-center gap-2 bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium shadow-lg"
-          >
-            {sending ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                {market === 'de' ? 'Wird gesendet...' : 'Küldés folyamatban...'}
-              </>
-            ) : (
-              <>
-                <Send size={18} />
-                {market === 'de' ? 'E-Mail senden' : 'Email küldése'} ({selectedRecipients.length} {market === 'de' ? 'Empfaenger' : 'címzett'})
-              </>
-            )}
-          </button>
-        </div>
+          <>
+            <div className="hidden sm:flex justify-end">
+              <button
+                onClick={sendEmail}
+                disabled={sending || selectedRecipients.length === 0 || !subject.trim() || !body.trim()}
+                className="flex items-center gap-2 bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium shadow-lg"
+              >
+                {sending ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    {market === 'de' ? 'Wird gesendet...' : 'Küldés folyamatban...'}
+                  </>
+                ) : (
+                  <>
+                    <Send size={18} />
+                    {market === 'de' ? 'E-Mail senden' : 'Email küldése'} ({selectedRecipients.length} {market === 'de' ? 'Empfaenger' : 'címzett'})
+                  </>
+                )}
+              </button>
+            </div>
+
+            <div
+              className="fixed left-3 right-3 z-40 sm:hidden"
+              style={{ bottom: `${Math.max(12, keyboardHeight + 12)}px` }}
+            >
+              <button
+                onClick={sendEmail}
+                disabled={sending || selectedRecipients.length === 0 || !subject.trim() || !body.trim()}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-purple-600 px-5 py-4 text-base font-semibold text-white shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {sending ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    {market === 'de' ? 'Wird gesendet...' : 'Küldés folyamatban...'}
+                  </>
+                ) : (
+                  <>
+                    <Send size={18} />
+                    {market === 'de' ? 'E-Mail senden' : 'Email küldése'} ({selectedRecipients.length})
+                  </>
+                )}
+              </button>
+            </div>
+          </>
         )}
-        </>)}
+        </div>)}
 
         {/* TOKEN GENERATION TAB */}
         {activeTab === 'tokens' && (
