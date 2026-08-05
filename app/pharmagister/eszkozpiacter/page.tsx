@@ -258,6 +258,24 @@ function getStatusClass(status?: ListingStatus): string {
   return "bg-slate-100 text-slate-700";
 }
 
+function toFiniteNumber(value: unknown): number | null {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : null;
+}
+
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 async function compressImage(file: File, maxWidth = 1800, quality = 0.82): Promise<File> {
   const bitmap = await createImageBitmap(file);
   const scale = Math.min(1, maxWidth / bitmap.width);
@@ -388,6 +406,11 @@ export default function EszkozPiacterPage() {
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [filterLocation, setFilterLocation] = useState("");
+  const [distancePostalCode, setDistancePostalCode] = useState("");
+  const [maxDistanceKm, setMaxDistanceKm] = useState("25");
+  const [distanceCenter, setDistanceCenter] = useState<{ lat: number; lng: number } | null>(null);
+  const [distanceLoading, setDistanceLoading] = useState(false);
+  const [distanceError, setDistanceError] = useState("");
   const [featuredOnly, setFeaturedOnly] = useState(false);
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [withImagesOnly, setWithImagesOnly] = useState(false);
@@ -537,6 +560,54 @@ export default function EszkozPiacterPage() {
     }, 260);
     return () => clearTimeout(timer);
   }, [searchInput]);
+
+  useEffect(() => {
+    const normalizedPostal = String(distancePostalCode || "").replace(/[^0-9]/g, "").slice(0, 5);
+    if (!normalizedPostal) {
+      setDistanceCenter(null);
+      setDistanceError("");
+      setDistanceLoading(false);
+      return;
+    }
+
+    if (!/^\d{4,5}$/.test(normalizedPostal)) {
+      setDistanceCenter(null);
+      setDistanceError("Adj meg 4-5 számjegyű irányítószámot.");
+      setDistanceLoading(false);
+      return;
+    }
+
+    let active = true;
+    const timer = setTimeout(async () => {
+      setDistanceLoading(true);
+      setDistanceError("");
+      try {
+        const params = new URLSearchParams({ postalCode: normalizedPostal, market });
+        const response = await fetch(`/api/geocode-postal?${params.toString()}`);
+        const data = await response.json();
+
+        if (!active) return;
+        if (!response.ok || typeof data?.lat !== "number" || typeof data?.lng !== "number") {
+          setDistanceCenter(null);
+          setDistanceError(data?.error || "Nem sikerült meghatározni az irányítószám helyét.");
+          return;
+        }
+
+        setDistanceCenter({ lat: data.lat, lng: data.lng });
+      } catch {
+        if (!active) return;
+        setDistanceCenter(null);
+        setDistanceError("Távolság alapú keresés jelenleg nem elérhető.");
+      } finally {
+        if (active) setDistanceLoading(false);
+      }
+    }, 300);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [distancePostalCode, market]);
 
   const publicItems = useMemo(
     () => items.filter((item) => item.status === "approved"),
@@ -773,6 +844,8 @@ export default function EszkozPiacterPage() {
 
   const visibleListings = useMemo(() => {
     const q = normalizeText(searchDebounced);
+    const distanceRadius = Number(maxDistanceKm);
+    const useDistanceFilter = Boolean(distanceCenter && Number.isFinite(distanceRadius) && distanceRadius > 0);
 
     let filtered = items.filter((item) => {
       if (item.status === "rejected" && !isAdmin && item.sellerId !== user?.uid) return false;
@@ -792,6 +865,14 @@ export default function EszkozPiacterPage() {
       if (locQuery) {
         const locationPool = normalizeText(`${item.location} ${item.city || ""} ${item.postalCode || ""}`);
         if (!locationPool.includes(locQuery)) return false;
+      }
+
+      if (useDistanceFilter && distanceCenter) {
+        const lat = toFiniteNumber(item.latitude);
+        const lng = toFiniteNumber(item.longitude);
+        if (lat == null || lng == null) return false;
+        const distance = haversineKm(distanceCenter.lat, distanceCenter.lng, lat, lng);
+        if (distance > distanceRadius) return false;
       }
 
       const numericPrice = item.negotiable ? null : Number(item.priceAmount ?? item.price ?? 0);
@@ -834,6 +915,8 @@ export default function EszkozPiacterPage() {
     verifiedOnly,
     withImagesOnly,
     filterLocation,
+    distanceCenter,
+    maxDistanceKm,
     minPrice,
     maxPrice,
     sortBy,
@@ -1429,6 +1512,10 @@ export default function EszkozPiacterPage() {
     setMinPrice("");
     setMaxPrice("");
     setFilterLocation("");
+    setDistancePostalCode("");
+    setMaxDistanceKm("25");
+    setDistanceCenter(null);
+    setDistanceError("");
     setFeaturedOnly(false);
     setVerifiedOnly(false);
     setWithImagesOnly(false);
@@ -2162,6 +2249,29 @@ export default function EszkozPiacterPage() {
                   <label className="text-sm font-semibold">Hely</label>
                   <input value={filterLocation} onChange={(e) => setFilterLocation(e.target.value)} placeholder="Város, térség vagy irányítószám" className={`mt-1 w-full rounded-xl border px-3 py-2 text-sm ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"}`} />
                 </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-sm font-semibold">Távolság központ (irányítószám)</label>
+                    <input
+                      value={distancePostalCode}
+                      onChange={(e) => setDistancePostalCode(e.target.value.replace(/[^0-9]/g, "").slice(0, 5))}
+                      placeholder="pl. 1037"
+                      className={`mt-1 w-full rounded-xl border px-3 py-2 text-sm ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"}`}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold">Max távolság (km)</label>
+                    <input
+                      value={maxDistanceKm}
+                      onChange={(e) => setMaxDistanceKm(e.target.value.replace(/[^0-9]/g, "").slice(0, 3))}
+                      placeholder="25"
+                      className={`mt-1 w-full rounded-xl border px-3 py-2 text-sm ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"}`}
+                    />
+                  </div>
+                </div>
+                {distanceLoading ? <p className="text-xs text-slate-500">Irányítószám helyének számítása...</p> : null}
+                {distanceError ? <p className="text-xs text-rose-600">{distanceError}</p> : null}
 
                 <div className="space-y-2 text-sm">
                   <label className="flex items-center gap-2"><input type="checkbox" checked={featuredOnly} onChange={(e) => setFeaturedOnly(e.target.checked)} /> Csak kiemelt</label>

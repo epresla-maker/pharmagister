@@ -45,6 +45,7 @@ export default function PartnerListingComposerPage() {
   const [newImagePreviews, setNewImagePreviews] = useState([]);
   const [chatEnabled, setChatEnabled] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [resolvingLocation, setResolvingLocation] = useState(false);
   const [error, setError] = useState("");
   const [loadError, setLoadError] = useState("");
   const [loadingDraft, setLoadingDraft] = useState(false);
@@ -155,6 +156,21 @@ export default function PartnerListingComposerPage() {
     });
   };
 
+  const geocodePostalCode = async (postal, city) => {
+    const params = new URLSearchParams({
+      postalCode: postal,
+      city: city || "",
+      market: getClientMarket(),
+    });
+
+    const response = await fetch(`/api/geocode-postal?${params.toString()}`);
+    const data = await response.json();
+    if (!response.ok || typeof data?.lat !== "number" || typeof data?.lng !== "number") {
+      throw new Error(data?.error || "Nem sikerült meghatározni a telephely koordinátáit.");
+    }
+    return data;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -194,6 +210,9 @@ export default function PartnerListingComposerPage() {
 
     setSubmitting(true);
     try {
+      setResolvingLocation(true);
+      const geo = await geocodePostalCode(normalizedPostalCode, location.trim());
+
       for (const file of newImages) {
         const formData = new FormData();
         formData.append("file", file);
@@ -223,15 +242,17 @@ export default function PartnerListingComposerPage() {
         condition,
         location: location.trim(),
         city: location.trim(),
+        latitude: geo.lat,
+        longitude: geo.lng,
         postalCode: normalizedPostalCode,
         zipCode: normalizedPostalCode,
         locationSearchText: `${normalizedPostalCode} ${location.trim()}`.toLowerCase(),
         distanceSearch: {
           postalCode: normalizedPostalCode,
-          lat: null,
-          lng: null,
-          provider: null,
-          resolvedAt: null,
+          lat: geo.lat,
+          lng: geo.lng,
+          provider: geo.provider || "nominatim",
+          resolvedAt: serverTimestamp(),
         },
         price: negotiable ? null : normalizedPrice,
         priceAmount: negotiable ? null : normalizedPrice,
@@ -274,6 +295,7 @@ export default function PartnerListingComposerPage() {
       console.error("Partner submit error:", e);
       setError(e?.message || "Nem sikerült menteni a hirdetést.");
     } finally {
+      setResolvingLocation(false);
       setSubmitting(false);
     }
   };
@@ -477,11 +499,11 @@ export default function PartnerListingComposerPage() {
 
               <button
                 type="submit"
-                disabled={submitting}
+                disabled={submitting || resolvingLocation}
                 className="w-full rounded-lg bg-emerald-700 px-4 py-2 font-semibold text-white hover:bg-emerald-800 disabled:opacity-50"
               >
-                {submitting
-                  ? "Mentés..."
+                {submitting || resolvingLocation
+                  ? "Mentés és helykoordináta számítás..."
                   : isEditMode
                   ? "Hirdetés frissítése"
                   : "Hirdetés beküldése jóváhagyásra"}
