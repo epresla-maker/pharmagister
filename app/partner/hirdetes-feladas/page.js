@@ -38,6 +38,9 @@ export default function PartnerListingComposerPage() {
   const [negotiable, setNegotiable] = useState(false);
   const [location, setLocation] = useState("");
   const [postalCode, setPostalCode] = useState("");
+  const [citySuggestions, setCitySuggestions] = useState([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [showCitySuggestions, setShowCitySuggestions] = useState(false);
   const [contactPhone, setContactPhone] = useState("");
   const [tags, setTags] = useState("");
   const [existingImages, setExistingImages] = useState([]);
@@ -107,6 +110,50 @@ export default function PartnerListingComposerPage() {
 
     loadExisting();
   }, [isEditMode, editId, user?.uid]);
+
+  useEffect(() => {
+    const q = String(location || "").trim();
+    if (q.length < 2) {
+      setCitySuggestions([]);
+      setSuggestionsLoading(false);
+      return;
+    }
+
+    let active = true;
+    const timer = setTimeout(async () => {
+      setSuggestionsLoading(true);
+      try {
+        const params = new URLSearchParams({ q, market: getClientMarket() });
+        const response = await fetch(`/api/city-suggestions?${params.toString()}`);
+        const data = await response.json();
+        if (!active) return;
+
+        if (!response.ok || !Array.isArray(data?.suggestions)) {
+          setCitySuggestions([]);
+          return;
+        }
+
+        setCitySuggestions(data.suggestions);
+      } catch {
+        if (!active) return;
+        setCitySuggestions([]);
+      } finally {
+        if (active) setSuggestionsLoading(false);
+      }
+    }, 220);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [location]);
+
+  const applyCitySuggestion = (suggestion) => {
+    setLocation(suggestion.city || "");
+    setPostalCode(suggestion.postalCode || "");
+    setShowCitySuggestions(false);
+    setCitySuggestions([]);
+  };
 
   const handleImagePick = (e) => {
     const files = Array.from(e.target.files || []);
@@ -400,13 +447,42 @@ export default function PartnerListingComposerPage() {
 
                 <div>
                   <label className="mb-1 block text-sm font-medium text-slate-700">Telephely / város</label>
-                  <input
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    className="w-full rounded-lg border px-4 py-2 outline-none focus:ring-2 focus:ring-emerald-500"
-                    placeholder="Budapest"
-                    required
-                  />
+                  <div className="relative">
+                    <input
+                      value={location}
+                      onChange={(e) => {
+                        setLocation(e.target.value);
+                        setShowCitySuggestions(true);
+                      }}
+                      onFocus={() => setShowCitySuggestions(true)}
+                      onBlur={() => setTimeout(() => setShowCitySuggestions(false), 120)}
+                      className="w-full rounded-lg border px-4 py-2 outline-none focus:ring-2 focus:ring-emerald-500"
+                      placeholder="Budapest"
+                      autoComplete="off"
+                      required
+                    />
+
+                    {showCitySuggestions && (citySuggestions.length > 0 || suggestionsLoading) ? (
+                      <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg">
+                        {suggestionsLoading ? (
+                          <div className="px-3 py-2 text-sm text-slate-500">Keresés...</div>
+                        ) : (
+                          citySuggestions.map((suggestion, idx) => (
+                            <button
+                              key={`${suggestion.city}-${suggestion.postalCode}-${idx}`}
+                              type="button"
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => applyCitySuggestion(suggestion)}
+                              className="block w-full border-b border-slate-100 px-3 py-2 text-left text-sm text-slate-700 last:border-b-0 hover:bg-emerald-50"
+                            >
+                              <span className="font-semibold">{suggestion.city}</span>
+                              <span className="ml-2 text-slate-500">{suggestion.postalCode}</span>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
               </div>
 
