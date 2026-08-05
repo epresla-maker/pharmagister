@@ -40,6 +40,11 @@ export default function SettingsPage() {
   const isPrimaryAdmin = normalizedEmail === 'epresla@icloud.com';
   const isAdmin = ADMIN_EMAILS.some((email) => email.toLowerCase() === normalizedEmail);
   const isAdminka = ADMINKA_EMAILS.some((email) => email.toLowerCase() === normalizedEmail);
+  const profileName =
+    userData?.displayName ||
+    userData?.partnerProfile?.contactName ||
+    userData?.partnerProfile?.companyName ||
+    (market === 'de' ? 'Benutzer/in' : 'Felhasználó');
 
   const switchMarket = (targetMarket) => {
     if (typeof window === 'undefined') return;
@@ -258,7 +263,7 @@ export default function SettingsPage() {
           {userData?.photoURL ? (
             <img 
               src={userData.photoURL} 
-              alt={userData.displayName || (market === 'de' ? 'Profil' : 'Profil')}
+              alt={profileName}
               className="w-16 h-16 rounded-full object-cover"
             />
           ) : (
@@ -268,7 +273,7 @@ export default function SettingsPage() {
           )}
           <div className="flex-1">
             <h2 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              {userData?.displayName || (market === 'de' ? 'Benutzer/in' : 'Felhasználó')}
+              {profileName}
             </h2>
             <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{user.email}</p>
             {userData?.role && (
