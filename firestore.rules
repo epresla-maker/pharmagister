@@ -22,6 +22,14 @@ service cloud.firestore {
       return isAuthenticated() && currentUserRole() in ['pharmacy', 'pharmacist', 'assistant', 'pka', 'employee'];
     }
 
+    function hasPartnerRole() {
+      return isAuthenticated() && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.accountType in ['partner_marketplace', 'partner_advertiser', 'partner_professional'] ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.partnerAdvertiser == true ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.partnerProfessional == true
+      );
+    }
+
     function canAccessScheduleManager() {
       return hasPharmagisterRole();
     }
@@ -165,9 +173,16 @@ service cloud.firestore {
 
     // Equipment marketplace posts (szakmai eszköz hirdetések)
     match /equipmentMarketplacePosts/{postId} {
-      allow read: if hasPharmagisterRole();
-      allow create: if hasPharmagisterRole() && request.resource.data.userId == request.auth.uid;
+      allow read: if isAdmin() || hasPharmagisterRole() || hasPartnerRole();
+      allow create: if (isAdmin() || hasPharmagisterRole() || hasPartnerRole()) && request.resource.data.userId == request.auth.uid;
       allow update, delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    // Professional partner campaigns
+    match /partnerProfessionalCampaigns/{campaignId} {
+      allow read: if isAdmin() || hasPharmagisterRole() || hasPartnerRole();
+      allow create: if isAdmin() || (hasPartnerRole() && request.resource.data.ownerId == request.auth.uid);
+      allow update, delete: if isAuthenticated() && (resource.data.ownerId == request.auth.uid || isAdmin());
     }
     
     // Push subscriptions - user can manage their own
