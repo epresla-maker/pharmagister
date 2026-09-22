@@ -769,11 +769,22 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
                               : 'Az alkalmazáson belüli vásárlás a store termékek konfigurálása után lesz elérhető.')}
                     </div>
                     {nativeCreditProductError && !nativeCreditProductLoading && (
-                      <p className={`text-[11px] ${darkMode ? 'text-amber-300' : 'text-amber-700'}`}>
-                        {market === 'de'
-                          ? 'Fehlende RevenueCat / Store-Produktkonfiguration.'
-                          : 'Hiányzó RevenueCat / store-termék konfiguráció.'}
-                      </p>
+                      <div className={`space-y-1 text-[11px] ${darkMode ? 'text-amber-300' : 'text-amber-700'}`}>
+                        <p>
+                          {market === 'de'
+                            ? 'Store-Produkt momentan nicht verfuegbar (RevenueCat/Store-Konfiguration oder Tester-Zugang).'
+                            : 'A store termék jelenleg nem érhető el (RevenueCat/store konfiguráció vagy tesztelő hozzáférés).'}
+                        </p>
+                        <p className={darkMode ? 'text-gray-400' : 'text-[#6B7280]'}>
+                          {isNativeApp && clientPlatform === 'android'
+                            ? (market === 'de'
+                                ? 'Android: nur mit Play-Store-Install aus internem/geschlossenem Test und freigegebenem Tester-Account sichtbar.'
+                                : 'Android: csak Play Store-ból telepített (belső/zárt teszt) builddel és engedélyezett tesztelő fiókkal látszik.')
+                            : (market === 'de'
+                                ? 'iOS: In-App-Kauf-Produkte in App Store Connect/RevenueCat pruefen (Status, Bundle-ID, Produkt-ID, Tester-Account).'
+                                : 'iOS: ellenőrizd az In-App Purchase termékeket App Store Connectben/RevenueCatben (státusz, bundle ID, product ID, tesztelő fiók).')}
+                        </p>
+                      </div>
                     )}
                     <button
                       type="button"
