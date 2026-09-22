@@ -14,6 +14,18 @@ import { isDocInMarket } from '@/lib/market';
 import { getDemandCreditBalance, getDemandPackageOffer } from '@/lib/demandCredits';
 import { configureRevenueCatForUser, getNativeDemandCreditStoreProduct, purchaseNativeDemandCreditProduct } from '@/lib/revenuecat';
 
+function formatNativeStorePrice(value, fallbackHuf) {
+  if (Number.isFinite(Number(fallbackHuf)) && Number(fallbackHuf) > 0) {
+    return `${Number(fallbackHuf).toLocaleString('hu-HU')} Ft`;
+  }
+
+  const text = String(value || '').trim();
+  if (!text) return '';
+  return text
+    .replace(/^[^\d]+/, '')
+    .replace(/[^\d.,]+$/, '');
+}
+
 export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
   const { user, userData } = useAuth();
   const { darkMode } = useTheme();
@@ -793,8 +805,8 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
                         ? (market === 'de' ? 'Store-Produkt wird geladen...' : 'Store-termék betöltése...')
                         : nativeCreditProduct
                           ? (market === 'de'
-                              ? `Store-Preis: ${nativeCreditProduct.priceString}`
-                              : `Store ár: ${nativeCreditProduct.priceString}`)
+                              ? `Store-Preis: ${formatNativeStorePrice(nativeCreditProduct.priceString, packageOffer.finalPriceHuf)}`
+                              : `Store ár: ${formatNativeStorePrice(nativeCreditProduct.priceString, packageOffer.finalPriceHuf)}`)
                           : (market === 'de'
                               ? 'Der In-App-Kauf ist erst nach Store-Produktkonfiguration verfuegbar.'
                               : 'Az alkalmazáson belüli vásárlás a store termékek konfigurálása után lesz elérhető.')}

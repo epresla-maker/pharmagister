@@ -1,0 +1,50 @@
+APP PRIVACY / DATA SAFETY - kitöltési útmutató (v1.4 IAP bevezetés miatt)
+=================================================================================
+Ezt a két store admin felület KIZÁRÓLAG webes UI-n szerkeszthető (nincs rá publikus
+API sem Apple-nél, sem Google-nél - ellenőrizve). Az alábbi pontos válaszokat kell
+bemásolni/kiválasztani.
+
+---------------------------------------------------------------------------------
+1) APP STORE CONNECT -> Pharmagister -> App Privacy -> Edit
+   https://appstoreconnect.apple.com/apps/6759405794/appprivacy
+---------------------------------------------------------------------------------
+Adj hozzá egy ÚJ adattípust (a meglévők mellé, azokat ne bántsd):
+
+  Category:            Purchases
+  Data type:            Purchase History
+  Used to track user:  No
+  Collected:            Yes
+  Linked to identity:   No
+  Purpose:              App Functionality
+
+Ha van "Identifiers" kategóriában "Device ID" bejegyzésed már, azt nem kell
+duplikálni. Ha nincs, opcionálisan hozzáadható ugyanígy (Used to track: No,
+Linked to identity: No, Purpose: App Functionality) a RevenueCat anonim
+app_user_id miatt - de ez nem kötelező, mert az anonim ID a Purchase History
+alá is besorolható.
+
+---------------------------------------------------------------------------------
+2) GOOGLE PLAY CONSOLE -> Pharmagister -> App content -> Data safety -> Manage
+   https://play.google.com/console -> App content -> Data safety
+---------------------------------------------------------------------------------
+Adj hozzá egy ÚJ adattípust:
+
+  Category:                 Financial info
+  Data type:                Purchase history
+  Collected:                 Yes
+  Shared with third parties: No
+  Processed ephemerally:     No
+  Required or optional:     Required
+  Purpose:                   App functionality
+
+Mentés, majd "Send for review" / "Publish" ha a Play Console ezt kéri.
+
+---------------------------------------------------------------------------------
+Miért kell ez:
+A RevenueCat a natív vásárláskor megkapja a vásárlás azonosítót, a termék
+azonosítót és egy anonim (nem a valós Apple/Google fiókhoz kötött) felhasználói
+azonosítót, hogy aktiválja a jogosultságot. Ez technikailag "Purchases" /
+"Financial info: Purchase history" adatgyűjtésnek minősül mindkét store
+szabályai szerint, ezért ezt jelölni kell a nutrition label-ben, különben a
+store review elutasíthatja a buildet vagy utólagos policy-strike-ot kaphatsz.
+=================================================================================

@@ -1,0 +1,45 @@
+APP STORE CONNECT - "App Review Information" -> "Notes" mezőbe másolandó szöveg
+=================================================================================
+(Angolul kell megadni, mert a reviewer nemzetközi. HU/DE forrás elérhető lent tájékoztatásul.)
+
+--- MÁSOLD BE EZT (English, ASC "Notes" field) ---
+
+This update (v1.4) introduces the app's first in-app purchase (via RevenueCat,
+non-subscription consumable product). Purchasing lets a pharmacy account buy an
+additional package of "demand credits", used to post substitution/demand
+listings. All core features of the app (registration, browsing substitution
+requests, messaging) remain fully free; the IAP only unlocks extra posting
+credits and is entirely optional.
+
+In-App Purchase product identifiers:
+- pharmagister_4_credits_founder
+- pharmagister_4_credits_regular
+
+To test the purchase flow:
+1. Sign in with the test account below (role: pharmacy / gyógyszertár).
+2. Open the Dashboard and tap "Csomag vásárlása az appban" (Purchase package
+   in app).
+3. Complete the purchase using the App Store sandbox / StoreKit testing
+   environment associated with this build.
+
+If you need a different test account role (substitute pharmacist) or any
+other assistance verifying this feature, please let us know.
+
+--- ASC "Demo Account" mezők (Sign-in required: YES) ---
+Username: teszt.review@pharmagister.hu
+Password: AppleReview2026!
+
+=================================================================================
+Kontextus / magyarázat (nem kell bemásolni sehova):
+
+- Eddig az app minden funkciója ingyenes volt. A v1.4 az ELSŐ verzió, amiben
+  natív alkalmazáson belüli vásárlás (IAP) jelenik meg -- ezért Apple-nek
+  EXPLICIT jeleznünk kell ezt a Review Notes mezőben, különben a reviewer nem
+  fogja tudni, hogyan/hol tesztelje a fizetős funkciót, és emiatt gyakran
+  elutasítják a buildet ("Guideline 2.1 - Performance - App Completeness" vagy
+  hasonló, "unable to test IAP" indoklással).
+- A meglévő teszt fiók (teszt.review@pharmagister.hu) gyógyszertár szerepkörű,
+  tehát látja a "Csomag vásárlása az appban" gombot.
+- Az ÁSZF/Adatvédelmi tájékoztató módosítás (privacy-policy oldalak +
+  TermsUpdateModal) KÜLÖN, a kódban már megtörtént -- ez a fájl csak az App
+  Store Connect submission "Notes" mezőjéhez készült.

@@ -11,6 +11,13 @@ if (fs.existsSync(envPath)) {
   dotenv.config({ path: envPath });
 }
 
+const DEFAULT_PRODUCT_IDS = {
+  NEXT_PUBLIC_REVENUECAT_IOS_PRODUCT_ID_REGULAR: 'pharmagister_4_credits_regular',
+  NEXT_PUBLIC_REVENUECAT_ANDROID_PRODUCT_ID_REGULAR: 'pharmagister_4_credits_regular',
+  NEXT_PUBLIC_REVENUECAT_IOS_PRODUCT_ID_FOUNDER: 'pharmagister_4_credits_founder',
+  NEXT_PUBLIC_REVENUECAT_ANDROID_PRODUCT_ID_FOUNDER: 'pharmagister_4_credits_founder',
+};
+
 const checks = [
   {
     key: 'NEXT_PUBLIC_REVENUECAT_APPLE_API_KEY',
@@ -25,18 +32,22 @@ const checks = [
   {
     key: 'NEXT_PUBLIC_REVENUECAT_IOS_PRODUCT_ID_REGULAR',
     allowExample: true,
+    defaultValue: DEFAULT_PRODUCT_IDS.NEXT_PUBLIC_REVENUECAT_IOS_PRODUCT_ID_REGULAR,
   },
   {
     key: 'NEXT_PUBLIC_REVENUECAT_ANDROID_PRODUCT_ID_REGULAR',
     allowExample: true,
+    defaultValue: DEFAULT_PRODUCT_IDS.NEXT_PUBLIC_REVENUECAT_ANDROID_PRODUCT_ID_REGULAR,
   },
   {
     key: 'NEXT_PUBLIC_REVENUECAT_IOS_PRODUCT_ID_FOUNDER',
     allowExample: true,
+    defaultValue: DEFAULT_PRODUCT_IDS.NEXT_PUBLIC_REVENUECAT_IOS_PRODUCT_ID_FOUNDER,
   },
   {
     key: 'NEXT_PUBLIC_REVENUECAT_ANDROID_PRODUCT_ID_FOUNDER',
     allowExample: true,
+    defaultValue: DEFAULT_PRODUCT_IDS.NEXT_PUBLIC_REVENUECAT_ANDROID_PRODUCT_ID_FOUNDER,
   },
   {
     key: 'REVENUECAT_WEBHOOK_AUTH_TOKEN',
@@ -51,6 +62,9 @@ const checks = [
 function evaluateValue(rule, rawValue) {
   const value = (rawValue || '').trim();
   if (!value) {
+    if (rule.defaultValue) {
+      return { ok: true, message: `using default (${rule.defaultValue})` };
+    }
     return { ok: false, message: 'missing' };
   }
 
