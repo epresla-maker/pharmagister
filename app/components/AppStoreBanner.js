@@ -4,6 +4,8 @@ import { usePathname } from 'next/navigation';
 import { X, Smartphone } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { getClientMarket } from '@/lib/marketI18n';
+import { useAuth } from '@/context/AuthContext';
+import { getEffectivePharmagisterRole } from '@/lib/pharmagisterProfile';
 
 // --- IDE ÍRD BE A VALÓS LINKEKET ---
 const APP_STORE_URL = 'https://apps.apple.com/hu/app/pharmagister/id6759405794?l=hu';
@@ -88,11 +90,20 @@ function StoreButtons({ size = 'normal', market = 'hu' }) {
 export default function AppStoreBanner() {
   const pathname = usePathname();
   const market = getClientMarket();
+  const { userData } = useAuth();
   const [showBanner, setShowBanner] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [platform, setPlatform] = useState(null);
+  const pharmaRole = getEffectivePharmagisterRole(userData);
+  const shouldSuppressPromotion = pharmaRole === 'pharmacy';
 
   useEffect(() => {
+    if (shouldSuppressPromotion) {
+      setShowBanner(false);
+      setShowModal(false);
+      return;
+    }
+
     const capPlatform = Capacitor.getPlatform();
     if (capPlatform === 'ios' || capPlatform === 'android') return;
 
@@ -123,7 +134,7 @@ export default function AppStoreBanner() {
       const timer = setTimeout(() => setShowModal(true), 2000);
       return () => clearTimeout(timer);
     }
-  }, [pathname]);
+  }, [pathname, shouldSuppressPromotion]);
 
   const handleDismissBanner = () => {
     setShowBanner(false);
@@ -136,7 +147,7 @@ export default function AppStoreBanner() {
     sessionStorage.setItem('app-modal-dismissed', '1');
   };
 
-  if (!showBanner && !showModal) return null;
+  if (shouldSuppressPromotion || (!showBanner && !showModal)) return null;
 
   return (
     <>
@@ -158,9 +169,9 @@ export default function AppStoreBanner() {
                       <p className="text-white font-semibold text-sm">Pharmagister app</p>
                       <p className="text-white/80 text-xs">
                         {platform === 'ios'
-                          ? (market === 'de' ? 'Lade sie aus dem App Store herunter!' : 'Töltsd le az App Store-ból!')
+                          ? (market === 'de' ? 'Mobile Nutzung fuer Community und Benachrichtigungen.' : 'Mobil használathoz, közösséghez és értesítésekhez.')
                           : (PLAY_STORE_LIVE
-                            ? (market === 'de' ? 'Lade sie aus Google Play herunter!' : 'Töltsd le a Google Play-ből!')
+                            ? (market === 'de' ? 'Mobile Nutzung fuer Community und Benachrichtigungen.' : 'Mobil használathoz, közösséghez és értesítésekhez.')
                             : (market === 'de' ? 'Bald auf Google Play!' : 'Hamarosan a Google Play-en!'))
                         }
                       </p>
@@ -184,7 +195,7 @@ export default function AppStoreBanner() {
               ) : (
                 <>
                   <p className="text-white font-medium text-sm">
-                    {market === 'de' ? '📱 Pharmagister ist auch als mobile App verfuegbar!' : '📱 A Pharmagister elérhető mobilalkalmazásként!'}
+                    {market === 'de' ? '📱 Pharmagister ist auch mobil fuer Community und Benachrichtigungen verfuegbar.' : '📱 A Pharmagister mobilon is elérhető közösséghez és értesítésekhez.'}
                   </p>
                   <StoreButtons size="normal" market={market} />
                 </>
@@ -221,12 +232,12 @@ export default function AppStoreBanner() {
             </div>
 
             <h2 className="text-xl font-bold text-gray-900 mb-2">
-              {market === 'de' ? 'Lade die App herunter!' : 'Töltsd le az alkalmazást!'}
+              {market === 'de' ? 'Nutze Pharmagister auch mobil' : 'Használd a Pharmagistert mobilon is'}
             </h2>
             <p className="text-gray-600 text-sm mb-6 leading-relaxed">
               {market === 'de'
-                ? 'Mit der Pharmagister App bekommst du Push-Benachrichtigungen und erreichst die Community, die Engpass-Suche und Vertretungsanfragen schneller.'
-                : 'A Pharmagister mobilalkalmazással push értesítéseket kapsz, és gyorsabban eléred a közösséget, a hiánycikk keresőt és a helyettesítési igényeket.'}
+                ? 'Mit der mobilen App bekommst du Push-Benachrichtigungen und erreichst Community-Funktionen schneller. Kauf- und Verwaltungsfunktionen koennen je nach Plattform abweichen.'
+                : 'A mobilalkalmazással push értesítéseket kapsz, és gyorsabban eléred a közösségi funkciókat. A vásárlási és kezelő funkciók platformonként eltérhetnek.'}
             </p>
 
             {/* Store gombok */}

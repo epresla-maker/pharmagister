@@ -6,7 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "check:stripe": "node check-stripe-setup.js",
+    "sync:stripe:vercel": "bash ./set-stripe-vercel-env.sh",
+    "check:revenuecat": "node check-revenuecat-setup.js",
+    "sync:revenuecat:vercel": "bash ./set-revenuecat-vercel-env.sh",
+    "check:play:billing": "node check-play-billing-readiness.js"
   },
   "dependencies": {
     "@capacitor-firebase/messaging": "^8.2.0",
@@ -22,6 +27,7 @@
     "@cspell/dict-hu-hu": "^1.1.2",
     "@google/generative-ai": "^0.24.1",
     "@heroicons/react": "^2.2.0",
+    "@revenuecat/purchases-capacitor": "^13.6.0",
     "critters": "^0.0.23",
     "date-fns": "^4.1.0",
     "date-fns-tz": "^3.2.0",
@@ -40,6 +46,7 @@
     "react-dom": "^19.2.3",
     "resend": "^6.12.2",
     "rss-parser": "^3.13.0",
+    "stripe": "^22.6.2",
     "svix": "^1.92.2",
     "uuid": "^13.0.0",
     "web-push": "^3.6.7"

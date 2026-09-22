@@ -64,6 +64,8 @@ export async function GET(request) {
       return {
         id: doc.id,
         email: data.email || '',
+        contactName: data.contactName || data.displayName || '',
+        displayName: data.displayName || '',
         pharmacyName: data.pharmacyName || data.displayName || '',
         pharmacyCity: data.pharmacyCity || '',
         pharmacyZipCode: data.pharmacyZipCode || '',
@@ -82,13 +84,25 @@ export async function GET(request) {
       };
     });
 
+    const pharmacyById = new Map(pharmacies.map((item) => [item.id, item]));
+
     const purchaseIntents = intentsSnap.docs.map((doc) => {
       const data = doc.data() || {};
+      const owner = pharmacyById.get(String(data.userId || ''));
+      const requesterName =
+        data.requesterName
+        || data.contactName
+        || owner?.contactName
+        || owner?.displayName
+        || owner?.pharmacyName
+        || data.pharmacyName
+        || '';
       return {
         id: doc.id,
         userId: data.userId || '',
-        email: data.email || '',
-        pharmacyName: data.pharmacyName || '',
+        email: data.email || owner?.email || '',
+        requesterName,
+        pharmacyName: data.pharmacyName || owner?.pharmacyName || '',
         market: data.market || 'hu',
         packageCredits: Math.max(0, asNumber(data.packageCredits, 0)),
         basePriceHuf: Math.max(0, asNumber(data.basePriceHuf, 0)),

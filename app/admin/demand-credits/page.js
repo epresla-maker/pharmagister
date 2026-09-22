@@ -111,6 +111,8 @@ export default function AdminDemandCreditsPage() {
       if (intentFilter !== 'all' && item.status !== intentFilter) return false;
       if (!q) return true;
       return (
+        String(item.requesterName || '').toLowerCase().includes(q)
+        ||
         String(item.pharmacyName || '').toLowerCase().includes(q)
         || String(item.email || '').toLowerCase().includes(q)
         || String(item.id || '').toLowerCase().includes(q)
@@ -238,7 +240,7 @@ export default function AdminDemandCreditsPage() {
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder={market === 'de' ? 'Suche nach Apotheke, E-Mail, ID' : 'Kereses gyogyszertarra, emailre, ID-ra'}
+                placeholder={market === 'de' ? 'Suche nach Name, Apotheke, E-Mail, ID' : 'Kereses nevre, gyogyszertarra, emailre, ID-ra'}
                 className="px-3 py-2 border rounded-lg text-sm"
               />
               <select
@@ -265,7 +267,8 @@ export default function AdminDemandCreditsPage() {
               <div key={intent.id} className="border rounded-lg p-3">
                 <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
                   <div className="space-y-1">
-                    <p className="text-sm font-semibold text-gray-900">{intent.pharmacyName || '-'} </p>
+                    <p className="text-sm font-semibold text-gray-900">{intent.requesterName || intent.pharmacyName || '-'}</p>
+                    <p className="text-xs text-gray-700">{market === 'de' ? 'Apotheke' : 'Gyogyszertar'}: {intent.pharmacyName || '-'}</p>
                     <p className="text-xs text-gray-600">{intent.email || '-'} | {intent.id}</p>
                     <p className="text-xs text-gray-600">
                       {market === 'de' ? 'Paket' : 'Csomag'}: {intent.packageCredits} | {market === 'de' ? 'Preis' : 'Ar'}: {intent.finalPriceHuf} Ft

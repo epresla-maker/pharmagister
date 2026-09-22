@@ -7,10 +7,12 @@ import { collection, query, where, getDocs, orderBy, updateDoc, doc, addDoc, del
 import { db } from '@/lib/firebase';
 import { createNotificationWithPush } from '@/lib/notifications';
 import { Loader2, Search, ChevronDown, ChevronUp, MapPin, Clock, CheckCircle, XCircle, MessageCircle, User, Calendar, Edit2, Trash2, Eye, CalendarDays, Filter } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
 import ResponseRateBar from '@/app/components/ResponseRateBar';
 import { getClientMarket, getLocalizedDemandPositionLabel } from '@/lib/marketI18n';
 import { isDocInMarket } from '@/lib/market';
 import { getDemandCreditBalance, getDemandPackageOffer } from '@/lib/demandCredits';
+import { configureRevenueCatForUser, getNativeDemandCreditStoreProduct, purchaseNativeDemandCreditProduct } from '@/lib/revenuecat';
 
 export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
   const { user, userData } = useAuth();
@@ -26,6 +28,68 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
   const [expandedDemand, setExpandedDemand] = useState(expandDemandId || null);
   const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'pending', 'accepted', 'rejected'
   const [requestingCredits, setRequestingCredits] = useState(false);
+  const [isNativeApp, setIsNativeApp] = useState(false);
+  const [clientPlatform, setClientPlatform] = useState('web');
+  const [nativeCreditProduct, setNativeCreditProduct] = useState(null);
+  const [nativeCreditProductLoading, setNativeCreditProductLoading] = useState(false);
+  const [nativeCreditProductError, setNativeCreditProductError] = useState('');
+
+  useEffect(() => {
+    setIsNativeApp(Capacitor.isNativePlatform());
+    setClientPlatform(Capacitor.getPlatform());
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadNativePurchaseProduct = async () => {
+      if (!Capacitor.isNativePlatform() || pharmaRole !== 'pharmacy' || !user?.uid) {
+        setNativeCreditProduct(null);
+        setNativeCreditProductError('');
+        return;
+      }
+
+      setNativeCreditProductLoading(true);
+      setNativeCreditProductError('');
+
+      try {
+        const configured = await configureRevenueCatForUser({
+          appUserId: user.uid,
+          email: user.email || userData?.email || '',
+          displayName: userData?.contactName || userData?.displayName || userData?.pharmacyName || '',
+        });
+
+        if (!configured) {
+          throw new Error('NATIVE_STORE_PAYMENTS_NOT_CONFIGURED');
+        }
+
+        const { product } = await getNativeDemandCreditStoreProduct(userData || {});
+        if (!product) {
+          throw new Error('NATIVE_STORE_PRODUCT_UNAVAILABLE');
+        }
+
+        if (!cancelled) {
+          setNativeCreditProduct(product);
+        }
+      } catch (error) {
+        console.error('Error loading native credit product:', error);
+        if (!cancelled) {
+          setNativeCreditProduct(null);
+          setNativeCreditProductError(error?.message || 'NATIVE_STORE_PRODUCT_UNAVAILABLE');
+        }
+      } finally {
+        if (!cancelled) {
+          setNativeCreditProductLoading(false);
+        }
+      }
+    };
+
+    loadNativePurchaseProduct();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pharmaRole, user?.uid, user?.email, userData]);
 
   useEffect(() => {
     console.log('🔄 PharmaDashboard useEffect triggered - user:', user?.uid, 'pharmaRole:', pharmaRole);
@@ -39,6 +103,30 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
       setExpandedDemand(expandDemandId);
     }
   }, [expandDemandId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const paymentStatus = params.get('payment');
+    if (paymentStatus === 'success') {
+      alert(market === 'de'
+        ? 'Zahlung erfolgreich. Die Credits werden kurz nach der Bestätigung gutgeschrieben.'
+        : 'A fizetés sikeres. A kredit rövidesen jóváíródik.');
+      const nextUrl = new URL(window.location.href);
+      nextUrl.searchParams.delete('payment');
+      nextUrl.searchParams.delete('session_id');
+      router.replace(`${nextUrl.pathname}${nextUrl.search}`);
+    }
+    if (paymentStatus === 'cancelled') {
+      alert(market === 'de'
+        ? 'Zahlung abgebrochen. Keine Änderung an deinen Credits.'
+        : 'A fizetés megszakítva. A krediteid nem változtak.');
+      const nextUrl = new URL(window.location.href);
+      nextUrl.searchParams.delete('payment');
+      nextUrl.searchParams.delete('session_id');
+      router.replace(`${nextUrl.pathname}${nextUrl.search}`);
+    }
+  }, [market, router]);
 
   const loadData = async () => {
     console.log('📊 loadData called');
@@ -494,20 +582,60 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
   const handleRequestCreditPackage = async () => {
     if (!user) return;
 
+    if (isNativeApp) {
+      setRequestingCredits(true);
+      try {
+        await configureRevenueCatForUser({
+          appUserId: user.uid,
+          email: user.email || userData?.email || '',
+          displayName: userData?.contactName || userData?.displayName || userData?.pharmacyName || '',
+        });
+
+        const product = nativeCreditProduct || (await getNativeDemandCreditStoreProduct(userData || {})).product;
+        if (!product) {
+          throw new Error('NATIVE_STORE_PRODUCT_UNAVAILABLE');
+        }
+
+        await purchaseNativeDemandCreditProduct(product);
+        alert(market === 'de'
+          ? 'Kauf erfolgreich gestartet. Die Credits werden nach der Store-Bestaetigung automatisch gutgeschrieben.'
+          : 'A vásárlás sikeresen elindult. A kredit a store visszaigazolása után automatikusan jóváíródik.');
+        await loadData();
+      } catch (error) {
+        if (error?.userCancelled) {
+          return;
+        }
+
+        console.error('Error requesting native credit package:', error);
+        alert(market === 'de'
+          ? 'Fehler beim Starten des In-App-Kaufs.'
+          : 'Hiba történt az alkalmazáson belüli vásárlás indításakor.');
+      } finally {
+        setRequestingCredits(false);
+      }
+      return;
+    }
+
     setRequestingCredits(true);
     try {
       const idToken = await user.getIdToken();
-      const response = await fetch('/api/pharmagister/demand-credits/purchase-intent', {
+      const response = await fetch('/api/payments/create-checkout-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${idToken}`,
+          'x-pharmagister-client-platform': clientPlatform || 'web',
         },
       });
 
       const result = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(result?.error || 'PURCHASE_INTENT_FAILED');
+        throw new Error(result?.error || 'CHECKOUT_SESSION_FAILED');
+      }
+
+      if (result?.url) {
+        window.location.href = result.url;
+        return;
       }
 
       alert(result?.message || (market === 'de'
@@ -516,8 +644,8 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
     } catch (error) {
       console.error('Error requesting credit package:', error);
       alert(market === 'de'
-        ? 'Fehler beim Speichern der Kaufanfrage.'
-        : 'Hiba tortent a csomagigeny rogzitese kozben.');
+        ? 'Fehler beim Starten der Zahlung.'
+        : 'Hiba tortent a fizetes inditasakor.');
     } finally {
       setRequestingCredits(false);
     }
@@ -620,17 +748,62 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
                 : `Az alapítói kedvezmény fix időszakban érvényes: 2026.09.01-2027.03.01${packageOffer.founder?.validUntil ? ` (eddig: ${new Date(packageOffer.founder.validUntil).toLocaleDateString('hu-HU')})` : ''}.`}
             </p>
             {creditBalance.decreaseActive && (
-              <button
-                type="button"
-                onClick={handleRequestCreditPackage}
-                disabled={requestingCredits}
-                className={`mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${requestingCredits
-                  ? (darkMode ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-[#E5E7EB] text-[#6B7280] cursor-not-allowed')
-                  : 'bg-[#6B46C1] text-white hover:bg-[#5a3aa3]'}`}
-              >
-                {requestingCredits && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                {market === 'de' ? 'Neues Paket anfragen' : 'Új csomag igénylése'}
-              </button>
+              <>
+                <p className={`mt-3 text-[11px] ${darkMode ? 'text-gray-300' : 'text-[#4B5563]'}`}>
+                  {isNativeApp
+                    ? (market === 'de'
+                        ? 'In der mobilen App werden Kreditpakete ueber offizielle In-App-Kaeufe des Stores abgewickelt.'
+                        : 'A mobilalkalmazásban a kreditcsomagok vásárlása a store hivatalos alkalmazáson belüli fizetésével történik.')
+                    : (market === 'de'
+                        ? 'Die Webversion bleibt kostenlos nutzbar. Zahlungen fuer Kreditpakete werden ueber Stripe Checkout im Browser abgewickelt.'
+                        : 'A webes verzio ingyenesen hasznalhato. A kreditcsomagok fizetese bongeszoben, Stripe Checkouttal tortenik.')}
+                </p>
+                {isNativeApp ? (
+                  <div className="mt-2 space-y-2">
+                    <div className={`rounded-lg px-3 py-2 text-xs ${darkMode ? 'bg-gray-700 text-gray-200' : 'bg-white text-[#4B5563] border border-[#E5E7EB]'}`}>
+                      {nativeCreditProductLoading
+                        ? (market === 'de' ? 'Store-Produkt wird geladen...' : 'Store-termék betöltése...')
+                        : nativeCreditProduct
+                          ? (market === 'de'
+                              ? `Store-Preis: ${nativeCreditProduct.priceString}`
+                              : `Store ár: ${nativeCreditProduct.priceString}`)
+                          : (market === 'de'
+                              ? 'Der In-App-Kauf ist erst nach Store-Produktkonfiguration verfuegbar.'
+                              : 'Az alkalmazáson belüli vásárlás a store termékek konfigurálása után lesz elérhető.')}
+                    </div>
+                    {nativeCreditProductError && !nativeCreditProductLoading && (
+                      <p className={`text-[11px] ${darkMode ? 'text-amber-300' : 'text-amber-700'}`}>
+                        {market === 'de'
+                          ? 'Fehlende RevenueCat / Store-Produktkonfiguration.'
+                          : 'Hiányzó RevenueCat / store-termék konfiguráció.'}
+                      </p>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleRequestCreditPackage}
+                      disabled={requestingCredits || nativeCreditProductLoading || !nativeCreditProduct}
+                      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${requestingCredits || nativeCreditProductLoading || !nativeCreditProduct
+                        ? (darkMode ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-[#E5E7EB] text-[#6B7280] cursor-not-allowed')
+                        : 'bg-[#6B46C1] text-white hover:bg-[#5a3aa3]'}`}
+                    >
+                      {requestingCredits && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                      {market === 'de' ? 'Paket im Store kaufen' : 'Csomag vásárlása az appban'}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleRequestCreditPackage}
+                    disabled={requestingCredits}
+                    className={`mt-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${requestingCredits
+                      ? (darkMode ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-[#E5E7EB] text-[#6B7280] cursor-not-allowed')
+                      : 'bg-[#6B46C1] text-white hover:bg-[#5a3aa3]'}`}
+                  >
+                    {requestingCredits && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    {market === 'de' ? 'Neues Paket anfragen' : 'Új csomag igénylése'}
+                  </button>
+                )}
+              </>
             )}
           </div>
 

@@ -130,6 +130,12 @@ const REACTIONS = [
 const ADMIN_EMAIL = 'epresla@icloud.com';
 const ADMINKA_EMAIL = 'etinatina22@gmail.com';
 
+const ROLE_COUNTER_BASELINE = {
+  pharmacy: 211,
+  assistant: 443,
+  pharmacist: 534,
+};
+
 const COLOR_PRESETS = [
   { name: 'Alapértelmezett', bg: '#ffffff', text: '#1f2937' },
   { name: 'Sötét', bg: '#1a1a2e', text: '#e0e0e0' },
@@ -2261,6 +2267,7 @@ export default function KozossegPage() {
   const [showAnonModal, setShowAnonModal] = useState(false);
   const [compactView, setCompactView] = useState(false);
   const [hideReactions, setHideReactions] = useState(false);
+  const [roleCounters, setRoleCounters] = useState(ROLE_COUNTER_BASELINE);
   const activeFilter = 'all';
 
   const isAdmin = [ADMIN_EMAIL, ADMINKA_EMAIL].includes(user?.email);
@@ -2317,6 +2324,30 @@ export default function KozossegPage() {
       router.replace(noRoleRedirectPath);
     }
   }, [authLoading, user, pharmaRole, noRoleRedirectPath, router]);
+
+  useEffect(() => {
+    if (authLoading || !user) return;
+
+    const loadRoleCounters = async () => {
+      try {
+        const [pharmacySnap, assistantSnap, pharmacistSnap] = await Promise.all([
+          getDocs(query(collection(db, 'users'), where('pharmagisterRole', '==', 'pharmacy'))),
+          getDocs(query(collection(db, 'users'), where('pharmagisterRole', '==', 'assistant'))),
+          getDocs(query(collection(db, 'users'), where('pharmagisterRole', '==', 'pharmacist'))),
+        ]);
+
+        setRoleCounters({
+          pharmacy: Math.max(ROLE_COUNTER_BASELINE.pharmacy, pharmacySnap.size),
+          assistant: Math.max(ROLE_COUNTER_BASELINE.assistant, assistantSnap.size),
+          pharmacist: Math.max(ROLE_COUNTER_BASELINE.pharmacist, pharmacistSnap.size),
+        });
+      } catch (error) {
+        console.error('Error loading role counters:', error);
+      }
+    };
+
+    loadRoleCounters();
+  }, [authLoading, user]);
 
   // Fetch posts
   const fetchPosts = useCallback(async () => {
@@ -2518,10 +2549,13 @@ export default function KozossegPage() {
         className="pt-safe-small pb-4"
       >
         {/* Pharmagister felirat */}
-        <div className="max-w-xl mx-auto px-4 py-3 flex items-center justify-center min-h-[56px]">
+        <div className="max-w-xl mx-auto px-4 py-3 flex flex-col items-center justify-center min-h-[56px] gap-1">
           <h1 className="text-lg sm:text-xl font-bold flex items-center gap-1">
             <span className="text-green-700 text-lg sm:text-xl bg-white/80 backdrop-blur-[2px] px-3 py-1 rounded-lg shadow-sm">Pharmagister</span>
           </h1>
+          <p className="text-[11px] sm:text-xs font-semibold text-gray-700 bg-white/75 px-3 py-1 rounded-full border border-white/70 shadow-sm text-center">
+            Gyógyszertár: {roleCounters.pharmacy} | Szakasszisztens: {roleCounters.assistant} | Gyógyszerész: {roleCounters.pharmacist}
+          </p>
         </div>
 
         {/* Navigációs gombok */}

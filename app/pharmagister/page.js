@@ -9,11 +9,11 @@ import { useBadges } from '@/context/BadgesContext';
 import { canAccessScheduleManager } from '../../lib/pharmagisterFeatures';
 import { getEffectivePharmagisterRole, hasPharmagisterProfileData, normalizePharmagisterRole } from '../../lib/pharmagisterProfile';
 import { getClientMarket, t } from '../../lib/marketI18n';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 function PharmagisterContent() {
-  const { user, userData } = useAuth();
+  const { user, userData, loading: authLoading } = useAuth();
   const { darkMode } = useTheme();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -37,7 +37,10 @@ function PharmagisterContent() {
   );
   
   // Pharmagister szerepkör: 'pharmacy' (Gyógyszertár), 'pharmacist' (Gyógyszerész), 'assistant' (Szakasszisztens)
-  const pharmaRole = getEffectivePharmagisterRole(userData);
+  const derivedPharmaRole = getEffectivePharmagisterRole(userData);
+  const [roleOverride, setRoleOverride] = useState(null);
+  const [roleProbeDone, setRoleProbeDone] = useState(false);
+  const pharmaRole = roleOverride || derivedPharmaRole;
   const partnerAccountTypes = new Set(['partner_advertiser', 'partner_marketplace', 'partner_professional']);
   const normalizedAccountType = String(userData?.accountType || '').trim().toLowerCase();
   const isPartnerAccount = Boolean(
@@ -54,6 +57,54 @@ function PharmagisterContent() {
       router.replace('/partner');
     }
   }, [user, userData, isPartnerAccount, router]);
+
+  useEffect(() => {
+    if (!user?.uid || !userData) {
+      setRoleProbeDone(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    const probeRole = async () => {
+      if (pharmaRole) {
+        setRoleProbeDone(true);
+        return;
+      }
+
+      try {
+        const freshSnap = await getDoc(doc(db, 'users', user.uid));
+        const freshData = freshSnap.exists() ? (freshSnap.data() || {}) : null;
+        const recoveredRole = getEffectivePharmagisterRole(freshData);
+
+        if (cancelled) return;
+
+        if (recoveredRole) {
+          setRoleOverride(recoveredRole);
+
+          const recoveredProfileComplete = Boolean(
+            freshData?.pharmaProfileComplete || hasPharmagisterProfileData(freshData)
+          );
+
+          await updateDoc(doc(db, 'users', user.uid), {
+            pharmagisterRole: recoveredRole,
+            pharmaProfileComplete: recoveredProfileComplete,
+            pharmagisterRoleRecoveredAt: serverTimestamp(),
+          });
+        }
+      } catch (error) {
+        console.error('Error probing Pharmagister role:', error);
+      } finally {
+        if (!cancelled) setRoleProbeDone(true);
+      }
+    };
+
+    probeRole();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.uid, userData, pharmaRole]);
 
   useEffect(() => {
     if (!user?.uid || !userData || !pharmaRole) return;
@@ -244,8 +295,14 @@ function PharmagisterContent() {
             </div>
           )}
 
+          {(authLoading || (user && userData && !pharmaRole && !roleProbeDone)) && (
+            <div className="py-12 flex items-center justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6B46C1]" />
+            </div>
+          )}
+
           {/* Szerepkör beállítás - ha még nincs és validálva van */}
-          {!pharmaRole && userData?.status !== 'pending_validation' && (
+          {!authLoading && roleProbeDone && !pharmaRole && userData?.status !== 'pending_validation' && (
             <div className="space-y-4">
               <div className="mb-6">
                 <h2 className={`text-lg font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'} mb-2`}>{t('chooseRole', market)}</h2>

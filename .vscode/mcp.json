@@ -1,0 +1,43 @@
+{
+  "servers": {
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp@latest",
+        "--browser",
+        "chromium"
+      ],
+      "env": {}
+    },
+    "google-play-api": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://your-mcp-server.example.com/google-play"
+      ],
+      "env": {
+        "GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_PATH": "${env:GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_PATH}",
+        "GOOGLE_PLAY_PACKAGE_NAME": "${env:GOOGLE_PLAY_PACKAGE_NAME}"
+      }
+    },
+    "app-store-connect": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://your-mcp-server.example.com/app-store-connect"
+      ],
+      "env": {
+        "APP_STORE_KEY_ID": "${env:APP_STORE_KEY_ID}",
+        "APP_STORE_ISSUER_ID": "${env:APP_STORE_ISSUER_ID}",
+        "APP_STORE_P8_PATH": "${env:APP_STORE_P8_PATH}",
+        "APP_STORE_BUNDLE_ID": "${env:APP_STORE_BUNDLE_ID}"
+      }
+    }
+  }
+}

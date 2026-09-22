@@ -120,7 +120,25 @@ export default function PrivacyPolicyEnPage() {
 
           <section>
             <h2 className={`text-xl font-bold mb-3 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              7. Data Storage and Security
+              7. Payment Processing (Stripe and In-App Purchase)
+            </h2>
+            <p className="leading-relaxed mb-3">
+              The core features of the Application remain free of charge. In addition, the mobile app offers a native
+              in-app purchase option, allowing users to buy additional demand-credit packages through the Apple App
+              Store or Google Play. In the web version, payment continues to take place in an external, web-based
+              Stripe Checkout environment.
+            </p>
+            <ul className="list-disc pl-6 space-y-2">
+              <li><strong>In-app purchase (Apple/Google):</strong> The purchase is processed entirely by the Apple App Store or Google Play; payment and card data are handled exclusively by them and are not accessible to the Application. To technically activate the entitlement, we use RevenueCat, which receives the purchase ID, the product ID, and an anonymous user ID.</li>
+              <li><strong>Data Stripe may receive:</strong> name, email address, billing/payment information, order and transaction data, IP address, and technical verification data.</li>
+              <li><strong>Purpose:</strong> payment processing, fraud detection, verification, and service support.</li>
+              <li><strong>Processing:</strong> Stripe processes card data according to its own policies and security standards. The App only receives the metadata required for successful payment and access to the feature.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className={`text-xl font-bold mb-3 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+              8. Data Storage and Security
             </h2>
             <ul className="list-disc pl-6 space-y-2">
               <li>Data is stored on Google Firebase EU servers</li>
@@ -132,7 +150,7 @@ export default function PrivacyPolicyEnPage() {
 
           <section>
             <h2 className={`text-xl font-bold mb-3 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              8. Data Retention
+              9. Data Retention
             </h2>
             <ul className="list-disc pl-6 space-y-2">
               <li>User account data: until account deletion</li>
@@ -144,7 +162,7 @@ export default function PrivacyPolicyEnPage() {
 
           <section>
             <h2 className={`text-xl font-bold mb-3 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              9. Your Rights
+              10. Your Rights
             </h2>
             <p className="leading-relaxed mb-3">
               Under GDPR, you have the following rights:
@@ -171,7 +189,7 @@ export default function PrivacyPolicyEnPage() {
 
           <section>
             <h2 className={`text-xl font-bold mb-3 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              10. Push Notifications
+              11. Push Notifications
             </h2>
             <p className="leading-relaxed">
               The Application may send push notifications about new substitution requests, messages, 
@@ -182,7 +200,7 @@ export default function PrivacyPolicyEnPage() {
 
           <section>
             <h2 className={`text-xl font-bold mb-3 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              11. Children&apos;s Data
+              12. Children&apos;s Data
             </h2>
             <p className="leading-relaxed">
               The Application is intended for users aged 18 and above. We do not knowingly collect 
@@ -192,7 +210,7 @@ export default function PrivacyPolicyEnPage() {
 
           <section>
             <h2 className={`text-xl font-bold mb-3 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              12. Changes
+              13. Changes
             </h2>
             <p className="leading-relaxed">
               We reserve the right to modify this Privacy Policy. We will notify users of significant 
@@ -202,7 +220,7 @@ export default function PrivacyPolicyEnPage() {
 
           <section>
             <h2 className={`text-xl font-bold mb-3 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              13. Contact
+              14. Contact
             </h2>
             <p className="leading-relaxed">
               For data protection inquiries, please contact us:<br /><br />

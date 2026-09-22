@@ -49,10 +49,12 @@ export async function POST(request) {
     }
 
     const offer = getDemandPackageOffer(userData);
+    const requesterName = userData.contactName || userData.displayName || userData.pharmacyName || authUser.email || userData.email || '';
 
     const intentRef = await db.collection('demandCreditPurchaseIntents').add({
       userId: authUser.uid,
       email: authUser.email || userData.email || '',
+      requesterName,
       pharmacyName: userData.pharmacyName || '',
       market: userData.market || requestMarket,
       packageCredits: offer.packageCredits,

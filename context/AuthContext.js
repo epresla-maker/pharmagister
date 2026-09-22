@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { onAuthStateChanged, signOut as authSignOut } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
-import { doc, updateDoc, serverTimestamp, getDoc } from "firebase/firestore";
+import { doc, updateDoc, serverTimestamp, onSnapshot } from "firebase/firestore";
 import { MARKET_COOKIE, normalizeMarket } from "@/lib/market";
 
 const MARKET_OVERRIDE_ADMIN_EMAILS = new Set(['epresla@icloud.com']);
@@ -16,6 +16,8 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true); 
 
   useEffect(() => {
+    let unsubscribeUserDoc = null;
+
     const applyUserDoc = (nextUserData, firebaseUser) => {
       setUserData(nextUserData);
       const normalizedEmail = String(nextUserData?.email || firebaseUser?.email || '').trim().toLowerCase();
@@ -30,22 +32,26 @@ export const AuthProvider = ({ children }) => {
     };
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (unsubscribeUserDoc) {
+        unsubscribeUserDoc();
+        unsubscribeUserDoc = null;
+      }
 
       if (firebaseUser) {
         setUser(firebaseUser);
         const userDocRef = doc(db, "users", firebaseUser.uid);
-        try {
-          const userSnap = await getDoc(userDocRef);
+
+        unsubscribeUserDoc = onSnapshot(userDocRef, (userSnap) => {
           if (userSnap.exists()) {
             applyUserDoc(userSnap.data(), firebaseUser);
           } else {
             setUserData(null);
           }
-        } catch (error) {
-          console.error('AuthContext getDoc failed:', error);
-        } finally {
           setLoading(false);
-        }
+        }, (error) => {
+          console.error('AuthContext user doc listener failed:', error);
+          setLoading(false);
+        });
       } else {
         setUser(null);
         setUserData(null);
@@ -54,6 +60,9 @@ export const AuthProvider = ({ children }) => {
     });
 
     return () => {
+      if (unsubscribeUserDoc) {
+        unsubscribeUserDoc();
+      }
       unsubscribeAuth();
     };
   }, []);

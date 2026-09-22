@@ -122,7 +122,24 @@ export default function PrivacyPolicyPage() {
 
           <section>
             <h2 className={`text-xl font-bold mb-3 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              {market === 'de' ? '7. Datenspeicherung und Sicherheit' : '7. Adatok tárolása és biztonsága'}
+              {market === 'de' ? '7. Zahlungsabwicklung (Stripe und In-App-Kauf)' : '7. Fizetéskezelés (Stripe és alkalmazáson belüli vásárlás)'}
+            </h2>
+            <p className="leading-relaxed mb-3">
+              {market === 'de'
+                ? 'Die Grundfunktionen der App bleiben weiterhin kostenlos. Zusaetzlich steht in der mobilen App ein natives In-App-Kauf-System zur Verfuegung, mit dem Nutzer zusaetzliche Bedarfs-Kreditpakete ueber den Apple App Store oder Google Play kaufen koennen. In der Webversion erfolgt die Zahlung weiterhin ueber eine externe, webbasierte Stripe-Checkout-Umgebung.'
+                : 'Az Alkalmazás alapfunkciói továbbra is ingyenesen elérhetők. Emellett a mobilalkalmazásban natív alkalmazáson belüli vásárlás (In-App Purchase) is elérhető, amellyel a felhasználó kiegészítő kereslet-kredit csomagot vásárolhat az Apple App Store-on vagy a Google Play Áruházon keresztül. A webes verzióban a fizetés továbbra is egy külső, webalapú Stripe Checkout felületen történik.'}
+            </p>
+            <ul className="list-disc pl-6 space-y-2">
+              <li><strong>{market === 'de' ? 'In-App-Kauf (Apple/Google):' : 'Alkalmazáson belüli vásárlás (Apple/Google):'}</strong> {market === 'de' ? 'Der Kauf wird vollstaendig ueber den Apple App Store bzw. Google Play abgewickelt; Zahlungs- und Kartendaten werden ausschliesslich von diesen verarbeitet und sind fuer die App nicht einsehbar. Zur technischen Freischaltung der Berechtigung nutzen wir RevenueCat, das die Kauf-ID, die Produkt-ID und eine anonyme Nutzer-ID erhaelt.' : 'A vásárlást teljes egészében az Apple App Store, illetve a Google Play Áruház bonyolítja le; a fizetési és bankkártya-adatokat kizárólag ők kezelik, azokhoz az Alkalmazás nem fér hozzá. A jogosultság technikai aktiválásához a RevenueCat szolgáltatást használjuk, amely a vásárlás azonosítóját, a termékazonosítót és egy anonim felhasználói azonosítót kap meg.'}</li>
+              <li><strong>{market === 'de' ? 'Daten, die Stripe erhalten kann:' : 'A Stripe által kezelhető adatok:'}</strong> {market === 'de' ? 'Name, E-Mail-Adresse, Rechnungs-/Zahlungsinformationen, Bestell- und Transaktionsdaten, IP-Adresse und technische Verifikationsdaten.' : 'név, e-mail cím, számlázási és fizetési adatok, rendelési és tranzakciós adatok, IP cím és technikai ellenőrzési adatok.'}</li>
+              <li><strong>{market === 'de' ? 'Zweck:' : 'Cél:'}</strong> {market === 'de' ? 'Zahlungsabwicklung, Betrugserkennung, Verifikation und Servicesupport.' : 'fizetés feldolgozása, csalás elleni védelem, ellenőrzés és ügyfélszolgálati támogatás.'}</li>
+              <li><strong>{market === 'de' ? 'Verarbeitung:' : 'Feldolgozás:'}</strong> {market === 'de' ? 'Stripe verarbeitet die Kartendaten gemaess seinen eigenen Richtlinien und Sicherheitsbestimmungen. Die App erhaelt nur die fuer den Erfolg der Zahlung und den Zugang zur Funktion erforderlichen Metadaten.' : 'A Stripe a kártyaadatokat saját irányelvei és biztonsági szabályai szerint dolgozza fel. Az alkalmazás csak a fizetés sikerességéhez és a hozzáférés biztosításához szükséges metaadatokat kapja meg.'}</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className={`text-xl font-bold mb-3 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+              {market === 'de' ? '8. Datenspeicherung und Sicherheit' : '8. Adatok tárolása és biztonsága'}
             </h2>
             <ul className="list-disc pl-6 space-y-2">
               <li>{market === 'de' ? 'Die Daten werden auf EU-Servern von Google Firebase gespeichert' : 'Az adatokat a Google Firebase EU-s szerverein tároljuk'}</li>
@@ -134,7 +151,7 @@ export default function PrivacyPolicyPage() {
 
           <section>
             <h2 className={`text-xl font-bold mb-3 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              {market === 'de' ? '8. Speicherdauer' : '8. Adatmegőrzési idő'}
+              {market === 'de' ? '9. Speicherdauer' : '9. Adatmegőrzési idő'}
             </h2>
             <ul className="list-disc pl-6 space-y-2">
               <li>{market === 'de' ? 'Kontodaten: bis zur Loeschung des Kontos' : 'Felhasználói fiók adatai: a fiók törléséig'}</li>
@@ -146,7 +163,7 @@ export default function PrivacyPolicyPage() {
 
           <section>
             <h2 className={`text-xl font-bold mb-3 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              {market === 'de' ? '9. Ihre Rechte' : '9. Az Ön jogai'}
+              {market === 'de' ? '10. Ihre Rechte' : '10. Az Ön jogai'}
             </h2>
             <p className="leading-relaxed mb-3">
               {market === 'de' ? 'Nach der DSGVO haben Sie folgende Rechte:' : 'A GDPR alapján Önt az alábbi jogok illetik meg:'}
@@ -173,7 +190,7 @@ export default function PrivacyPolicyPage() {
 
           <section>
             <h2 className={`text-xl font-bold mb-3 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              {market === 'de' ? '10. Push-Benachrichtigungen' : '10. Push értesítések'}
+              {market === 'de' ? '11. Push-Benachrichtigungen' : '11. Push értesítések'}
             </h2>
             <p className="leading-relaxed">
               {market === 'de' ? 'Die App kann Push-Benachrichtigungen zu neuen Vertretungsanfragen, Nachrichten und Bewerbungen senden. Sie koennen Benachrichtigungen jederzeit in den App-Einstellungen oder in den Systemeinstellungen Ihres Geraets deaktivieren.' : 'Az Alkalmazás push értesítéseket küldhet új helyettesítési igényekről, üzenetekről és jelentkezésekről. Az értesítéseket bármikor kikapcsolhatja az Alkalmazás beállításaiban vagy a telefon rendszerbeállításaiban.'}
@@ -182,7 +199,7 @@ export default function PrivacyPolicyPage() {
 
           <section>
             <h2 className={`text-xl font-bold mb-3 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              {market === 'de' ? '11. Daten von Minderjaehrigen' : '11. Gyermekek adatai'}
+              {market === 'de' ? '12. Daten von Minderjaehrigen' : '12. Gyermekek adatai'}
             </h2>
             <p className="leading-relaxed">
               {market === 'de' ? 'Die App richtet sich an Nutzer ab 18 Jahren. Wir erfassen wissentlich keine Daten von Personen unter 18 Jahren.' : 'Az Alkalmazás 18 éven felüli felhasználóknak szól. Tudatosan nem gyűjtünk adatokat 18 év alatti személyektől.'}
@@ -191,7 +208,7 @@ export default function PrivacyPolicyPage() {
 
           <section>
             <h2 className={`text-xl font-bold mb-3 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              {market === 'de' ? '12. Aenderungen' : '12. Változások'}
+              {market === 'de' ? '13. Aenderungen' : '13. Változások'}
             </h2>
             <p className="leading-relaxed">
               {market === 'de' ? 'Wir behalten uns das Recht vor, diesen Datenschutzhinweis zu aendern. Ueber wesentliche Aenderungen informieren wir Nutzer in der App oder per E-Mail.' : 'Fenntartjuk a jogot, hogy ezt az Adatvédelmi Tájékoztatót módosítsuk. A lényeges változásokról értesítjük felhasználóinkat az Alkalmazásban vagy e-mailben.'}
@@ -200,7 +217,7 @@ export default function PrivacyPolicyPage() {
 
           <section>
             <h2 className={`text-xl font-bold mb-3 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              {market === 'de' ? '13. Beschwerde' : '13. Panasz'}
+              {market === 'de' ? '14. Beschwerde' : '14. Panasz'}
             </h2>
             <p className="leading-relaxed">
               {market === 'de' ? 'Wenn Sie der Ansicht sind, dass wir Ihre Daten unrechtmaessig verarbeiten, koennen Sie bei der ungarischen Datenschutzbehoerde (NAIH) Beschwerde einlegen:' : 'Ha úgy érzi, hogy adatait jogellenesen kezeljük, panaszt tehet a Nemzeti Adatvédelmi és Információszabadság Hatóságnál (NAIH):'}<br /><br />
@@ -213,7 +230,7 @@ export default function PrivacyPolicyPage() {
 
           <section>
             <h2 className={`text-xl font-bold mb-3 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-              {market === 'de' ? '14. Kontakt' : '14. Kapcsolat'}
+              {market === 'de' ? '15. Kontakt' : '15. Kapcsolat'}
             </h2>
             <p className="leading-relaxed">
               {market === 'de' ? 'Bei Datenschutzfragen kontaktieren Sie uns:' : 'Adatvédelmi kérdésekkel kapcsolatban írjon nekünk:'}<br /><br />

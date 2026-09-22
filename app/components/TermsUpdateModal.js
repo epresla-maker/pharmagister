@@ -11,7 +11,7 @@ import { getClientMarket } from '@/lib/marketI18n';
  * Ha modositjuk a feltételeket, ezt az értéket növeljük,
  * és a felhasználókat újra elfogadásra kérjük.
  */
-export const CURRENT_TERMS_VERSION = '2026-03-04';
+export const CURRENT_TERMS_VERSION = '2026-09-22';
 
 export default function TermsUpdateModal() {
   const { user, userData, loading } = useAuth();
@@ -82,7 +82,7 @@ export default function TermsUpdateModal() {
             {market === 'de' ? 'Nutzungsbedingungen wurden aktualisiert' : 'Felhasználási feltételek módosultak'}
           </h2>
           <p style={{ fontSize: 13, color: darkMode ? '#9ca3af' : '#6b7280', marginTop: 4 }}>
-            {market === 'de' ? 'Gueltig ab: 4. Maerz 2026.' : 'Hatályos: 2026. március 4.'}
+            {market === 'de' ? 'Gueltig ab: 22. September 2026.' : 'Hatályos: 2026. szeptember 22.'}
           </p>
         </div>
 
@@ -107,7 +107,7 @@ export default function TermsUpdateModal() {
 
           <hr style={{ border: 'none', borderTop: `1px solid ${darkMode ? '#374151' : '#e5e7eb'}`, margin: '16px 0' }} />
 
-          {/* Hiánycikk kereső blokk */}
+          {/* Fizetos funkcio blokk */}
           <div style={{
             padding: '16px 20px',
             marginBottom: 20,
@@ -116,12 +116,12 @@ export default function TermsUpdateModal() {
             backgroundColor: darkMode ? 'rgba(16,185,129,0.1)' : '#ecfdf5',
           }}>
             <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, color: darkMode ? '#6ee7b7' : '#059669' }}>
-              {market === 'de' ? 'Neue Funktion: Engpass-Suche' : 'Új funkció: Hiánycikk kereső'}
+              {market === 'de' ? 'Neue Funktion: In-App-Kauf' : 'Új funkció: Alkalmazáson belüli vásárlás'}
             </h3>
             <p style={{ marginBottom: 0, fontSize: 14 }}>
               {market === 'de'
-                ? 'Die Engpass-Suche dient ausschliesslich dem informativen Austausch zwischen registrierten Apotheken und Mitarbeitenden. Auf der Plattform finden keine Verkaeufe oder Transaktionen statt; die Kontaktaufnahme erfolgt stets offline, per Telefon oder E-Mail. Pharmagister uebernimmt keine Haftung fuer Verfuegbarkeit oder moegliche Folgen im Zusammenhang mit Engpassartikeln.'
-                : 'A Hiánycikk kereső funkció kizárólag tájékoztató jellegű információmegosztást szolgál a regisztrált gyógyszertárak és alkalmazottak között. Az oldalon nem történik értékesítés vagy tranzakció, és a felhasználók közötti kapcsolatfelvétel minden esetben offline, telefonon vagy emailben történik. A Pharmagister nem vállal felelősséget a hiánycikkek elérhetőségéért vagy az abból származó esetleges következményekért.'}
+                ? 'In der mobilen App steht jetzt ein In-App-Kauf zur Verfuegung, mit dem du ein zusaetzliches Bedarfs-Kreditpaket ueber den Apple App Store oder Google Play kaufen kannst. Bisher waren alle Funktionen der App kostenlos -- dies ist die erste kostenpflichtige Funktion, die wir einfuehren.'
+                : 'A mobilalkalmazásban mostantól elérhető egy alkalmazáson belüli vásárlási lehetőség (In-App Purchase), amellyel kiegészítő kereslet-kredit csomagot vásárolhatsz az Apple App Store-on vagy a Google Play Áruházon keresztül. Eddig az alkalmazás minden funkciója ingyenes volt -- ez az első fizetős funkció, amit bevezetünk.'}
             </p>
           </div>
 
@@ -136,58 +136,43 @@ export default function TermsUpdateModal() {
             backgroundColor: darkMode ? 'rgba(107,70,193,0.15)' : '#f5f3ff',
           }}>
             <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8, color: darkMode ? '#c4b5fd' : '#6B46C1' }}>
-              {market === 'de' ? 'Oeffentliche Anzeige der Apotheken-Antwortquote' : 'Gyógyszertári válaszadási arány nyilvános megjelenítése'}
+              {market === 'de' ? 'Details zum Kauf' : 'A vásárlás részletei'}
             </h3>
             <p style={{ marginBottom: 0, fontSize: 14 }}>
               {market === 'de'
-                ? <>Das System erfasst jetzt, in welchem Anteil Apotheken auf eingehende Vertretungsbewerbungen (Annahme oder Ablehnung) <strong>innerhalb von 72 Stunden</strong> reagieren. Dieser Wert wird als farbiger Indikator neben dem Apothekennamen angezeigt, ueberall dort, wo eine Vertretungsanfrage sichtbar ist.</>
-                : 'A rendszer mostantól nyilvántartja, hogy a gyógyszertárak milyen arányban válaszolnak (elfogadás vagy elutasítás) a hozzájuk beérkező helyettesítési jelentkezésekre 72 órán belül. Ez az adat egy színes visszajelző sáv formájában megjelenik a gyógyszertár neve mellett mindenhol, ahol egy helyettesítési igényt megtekint egy felhasználó.'}
+                ? 'Das gekaufte Guthaben ist ein einmaliges Produkt (kein Abonnement). Die Zahlung wird von Apple bzw. Google ueber deren eigenes Zahlungssystem abgewickelt; die App hat keinen Zugriff auf deine Zahlungs- oder Kartendaten. Rueckerstattungsantraege stellst du direkt beim Apple- bzw. Google-Support, gemaess den jeweils geltenden Store-Richtlinien.'
+                : 'A megvásárolt kredit egyszeri termék (nem előfizetés). A fizetést az Apple, illetve a Google kezeli a saját fizetési rendszerén keresztül -- az alkalmazás nem fér hozzá a fizetési vagy bankkártya-adataidhoz. Visszatérítési igényedet közvetlenül az Apple, illetve a Google ügyfélszolgálatán keresztül kezdeményezheted, a mindenkori áruházi szabályzat szerint.'}
             </p>
           </div>
 
-          {/* 1. Válaszadási visszajelzés */}
+          {/* 1. Reszletek */}
           <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>
-            {market === 'de' ? '1. Details' : '1. Részletek'}
+            {market === 'de' ? '1. Wofuer wird das Guthaben verwendet?' : '1. Mire használható fel a kredit?'}
           </h3>
-          <p style={{ marginBottom: 8 }}>
-            {market === 'de'
-              ? 'Der Indikator zeigt einen Prozentwert und basiert ausschliesslich auf aggregierten, anonymisierten Statistiken; personenbezogene Daten einzelner Bewerber werden nicht veroeffentlicht.'
-              : 'A visszajelző sáv százalékos arányt mutat, és kizárólag összesített, anonimizált statisztikán alapul -- egyedi jelentkezők adatai nem kerülnek nyilvánosságra.'}
-          </p>
           <p style={{ marginBottom: 16 }}>
             {market === 'de'
-              ? 'Die Farblogik ist wie folgt: Rot bedeutet niedrige, Orange mittlere und Gruen hohe Antwortquote. Hat eine Apotheke noch keine Bewerbungen, erscheint der Balken vollstaendig gruen.'
-              : 'A sáv a következő módon működik: a piros szín alacsony, a narancs közepes, a zöld szín magas válaszadási arányt jelöl. Ha a gyógyszertárnak még nincs jelentkezője, a sáv teljes egészében zöld.'}
+              ? 'Das Guthaben kannst du zur Veroeffentlichung von Vertretungsanfragen (Bedarfsanzeigen) verwenden. Der Kauf ist freiwillig -- die Grundfunktionen der App (Registrierung, Suche nach Vertretungen, Nachrichtenversand) bleiben weiterhin vollstaendig kostenlos.'
+              : 'A kreditet helyettesítési igények (keresleti hirdetések) közzétételére használhatod fel. A vásárlás önkéntes -- az alkalmazás alapfunkciói (regisztráció, helyettesítés keresése, üzenetküldés) továbbra is teljesen ingyenesek maradnak.'}
           </p>
 
-          {/* 2. Adatkezelés */}
+          {/* 2. Adatkezeles */}
           <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>
             {market === 'de' ? '2. Ergaenzung zur Datenverarbeitung' : '2. Adatkezelési kiegészítés'}
           </h3>
-          <p style={{ marginBottom: 8 }}>
-            {market === 'de'
-              ? 'Zur Berechnung der Antwortquote nutzt das System folgende bereits gespeicherte Daten:'
-              : 'A válaszadási arány kiszámításához a rendszer az alábbi, már korábban is tárolt adatokat használja fel:'}
-          </p>
-          <ul style={{ paddingLeft: 20, marginBottom: 16 }}>
-            <li style={{ marginBottom: 4 }}>{market === 'de' ? 'Zeitpunkt des Bewerbungseingangs' : 'A jelentkezés beérkezésének időpontja'}</li>
-            <li style={{ marginBottom: 4 }}>{market === 'de' ? 'Zeitpunkt der Antwort der Apotheke (Annahme/Ablehnung)' : 'A gyógyszertár válaszának (elfogadás/elutasítás) időpontja'}</li>
-            <li style={{ marginBottom: 4 }}>{market === 'de' ? 'Ob die Antwort innerhalb von 72 Stunden erfolgte' : 'A válasz megtörténtének ténye 72 órán belül'}</li>
-          </ul>
           <p style={{ marginBottom: 16 }}>
             {market === 'de'
-              ? 'Es werden keine personenbezogenen Daten der Bewerber, keine Bewerbungsinhalte und keine Begruendungen der Antworten verarbeitet oder angezeigt. Die Statistik beruecksichtigt ausschliesslich Antwortzeitpunkt und Antwortfakt.'
-              : 'Nem kerülnek feldolgozásra és megjelenítésre a jelentkezők személyes adatai, a jelentkezés tartalma vagy a válasz indoklása. A statisztika kizárólag a válasz tényét és idejét veszi figyelembe.'}
+              ? 'Zur technischen Freischaltung des Kaufs nutzen wir den Dienst RevenueCat. Dabei werden die Kauf-ID, die Produkt-ID und eine anonyme, geraetegebundene Nutzer-ID uebertragen. Deine Zahlungs- oder Kartendaten sieht weder RevenueCat noch die Pharmagister-App -- diese werden ausschliesslich von Apple bzw. Google verarbeitet.'
+              : 'A vásárlás technikai aktiválásához a RevenueCat szolgáltatást használjuk. Ennek során átadásra kerül a vásárlás azonosítója, a termékazonosító és egy anonim, eszközhöz kötött felhasználói azonosító. A fizetési vagy bankkártya-adataidat sem a RevenueCat, sem a Pharmagister alkalmazás nem látja -- ezeket kizárólag az Apple, illetve a Google kezeli.'}
           </p>
 
-          {/* 3. Cél */}
+          {/* 3. Cel */}
           <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>
             {market === 'de' ? '3. Ziel der Aenderung' : '3. A módosítás célja'}
           </h3>
           <p style={{ marginBottom: 16 }}>
             {market === 'de'
-              ? 'Die Aenderung soll Vertretungsapothekern und Assistenten eine informierte Entscheidung bei Bewerbungen ermoeglichen und aktiv antwortende Apotheken sichtbar machen. Die Funktion staerkt Transparenz und Verlaesslichkeit der Plattform.'
-              : 'A változtatás célja, hogy a helyettesítő gyógyszerészek és szakasszisztensek tájékozott döntést hozhassanak a jelentkezésük beadásakor, és előnyben részesíthessék az aktívan válaszoló gyógyszertárakat. Ez a funkció a platform átláthatóságát és megbízhatóságát szolgálja.'}
+              ? 'Die neue, optionale Kaufmoeglichkeit dient der langfristigen Finanzierung und Weiterentwicklung des Dienstes, waehrend die Kernfunktionen der Plattform fuer alle Nutzer weiterhin kostenlos zugaenglich bleiben.'
+              : 'Az új, opcionális vásárlási lehetőség a szolgáltatás hosszabb távú finanszírozását és továbbfejlesztését szolgálja, míg a platform alapfunkciói továbbra is minden felhasználó számára ingyenesen elérhetők maradnak.'}
           </p>
 
           {/* 4. Jogok */}
