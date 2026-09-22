@@ -48,7 +48,7 @@ function PharmagisterContent() {
     userData?.partnerProfessional === true ||
     partnerAccountTypes.has(normalizedAccountType)
   );
-  const showPharmaNavbar = pharmaRole && activeTab !== 'schedule-manager';
+  const showPharmaNavbar = pharmaRole && activeTab !== 'schedule-manager' && activeTab !== 'quick-demand';
   const profileComplete = Boolean(userData?.pharmaProfileComplete || hasPharmagisterProfileData(userData));
 
   useEffect(() => {
