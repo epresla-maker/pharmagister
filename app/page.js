@@ -25,7 +25,11 @@ export default function HomePage() {
         return;
       }
 
-      router.replace(pharmaRole ? '/kozosseg' : '/pharmagister');
+      if (pharmaRole === 'pharmacy') {
+        router.replace('/pharmagister?tab=quick-demand');
+      } else {
+        router.replace(pharmaRole ? '/kozosseg' : '/pharmagister');
+      }
     } else {
       router.replace('/login');
     }

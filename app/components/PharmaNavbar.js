@@ -3,7 +3,7 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import { canAccessScheduleManager } from '@/lib/pharmagisterFeatures';
-import { Calendar, BarChart3, Star, HelpCircle } from 'lucide-react';
+import { Calendar, BarChart3, Star, HelpCircle, Send } from 'lucide-react';
 import { getClientMarket } from '@/lib/marketI18n';
 
 function ScheduleGridIcon({ className }) {
@@ -40,6 +40,12 @@ export default function PharmaNavbar({ isVisible = true }) {
   const activeTab = searchParams.get('tab') || 'dashboard';
 
   const allNavItems = [
+    {
+      icon: Send,
+      label: market === 'de' ? 'Anfrage' : 'Igény',
+      tab: 'quick-demand',
+      pharmacyOnly: true
+    },
     {
       icon: Calendar,
       label: market === 'de' ? 'Kalender' : 'Naptár',

@@ -391,6 +391,9 @@ function PharmagisterContent() {
                 </div>
               )}
 
+              {activeTab === 'quick-demand' && pharmaRole === 'pharmacy' && (
+                <QuickDemandTab />
+              )}
               {activeTab === 'calendar' && (
                 <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-[#E5E7EB]'} border rounded-xl p-6`}>
                   <CalendarTab pharmaRole={pharmaRole} />
@@ -475,6 +478,12 @@ function PharmagisterContent() {
 function CalendarTab({ pharmaRole }) {
   const PharmaCalendar = require('@/app/components/PharmaCalendar').default;
   return <PharmaCalendar pharmaRole={pharmaRole} />;
+}
+
+// Quick Demand Wizard Tab Component (gyógyszertár főoldal)
+function QuickDemandTab() {
+  const QuickDemandWizard = require('@/app/components/QuickDemandWizard').default;
+  return <QuickDemandWizard />;
 }
 
 // Dashboard Tab Component
