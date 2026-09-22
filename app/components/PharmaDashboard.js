@@ -744,7 +744,7 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
                 ? `Gruendungsrabatt gilt im festen Zeitraum 01.09.2026-01.03.2027${packageOffer.founder?.validUntil ? ` (bis ${new Date(packageOffer.founder.validUntil).toLocaleDateString('de-DE')})` : ''}.`
                 : `Az alapítói kedvezmény fix időszakban érvényes: 2026.09.01-2027.03.01${packageOffer.founder?.validUntil ? ` (eddig: ${new Date(packageOffer.founder.validUntil).toLocaleDateString('hu-HU')})` : ''}.`}
             </p>
-            {creditBalance.decreaseActive && (
+            {(creditBalance.decreaseActive || isNativeApp) && (
               <>
                 <p className={`mt-3 text-[11px] ${darkMode ? 'text-gray-300' : 'text-[#4B5563]'}`}>
                   {isNativeApp

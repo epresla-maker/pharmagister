@@ -311,6 +311,15 @@ export default function QuickDemandWizard() {
           {creditBalance.remainingCredits} / {creditBalance.totalCredits}
         </span>
       </div>
+      <div className="-mt-2 flex justify-end">
+        <button
+          type="button"
+          onClick={() => router.push('/pharmagister?tab=dashboard')}
+          className={`text-xs font-semibold underline ${darkMode ? 'text-gray-300' : 'text-[#4B5563]'}`}
+        >
+          {market === 'de' ? 'Credits verwalten / kaufen' : 'Keret kezelése / vásárlás'}
+        </button>
+      </div>
 
       {!profileComplete && (
         <div className="rounded-2xl border border-orange-300 bg-orange-50 p-4">
