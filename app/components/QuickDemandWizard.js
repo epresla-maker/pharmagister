@@ -47,7 +47,7 @@ export default function QuickDemandWizard() {
 
   const positionOptions = [
     { value: 'pharmacist', label: market === 'de' ? 'Apotheker/in' : 'Gyógyszerész', icon: '💊' },
-    { value: 'assistant', label: market === 'de' ? 'PTA' : 'Szakasszisztens', icon: '🩺' },
+    { value: 'assistant', label: market === 'de' ? 'PTA' : 'Szakasszisztens', icon: '📋' },
     ...(market === 'de' ? [{ value: 'pka', label: 'PKA', icon: '🧑‍⚕️' }] : []),
   ];
 
@@ -303,6 +303,15 @@ export default function QuickDemandWizard() {
         </div>
       </div>
 
+      <div className={`flex items-center justify-between rounded-2xl border px-4 py-3 ${darkMode ? 'border-gray-700 bg-gray-800' : 'border-[#E5E7EB] bg-[#F9FAFB]'}`}>
+        <span className={`text-sm font-semibold ${darkMode ? 'text-gray-200' : 'text-[#4B5563]'}`}>
+          {market === 'de' ? 'Anfrage-Credits' : 'Igényfeladási keret'}
+        </span>
+        <span className="text-sm font-bold text-[#6B46C1]">
+          {creditBalance.remainingCredits} / {creditBalance.totalCredits}
+        </span>
+      </div>
+
       {!profileComplete && (
         <div className="rounded-2xl border border-orange-300 bg-orange-50 p-4">
           <p className="text-sm font-semibold text-orange-800">
@@ -332,7 +341,10 @@ export default function QuickDemandWizard() {
                 <button
                   key={option.value}
                   type="button"
-                  onClick={() => setFormData({ ...formData, position: option.value })}
+                  onClick={() => {
+                    setFormData((prev) => ({ ...prev, position: option.value }));
+                    setStep(2);
+                  }}
                   className={`flex items-center gap-4 rounded-2xl border-2 px-5 py-5 text-left transition-colors ${
                     formData.position === option.value ? pillActive : pillInactive
                   }`}
