@@ -42,6 +42,22 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
   useEffect(() => {
     let cancelled = false;
 
+    const withTimeout = async (promise, timeoutMs, timeoutMessage) => {
+      let timeoutId;
+      try {
+        return await Promise.race([
+          promise,
+          new Promise((_, reject) => {
+            timeoutId = setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs);
+          }),
+        ]);
+      } finally {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+      }
+    };
+
     const loadNativePurchaseProduct = async () => {
       if (!Capacitor.isNativePlatform() || pharmaRole !== 'pharmacy' || !user?.uid) {
         setNativeCreditProduct(null);
@@ -53,17 +69,25 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
       setNativeCreditProductError('');
 
       try {
-        const configured = await configureRevenueCatForUser({
-          appUserId: user.uid,
-          email: user.email || userData?.email || '',
-          displayName: userData?.contactName || userData?.displayName || userData?.pharmacyName || '',
-        });
+        const configured = await withTimeout(
+          configureRevenueCatForUser({
+            appUserId: user.uid,
+            email: user.email || userData?.email || '',
+            displayName: userData?.contactName || userData?.displayName || userData?.pharmacyName || '',
+          }),
+          12000,
+          'NATIVE_STORE_TIMEOUT_CONFIGURE_REVENUECAT'
+        );
 
         if (!configured) {
           throw new Error('NATIVE_STORE_PAYMENTS_NOT_CONFIGURED');
         }
 
-        const nativeProductLookup = await getNativeDemandCreditStoreProduct(userData || {});
+        const nativeProductLookup = await withTimeout(
+          getNativeDemandCreditStoreProduct(userData || {}),
+          15000,
+          'NATIVE_STORE_TIMEOUT_FETCH_PRODUCT'
+        );
         const { product } = nativeProductLookup;
         if (!product) {
           const lookupDetails = [
@@ -790,6 +814,9 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
                             : (market === 'de'
                                 ? 'iOS: In-App-Kauf-Produkte in App Store Connect/RevenueCat pruefen (Status, Bundle-ID, Produkt-ID, Tester-Account).'
                                 : 'iOS: ellenőrizd az In-App Purchase termékeket App Store Connectben/RevenueCatben (státusz, bundle ID, product ID, tesztelő fiók).')}
+                        </p>
+                        <p className={`${darkMode ? 'text-gray-500' : 'text-[#9CA3AF]'} break-all`}>
+                          {nativeCreditProductError}
                         </p>
                       </div>
                     )}
