@@ -63,9 +63,16 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
           throw new Error('NATIVE_STORE_PAYMENTS_NOT_CONFIGURED');
         }
 
-        const { product } = await getNativeDemandCreditStoreProduct(userData || {});
+        const nativeProductLookup = await getNativeDemandCreditStoreProduct(userData || {});
+        const { product } = nativeProductLookup;
         if (!product) {
-          throw new Error('NATIVE_STORE_PRODUCT_UNAVAILABLE');
+          const lookupDetails = [
+            `platform=${Capacitor.getPlatform()}`,
+            `requested=${nativeProductLookup?.requestedProductId || '-'}`,
+            `attempted=${Array.isArray(nativeProductLookup?.attemptedProductIds) ? nativeProductLookup.attemptedProductIds.join(',') : '-'}`,
+            `kind=${nativeProductLookup?.kind || '-'}`,
+          ].join(' | ');
+          throw new Error(`NATIVE_STORE_PRODUCT_UNAVAILABLE | ${lookupDetails}`);
         }
 
         if (!cancelled) {
