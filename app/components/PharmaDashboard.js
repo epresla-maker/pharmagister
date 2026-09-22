@@ -731,11 +731,8 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
             </p>
             <p className={`text-xs mt-1 ${darkMode ? 'text-gray-300' : 'text-[#4B5563]'}`}>
               {market === 'de'
-                ? `Ab 01.09.2026: ${packageOffer.packageCredits} Vertretungsanfragen aufgeben = ${packageOffer.basePriceHuf} Ft.`
-                : <>
-                    <span className="font-bold">2026.09.01-től:</span>{' '}
-                    {packageOffer.packageCredits} helyettesítési igény feladása = {packageOffer.basePriceHuf} Ft.
-                  </>}
+                ? `${packageOffer.packageCredits} Vertretungsanfragen aufgeben = ${packageOffer.basePriceHuf} Ft.`
+                : `${packageOffer.packageCredits} helyettesítési igény feladása = ${packageOffer.basePriceHuf} Ft.`}
             </p>
             <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-[#6B7280]'}`}>
               {market === 'de'
