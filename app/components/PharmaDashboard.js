@@ -7,24 +7,10 @@ import { collection, query, where, getDocs, orderBy, updateDoc, doc, addDoc, del
 import { db } from '@/lib/firebase';
 import { createNotificationWithPush } from '@/lib/notifications';
 import { Loader2, Search, ChevronDown, ChevronUp, MapPin, Clock, CheckCircle, XCircle, MessageCircle, User, Calendar, Edit2, Trash2, Eye, CalendarDays, Filter } from 'lucide-react';
-import { Capacitor } from '@capacitor/core';
 import ResponseRateBar from '@/app/components/ResponseRateBar';
 import { getClientMarket, getLocalizedDemandPositionLabel } from '@/lib/marketI18n';
 import { isDocInMarket } from '@/lib/market';
 import { getDemandCreditBalance, getDemandPackageOffer } from '@/lib/demandCredits';
-import { configureRevenueCatForUser, getNativeDemandCreditStoreProduct, purchaseNativeDemandCreditProduct } from '@/lib/revenuecat';
-
-function formatNativeStorePrice(value, fallbackHuf) {
-  if (Number.isFinite(Number(fallbackHuf)) && Number(fallbackHuf) > 0) {
-    return `${Number(fallbackHuf).toLocaleString('hu-HU')} Ft`;
-  }
-
-  const text = String(value || '').trim();
-  if (!text) return '';
-  return text
-    .replace(/^[^\d]+/, '')
-    .replace(/[^\d.,]+$/, '');
-}
 
 export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
   const { user, userData } = useAuth();
@@ -40,99 +26,20 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
   const [expandedDemand, setExpandedDemand] = useState(expandDemandId || null);
   const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'pending', 'accepted', 'rejected'
   const [requestingCredits, setRequestingCredits] = useState(false);
-  const [isNativeApp, setIsNativeApp] = useState(false);
   const [clientPlatform, setClientPlatform] = useState('web');
-  const [nativeCreditProduct, setNativeCreditProduct] = useState(null);
-  const [nativeCreditProductLoading, setNativeCreditProductLoading] = useState(false);
-  const [nativeCreditProductError, setNativeCreditProductError] = useState('');
+  const [showServiceTermsModal, setShowServiceTermsModal] = useState(false);
+  const [serviceTermsAccepted, setServiceTermsAccepted] = useState(false);
+  const [serviceFrameRequestNotice, setServiceFrameRequestNotice] = useState('');
 
   useEffect(() => {
-    setIsNativeApp(Capacitor.isNativePlatform());
-    setClientPlatform(Capacitor.getPlatform());
+    if (typeof window === 'undefined') {
+      setClientPlatform('web');
+      return;
+    }
+
+    const platform = window.navigator?.userAgent?.includes('Android') ? 'android' : 'web';
+    setClientPlatform(platform);
   }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const withTimeout = async (promise, timeoutMs, timeoutMessage) => {
-      let timeoutId;
-      try {
-        return await Promise.race([
-          promise,
-          new Promise((_, reject) => {
-            timeoutId = setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs);
-          }),
-        ]);
-      } finally {
-        if (timeoutId) {
-          clearTimeout(timeoutId);
-        }
-      }
-    };
-
-    const loadNativePurchaseProduct = async () => {
-      if (!Capacitor.isNativePlatform() || pharmaRole !== 'pharmacy' || !user?.uid) {
-        setNativeCreditProduct(null);
-        setNativeCreditProductError('');
-        return;
-      }
-
-      setNativeCreditProductLoading(true);
-      setNativeCreditProductError('');
-
-      try {
-        const configured = await withTimeout(
-          configureRevenueCatForUser({
-            appUserId: user.uid,
-            email: user.email || userData?.email || '',
-            displayName: userData?.contactName || userData?.displayName || userData?.pharmacyName || '',
-          }),
-          12000,
-          'NATIVE_STORE_TIMEOUT_CONFIGURE_REVENUECAT'
-        );
-
-        if (!configured) {
-          throw new Error('NATIVE_STORE_PAYMENTS_NOT_CONFIGURED');
-        }
-
-        const nativeProductLookup = await withTimeout(
-          getNativeDemandCreditStoreProduct(userData || {}),
-          15000,
-          'NATIVE_STORE_TIMEOUT_FETCH_PRODUCT'
-        );
-        const { product } = nativeProductLookup;
-        if (!product) {
-          const lookupDetails = [
-            `platform=${Capacitor.getPlatform()}`,
-            `requested=${nativeProductLookup?.requestedProductId || '-'}`,
-            `attempted=${Array.isArray(nativeProductLookup?.attemptedProductIds) ? nativeProductLookup.attemptedProductIds.join(',') : '-'}`,
-            `kind=${nativeProductLookup?.kind || '-'}`,
-          ].join(' | ');
-          throw new Error(`NATIVE_STORE_PRODUCT_UNAVAILABLE | ${lookupDetails}`);
-        }
-
-        if (!cancelled) {
-          setNativeCreditProduct(product);
-        }
-      } catch (error) {
-        console.error('Error loading native credit product:', error);
-        if (!cancelled) {
-          setNativeCreditProduct(null);
-          setNativeCreditProductError(error?.message || 'NATIVE_STORE_PRODUCT_UNAVAILABLE');
-        }
-      } finally {
-        if (!cancelled) {
-          setNativeCreditProductLoading(false);
-        }
-      }
-    };
-
-    loadNativePurchaseProduct();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [pharmaRole, user?.uid, user?.email, userData]);
 
   useEffect(() => {
     console.log('🔄 PharmaDashboard useEffect triggered - user:', user?.uid, 'pharmaRole:', pharmaRole);
@@ -622,47 +529,19 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
     }
   };
 
-  const handleRequestCreditPackage = async () => {
-    if (!user) return;
-
-    if (isNativeApp) {
-      setRequestingCredits(true);
-      try {
-        await configureRevenueCatForUser({
-          appUserId: user.uid,
-          email: user.email || userData?.email || '',
-          displayName: userData?.contactName || userData?.displayName || userData?.pharmacyName || '',
-        });
-
-        const product = nativeCreditProduct || (await getNativeDemandCreditStoreProduct(userData || {})).product;
-        if (!product) {
-          throw new Error('NATIVE_STORE_PRODUCT_UNAVAILABLE');
-        }
-
-        await purchaseNativeDemandCreditProduct(product);
-        alert(market === 'de'
-          ? 'Kauf erfolgreich gestartet. Die Credits werden nach der Store-Bestaetigung automatisch gutgeschrieben.'
-          : 'A vásárlás sikeresen elindult. A kredit a store visszaigazolása után automatikusan jóváíródik.');
-        await loadData();
-      } catch (error) {
-        if (error?.userCancelled) {
-          return;
-        }
-
-        console.error('Error requesting native credit package:', error);
-        alert(market === 'de'
-          ? 'Fehler beim Starten des In-App-Kaufs.'
-          : 'Hiba történt az alkalmazáson belüli vásárlás indításakor.');
-      } finally {
-        setRequestingCredits(false);
-      }
+  const submitServiceFrameRequest = async () => {
+    if (!user) {
+      alert(market === 'de'
+        ? 'Bitte melde dich zuerst an, damit die Anfrage gespeichert werden kann.'
+        : 'Kérjük, előbb jelentkezz be, hogy az igénylés elmentésre kerüljön.');
       return;
     }
 
     setRequestingCredits(true);
+    setServiceFrameRequestNotice('');
     try {
       const idToken = await user.getIdToken();
-      const response = await fetch('/api/payments/create-checkout-session', {
+      const response = await fetch('/api/pharmagister/service-request', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -673,25 +552,36 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
 
       const result = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(result?.error || 'CHECKOUT_SESSION_FAILED');
+        throw new Error(result?.error || 'SERVICE_REQUEST_FAILED');
       }
 
-      if (result?.url) {
-        window.location.href = result.url;
-        return;
-      }
-
-      alert(result?.message || (market === 'de'
-        ? 'Kaufanfrage gespeichert.'
-        : 'A csomagigeny rogzitve lett.'));
-    } catch (error) {
-      console.error('Error requesting credit package:', error);
+      setShowServiceTermsModal(false);
+      setServiceTermsAccepted(false);
+      setServiceFrameRequestNotice(market === 'de'
+        ? 'Die Anfrage wurde erfolgreich im Admin-Posteingang angelegt.'
+        : 'Az igénylés sikeresen létrejött az admin belső üzenetkezelőjében.');
+      router.refresh();
       alert(market === 'de'
-        ? 'Fehler beim Starten der Zahlung.'
-        : 'Hiba tortent a fizetes inditasakor.');
+        ? 'Die Anfrage wurde direkt im internen Admin-Posteingang angelegt. Der Administrator sieht den Service-Frame mit den Rechnungsdaten sofort.'
+        : 'Az igénylés azonnal bekerült az admin belső üzenetkezelőjébe, ahol a szolgáltatási keret és a számlaadatok együtt látszanak.');
+    } catch (error) {
+      console.error('Error creating service frame request:', error);
+      setServiceFrameRequestNotice(market === 'de'
+        ? 'Fehler beim Anlegen der internen Anfrage.'
+        : 'Hiba történt a belső igénylés létrehozásakor.');
+      alert(market === 'de'
+        ? 'Fehler beim Anlegen der internen Anfrage.'
+        : 'Hiba történt a belső igénylés létrehozásakor.');
     } finally {
       setRequestingCredits(false);
+      setServiceTermsAccepted(false);
     }
+  };
+
+  const openServiceFrameTerms = () => {
+    setServiceFrameRequestNotice('');
+    setServiceTermsAccepted(false);
+    setShowServiceTermsModal(true);
   };
 
   const handleCancelApplication = async (applicationId) => {
@@ -770,94 +660,116 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
 
           <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-[#F9FAFB] border-[#E5E7EB]'} border rounded-xl p-3`}>
             <p className={`text-sm font-semibold ${darkMode ? 'text-white' : 'text-[#111827]'}`}>
-              {market === 'de' ? 'Anfrage-Credits' : 'Igényfeladási keret'}: {creditBalance.remainingCredits} / {creditBalance.totalCredits}
+              {market === 'de' ? 'Service-Frame' : 'Szolgáltatási keret'}: {creditBalance.remainingCredits} / {creditBalance.totalCredits}
             </p>
             <p className={`text-xs mt-1 ${darkMode ? 'text-gray-300' : 'text-[#4B5563]'}`}>
               {market === 'de'
-                ? `${packageOffer.packageCredits} Vertretungsanfragen aufgeben = ${packageOffer.basePriceHuf} Ft.`
-                : `${packageOffer.packageCredits} helyettesítési igény feladása = ${packageOffer.basePriceHuf} Ft.`}
+                ? `${packageOffer.packageCredits} Vertretungsanfragen pro Service-Frame.`
+                : `${packageOffer.packageCredits} helyettesítési igény egy szolgáltatási keretben.`}
             </p>
             <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-[#6B7280]'}`}>
               {market === 'de'
-                ? `Gruendungsapotheken (Registrierung bis 01.09.2026 + vollstaendiges Profil) erhalten ${packageOffer.packageCredits} Vertretungsanfragen fuer ${packageOffer.founderPriceHuf} Ft.`
-                : `Alapítói gyógyszertárak (regisztráció 2026.09.01-ig + hiánytalan profil) ${packageOffer.packageCredits} helyettesítési igény feladását ${packageOffer.founderPriceHuf} Ft áron kapnak.`}
+                ? 'Die Anfrage wird direkt im internen Admin-Posteingang angelegt; dort erscheint der Service-Frame mit den Rechnungsdaten sofort.'
+                : 'Az igénylés közvetlenül az admin belső üzenetkezelőjébe kerül, ahol a szolgáltatási keret és a számlaadatok együtt jelennek meg.'}
             </p>
-            <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-[#6B7280]'}`}>
+            <button
+              type="button"
+              onClick={openServiceFrameTerms}
+              disabled={requestingCredits}
+              className={`mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${requestingCredits
+                ? (darkMode ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-[#E5E7EB] text-[#6B7280] cursor-not-allowed')
+                : 'bg-[#6B46C1] text-white hover:bg-[#5a3aa3]'}`}
+            >
+              {requestingCredits && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              {market === 'de' ? 'Service-Frame anfragen' : 'Szolgáltatási keret igénylése'}
+            </button>
+            <p className={`mt-2 text-[11px] ${darkMode ? 'text-gray-400' : 'text-[#6B7280]'}`}>
               {market === 'de'
-                ? `Gruendungsrabatt gilt im festen Zeitraum 01.09.2026-01.03.2027${packageOffer.founder?.validUntil ? ` (bis ${new Date(packageOffer.founder.validUntil).toLocaleDateString('de-DE')})` : ''}.`
-                : `Az alapítói kedvezmény fix időszakban érvényes: 2026.09.01-2027.03.01${packageOffer.founder?.validUntil ? ` (eddig: ${new Date(packageOffer.founder.validUntil).toLocaleDateString('hu-HU')})` : ''}.`}
+                ? 'Fälligkeit: 8 Tage ab Antragstellung. Wenn der Admin nicht bestätigt, verfällt der Rahmen automatisch.'
+                : 'Fizetési határidő: 8 nap az igényléstől. Ha az admin nem igazolja a beérkezést, a keret automatikusan lejár.'}
             </p>
-            {(creditBalance.decreaseActive || isNativeApp) && (
-              <>
-                <p className={`mt-3 text-[11px] ${darkMode ? 'text-gray-300' : 'text-[#4B5563]'}`}>
-                  {isNativeApp
-                    ? (market === 'de'
-                        ? 'In der mobilen App werden Kreditpakete ueber offizielle In-App-Kaeufe des Stores abgewickelt.'
-                        : 'A mobilalkalmazásban a kreditcsomagok vásárlása a store hivatalos alkalmazáson belüli fizetésével történik.')
-                    : (market === 'de'
-                        ? 'Die Webversion bleibt kostenlos nutzbar. Zahlungen fuer Kreditpakete werden ueber Stripe Checkout im Browser abgewickelt.'
-                        : 'A webes verzio ingyenesen hasznalhato. A kreditcsomagok fizetese bongeszoben, Stripe Checkouttal tortenik.')}
-                </p>
-                {isNativeApp ? (
-                  <div className="mt-2 space-y-2">
-                    <div className={`rounded-lg px-3 py-2 text-xs ${darkMode ? 'bg-gray-700 text-gray-200' : 'bg-white text-[#4B5563] border border-[#E5E7EB]'}`}>
-                      {nativeCreditProductLoading
-                        ? (market === 'de' ? 'Store-Produkt wird geladen...' : 'Store-termék betöltése...')
-                        : nativeCreditProduct
-                          ? (market === 'de'
-                              ? `Store-Preis: ${formatNativeStorePrice(nativeCreditProduct.priceString, packageOffer.finalPriceHuf)}`
-                              : `Store ár: ${formatNativeStorePrice(nativeCreditProduct.priceString, packageOffer.finalPriceHuf)}`)
-                          : (market === 'de'
-                              ? 'Der In-App-Kauf ist erst nach Store-Produktkonfiguration verfuegbar.'
-                              : 'Az alkalmazáson belüli vásárlás a store termékek konfigurálása után lesz elérhető.')}
-                    </div>
-                    {nativeCreditProductError && !nativeCreditProductLoading && (
-                      <div className={`space-y-1 text-[11px] ${darkMode ? 'text-amber-300' : 'text-amber-700'}`}>
-                        <p>
-                          {market === 'de'
-                            ? 'Store-Produkt momentan nicht verfuegbar (RevenueCat/Store-Konfiguration oder Tester-Zugang).'
-                            : 'A store termék jelenleg nem érhető el (RevenueCat/store konfiguráció vagy tesztelő hozzáférés).'}
-                        </p>
-                        <p className={darkMode ? 'text-gray-400' : 'text-[#6B7280]'}>
-                          {isNativeApp && clientPlatform === 'android'
-                            ? (market === 'de'
-                                ? 'Android: nur mit Play-Store-Install aus internem/geschlossenem Test und freigegebenem Tester-Account sichtbar.'
-                                : 'Android: csak Play Store-ból telepített (belső/zárt teszt) builddel és engedélyezett tesztelő fiókkal látszik.')
-                            : (market === 'de'
-                                ? 'iOS: In-App-Kauf-Produkte in App Store Connect/RevenueCat pruefen (Status, Bundle-ID, Produkt-ID, Tester-Account).'
-                                : 'iOS: ellenőrizd az In-App Purchase termékeket App Store Connectben/RevenueCatben (státusz, bundle ID, product ID, tesztelő fiók).')}
-                        </p>
-                        <p className={`${darkMode ? 'text-gray-500' : 'text-[#9CA3AF]'} break-all`}>
-                          {nativeCreditProductError}
-                        </p>
-                      </div>
-                    )}
-                    <button
-                      type="button"
-                      onClick={handleRequestCreditPackage}
-                      disabled={requestingCredits || nativeCreditProductLoading || !nativeCreditProduct}
-                      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${requestingCredits || nativeCreditProductLoading || !nativeCreditProduct
-                        ? (darkMode ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-[#E5E7EB] text-[#6B7280] cursor-not-allowed')
-                        : 'bg-[#6B46C1] text-white hover:bg-[#5a3aa3]'}`}
-                    >
-                      {requestingCredits && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                      {market === 'de' ? 'Paket im Store kaufen' : 'Csomag vásárlása az appban'}
-                    </button>
+            {serviceFrameRequestNotice && (
+              <div className={`mt-3 rounded-lg border px-3 py-2 text-xs ${darkMode ? 'border-emerald-700 bg-emerald-900/30 text-emerald-200' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>
+                {serviceFrameRequestNotice}
+              </div>
+            )}
+            {showServiceTermsModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+                <div className={`${darkMode ? 'bg-[#111827] border-gray-700 text-white' : 'bg-white border-gray-200 text-gray-900'} w-full max-w-lg rounded-2xl border shadow-2xl overflow-hidden`}>
+                  <div className="p-5 border-b border-gray-200 dark:border-gray-700">
+                    <h3 className="text-xl font-bold text-center">
+                      {market === 'de' ? 'Vertragsbedingungen und Rückerstattung' : 'Szerződéses feltételek és visszatérítés'}
+                    </h3>
                   </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleRequestCreditPackage}
-                    disabled={requestingCredits}
-                    className={`mt-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${requestingCredits
-                      ? (darkMode ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-[#E5E7EB] text-[#6B7280] cursor-not-allowed')
-                      : 'bg-[#6B46C1] text-white hover:bg-[#5a3aa3]'}`}
-                  >
-                    {requestingCredits && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                    {market === 'de' ? 'Neues Paket anfragen' : 'Új csomag igénylése'}
-                  </button>
-                )}
-              </>
+                  <div className="flex max-h-[76vh] flex-col">
+                    <div className="p-5 overflow-y-auto text-sm leading-relaxed flex-1">
+                      <p className="mb-3 font-medium">
+                        {market === 'de'
+                          ? 'Bitte lesen Sie die folgenden Bedingungen vor der Anfrage sorgfältig durch.'
+                          : 'Kérjük, a kérelmezés előtt figyelmesen olvassa el az alábbi feltételeket.'}
+                      </p>
+                      <p className="mb-3">
+                        {market === 'de'
+                          ? 'Der Service-Frame ist ein B2B-Dienst für Apotheken: Er stellt einen vorab vereinbarten Rahmen für die Veröffentlichung von Ersatzbedarf zur Verfügung. Der Antrag ist freiwillig und dient der Bereitstellung eines zeitlich begrenzten, nach Zahlungseingang bestätigten Dienstes.'
+                          : 'A szolgáltatási keret gyógyszertári B2B szolgáltatás: előre meghatározott keretet biztosít a helyettesítési igények feladásához. Az igénylést a gyógyszertár önkéntes megrendelésként nyújtja be, és a szolgáltatás a fizetés ellenőrzését követően, korlátozott időtartamra kerül rendelkezésre bocsátásra.'}
+                      </p>
+                      <p className="mb-3">
+                        {market === 'de'
+                          ? 'Die Zahlung muss innerhalb von 8 Tagen nach Antragstellung erfolgen. Nach der Freigabe werden die zugehörigen Kredite sofort gutgeschrieben. Der Status bleibt zunächst „pending”, bis der Admin den Zahlungseingang bestätigt.'
+                          : 'A fizetés a kérelmezéstől számított 8 napon belül teljesítendő. A jóváhagyás után a kapcsolódó kreditek azonnal jóváírásra kerülnek. A státusz a fizetési igazolásig „pending” marad, az admin a beérkezett összeg ellenőrzését követően állítja a státuszt.'}
+                      </p>
+                      <p className="mb-3">
+                        {market === 'de'
+                          ? 'Wenn der Admin innerhalb dieser Frist den Zahlungseingang nicht bestätigt, verfällt der Service-Frame automatisch und die im Rahmen dieses Kurses angelegten Ersatzbedarf-Anfragen werden gelöscht.'
+                          : 'Ha az admin a határidőn belül nem igazolja a beérkezett összeget, a szolgáltatási keret automatikusan lejár, és a kerethez kapcsolódó helyettesítési igények törlésre kerülnek.'}
+                      </p>
+                      <p className="mb-3">
+                        {market === 'de'
+                          ? 'Für diese Dienstleistung gilt im Regelfall kein allgemeines 14-Tage-Widerrufsrecht nach dem Verbraucherschutzgesetz, weil die Dienstleistung als B2B- bzw. geschäftliche Leistung zwischen Unternehmen und Apotheken erbracht wird. Ein Rückerstattungsanspruch kann nur dann entstehen, wenn dies ausdrücklich vereinbart wurde, ein Verstoß der Betreiberseite vorliegt oder eine andere gesetzliche Vorschrift dies zwingend erfordert.'
+                          : 'E szolgáltatás esetében általános 14 napos elállási jog a fogyasztói jogszabályok alapján általában nem érvényes, mivel a szolgáltatás vállalkozási/gyógyszertári B2B megrendelésnek minősül. Visszatérítés csak akkor lehetséges, ha azt kifejezetten megállapodásban rögzítik, a szolgáltató hibájából vagy más, jogszabály által kötelezően előírt esetben kerül sor rá.'}
+                      </p>
+                      <p className="mb-3">
+                        {market === 'de'
+                          ? 'Die Apotheke bestätigt mit der Anfrage, dass sie die Bedingungen gelesen und verstanden hat und den Dienst auf eigener Verantwortung und im Rahmen der vertraglichen Vereinbarung in Anspruch nimmt.'
+                          : 'A gyógyszertár a kérelmezéssel igazolja, hogy a feltételeket elolvasta és megértette, és a szolgáltatást saját felelősségére, a megállapodás szerint veszi igénybe.'}
+                      </p>
+                      <label className="mt-4 flex items-start gap-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={serviceTermsAccepted}
+                          onChange={(e) => setServiceTermsAccepted(e.target.checked)}
+                          className="mt-1 h-4 w-4 rounded border-gray-300 text-[#6B46C1] focus:ring-[#6B46C1]"
+                        />
+                        <span className="text-xs">
+                          {market === 'de'
+                            ? 'Ich habe die Vertragsbedingungen und die Rückerstattungsinformationen gelesen und akzeptiere sie.'
+                            : 'Elolvastam és elfogadom a szerződéses feltételeket és a visszatérítési tájékoztatót.'}
+                        </span>
+                      </label>
+                    </div>
+                    <div className="flex gap-3 p-4 border-t border-gray-200 dark:border-gray-700 bg-white/90 backdrop-blur-sm sticky bottom-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowServiceTermsModal(false);
+                          setServiceTermsAccepted(false);
+                        }}
+                        className="flex-1 rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-gray-700 bg-white hover:bg-gray-100"
+                      >
+                        {market === 'de' ? 'Abbrechen' : 'Mégse'}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={!serviceTermsAccepted || requestingCredits}
+                        onClick={submitServiceFrameRequest}
+                        className={`flex-1 rounded-xl px-4 py-3 text-sm font-semibold text-white ${!serviceTermsAccepted || requestingCredits ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#6B46C1] hover:bg-[#5a3aa3]'}`}
+                      >
+                        {requestingCredits ? <Loader2 className="mx-auto w-4 h-4 animate-spin" /> : (market === 'de' ? 'Akzeptieren und weiter' : 'Elfogadom és tovább')}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
 

@@ -22,6 +22,19 @@ function asNumber(value, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function asDate(value) {
+  if (!value) return null;
+  if (typeof value?.toDate === 'function') {
+    try {
+      return value.toDate();
+    } catch (_) {
+      return null;
+    }
+  }
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 function getCopy(market) {
   if (market === 'de') {
     return {
@@ -97,6 +110,11 @@ export async function GET(request) {
         || owner?.pharmacyName
         || data.pharmacyName
         || '';
+      const createdAt = asDate(data.createdAt);
+      const dueAtFallback = createdAt ? new Date(createdAt.getTime() + (8 * 24 * 60 * 60 * 1000)) : null;
+      const dueAt = asDate(data.dueAt) || dueAtFallback;
+      const paymentDueAt = dueAt ? dueAt.toISOString() : null;
+      const daysLeft = dueAt ? Math.max(0, Math.ceil((dueAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24))) : null;
       return {
         id: doc.id,
         userId: data.userId || '',
@@ -117,6 +135,11 @@ export async function GET(request) {
         createdAt: toIso(data.createdAt),
         updatedAt: toIso(data.updatedAt),
         creditedAt: toIso(data.creditedAt),
+        dueAt: paymentDueAt,
+        daysLeft,
+        serviceRequestType: data.serviceRequestType || 'service_frame_request',
+        sentToAdminEmail: data.sentToAdminEmail || '',
+        invoiceSummary: data.invoiceSummary || null,
       };
     });
 

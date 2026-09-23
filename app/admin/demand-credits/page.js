@@ -15,10 +15,20 @@ function formatDate(value, locale) {
 }
 
 function statusBadge(status) {
-  if (status === 'credited') return 'bg-green-100 text-green-700';
-  if (status === 'rejected' || status === 'cancelled') return 'bg-red-100 text-red-700';
-  if (status === 'paid_confirmed') return 'bg-blue-100 text-blue-700';
+  if (status === 'credited' || status === 'paid_confirmed') return 'bg-green-100 text-green-700';
+  if (status === 'rejected' || status === 'cancelled' || status === 'expired') return 'bg-red-100 text-red-700';
   return 'bg-amber-100 text-amber-700';
+}
+
+function getServiceFrameCountdown(dueAt, status) {
+  if (!dueAt) return 'Nincs hataridő';
+  if (status === 'paid_confirmed' || status === 'credited') return 'Fizetés igazolva';
+  if (status === 'expired') return 'Lejárt';
+  const deadline = new Date(dueAt);
+  const delta = deadline.getTime() - Date.now();
+  if (delta <= 0) return 'Lejárt';
+  const totalDays = Math.ceil(delta / (1000 * 60 * 60 * 24));
+  return `${totalDays} nap maradt`;
 }
 
 export default function AdminDemandCreditsPage() {
@@ -67,6 +77,15 @@ export default function AdminDemandCreditsPage() {
     setError('');
     try {
       const headers = await authHeaders();
+      const expireResponse = await fetch('/api/admin/demand-credits/expire-overdue', {
+        method: 'POST',
+        headers,
+      });
+      const expireResult = await expireResponse.json().catch(() => ({}));
+      if (!expireResponse.ok && expireResult?.code !== 'FORBIDDEN') {
+        console.warn('Overdue cleanup failed:', expireResult);
+      }
+
       const response = await fetch('/api/admin/demand-credits/overview', { headers });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) {
@@ -141,12 +160,12 @@ export default function AdminDemandCreditsPage() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
               <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-                {market === 'de' ? 'Kredit-Kauefe Admin' : 'Kreditvasarlas Admin'}
+                {market === 'de' ? 'Service-Frame Anfragen Admin' : 'Szolgáltatási keret igénylések admin'}
               </h1>
               <p className="text-sm text-gray-600 mt-1">
                 {market === 'de'
-                  ? 'Vollstaendige Bearbeitung fuer Kaufanfragen und Credits.'
-                  : 'Teljeskoru kezeles: vasarlasi igenyek, jovairas, kredit modositas.'}
+                  ? 'E-Mail-Anfragen, Zahlungsbestätigung, 8-Tage-Hinweis und automatische Ablaufverarbeitung.'
+                  : 'E-mailes igénylések, fizetés ellenőrzése, 8 napos határidő és automatikus lejáratkezelés.'}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -182,11 +201,11 @@ export default function AdminDemandCreditsPage() {
             <p className="text-2xl font-bold text-gray-900 mt-1">{pharmacies.length}</p>
           </div>
           <div className="bg-white rounded-xl shadow p-4">
-            <p className="text-xs uppercase text-gray-500">{market === 'de' ? 'Kaufanfragen' : 'Vasarlasi igenyek'}</p>
+            <p className="text-xs uppercase text-gray-500">{market === 'de' ? 'Service-Frame Anfragen' : 'Szolgáltatási keret igénylések'}</p>
             <p className="text-2xl font-bold text-gray-900 mt-1">{purchaseIntents.length}</p>
           </div>
           <div className="bg-white rounded-xl shadow p-4">
-            <p className="text-xs uppercase text-gray-500">{market === 'de' ? 'Noch offen' : 'Nyitott tetelek'}</p>
+            <p className="text-xs uppercase text-gray-500">{market === 'de' ? 'Noch offen' : 'Nyitott tételek'}</p>
             <p className="text-2xl font-bold text-gray-900 mt-1">{purchaseIntents.filter((x) => x.status === 'pending_payment').length}</p>
           </div>
           <div className="bg-white rounded-xl shadow p-4">
@@ -234,7 +253,7 @@ export default function AdminDemandCreditsPage() {
         <div className="bg-white rounded-xl shadow p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between mb-4">
             <h2 className="text-lg font-bold text-gray-900">
-              {market === 'de' ? 'Kaufanfragen' : 'Vasarlasi igenyek'}
+              {market === 'de' ? 'Service-Frame Anfragen' : 'Szolgáltatási keret igénylések'}
             </h2>
             <div className="flex flex-col sm:flex-row gap-2">
               <input
@@ -250,10 +269,11 @@ export default function AdminDemandCreditsPage() {
               >
                 <option value="all">{market === 'de' ? 'Alle Status' : 'Minden statusz'}</option>
                 <option value="pending_payment">pending_payment</option>
+                <option value="paid_confirmed">paid_confirmed</option>
                 <option value="credited">credited</option>
                 <option value="rejected">rejected</option>
+                <option value="expired">expired</option>
                 <option value="cancelled">cancelled</option>
-                <option value="paid_confirmed">paid_confirmed</option>
               </select>
             </div>
           </div>
@@ -271,11 +291,21 @@ export default function AdminDemandCreditsPage() {
                     <p className="text-xs text-gray-700">{market === 'de' ? 'Apotheke' : 'Gyogyszertar'}: {intent.pharmacyName || '-'}</p>
                     <p className="text-xs text-gray-600">{intent.email || '-'} | {intent.id}</p>
                     <p className="text-xs text-gray-600">
-                      {market === 'de' ? 'Paket' : 'Csomag'}: {intent.packageCredits} | {market === 'de' ? 'Preis' : 'Ar'}: {intent.finalPriceHuf} Ft
+                      {market === 'de' ? 'Service-Frame' : 'Szolgáltatási keret'}: {intent.packageCredits} | {market === 'de' ? 'Preis' : 'Ar'}: {intent.finalPriceHuf} Ft
                       {intent.founderDiscountApplied ? ' | 50% founder' : ''}
+                    </p>
+                    {intent.invoiceSummary && (
+                      <p className="text-xs text-gray-600">
+                        {market === 'de' ? 'Rechnungsdaten' : 'Számlaadatok'}: {intent.invoiceSummary.companyName || intent.invoiceSummary.pharmacyName || intent.pharmacyName || '-'} | {intent.invoiceSummary.email || intent.email || '-'} | {intent.invoiceSummary.phone || '-'}
+                      </p>
+                    )}
+                    <p className="text-xs text-gray-600">
+                      {market === 'de' ? 'Zahlung bis' : 'Fizetesi hatarido'}: {formatDate(intent.dueAt, locale)}
                     </p>
                     <p className="text-xs text-gray-500">
                       {market === 'de' ? 'Erstellt' : 'Letrehozva'}: {formatDate(intent.createdAt, locale)}
+                      {' | '}
+                      {getServiceFrameCountdown(intent.dueAt, intent.status)}
                     </p>
                   </div>
                   <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${statusBadge(intent.status)}`}>
@@ -301,17 +331,17 @@ export default function AdminDemandCreditsPage() {
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button
                     type="button"
-                    disabled={saving || intent.status === 'credited'}
+                    disabled={saving || intent.status === 'paid_confirmed' || intent.status === 'credited'}
                     onClick={() => postAction('/api/admin/demand-credits/purchase-intents', {
                       intentId: intent.id,
-                      action: 'approve_and_credit',
+                      action: 'confirm_payment',
                       paymentRef: paymentRefByIntent[intent.id] ?? intent.paymentRef ?? '',
                       adminNote: noteByIntent[intent.id] ?? intent.adminNote ?? '',
                     })}
                     className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-semibold disabled:opacity-60"
                   >
                     <CheckCircle2 className="w-3.5 h-3.5" />
-                    {market === 'de' ? 'Bezahlt + gutschreiben' : 'Fizetett + jovairas'}
+                    {market === 'de' ? 'Bezahlung eingegangen' : 'Bevétel megérkezett'}
                   </button>
 
                   <button
