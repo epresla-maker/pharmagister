@@ -561,10 +561,17 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
 
       setShowServiceTermsModal(false);
       setServiceTermsAccepted(false);
-      setServiceFrameRequestState('success');
-      setServiceFrameRequestNotice(market === 'de'
-        ? 'Service-Frame aktiviert.'
-        : 'Keret aktiválva.');
+      if (result?.alreadyPending) {
+        setServiceFrameRequestState('already_pending');
+        setServiceFrameRequestNotice(market === 'de'
+          ? 'Es liegt bereits eine offene Anfrage vor, die auf die Bestätigung durch den Admin wartet.'
+          : 'Már van folyamatban lévő igénylésed, ami az admin jóváhagyására vár.');
+      } else {
+        setServiceFrameRequestState('success');
+        setServiceFrameRequestNotice(market === 'de'
+          ? 'Anfrage gesendet. Der Rahmen wird erst nach Bestätigung der Zahlung durch den Admin aktiviert.'
+          : 'Igénylés elküldve. A keret csak az admin fizetés-jóváhagyása után aktiválódik.');
+      }
       router.refresh();
     } catch (error) {
       console.error('Error creating service frame request:', error);
@@ -695,7 +702,13 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
             {serviceFrameRequestState === 'success' && (
               <div className={`mt-3 flex items-center gap-2 rounded-xl border px-3 py-3 text-sm font-semibold ${darkMode ? 'border-emerald-700 bg-emerald-900/30 text-emerald-200' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>
                 <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white text-xs">✓</span>
-                {market === 'de' ? 'Service-Frame aktiviert' : 'Keret aktiválva'}
+                {serviceFrameRequestNotice || (market === 'de' ? 'Anfrage gesendet, wartet auf Bestätigung' : 'Igénylés elküldve, jóváhagyásra vár')}
+              </div>
+            )}
+            {serviceFrameRequestState === 'already_pending' && (
+              <div className={`mt-3 flex items-center gap-2 rounded-xl border px-3 py-3 text-sm font-semibold ${darkMode ? 'border-amber-700 bg-amber-900/30 text-amber-200' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>
+                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-white text-xs">i</span>
+                {serviceFrameRequestNotice}
               </div>
             )}
             {serviceFrameRequestState === 'error' && (

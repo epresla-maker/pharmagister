@@ -24,6 +24,26 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Csak gyogyszertar fiok tud keretigénylést küldeni.', code: 'PHARMACY_ONLY' }, { status: 403 });
     }
 
+    const existingPendingSnap = await db.collection('demandCreditPurchaseIntents')
+      .where('userId', '==', authUser.uid)
+      .where('status', '==', 'pending_payment')
+      .orderBy('createdAt', 'desc')
+      .limit(1)
+      .get();
+
+    if (!existingPendingSnap.empty) {
+      const existingDoc = existingPendingSnap.docs[0];
+      const existingData = existingDoc.data() || {};
+      const existingDueAt = existingData.dueAt?.toDate?.() || null;
+      return NextResponse.json({
+        success: true,
+        alreadyPending: true,
+        requestId: existingDoc.id,
+        dueAt: existingDueAt ? existingDueAt.toISOString() : null,
+        queue: 'internal_admin_queue',
+      });
+    }
+
     const offer = getDemandPackageOffer(userData || {});
     const packageCredits = Math.max(1, Number(offer?.packageCredits || 1));
     const finalPriceHuf = Math.max(0, Number(offer?.finalPriceHuf || 0));
