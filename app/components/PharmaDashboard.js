@@ -30,6 +30,7 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
   const [showServiceTermsModal, setShowServiceTermsModal] = useState(false);
   const [serviceTermsAccepted, setServiceTermsAccepted] = useState(false);
   const [serviceFrameRequestNotice, setServiceFrameRequestNotice] = useState('');
+  const [serviceFrameRequestState, setServiceFrameRequestState] = useState('idle');
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -537,8 +538,11 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
       return;
     }
 
+    if (requestingCredits) return;
+
     setRequestingCredits(true);
     setServiceFrameRequestNotice('');
+    setServiceFrameRequestState('pending');
     try {
       const idToken = await user.getIdToken();
       const response = await fetch('/api/pharmagister/service-request', {
@@ -557,15 +561,14 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
 
       setShowServiceTermsModal(false);
       setServiceTermsAccepted(false);
+      setServiceFrameRequestState('success');
       setServiceFrameRequestNotice(market === 'de'
-        ? 'Die Anfrage wurde erfolgreich im Admin-Posteingang angelegt.'
-        : 'Az igénylés sikeresen létrejött az admin belső üzenetkezelőjében.');
+        ? 'Service-Frame aktiviert.'
+        : 'Keret aktiválva.');
       router.refresh();
-      alert(market === 'de'
-        ? 'Die Anfrage wurde direkt im internen Admin-Posteingang angelegt. Der Administrator sieht den Service-Frame mit den Rechnungsdaten sofort.'
-        : 'Az igénylés azonnal bekerült az admin belső üzenetkezelőjébe, ahol a szolgáltatási keret és a számlaadatok együtt látszanak.');
     } catch (error) {
       console.error('Error creating service frame request:', error);
+      setServiceFrameRequestState('error');
       setServiceFrameRequestNotice(market === 'de'
         ? 'Fehler beim Anlegen der internen Anfrage.'
         : 'Hiba történt a belső igénylés létrehozásakor.');
@@ -579,6 +582,7 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
   };
 
   const openServiceFrameTerms = () => {
+    setServiceFrameRequestState('idle');
     setServiceFrameRequestNotice('');
     setServiceTermsAccepted(false);
     setShowServiceTermsModal(true);
@@ -688,9 +692,20 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
                 ? 'Fälligkeit: 8 Tage ab Antragstellung. Wenn der Admin nicht bestätigt, verfällt der Rahmen automatisch.'
                 : 'Fizetési határidő: 8 nap az igényléstől. Ha az admin nem igazolja a beérkezést, a keret automatikusan lejár.'}
             </p>
-            {serviceFrameRequestNotice && (
-              <div className={`mt-3 rounded-lg border px-3 py-2 text-xs ${darkMode ? 'border-emerald-700 bg-emerald-900/30 text-emerald-200' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>
+            {serviceFrameRequestState === 'success' && (
+              <div className={`mt-3 flex items-center gap-2 rounded-xl border px-3 py-3 text-sm font-semibold ${darkMode ? 'border-emerald-700 bg-emerald-900/30 text-emerald-200' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>
+                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white text-xs">✓</span>
+                {market === 'de' ? 'Service-Frame aktiviert' : 'Keret aktiválva'}
+              </div>
+            )}
+            {serviceFrameRequestState === 'error' && (
+              <div className={`mt-3 rounded-lg border px-3 py-2 text-xs ${darkMode ? 'border-red-700 bg-red-900/30 text-red-200' : 'border-red-200 bg-red-50 text-red-700'}`}>
                 {serviceFrameRequestNotice}
+              </div>
+            )}
+            {serviceFrameRequestState === 'pending' && (
+              <div className={`mt-3 rounded-lg border px-3 py-2 text-xs ${darkMode ? 'border-blue-700 bg-blue-900/30 text-blue-200' : 'border-blue-200 bg-blue-50 text-blue-700'}`}>
+                {market === 'de' ? 'Anfrage wird gesendet...' : 'Az igénylés elküldése...'}
               </div>
             )}
             {showServiceTermsModal && (
@@ -737,7 +752,13 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
                         <input
                           type="checkbox"
                           checked={serviceTermsAccepted}
-                          onChange={(e) => setServiceTermsAccepted(e.target.checked)}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setServiceTermsAccepted(checked);
+                            if (checked) {
+                              submitServiceFrameRequest();
+                            }
+                          }}
                           className="mt-1 h-4 w-4 rounded border-gray-300 text-[#6B46C1] focus:ring-[#6B46C1]"
                         />
                         <span className="text-xs">
