@@ -52,7 +52,7 @@ export async function POST(request) {
     if (!intentId) {
       return NextResponse.json({ error: copy.missingIntentId, code: 'MISSING_INTENT_ID' }, { status: 400 });
     }
-    if (action !== 'approve_and_credit' && action !== 'set_status') {
+    if (action !== 'approve_and_credit' && action !== 'confirm_payment' && action !== 'set_status') {
       return NextResponse.json({ error: copy.invalidAction, code: 'INVALID_ACTION' }, { status: 400 });
     }
 
@@ -72,10 +72,55 @@ export async function POST(request) {
       const userId = String(intent.userId || '');
 
       if (action === 'set_status') {
+        const resolvedStatus = nextStatus || intent.status || 'pending_payment';
+        const shouldRevertCredit = ['rejected', 'cancelled'].includes(resolvedStatus)
+          && intent.status === 'pending_payment'
+          && !intent.creditReverted
+          && asInt(intent.creditedCredits, 0) > 0;
+
+        if (shouldRevertCredit && userId) {
+          const userRef = db.collection('users').doc(userId);
+          const userSnap = await tx.get(userRef);
+          if (userSnap.exists) {
+            const userData = userSnap.data() || {};
+            const currentTotal = Math.max(0, asInt(userData.demandCreditsTotal, 0));
+            const currentUsed = Math.max(0, asInt(userData.demandCreditsUsed, 0));
+            const revertAmount = asInt(intent.creditedCredits, 0);
+            const nextTotal = Math.max(0, currentTotal - revertAmount);
+
+            tx.update(userRef, {
+              demandCreditsTotal: nextTotal,
+              demandCreditsUsed: Math.min(currentUsed, nextTotal),
+              demandCreditsUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+              demandCreditsUpdatedBy: adminUser.uid,
+              demandCreditsUpdatedByEmail: adminUser.email || '',
+            });
+
+            const logRef = db.collection('demandCreditAdminAdjustments').doc();
+            tx.set(logRef, {
+              userId,
+              userEmail: userData.email || '',
+              pharmacyName: userData.pharmacyName || userData.displayName || '',
+              mode: 'intent_credit_reverted',
+              intentId,
+              delta: -revertAmount,
+              previousTotal: currentTotal,
+              previousUsed: currentUsed,
+              nextTotal,
+              nextUsed: Math.min(currentUsed, nextTotal),
+              note: adminNote || `Keret visszavonva: ${resolvedStatus}`,
+              adminUid: adminUser.uid,
+              adminEmail: adminUser.email || '',
+              createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
+          }
+        }
+
         tx.update(intentRef, {
-          status: nextStatus || intent.status || 'pending_payment',
+          status: resolvedStatus,
           paymentRef,
           adminNote,
+          creditReverted: shouldRevertCredit ? true : Boolean(intent.creditReverted),
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
           updatedByUid: adminUser.uid,
           updatedByEmail: adminUser.email || '',
@@ -83,13 +128,61 @@ export async function POST(request) {
 
         return {
           intentId,
-          status: nextStatus || intent.status || 'pending_payment',
+          status: resolvedStatus,
           userId,
           credited: false,
         };
       }
 
-      if (intent.creditedAt || intent.status === 'credited') {
+      if (action === 'confirm_payment') {
+        if (!userId) {
+          const err = new Error('INTENT_NOT_FOUND');
+          err.code = 'INTENT_NOT_FOUND';
+          throw err;
+        }
+
+        const creditAmount = asInt(intent.creditedCredits, asInt(intent.packageCredits, DEMAND_PACKAGE_SIZE));
+
+        // A keret mar a keretigenyles bekuldesekor automatikusan jovairasra kerult
+        // (lasd: app/api/pharmagister/service-request/route.js). Itt csak a fizetes
+        // igazolasat rogzitjuk, hogy a lejarati automatika ne vonja vissza a keretet.
+        tx.update(intentRef, {
+          status: 'paid_confirmed',
+          creditedCredits: creditAmount,
+          paymentRef,
+          adminNote,
+          creditedAt: intent.creditedAt || admin.firestore.FieldValue.serverTimestamp(),
+          paidConfirmedAt: admin.firestore.FieldValue.serverTimestamp(),
+          creditedByUid: adminUser.uid,
+          creditedByEmail: adminUser.email || '',
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedByUid: adminUser.uid,
+          updatedByEmail: adminUser.email || '',
+        });
+
+        const logRef = db.collection('demandCreditAdminAdjustments').doc();
+        tx.set(logRef, {
+          userId,
+          mode: 'intent_payment_confirmed',
+          intentId,
+          delta: 0,
+          note: adminNote || 'Fizetes igazolva, keret mar korabban jovairva',
+          paymentRef,
+          adminUid: adminUser.uid,
+          adminEmail: adminUser.email || '',
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+        return {
+          intentId,
+          userId,
+          status: 'paid_confirmed',
+          credited: true,
+          creditedCredits: creditAmount,
+        };
+      }
+
+      if (intent.creditedAt || intent.status === 'credited' || intent.status === 'paid_confirmed') {
         const err = new Error('ALREADY_CREDITED');
         err.code = 'ALREADY_CREDITED';
         throw err;

@@ -564,13 +564,13 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
       if (result?.alreadyPending) {
         setServiceFrameRequestState('already_pending');
         setServiceFrameRequestNotice(market === 'de'
-          ? 'Es liegt bereits eine offene Anfrage vor, die auf die Bestätigung durch den Admin wartet.'
-          : 'Már van folyamatban lévő igénylésed, ami az admin jóváhagyására vár.');
+          ? 'Es liegt bereits eine offene Anfrage vor. Der Rahmen bleibt aktiv, solange die Zahlung innerhalb von 8 Tagen bestätigt wird.'
+          : 'Már van folyamatban lévő igénylésed. A keret aktív marad, amíg a fizetést 8 napon belül igazolják.');
       } else {
         setServiceFrameRequestState('success');
         setServiceFrameRequestNotice(market === 'de'
-          ? 'Anfrage gesendet. Der Rahmen wird erst nach Bestätigung der Zahlung durch den Admin aktiviert.'
-          : 'Igénylés elküldve. A keret csak az admin fizetés-jóváhagyása után aktiválódik.');
+          ? 'Der Rahmen wurde sofort gutgeschrieben. Du hast 8 Tage Zeit, die Zahlung abzuschließen, sonst wird der Rahmen automatisch storniert.'
+          : 'A keret azonnal jóváírásra került. 8 napod van a fizetés rendezésére, különben a keret automatikusan visszavonásra kerül.');
       }
       router.refresh();
     } catch (error) {
@@ -680,8 +680,8 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
             </p>
             <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-[#6B7280]'}`}>
               {market === 'de'
-                ? 'Die Anfrage wird direkt im internen Admin-Posteingang angelegt; dort erscheint der Service-Frame mit den Rechnungsdaten sofort.'
-                : 'Az igénylés közvetlenül az admin belső üzenetkezelőjébe kerül, ahol a szolgáltatási keret és a számlaadatok együtt jelennek meg.'}
+                ? 'Der Service-Frame wird sofort gutgeschrieben, keine Admin-Freigabe noetig. Der Admin wird ueber die Anfrage benachrichtigt.'
+                : 'A szolgáltatási keret azonnal jóváírásra kerül, admin engedély nélkül. Az admin csak értesítést kap az igénylésről.'}
             </p>
             <button
               type="button"
@@ -696,13 +696,13 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
             </button>
             <p className={`mt-2 text-[11px] ${darkMode ? 'text-gray-400' : 'text-[#6B7280]'}`}>
               {market === 'de'
-                ? 'Fälligkeit: 8 Tage ab Antragstellung. Wenn der Admin nicht bestätigt, verfällt der Rahmen automatisch.'
-                : 'Fizetési határidő: 8 nap az igényléstől. Ha az admin nem igazolja a beérkezést, a keret automatikusan lejár.'}
+                ? 'Fälligkeit: 8 Tage ab Antragstellung. Wenn die Zahlung bis dahin nicht bestätigt wird, wird der Rahmen automatisch storniert.'
+                : 'Fizetési határidő: 8 nap az igényléstől. Ha a fizetést nem igazolják eddig, a keret automatikusan visszavonásra kerül.'}
             </p>
             {serviceFrameRequestState === 'success' && (
               <div className={`mt-3 flex items-center gap-2 rounded-xl border px-3 py-3 text-sm font-semibold ${darkMode ? 'border-emerald-700 bg-emerald-900/30 text-emerald-200' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>
                 <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white text-xs">✓</span>
-                {serviceFrameRequestNotice || (market === 'de' ? 'Anfrage gesendet, wartet auf Bestätigung' : 'Igénylés elküldve, jóváhagyásra vár')}
+                {serviceFrameRequestNotice || (market === 'de' ? 'Rahmen sofort gutgeschrieben' : 'A keret azonnal jóváírásra került')}
               </div>
             )}
             {serviceFrameRequestState === 'already_pending' && (

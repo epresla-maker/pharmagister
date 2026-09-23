@@ -42,15 +42,11 @@ export default function AdminDemandCreditsPage() {
   const [loadingData, setLoadingData] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [pharmacies, setPharmacies] = useState([]);
   const [purchaseIntents, setPurchaseIntents] = useState([]);
   const [intentFilter, setIntentFilter] = useState('all');
   const [query, setQuery] = useState('');
   const [paymentRefByIntent, setPaymentRefByIntent] = useState({});
   const [noteByIntent, setNoteByIntent] = useState({});
-  const [deltaByUser, setDeltaByUser] = useState({});
-  const [setTotalByUser, setSetTotalByUser] = useState({});
-  const [setUsedByUser, setSetUsedByUser] = useState({});
 
   useEffect(() => {
     if (!loading && (!user || !isAdmin)) {
@@ -91,7 +87,6 @@ export default function AdminDemandCreditsPage() {
       if (!response.ok) {
         throw new Error(result?.error || 'OVERVIEW_FAILED');
       }
-      setPharmacies(result.pharmacies || []);
       setPurchaseIntents(result.purchaseIntents || []);
     } catch (err) {
       setError(err.message || 'LOAD_FAILED');
@@ -138,12 +133,6 @@ export default function AdminDemandCreditsPage() {
       );
     });
   }, [purchaseIntents, intentFilter, query]);
-
-  const nonActivatedPharmacies = useMemo(() => {
-    return pharmacies
-      .filter((item) => !item.isActive)
-      .sort((a, b) => String(a.email || '').localeCompare(String(b.email || '')));
-  }, [pharmacies]);
 
   if (loading || !user || !isAdmin) {
     return (
@@ -195,11 +184,7 @@ export default function AdminDemandCreditsPage() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
-          <div className="bg-white rounded-xl shadow p-4">
-            <p className="text-xs uppercase text-gray-500">{market === 'de' ? 'Apotheken' : 'Gyogyszertarak'}</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">{pharmacies.length}</p>
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="bg-white rounded-xl shadow p-4">
             <p className="text-xs uppercase text-gray-500">{market === 'de' ? 'Service-Frame Anfragen' : 'Szolgáltatási keret igénylések'}</p>
             <p className="text-2xl font-bold text-gray-900 mt-1">{purchaseIntents.length}</p>
@@ -208,46 +193,6 @@ export default function AdminDemandCreditsPage() {
             <p className="text-xs uppercase text-gray-500">{market === 'de' ? 'Noch offen' : 'Nyitott tételek'}</p>
             <p className="text-2xl font-bold text-gray-900 mt-1">{purchaseIntents.filter((x) => x.status === 'pending_payment').length}</p>
           </div>
-          <div className="bg-white rounded-xl shadow p-4">
-            <p className="text-xs uppercase text-gray-500">{market === 'de' ? 'Nicht aktiviert' : 'Nem aktivalt'}</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">{nonActivatedPharmacies.length}</p>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow p-4 sm:p-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">
-            {market === 'de' ? 'Nicht aktivierte Apotheken' : 'Nem aktivalt gyogyszertarak'}
-          </h2>
-
-          {loadingData ? (
-            <div className="py-8 text-center text-gray-500">{market === 'de' ? 'Wird geladen...' : 'Betoltes...'}</div>
-          ) : nonActivatedPharmacies.length === 0 ? (
-            <div className="py-8 text-center text-gray-500">{market === 'de' ? 'Kein Eintrag' : 'Nincs nem aktivalt gyogyszertar'}</div>
-          ) : (
-            <div className="space-y-3">
-              {nonActivatedPharmacies.map((pharmacy) => (
-                <div key={pharmacy.id} className="border rounded-lg p-3">
-                  <p className="text-sm font-semibold text-gray-900">{pharmacy.pharmacyName || '-'}</p>
-                  <p className="text-xs text-gray-600">{pharmacy.email || '-'} | {pharmacy.id}</p>
-                  <p className="text-xs text-gray-700 mt-1">
-                    {market === 'de' ? 'Ort' : 'Varos'}: {pharmacy.pharmacyZipCode || '-'} {pharmacy.pharmacyCity || '-'}
-                    {' | '}
-                    {market === 'de' ? 'Telefon' : 'Telefon'}: {pharmacy.phone || '-'}
-                  </p>
-                  <p className="text-xs text-gray-700 mt-1">
-                    emailVerified: {pharmacy.emailVerified ? 'igen' : 'nem'}
-                    {' | '}
-                    passwordActivated: {pharmacy.passwordActivated ? 'igen' : 'nem'}
-                    {' | '}
-                    profileComplete: {pharmacy.profileComplete ? 'igen' : 'nem'}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {market === 'de' ? 'Registriert' : 'Regisztralva'}: {formatDate(pharmacy.createdAt, locale)}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
 
         <div className="bg-white rounded-xl shadow p-4 sm:p-6">
@@ -375,89 +320,6 @@ export default function AdminDemandCreditsPage() {
                     <XCircle className="w-3.5 h-3.5" />
                     rejected
                   </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow p-4 sm:p-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">
-            {market === 'de' ? 'Kreditstaende und manuelle Bearbeitung' : 'Kreditegyenlegek es manualis modositas'}
-          </h2>
-
-          <div className="space-y-3">
-            {pharmacies.map((pharmacy) => (
-              <div key={pharmacy.id} className="border rounded-lg p-3">
-                <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-2">
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900">{pharmacy.pharmacyName || '-'}</p>
-                    <p className="text-xs text-gray-600">{pharmacy.email || '-'} | {pharmacy.id}</p>
-                    <p className="text-xs text-gray-700 mt-1">
-                      total: {pharmacy.totalCredits} | used: {pharmacy.usedCredits} | remaining: {pharmacy.remainingCredits}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-3 grid grid-cols-1 lg:grid-cols-2 gap-2">
-                  <div className="border rounded-lg p-2">
-                    <p className="text-xs font-semibold text-gray-700 mb-2">{market === 'de' ? 'Increment total' : 'Total noveles/csokkentes'}</p>
-                    <div className="flex gap-2">
-                      <input
-                        type="number"
-                        value={deltaByUser[pharmacy.id] ?? 4}
-                        onChange={(e) => setDeltaByUser((prev) => ({ ...prev, [pharmacy.id]: e.target.value }))}
-                        className="w-24 px-2 py-1 border rounded text-sm"
-                      />
-                      <button
-                        type="button"
-                        disabled={saving}
-                        onClick={() => postAction('/api/admin/demand-credits/adjust', {
-                          userId: pharmacy.id,
-                          mode: 'increment',
-                          delta: Number(deltaByUser[pharmacy.id] ?? 4),
-                          note: 'manual_increment',
-                        })}
-                        className="px-3 py-1.5 rounded bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold disabled:opacity-60"
-                      >
-                        {market === 'de' ? 'Anwenden' : 'Alkalmaz'}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="border rounded-lg p-2">
-                    <p className="text-xs font-semibold text-gray-700 mb-2">{market === 'de' ? 'Set total/used' : 'Total/used beallitas'}</p>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <input
-                        type="number"
-                        value={setTotalByUser[pharmacy.id] ?? pharmacy.totalCredits}
-                        onChange={(e) => setSetTotalByUser((prev) => ({ ...prev, [pharmacy.id]: e.target.value }))}
-                        className="w-20 px-2 py-1 border rounded text-sm"
-                        placeholder="total"
-                      />
-                      <input
-                        type="number"
-                        value={setUsedByUser[pharmacy.id] ?? pharmacy.usedCredits}
-                        onChange={(e) => setSetUsedByUser((prev) => ({ ...prev, [pharmacy.id]: e.target.value }))}
-                        className="w-20 px-2 py-1 border rounded text-sm"
-                        placeholder="used"
-                      />
-                      <button
-                        type="button"
-                        disabled={saving}
-                        onClick={() => postAction('/api/admin/demand-credits/adjust', {
-                          userId: pharmacy.id,
-                          mode: 'set',
-                          totalCredits: Number(setTotalByUser[pharmacy.id] ?? pharmacy.totalCredits),
-                          usedCredits: Number(setUsedByUser[pharmacy.id] ?? pharmacy.usedCredits),
-                          note: 'manual_set',
-                        })}
-                        className="px-3 py-1.5 rounded bg-gray-700 hover:bg-gray-800 text-white text-xs font-semibold disabled:opacity-60"
-                      >
-                        {market === 'de' ? 'Speichern' : 'Mentes'}
-                      </button>
-                    </div>
-                  </div>
                 </div>
               </div>
             ))}
