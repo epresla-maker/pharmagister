@@ -2,6 +2,7 @@ import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 import { verifyAuth } from '@/lib/apiAuth';
 import { resolveMarketFromRequest } from '@/lib/market';
 import { getDemandCreditBalance, getDemandPackageOffer } from '@/lib/demandCredits';
+import { normalizePharmagisterRole } from '@/lib/pharmagisterProfile';
 
 function getCopy(market) {
   if (market === 'de') {
@@ -32,7 +33,8 @@ export async function GET(request) {
     const userSnap = await db.collection('users').doc(authUser.uid).get();
     const userData = userSnap.exists ? (userSnap.data() || {}) : {};
 
-    if (userData.pharmagisterRole !== 'pharmacy') {
+    const normalizedRole = normalizePharmagisterRole(userData.pharmagisterRole || userData.pharmaRole || userData.role);
+    if (normalizedRole !== 'pharmacy') {
       return Response.json({ error: copy.pharmacyOnly, code: 'PHARMACY_ONLY' }, { status: 403 });
     }
 

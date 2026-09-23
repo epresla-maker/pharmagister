@@ -63,7 +63,7 @@ export async function GET(request) {
     const db = admin.firestore();
 
     const [pharmaciesSnap, intentsSnap] = await Promise.all([
-      db.collection('users').where('pharmagisterRole', '==', 'pharmacy').get(),
+      db.collection('users').where('pharmagisterRole', 'in', ['pharmacy', 'gyógyszertár', 'gyogyszertar']).get(),
       db.collection('demandCreditPurchaseIntents').orderBy('createdAt', 'desc').limit(500).get(),
     ]);
 

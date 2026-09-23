@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getFirebaseAdmin } from '@/lib/firebaseAdmin';
 import { verifyAuth } from '@/lib/apiAuth';
 import { getDemandPackageOffer } from '@/lib/demandCredits';
+import { normalizePharmagisterRole } from '@/lib/pharmagisterProfile';
 
 const SERVICE_FRAME_WINDOW_DAYS = 8;
 
@@ -18,7 +19,8 @@ export async function POST(request) {
     const userSnap = await userRef.get();
     const userData = userSnap.exists ? (userSnap.data() || {}) : {};
 
-    if (userData.pharmagisterRole !== 'pharmacy') {
+    const normalizedRole = normalizePharmagisterRole(userData.pharmagisterRole || userData.pharmaRole || userData.role);
+    if (normalizedRole !== 'pharmacy') {
       return NextResponse.json({ error: 'Csak gyogyszertar fiok tud keretigénylést küldeni.', code: 'PHARMACY_ONLY' }, { status: 403 });
     }
 
