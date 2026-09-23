@@ -225,8 +225,8 @@ export default function AdminkaPage() {
                   <ListChecks className="w-8 h-8 text-fuchsia-600" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">{market === 'de' ? '💳 Kredit-Kaeufe' : '💳 Kreditvasarlasok'}</h2>
-                  <p className="text-sm text-gray-500">{market === 'de' ? 'Vollstaendige Kreditverwaltung und Kaufhistorie' : 'Teljes kreditkezeles es vasarlasi elozmenyek'}</p>
+                  <h2 className="text-lg font-semibold text-gray-900">{market === 'de' ? '� Service-Frame Anfragen' : '📦 Keretigények'}</h2>
+                  <p className="text-sm text-gray-500">{market === 'de' ? 'Service-Frame-Anfragen, Zahlungsstatus und Verwaltung' : 'Szolgáltatási keret igénylések, fizetési státusz és kezelés'}</p>
                 </div>
               </div>
             </button>

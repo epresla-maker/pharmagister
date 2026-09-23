@@ -297,7 +297,7 @@ export default function AdminPage() {
                 onClick={() => router.push('/admin/demand-credits')}
                 className="bg-fuchsia-600 text-white px-3 py-2 rounded-lg hover:bg-fuchsia-700 text-xs sm:text-sm w-full"
               >
-                {market === 'de' ? '💳 Kredit-Kaeufe' : '💳 Kreditvasarlasok'}
+                {market === 'de' ? '� Service-Frame Anfragen' : '📦 Keretigények'}
               </button>
             )}
             {isAdmin && (
