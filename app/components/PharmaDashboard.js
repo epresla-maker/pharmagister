@@ -951,8 +951,9 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
               </div>
             )}
             {showBillingModal && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-                <div className={`${darkMode ? 'bg-[#111827] border-gray-700 text-white' : 'bg-white border-gray-200 text-gray-900'} w-full max-w-lg rounded-2xl border shadow-2xl overflow-hidden`}>
+              <div className="fixed inset-0 z-50 overflow-y-auto bg-black/40 p-4">
+                <div className="min-h-full flex items-start sm:items-center justify-center py-8">
+                <div className={`${darkMode ? 'bg-[#111827] border-gray-700 text-white' : 'bg-white border-gray-200 text-gray-900'} w-full max-w-lg rounded-2xl border shadow-2xl`}>
                   <div className="p-5 border-b border-gray-200 dark:border-gray-700">
                     <h3 className="text-xl font-bold text-center">
                       {market === 'de' ? 'Rechnungsdaten' : 'Számlázási adatok'}
@@ -963,7 +964,7 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
                         : 'Ezeket az adatokat használjuk a szolgáltatási keret számlázásához. Itt ellenőrizheted és szerkesztheted.'}
                     </p>
                   </div>
-                  <div className="p-5 space-y-3 max-h-[60vh] overflow-y-auto">
+                  <div className="p-5 space-y-3">
                     <div>
                       <label className={`block text-xs font-semibold mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                         {market === 'de' ? 'Apothekenname / Firmenname *' : 'Gyógyszertár / cégnév *'}
@@ -1067,7 +1068,7 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
                       </p>
                     )}
                   </div>
-                  <div className="flex flex-col gap-2 p-4 border-t border-gray-200 dark:border-gray-700">
+                  <div className="flex flex-col gap-2 p-4 pb-6 border-t border-gray-200 dark:border-gray-700">
                     <div className="flex gap-3">
                       <button
                         type="button"
@@ -1094,6 +1095,7 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
                       {requestingCredits ? <Loader2 className="mx-auto w-4 h-4 animate-spin" /> : (market === 'de' ? 'Bestellen' : 'Megrendelem')}
                     </button>
                   </div>
+                </div>
                 </div>
               </div>
             )}
