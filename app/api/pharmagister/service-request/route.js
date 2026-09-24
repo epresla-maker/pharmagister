@@ -140,7 +140,8 @@ export async function POST(request) {
     const requesterName = userData.contactName || userData.displayName || userData.pharmacyName || authUser.email || userData.email || '';
     const invoiceSummary = {
       invoiceType: 'service_frame',
-      pharmacyName: userData.pharmacyName || '',
+      pharmacyName: userData.companyName || userData.pharmacyName || '',
+      companyName: userData.companyName || '',
       taxNumber: userData.taxNumber || '',
       contactName: userData.contactName || requesterName,
       email: userData.billingEmail || authUser.email || userData.email || '',
@@ -176,7 +177,8 @@ export async function POST(request) {
         userId: authUser.uid,
         email: authUser.email || userData.email || '',
         requesterName,
-        pharmacyName: userData.pharmacyName || '',
+        pharmacyName: userData.companyName || userData.pharmacyName || '',
+        companyName: userData.companyName || '',
         taxNumber: userData.taxNumber || '',
         pharmacyAddress: userData.pharmacyAddress || '',
         pharmacyCity: userData.pharmacyCity || '',

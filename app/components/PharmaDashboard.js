@@ -34,7 +34,7 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
   const [alreadyPendingInfo, setAlreadyPendingInfo] = useState(null);
   const [alreadyPendingModalReady, setAlreadyPendingModalReady] = useState(false);
   const [showBillingModal, setShowBillingModal] = useState(false);
-  const [billingForm, setBillingForm] = useState({ pharmacyName: '', taxNumber: '', contactName: '', phone: '', billingEmail: '', pharmacyAddress: '', pharmacyCity: '', pharmacyZipCode: '' });
+  const [billingForm, setBillingForm] = useState({ companyName: '', taxNumber: '', contactName: '', phone: '', billingEmail: '', pharmacyAddress: '', pharmacyCity: '', pharmacyZipCode: '' });
   const [billingFormErrors, setBillingFormErrors] = useState({});
   const [savingBillingInfo, setSavingBillingInfo] = useState(false);
   const [billingSavedNotice, setBillingSavedNotice] = useState(false);
@@ -645,7 +645,7 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
 
   const openBillingModal = () => {
     setBillingForm({
-      pharmacyName: userData?.pharmacyName || '',
+      companyName: userData?.companyName || userData?.pharmacyName || '',
       taxNumber: userData?.taxNumber || '',
       contactName: userData?.contactName || userData?.displayName || '',
       phone: userData?.phone || userData?.pharmacyPhone || userData?.pharmaPhone || '',
@@ -662,7 +662,7 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
 
   const validateBillingForm = () => {
     const errors = {};
-    if (!billingForm.pharmacyName.trim()) errors.pharmacyName = true;
+    if (!billingForm.companyName.trim()) errors.companyName = true;
     if (!billingForm.taxNumber.trim()) errors.taxNumber = true;
     if (!billingForm.billingEmail.trim()) errors.billingEmail = true;
     if (!billingForm.pharmacyAddress.trim()) errors.pharmacyAddress = true;
@@ -683,7 +683,7 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
     setSavingBillingInfo(true);
     try {
       await updateDoc(doc(db, 'users', user.uid), {
-        pharmacyName: billingForm.pharmacyName.trim(),
+        companyName: billingForm.companyName.trim(),
         taxNumber: billingForm.taxNumber.trim(),
         contactName: billingForm.contactName.trim(),
         phone: billingForm.phone.trim(),
@@ -971,9 +971,9 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
                       </label>
                       <input
                         type="text"
-                        value={billingForm.pharmacyName}
-                        onChange={(e) => setBillingForm(prev => ({ ...prev, pharmacyName: e.target.value }))}
-                        className={`w-full rounded-lg border px-3 py-2 text-sm ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} ${billingFormErrors.pharmacyName ? 'border-red-500' : (darkMode ? 'border-gray-600' : 'border-gray-300')}`}
+                        value={billingForm.companyName}
+                        onChange={(e) => setBillingForm(prev => ({ ...prev, companyName: e.target.value }))}
+                        className={`w-full rounded-lg border px-3 py-2 text-sm ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} ${billingFormErrors.companyName ? 'border-red-500' : (darkMode ? 'border-gray-600' : 'border-gray-300')}`}
                       />
                     </div>
                     <div>

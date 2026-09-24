@@ -22,6 +22,11 @@ export default function PharmaProfileEditor({ pharmaRole }) {
     pharmacyCity: '',
     pharmacyPhone: '',
     pharmacyEmail: '',
+
+    // Számlázási adatok
+    companyName: '',
+    taxNumber: '',
+    billingEmail: '',
     
     // Helyettesítő
     pharmaYearsOfExperience: '',
@@ -58,6 +63,9 @@ export default function PharmaProfileEditor({ pharmaRole }) {
         pharmacyCity: userData.pharmacyCity || '',
         pharmacyPhone: userData.pharmacyPhone || '',
         pharmacyEmail: userData.pharmacyEmail || '',
+        companyName: userData.companyName || '',
+        taxNumber: userData.taxNumber || '',
+        billingEmail: userData.billingEmail || '',
         pharmaYearsOfExperience: userData.pharmaYearsOfExperience || '',
         pharmaSoftwareKnowledge: userData.pharmaSoftwareKnowledge || [],
         pharmaHourlyRate: userData.pharmaHourlyRate || '',
@@ -166,6 +174,9 @@ export default function PharmaProfileEditor({ pharmaRole }) {
           pharmacyCity: formData.pharmacyCity,
           pharmacyPhone: formData.pharmacyPhone,
           pharmacyEmail: formData.pharmacyEmail,
+          companyName: formData.companyName.trim(),
+          taxNumber: formData.taxNumber.trim(),
+          billingEmail: formData.billingEmail.trim(),
         });
       } else {
         if (!formData.pharmaYearsOfExperience || formData.pharmaSoftwareKnowledge.length === 0 || !formData.pharmaHourlyRate) {
@@ -221,6 +232,9 @@ export default function PharmaProfileEditor({ pharmaRole }) {
         pharmacyCity: null,
         pharmacyPhone: null,
         pharmacyEmail: null,
+        companyName: null,
+        taxNumber: null,
+        billingEmail: null,
         pharmaYearsOfExperience: null,
         pharmaSoftwareKnowledge: null,
         pharmaHourlyRate: null,
@@ -306,6 +320,26 @@ export default function PharmaProfileEditor({ pharmaRole }) {
               <div>
                 <label className="block text-sm font-semibold text-[#6B7280] mb-1">Email</label>
                 <p className="text-[#111827] font-medium text-lg">{formData.pharmacyEmail || '-'}</p>
+              </div>
+            </div>
+
+            <div className="mt-6 pt-4 border-t border-[#E5E7EB]">
+              <h3 className="text-sm font-semibold text-[#6B7280] mb-3">{market === 'de' ? 'Rechnungsdaten' : 'Számlázási adatok'}</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-[#6B7280] mb-1">{market === 'de' ? 'Firmenname (rechtlich)' : 'Cég hivatalos neve'}</label>
+                  <p className="text-[#111827] font-medium text-lg">{formData.companyName || '-'}</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-[#6B7280] mb-1">{market === 'de' ? 'Steuernummer' : 'Adószám'}</label>
+                  <p className="text-[#111827] font-medium text-lg">{formData.taxNumber || '-'}</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-[#6B7280] mb-1">{market === 'de' ? 'E-Mail fuer Rechnung' : 'E-mail cím a számlához'}</label>
+                  <p className="text-[#111827] font-medium text-lg">{formData.billingEmail || '-'}</p>
+                </div>
               </div>
             </div>
           </div>
@@ -487,6 +521,57 @@ export default function PharmaProfileEditor({ pharmaRole }) {
                 onChange={(e) => setFormData({ ...formData, pharmacyEmail: e.target.value })}
                 className="w-full px-4 py-2 bg-white border border-[#E5E7EB] rounded-xl text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#6B7280]"
               />
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-[#E5E7EB]">
+            <h3 className="text-sm font-semibold text-[#6B7280] mb-3">{market === 'de' ? 'Rechnungsdaten' : 'Számlázási adatok'}</h3>
+            <p className="text-xs text-[#6B7280] mb-4">
+              {market === 'de'
+                ? 'Der Apothekenname oben kann dein Anzeigename bleiben. Fuer eine gueltige Rechnung benoetigen wir zusaetzlich den rechtlichen Firmennamen und die Steuernummer.'
+                : 'A fenti gyógyszertár név maradhat a megjelenített név (felhasználónév). A szabályos számlához ehhez képest szükség van a gyógyszertár hivatalos (valódi) cégnevére és adószámára.'}
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-[#6B7280] mb-2">
+                  {market === 'de' ? 'Rechtlicher Firmenname' : 'Cég hivatalos neve'}
+                </label>
+                <input
+                  type="text"
+                  value={formData.companyName}
+                  onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
+                  placeholder={market === 'de' ? 'z.B. Musterapotheke Kft.' : 'pl. Minta Gyógyszertár Kft.'}
+                  className="w-full px-4 py-2 bg-white border border-[#E5E7EB] rounded-xl text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#6B7280]"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-[#6B7280] mb-2">
+                    {market === 'de' ? 'Steuernummer' : 'Adószám'}
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.taxNumber}
+                    onChange={(e) => setFormData({ ...formData, taxNumber: e.target.value })}
+                    placeholder="12345678-1-42"
+                    className="w-full px-4 py-2 bg-white border border-[#E5E7EB] rounded-xl text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#6B7280]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-[#6B7280] mb-2">
+                    {market === 'de' ? 'E-Mail fuer die Rechnung' : 'E-mail cím a számlához'}
+                  </label>
+                  <input
+                    type="email"
+                    value={formData.billingEmail}
+                    onChange={(e) => setFormData({ ...formData, billingEmail: e.target.value })}
+                    className="w-full px-4 py-2 bg-white border border-[#E5E7EB] rounded-xl text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#6B7280]"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>
