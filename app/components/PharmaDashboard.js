@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useRouter } from 'next/navigation';
@@ -32,6 +32,7 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
   const [serviceFrameRequestNotice, setServiceFrameRequestNotice] = useState('');
   const [serviceFrameRequestState, setServiceFrameRequestState] = useState('idle');
   const [alreadyPendingInfo, setAlreadyPendingInfo] = useState(null);
+  const [alreadyPendingModalReady, setAlreadyPendingModalReady] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -55,6 +56,20 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
       setExpandedDemand(expandDemandId);
     }
   }, [expandDemandId]);
+
+  // Guard against mobile "ghost click" retargeting: ignore taps on the popup's
+  // buttons for a brief moment after it appears, since a tap that just closed
+  // the terms modal can otherwise land on this popup's buttons at the same
+  // screen position and dismiss it instantly.
+  useEffect(() => {
+    if (!alreadyPendingInfo) {
+      setAlreadyPendingModalReady(false);
+      return;
+    }
+    setAlreadyPendingModalReady(false);
+    const timer = setTimeout(() => setAlreadyPendingModalReady(true), 400);
+    return () => clearTimeout(timer);
+  }, [alreadyPendingInfo]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -720,7 +735,7 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
               </div>
             )}
             {alreadyPendingInfo && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" style={{ pointerEvents: alreadyPendingModalReady ? 'auto' : 'none' }}>
                 <div className={`${darkMode ? 'bg-[#111827] border-gray-700 text-white' : 'bg-white border-gray-200 text-gray-900'} w-full max-w-sm rounded-2xl border shadow-2xl overflow-hidden`}>
                   <div className="p-5">
                     <h3 className="text-lg font-bold mb-2">
@@ -746,7 +761,10 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
                     <div className="flex gap-3">
                       <button
                         type="button"
-                        onClick={() => setAlreadyPendingInfo(null)}
+                        onClick={() => {
+                          if (!alreadyPendingModalReady) return;
+                          setAlreadyPendingInfo(null);
+                        }}
                         className="flex-1 rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 bg-white hover:bg-gray-100"
                       >
                         {market === 'de' ? 'Verstanden' : 'Rendben'}
@@ -755,6 +773,7 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
                         type="button"
                         disabled={requestingCredits}
                         onClick={() => {
+                          if (!alreadyPendingModalReady) return;
                           setAlreadyPendingInfo(null);
                           submitServiceFrameRequest({ force: true });
                         }}
