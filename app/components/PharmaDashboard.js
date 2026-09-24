@@ -701,13 +701,8 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
             </p>
             <p className={`text-xs mt-1 ${darkMode ? 'text-gray-300' : 'text-[#4B5563]'}`}>
               {market === 'de'
-                ? `${packageOffer.packageCredits} Vertretungsanfragen pro Service-Frame.`
-                : `${packageOffer.packageCredits} helyettesítési igény egy szolgáltatási keretben.`}
-            </p>
-            <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-[#6B7280]'}`}>
-              {market === 'de'
-                ? 'Der Service-Frame wird sofort gutgeschrieben, keine Admin-Freigabe noetig. Der Admin wird ueber die Anfrage benachrichtigt.'
-                : 'A szolgáltatási keret azonnal jóváírásra kerül, admin engedély nélkül. Az admin csak értesítést kap az igénylésről.'}
+                ? `${packageOffer.packageCredits} Vertretungsanfragen pro Service-Frame. Preis für deine Apotheke: ${packageOffer.finalPriceHuf.toLocaleString('de-DE')} Ft. Der Rahmen wird sofort aktiviert. Die Zahlung erfolgt nachträglich per Überweisung.`
+                : `${packageOffer.packageCredits} helyettesítési igény egy szolgáltatási keretben. Ennek ára a gyógyszertáradnak: ${packageOffer.finalPriceHuf.toLocaleString('hu-HU')} Ft. A keret azonnal aktiválódik. Fizetés utólag, utalással történik.`}
             </p>
             <button
               type="button"
