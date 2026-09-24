@@ -52,7 +52,7 @@ export async function POST(request) {
     if (!intentId) {
       return NextResponse.json({ error: copy.missingIntentId, code: 'MISSING_INTENT_ID' }, { status: 400 });
     }
-    if (action !== 'approve_and_credit' && action !== 'confirm_payment' && action !== 'set_status') {
+    if (action !== 'approve_and_credit' && action !== 'confirm_payment' && action !== 'set_status' && action !== 'delete_intent' && action !== 'set_credited_credits') {
       return NextResponse.json({ error: copy.invalidAction, code: 'INVALID_ACTION' }, { status: 400 });
     }
 
@@ -70,6 +70,123 @@ export async function POST(request) {
 
       const intent = intentSnap.data() || {};
       const userId = String(intent.userId || '');
+
+      if (action === 'set_credited_credits') {
+        const newAmount = Math.max(0, asInt(body?.creditedCredits, asInt(intent.creditedCredits, 0)));
+        const previousAmount = asInt(intent.creditedCredits, 0);
+        const delta = newAmount - previousAmount;
+
+        let nextTotal = null;
+        let nextUsed = null;
+        let previousTotal = null;
+        let previousUsed = null;
+
+        if (userId && delta !== 0) {
+          const userRef = db.collection('users').doc(userId);
+          const userSnap = await tx.get(userRef);
+          if (userSnap.exists) {
+            const userData = userSnap.data() || {};
+            previousTotal = Math.max(0, asInt(userData.demandCreditsTotal, 0));
+            previousUsed = Math.max(0, asInt(userData.demandCreditsUsed, 0));
+            nextTotal = Math.max(0, previousTotal + delta);
+            nextUsed = Math.min(previousUsed, nextTotal);
+
+            tx.update(userRef, {
+              demandCreditsTotal: nextTotal,
+              demandCreditsUsed: nextUsed,
+              demandCreditsUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+              demandCreditsUpdatedBy: adminUser.uid,
+              demandCreditsUpdatedByEmail: adminUser.email || '',
+            });
+
+            const logRef = db.collection('demandCreditAdminAdjustments').doc();
+            tx.set(logRef, {
+              userId,
+              userEmail: userData.email || '',
+              pharmacyName: userData.pharmacyName || userData.displayName || '',
+              mode: 'intent_credit_amount_edited',
+              intentId,
+              delta,
+              previousTotal,
+              previousUsed,
+              nextTotal,
+              nextUsed,
+              note: adminNote || `Keret osszeg modositva: ${previousAmount} -> ${newAmount}`,
+              adminUid: adminUser.uid,
+              adminEmail: adminUser.email || '',
+              createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
+          }
+        }
+
+        tx.update(intentRef, {
+          creditedCredits: newAmount,
+          packageCredits: newAmount,
+          adminNote,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedByUid: adminUser.uid,
+          updatedByEmail: adminUser.email || '',
+        });
+
+        return {
+          intentId,
+          userId,
+          creditedCredits: newAmount,
+          totalCredits: nextTotal,
+          usedCredits: nextUsed,
+        };
+      }
+
+      if (action === 'delete_intent') {
+        const shouldRevertCredit = !intent.creditReverted && asInt(intent.creditedCredits, 0) > 0
+          && intent.status !== 'rejected' && intent.status !== 'cancelled' && intent.status !== 'expired';
+
+        if (shouldRevertCredit && userId) {
+          const userRef = db.collection('users').doc(userId);
+          const userSnap = await tx.get(userRef);
+          if (userSnap.exists) {
+            const userData = userSnap.data() || {};
+            const currentTotal = Math.max(0, asInt(userData.demandCreditsTotal, 0));
+            const currentUsed = Math.max(0, asInt(userData.demandCreditsUsed, 0));
+            const revertAmount = asInt(intent.creditedCredits, 0);
+            const nextTotal = Math.max(0, currentTotal - revertAmount);
+
+            tx.update(userRef, {
+              demandCreditsTotal: nextTotal,
+              demandCreditsUsed: Math.min(currentUsed, nextTotal),
+              demandCreditsUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+              demandCreditsUpdatedBy: adminUser.uid,
+              demandCreditsUpdatedByEmail: adminUser.email || '',
+            });
+
+            const logRef = db.collection('demandCreditAdminAdjustments').doc();
+            tx.set(logRef, {
+              userId,
+              userEmail: userData.email || '',
+              pharmacyName: userData.pharmacyName || userData.displayName || '',
+              mode: 'intent_deleted_credit_reverted',
+              intentId,
+              delta: -revertAmount,
+              previousTotal: currentTotal,
+              previousUsed: currentUsed,
+              nextTotal,
+              nextUsed: Math.min(currentUsed, nextTotal),
+              note: adminNote || 'Igenyles torolve, keret visszavonva',
+              adminUid: adminUser.uid,
+              adminEmail: adminUser.email || '',
+              createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
+          }
+        }
+
+        tx.delete(intentRef);
+
+        return {
+          intentId,
+          userId,
+          deleted: true,
+        };
+      }
 
       if (action === 'set_status') {
         const resolvedStatus = nextStatus || intent.status || 'pending_payment';

@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { Loader2, RefreshCw, ArrowLeft, CheckCircle2, XCircle, Clock3 } from 'lucide-react';
+import { Loader2, RefreshCw, ArrowLeft, CheckCircle2, XCircle, Clock3, Trash2, Save } from 'lucide-react';
 import { getClientMarket } from '@/lib/marketI18n';
 
 const ADMIN_EMAILS = ['epresla@icloud.com'];
@@ -47,6 +47,7 @@ export default function AdminDemandCreditsPage() {
   const [query, setQuery] = useState('');
   const [paymentRefByIntent, setPaymentRefByIntent] = useState({});
   const [noteByIntent, setNoteByIntent] = useState({});
+  const [creditAmountByIntent, setCreditAmountByIntent] = useState({});
 
   useEffect(() => {
     if (!loading && (!user || !isAdmin)) {
@@ -273,6 +274,31 @@ export default function AdminDemandCreditsPage() {
                   />
                 </div>
 
+                <div className="mt-2 flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="0"
+                    value={creditAmountByIntent[intent.id] ?? intent.creditedCredits ?? intent.packageCredits ?? ''}
+                    onChange={(e) => setCreditAmountByIntent((prev) => ({ ...prev, [intent.id]: e.target.value }))}
+                    placeholder={market === 'de' ? 'Kreditmenge' : 'Keret mennyisege'}
+                    className="w-40 px-3 py-2 border rounded-lg text-sm"
+                  />
+                  <button
+                    type="button"
+                    disabled={saving}
+                    onClick={() => postAction('/api/admin/demand-credits/purchase-intents', {
+                      intentId: intent.id,
+                      action: 'set_credited_credits',
+                      creditedCredits: creditAmountByIntent[intent.id] ?? intent.creditedCredits ?? intent.packageCredits ?? 0,
+                      adminNote: noteByIntent[intent.id] ?? intent.adminNote ?? '',
+                    })}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold disabled:opacity-60"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    {market === 'de' ? 'Kreditmenge speichern' : 'Keret mentese'}
+                  </button>
+                </div>
+
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button
                     type="button"
@@ -319,6 +345,23 @@ export default function AdminDemandCreditsPage() {
                   >
                     <XCircle className="w-3.5 h-3.5" />
                     rejected
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={saving}
+                    onClick={() => {
+                      if (!confirm(market === 'de' ? 'Diese Anfrage wirklich endgueltig loeschen? Ein noch nicht bestaetigtes Kreditguthaben wird zurueckgebucht.' : 'Biztosan vegleg torlod ezt az igenylest? A meg nem igazolt keret vissza lesz vonva.')) return;
+                      postAction('/api/admin/demand-credits/purchase-intents', {
+                        intentId: intent.id,
+                        action: 'delete_intent',
+                        adminNote: noteByIntent[intent.id] ?? intent.adminNote ?? '',
+                      });
+                    }}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-gray-700 hover:bg-gray-800 text-white text-xs font-semibold disabled:opacity-60"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    {market === 'de' ? 'Loeschen' : 'Torles'}
                   </button>
                 </div>
               </div>
