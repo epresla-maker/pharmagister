@@ -588,14 +588,17 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
           creditedCredits: result?.creditedCredits || 0,
           dueAt: result?.dueAt || null,
         });
+        // NOTE: no router.refresh() here on purpose — nothing changed server-side
+        // (no credit was granted), and refreshing here was remounting this
+        // component, wiping the just-set popup state and making it vanish instantly.
       } else {
         setServiceFrameRequestState('success');
         setServiceFrameRequestNotice(market === 'de'
           ? 'Der Rahmen wurde sofort gutgeschrieben. Du hast 8 Tage Zeit, die Zahlung abzuschließen, sonst wird der Rahmen automatisch storniert.'
           : 'A keret azonnal jóváírásra került. 8 napod van a fizetés rendezésére, különben a keret automatikusan visszavonásra kerül.');
         setAlreadyPendingInfo(null);
+        router.refresh();
       }
-      router.refresh();
     } catch (error) {
       console.error('Error creating service frame request:', error);
       setServiceFrameRequestState('error');
