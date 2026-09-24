@@ -490,8 +490,9 @@ function QuickDemandTab() {
 function DashboardTab({ pharmaRole }) {
   const searchParams = useSearchParams();
   const expandDemandId = searchParams.get('expand');
+  const autoOpenServiceFrame = searchParams.get('openServiceFrame') === '1';
   const PharmaDashboard = require('@/app/components/PharmaDashboard').default;
-  return <PharmaDashboard pharmaRole={pharmaRole} expandDemandId={expandDemandId} />;
+  return <PharmaDashboard pharmaRole={pharmaRole} expandDemandId={expandDemandId} autoOpenServiceFrame={autoOpenServiceFrame} />;
 }
 
 // Ratings Tab Component (csak gyógyszertáraknak)

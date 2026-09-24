@@ -14,7 +14,7 @@ import { getDemandCreditBalance, getDemandPackageOffer } from '@/lib/demandCredi
 import { Capacitor } from '@capacitor/core';
 import { Keyboard } from '@capacitor/keyboard';
 
-export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
+export default function PharmaDashboard({ pharmaRole, expandDemandId, autoOpenServiceFrame }) {
   const { user, userData } = useAuth();
   const { darkMode } = useTheme();
   const router = useRouter();
@@ -159,6 +159,18 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
       setExpandedDemand(expandDemandId);
     }
   }, [expandDemandId]);
+
+  // Auto-open the service-frame purchase flow when navigated here with
+  // ?openServiceFrame=1 (e.g. from the quick demand wizard when the pharmacy
+  // has no remaining credits and taps "Keret igénylése").
+  const autoOpenServiceFrameHandledRef = useRef(false);
+  useEffect(() => {
+    if (!autoOpenServiceFrame || autoOpenServiceFrameHandledRef.current) return;
+    if (pharmaRole !== 'pharmacy') return;
+    autoOpenServiceFrameHandledRef.current = true;
+    openServiceFrameTerms();
+    router.replace('/pharmagister?tab=dashboard');
+  }, [autoOpenServiceFrame, pharmaRole]);
 
   // Guard against mobile "ghost click" retargeting: ignore taps on the popup's
   // buttons for a brief moment after it appears, since a tap that just closed

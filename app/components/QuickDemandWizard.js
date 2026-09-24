@@ -40,6 +40,7 @@ export default function QuickDemandWizard() {
   const [success, setSuccess] = useState(false);
   const [date, setDate] = useState(tomorrowValue);
   const [formData, setFormData] = useState(INITIAL_FORM_DATA);
+  const [showNoCreditsModal, setShowNoCreditsModal] = useState(false);
 
   const creditBalance = getDemandCreditBalance(userData || {});
   const profileComplete = Boolean(userData?.pharmaProfileComplete);
@@ -124,11 +125,7 @@ export default function QuickDemandWizard() {
     }
 
     if (creditBalance.decreaseActive && creditBalance.remainingCredits <= 0) {
-      alert(
-        market === 'de'
-          ? 'Keine verbleibenden Anfrage-Credits. Bitte frage ein neues Paket an.'
-          : 'Nincs elérhető igényfeladási kereted. Igényelj új csomagot.'
-      );
+      setShowNoCreditsModal(true);
       return;
     }
 
@@ -314,7 +311,7 @@ export default function QuickDemandWizard() {
       <div className="-mt-2 flex justify-end">
         <button
           type="button"
-          onClick={() => router.push('/pharmagister?tab=dashboard')}
+          onClick={() => router.push('/pharmagister?tab=dashboard&openServiceFrame=1')}
           className={`text-xs font-semibold underline ${darkMode ? 'text-gray-300' : 'text-[#4B5563]'}`}
         >
           {market === 'de' ? 'Credits verwalten / kaufen' : 'Keret kezelése / vásárlás'}
@@ -549,6 +546,34 @@ export default function QuickDemandWizard() {
           )}
         </div>
       </div>
+
+      {showNoCreditsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className={`w-full max-w-sm rounded-2xl border p-6 shadow-2xl text-center ${darkMode ? 'bg-[#111827] border-gray-700 text-white' : 'bg-white border-gray-200 text-gray-900'}`}>
+            <p className="text-lg font-bold mb-5">
+              {market === 'de'
+                ? 'Keine verbleibenden Anfrage-Credits. Bitte frage ein neues Paket an.'
+                : 'Nincs elérhető igényfeladási kereted. Igényelj új csomagot.'}
+            </p>
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => router.push('/pharmagister?tab=dashboard&openServiceFrame=1')}
+                className="w-full rounded-2xl bg-[#6B46C1] px-5 py-3 text-base font-bold text-white transition-colors hover:bg-[#5a3aa3]"
+              >
+                {market === 'de' ? 'Keret hinzufügen' : 'Keret hozzáadása'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowNoCreditsModal(false)}
+                className={`w-full rounded-2xl px-5 py-3 text-base font-semibold ${darkMode ? 'text-gray-300 hover:bg-gray-800' : 'text-gray-600 hover:bg-gray-100'}`}
+              >
+                Ok
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
