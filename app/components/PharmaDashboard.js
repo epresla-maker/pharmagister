@@ -31,6 +31,7 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
   const [serviceTermsAccepted, setServiceTermsAccepted] = useState(false);
   const [serviceFrameRequestNotice, setServiceFrameRequestNotice] = useState('');
   const [serviceFrameRequestState, setServiceFrameRequestState] = useState('idle');
+  const [alreadyPendingInfo, setAlreadyPendingInfo] = useState(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -530,7 +531,8 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
     }
   };
 
-  const submitServiceFrameRequest = async () => {
+  const submitServiceFrameRequest = async (options = {}) => {
+    const { force = false } = options;
     if (!user) {
       alert(market === 'de'
         ? 'Bitte melde dich zuerst an, damit die Anfrage gespeichert werden kann.'
@@ -552,6 +554,7 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
           Authorization: `Bearer ${idToken}`,
           'x-pharmagister-client-platform': clientPlatform || 'web',
         },
+        body: JSON.stringify({ force }),
       });
 
       const result = await response.json().catch(() => ({}));
@@ -566,11 +569,16 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
         setServiceFrameRequestNotice(market === 'de'
           ? 'Es liegt bereits eine offene Anfrage vor. Der Rahmen bleibt aktiv, solange die Zahlung innerhalb von 8 Tagen bestätigt wird.'
           : 'Már van folyamatban lévő igénylésed. A keret aktív marad, amíg a fizetést 8 napon belül igazolják.');
+        setAlreadyPendingInfo({
+          creditedCredits: result?.creditedCredits || 0,
+          dueAt: result?.dueAt || null,
+        });
       } else {
         setServiceFrameRequestState('success');
         setServiceFrameRequestNotice(market === 'de'
           ? 'Der Rahmen wurde sofort gutgeschrieben. Du hast 8 Tage Zeit, die Zahlung abzuschließen, sonst wird der Rahmen automatisch storniert.'
           : 'A keret azonnal jóváírásra került. 8 napod van a fizetés rendezésére, különben a keret automatikusan visszavonásra kerül.');
+        setAlreadyPendingInfo(null);
       }
       router.refresh();
     } catch (error) {
@@ -709,6 +717,54 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
               <div className={`mt-3 flex items-center gap-2 rounded-xl border px-3 py-3 text-sm font-semibold ${darkMode ? 'border-amber-700 bg-amber-900/30 text-amber-200' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>
                 <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-white text-xs">i</span>
                 {serviceFrameRequestNotice}
+              </div>
+            )}
+            {alreadyPendingInfo && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+                <div className={`${darkMode ? 'bg-[#111827] border-gray-700 text-white' : 'bg-white border-gray-200 text-gray-900'} w-full max-w-sm rounded-2xl border shadow-2xl overflow-hidden`}>
+                  <div className="p-5">
+                    <h3 className="text-lg font-bold mb-2">
+                      {market === 'de' ? 'Es gibt bereits einen offenen Service-Frame' : 'Már van függőben lévő szolgáltatási kereted'}
+                    </h3>
+                    <p className={`text-sm mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                      {market === 'de'
+                        ? `Offener Rahmen: ${alreadyPendingInfo.creditedCredits} Kredite`
+                        : `Függő keret: ${alreadyPendingInfo.creditedCredits} kredit`}
+                    </p>
+                    {alreadyPendingInfo.dueAt && (
+                      <p className={`text-sm mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                        {market === 'de'
+                          ? `Zahlungsfrist: ${new Date(alreadyPendingInfo.dueAt).toLocaleDateString('de-DE')}`
+                          : `Fizetési határidő: ${new Date(alreadyPendingInfo.dueAt).toLocaleDateString('hu-HU')}`}
+                      </p>
+                    )}
+                    <p className={`text-xs mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                      {market === 'de'
+                        ? 'Wenn du möchtest, kannst du trotzdem einen zusätzlichen Service-Frame anfragen. Dieser wird sofort gutgeschrieben und läuft mit eigener 8-Tage-Frist.'
+                        : 'Ha szeretnéd, ettől függetlenül igényelhetsz egy plusz szolgáltatási keretet is. Ez azonnal jóváírásra kerül, saját 8 napos határidővel.'}
+                    </p>
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setAlreadyPendingInfo(null)}
+                        className="flex-1 rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 bg-white hover:bg-gray-100"
+                      >
+                        {market === 'de' ? 'Verstanden' : 'Rendben'}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={requestingCredits}
+                        onClick={() => {
+                          setAlreadyPendingInfo(null);
+                          submitServiceFrameRequest({ force: true });
+                        }}
+                        className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold text-white ${requestingCredits ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#6B46C1] hover:bg-[#5a3aa3]'}`}
+                      >
+                        {market === 'de' ? 'Zusätzlich anfragen' : 'Kérek plusz keretet is'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
             {serviceFrameRequestState === 'error' && (

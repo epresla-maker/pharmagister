@@ -103,6 +103,14 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Csak gyogyszertar fiok tud keretigénylést küldeni.', code: 'PHARMACY_ONLY' }, { status: 403 });
     }
 
+    let requestBody = {};
+    try {
+      requestBody = await request.json();
+    } catch (_) {
+      requestBody = {};
+    }
+    const forceAdditional = requestBody?.force === true;
+
     const existingPendingSnap = await db.collection('demandCreditPurchaseIntents')
       .where('userId', '==', authUser.uid)
       .where('status', '==', 'pending_payment')
@@ -110,7 +118,7 @@ export async function POST(request) {
       .limit(1)
       .get();
 
-    if (!existingPendingSnap.empty) {
+    if (!existingPendingSnap.empty && !forceAdditional) {
       const existingDoc = existingPendingSnap.docs[0];
       const existingData = existingDoc.data() || {};
       const existingDueAt = existingData.dueAt?.toDate?.() || null;
@@ -119,6 +127,7 @@ export async function POST(request) {
         alreadyPending: true,
         requestId: existingDoc.id,
         dueAt: existingDueAt ? existingDueAt.toISOString() : null,
+        creditedCredits: Number(existingData.creditedCredits) || 0,
         queue: 'internal_admin_queue',
       });
     }
