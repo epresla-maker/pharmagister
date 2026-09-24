@@ -11,6 +11,8 @@ import ResponseRateBar from '@/app/components/ResponseRateBar';
 import { getClientMarket, getLocalizedDemandPositionLabel } from '@/lib/marketI18n';
 import { isDocInMarket } from '@/lib/market';
 import { getDemandCreditBalance, getDemandPackageOffer } from '@/lib/demandCredits';
+import { Capacitor } from '@capacitor/core';
+import { Keyboard } from '@capacitor/keyboard';
 
 export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
   const { user, userData } = useAuth();
@@ -38,24 +40,82 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
   const [billingFormErrors, setBillingFormErrors] = useState({});
   const [savingBillingInfo, setSavingBillingInfo] = useState(false);
   const [billingSavedNotice, setBillingSavedNotice] = useState(false);
-  const [billingModalMaxHeight, setBillingModalMaxHeight] = useState(null);
+  const [billingKeyboardInset, setBillingKeyboardInset] = useState(0);
+  const billingNativeKeyboardHeightRef = useRef(0);
 
-  // Track the visual viewport height (shrinks when the iOS keyboard opens) so the
-  // billing modal panel can be bounded to what's actually visible. Only the panel's
-  // own inner content scrolls within that bound, instead of the whole fixed overlay
-  // scrolling - this avoids the iOS Safari bug where focusing an input inside a
-  // scrollable position:fixed ancestor makes the browser snap the scroll position
-  // back when the keyboard opens/closes.
+  // On native iOS (Capacitor), the OS's own keyboard resize/scroll-into-view
+  // behavior fights with our fixed-position modal and makes it "snap back" and
+  // become unscrollable. Disable native keyboard resize/scroll while the
+  // billing modal is open (same proven pattern used in app/chat/[chatId]/page.js
+  // and the Betti chat panel in ScheduleManagerTab.js) and instead track the
+  // real keyboard height ourselves to inset the modal above it.
   useEffect(() => {
-    if (typeof window === 'undefined' || !window.visualViewport || !showBillingModal) return;
-    const vv = window.visualViewport;
-    const updateHeight = () => setBillingModalMaxHeight(vv.height - 32);
-    updateHeight();
-    vv.addEventListener('resize', updateHeight);
-    vv.addEventListener('scroll', updateHeight);
+    if (!showBillingModal) {
+      setBillingKeyboardInset(0);
+      billingNativeKeyboardHeightRef.current = 0;
+      return;
+    }
+    if (typeof window === 'undefined') return;
+
+    let keyboardShowSub = null;
+    let keyboardDidShowSub = null;
+    let keyboardHideSub = null;
+    let keyboardDidHideSub = null;
+
+    const viewport = window.visualViewport;
+    const updateInsetFromViewport = () => {
+      const overlap = viewport
+        ? Math.max(
+            0,
+            window.innerHeight - viewport.height,
+            window.innerHeight - viewport.height - viewport.offsetTop
+          )
+        : 0;
+      const nextInset = Math.max(overlap, billingNativeKeyboardHeightRef.current);
+      setBillingKeyboardInset(nextInset > 20 ? nextInset : 0);
+    };
+
+    const isNativeIos = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios';
+    if (isNativeIos) {
+      Keyboard.setScroll({ isDisabled: true }).catch(() => {});
+      Keyboard.setResizeMode({ mode: 'none' }).catch(() => {});
+
+      Keyboard.addListener('keyboardWillShow', (info) => {
+        billingNativeKeyboardHeightRef.current = Math.max(0, Number(info?.keyboardHeight || 0));
+        updateInsetFromViewport();
+      }).then((sub) => { keyboardShowSub = sub; });
+
+      Keyboard.addListener('keyboardDidShow', (info) => {
+        billingNativeKeyboardHeightRef.current = Math.max(0, Number(info?.keyboardHeight || 0));
+        updateInsetFromViewport();
+      }).then((sub) => { keyboardDidShowSub = sub; });
+
+      Keyboard.addListener('keyboardWillHide', () => {
+        billingNativeKeyboardHeightRef.current = 0;
+        setBillingKeyboardInset(0);
+      }).then((sub) => { keyboardHideSub = sub; });
+
+      Keyboard.addListener('keyboardDidHide', () => {
+        billingNativeKeyboardHeightRef.current = 0;
+        setBillingKeyboardInset(0);
+      }).then((sub) => { keyboardDidHideSub = sub; });
+    }
+
+    updateInsetFromViewport();
+    viewport?.addEventListener('resize', updateInsetFromViewport);
+    viewport?.addEventListener('scroll', updateInsetFromViewport);
+
     return () => {
-      vv.removeEventListener('resize', updateHeight);
-      vv.removeEventListener('scroll', updateHeight);
+      viewport?.removeEventListener('resize', updateInsetFromViewport);
+      viewport?.removeEventListener('scroll', updateInsetFromViewport);
+      keyboardShowSub?.remove();
+      keyboardDidShowSub?.remove();
+      keyboardHideSub?.remove();
+      keyboardDidHideSub?.remove();
+      if (isNativeIos) {
+        Keyboard.setScroll({ isDisabled: false }).catch(() => {});
+        Keyboard.setResizeMode({ mode: 'body' }).catch(() => {});
+      }
     };
   }, [showBillingModal]);
 
@@ -972,10 +1032,14 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
               </div>
             )}
             {showBillingModal && (
-              <div className="fixed inset-0 z-50 bg-black/40 p-4 flex items-start sm:items-center justify-center">
+              <div className="fixed inset-0 z-50 bg-black/40">
+                <div
+                  className="absolute inset-x-0 top-0 p-4 flex items-start sm:items-center justify-center"
+                  style={{ bottom: `${billingKeyboardInset}px` }}
+                >
                 <div
                   className={`${darkMode ? 'bg-[#111827] border-gray-700 text-white' : 'bg-white border-gray-200 text-gray-900'} w-full max-w-lg rounded-2xl border shadow-2xl flex flex-col overflow-hidden`}
-                  style={{ maxHeight: billingModalMaxHeight ? `${billingModalMaxHeight}px` : '90vh' }}
+                  style={{ maxHeight: '100%' }}
                 >
                   <div className="p-5 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
                     <h3 className="text-xl font-bold text-center">
@@ -1118,6 +1182,7 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
                       {requestingCredits ? <Loader2 className="mx-auto w-4 h-4 animate-spin" /> : (market === 'de' ? 'Bestellen' : 'Megrendelem')}
                     </button>
                   </div>
+                </div>
                 </div>
               </div>
             )}
