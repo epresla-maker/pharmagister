@@ -720,21 +720,10 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
               {requestingCredits && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               {market === 'de' ? 'Service-Frame anfragen' : 'Szolgáltatási keret igénylése'}
             </button>
-            <p className={`mt-2 text-[11px] ${darkMode ? 'text-gray-400' : 'text-[#6B7280]'}`}>
-              {market === 'de'
-                ? 'Fälligkeit: 8 Tage ab Antragstellung. Wenn die Zahlung bis dahin nicht bestätigt wird, wird der Rahmen automatisch storniert.'
-                : 'Fizetési határidő: 8 nap az igényléstől. Ha a fizetést nem igazolják eddig, a keret automatikusan visszavonásra kerül.'}
-            </p>
             {serviceFrameRequestState === 'success' && (
               <div className={`mt-3 flex items-center gap-2 rounded-xl border px-3 py-3 text-sm font-semibold ${darkMode ? 'border-emerald-700 bg-emerald-900/30 text-emerald-200' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>
                 <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white text-xs">✓</span>
                 {serviceFrameRequestNotice || (market === 'de' ? 'Rahmen sofort gutgeschrieben' : 'A keret azonnal jóváírásra került')}
-              </div>
-            )}
-            {serviceFrameRequestState === 'already_pending' && (
-              <div className={`mt-3 flex items-center gap-2 rounded-xl border px-3 py-3 text-sm font-semibold ${darkMode ? 'border-amber-700 bg-amber-900/30 text-amber-200' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>
-                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-white text-xs">i</span>
-                {serviceFrameRequestNotice}
               </div>
             )}
             {alreadyPendingInfo && (
