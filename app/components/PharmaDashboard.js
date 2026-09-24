@@ -896,12 +896,12 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
                 <div className={`${darkMode ? 'bg-[#111827] border-gray-700 text-white' : 'bg-white border-gray-200 text-gray-900'} w-full max-w-sm rounded-2xl border shadow-2xl overflow-hidden`}>
                   <div className="p-5">
                     <h3 className="text-lg font-bold mb-2">
-                      {market === 'de' ? 'Es gibt bereits einen offenen Service-Frame' : 'Már van függőben lévő szolgáltatási kereted'}
+                      {market === 'de' ? 'Du hast bereits einen Service-Frame mit ausstehender Zahlung' : 'Van már egy szolgáltatási kereted, aminek a fizetése még nincs igazolva'}
                     </h3>
                     <p className={`text-sm mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                       {market === 'de'
-                        ? `Offener Rahmen: ${alreadyPendingInfo.creditedCredits} Kredite`
-                        : `Függő keret: ${alreadyPendingInfo.creditedCredits} kredit`}
+                        ? `Zahlung ausstehend für: ${alreadyPendingInfo.creditedCredits} Kredite`
+                        : `Fizetésre vár: ${alreadyPendingInfo.creditedCredits} kredit`}
                     </p>
                     {alreadyPendingInfo.dueAt && (
                       <p className={`text-sm mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
@@ -975,8 +975,8 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
                       </p>
                       <p className="mb-3">
                         {market === 'de'
-                          ? 'Die Zahlung muss innerhalb von 8 Tagen nach Antragstellung erfolgen. Nach der Freigabe werden die zugehörigen Kredite sofort gutgeschrieben. Der Status bleibt zunächst „pending”, bis der Admin den Zahlungseingang bestätigt.'
-                          : 'A fizetés a kérelmezéstől számított 8 napon belül teljesítendő. A jóváhagyás után a kapcsolódó kreditek azonnal jóváírásra kerülnek. A státusz a fizetési igazolásig „pending” marad, az admin a beérkezett összeg ellenőrzését követően állítja a státuszt.'}
+                          ? 'Die Zahlung muss innerhalb von 8 Tagen nach Antragstellung erfolgen. Die zugehörigen Kredite werden sofort nach der Freigabe gutgeschrieben, du kannst sie also direkt nutzen. Bis der Admin deine Zahlung bestätigt hat, wird der Rahmen als „Zahlung ausstehend” angezeigt.'
+                          : 'A fizetést a kérelmezéstől számított 8 napon belül kell teljesítened. A kapcsolódó kreditek már a jóváhagyás után azonnal jóváírásra kerülnek, tehát rögtön használhatod is őket. Amíg az admin nem igazolja vissza az utalásod megérkezését, a keret „fizetésre váró” állapotban jelenik meg.'}
                       </p>
                       <p className="mb-3">
                         {market === 'de'
