@@ -770,7 +770,7 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
                         }}
                         className="flex-1 rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 bg-white hover:bg-gray-100"
                       >
-                        {market === 'de' ? 'Verstanden' : 'Rendben'}
+                        {market === 'de' ? 'Abbrechen' : 'Mégsem'}
                       </button>
                       <button
                         type="button"
