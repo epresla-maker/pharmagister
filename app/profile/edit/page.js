@@ -25,6 +25,12 @@ export default function ProfileEditPage() {
     companyName: '',
     contactName: '',
     website: '',
+    pharmaCompanyName: '',
+    taxNumber: '',
+    billingEmail: '',
+    pharmacyAddress: '',
+    pharmacyCity: '',
+    pharmacyZipCode: '',
   });
 
   const isPartnerAccount = Boolean(
@@ -33,6 +39,10 @@ export default function ProfileEditPage() {
     userData?.accountType === 'partner_professional' ||
     userData?.partnerAdvertiser ||
     userData?.partnerProfessional
+  );
+
+  const isPharmacyAccount = Boolean(
+    userData?.pharmagisterRole === 'pharmacy' || userData?.pharmagisterRole === 'gyógyszertár'
   );
 
   useEffect(() => {
@@ -45,6 +55,12 @@ export default function ProfileEditPage() {
         companyName: userData.partnerProfile?.companyName || '',
         contactName: userData.partnerProfile?.contactName || '',
         website: userData.partnerProfile?.website || '',
+        pharmaCompanyName: userData.companyName || '',
+        taxNumber: userData.taxNumber || '',
+        billingEmail: userData.billingEmail || '',
+        pharmacyAddress: userData.pharmacyAddress || '',
+        pharmacyCity: userData.pharmacyCity || '',
+        pharmacyZipCode: userData.pharmacyZipCode || '',
       });
     }
   }, [userData]);
@@ -130,6 +146,15 @@ export default function ProfileEditPage() {
         update['partnerProfile.companyName'] = formData.companyName.trim() || null;
         update['partnerProfile.contactName'] = formData.contactName.trim() || null;
         update['partnerProfile.website'] = formData.website.trim() || null;
+      }
+
+      if (isPharmacyAccount) {
+        update.companyName = formData.pharmaCompanyName.trim() || null;
+        update.taxNumber = formData.taxNumber.trim() || null;
+        update.billingEmail = formData.billingEmail.trim() || null;
+        update.pharmacyAddress = formData.pharmacyAddress.trim() || null;
+        update.pharmacyCity = formData.pharmacyCity.trim() || null;
+        update.pharmacyZipCode = formData.pharmacyZipCode.trim() || null;
       }
 
       await updateDoc(doc(db, 'users', user.uid), update);
@@ -340,6 +365,123 @@ export default function ProfileEditPage() {
                     }`}
                     placeholder="https://..."
                   />
+                </div>
+              </>
+            )}
+
+            {/* Gyógyszertár számlázási adatok */}
+            {isPharmacyAccount && (
+              <>
+                <div className={`pt-2 pb-1 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                  <p className={`text-sm font-semibold ${darkMode ? 'text-emerald-400' : 'text-emerald-700'}`}>
+                    {market === 'de' ? 'Rechnungsdaten' : 'Számlázási adatok'}
+                  </p>
+                  <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    {market === 'de'
+                      ? 'Diese Daten werden fuer eine gueltige Rechnung benoetigt und koennen vom oben angezeigten Namen abweichen.'
+                      : 'Ezek az adatok a szabályos számla kiállításához szükségesek, és eltérhetnek a fent megjelenített névtől.'}
+                  </p>
+                </div>
+
+                <div>
+                  <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-[#374151]'} mb-1`}>
+                    {market === 'de' ? 'Rechtlicher Firmenname' : 'Cég hivatalos neve'}
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.pharmaCompanyName}
+                    onChange={(e) => setFormData(prev => ({ ...prev, pharmaCompanyName: e.target.value }))}
+                    className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#6B46C1] focus:border-[#6B46C1] ${
+                      darkMode
+                        ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
+                        : 'bg-white border-[#E5E7EB] text-[#111827]'
+                    }`}
+                    placeholder={market === 'de' ? 'z.B. Musterapotheke Kft.' : 'pl. Minta Gyógyszertár Kft.'}
+                  />
+                </div>
+
+                <div>
+                  <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-[#374151]'} mb-1`}>
+                    {market === 'de' ? 'Steuernummer' : 'Adószám'}
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.taxNumber}
+                    onChange={(e) => setFormData(prev => ({ ...prev, taxNumber: e.target.value }))}
+                    className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#6B46C1] focus:border-[#6B46C1] ${
+                      darkMode
+                        ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
+                        : 'bg-white border-[#E5E7EB] text-[#111827]'
+                    }`}
+                    placeholder="12345678-1-42"
+                  />
+                </div>
+
+                <div>
+                  <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-[#374151]'} mb-1`}>
+                    {market === 'de' ? 'E-Mail fuer die Rechnung' : 'E-mail cím a számlához'}
+                  </label>
+                  <input
+                    type="email"
+                    value={formData.billingEmail}
+                    onChange={(e) => setFormData(prev => ({ ...prev, billingEmail: e.target.value }))}
+                    className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#6B46C1] focus:border-[#6B46C1] ${
+                      darkMode
+                        ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
+                        : 'bg-white border-[#E5E7EB] text-[#111827]'
+                    }`}
+                    placeholder="email@example.com"
+                  />
+                </div>
+
+                <div>
+                  <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-[#374151]'} mb-1`}>
+                    {market === 'de' ? 'Strasse und Hausnummer' : 'Utca, házszám'}
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.pharmacyAddress}
+                    onChange={(e) => setFormData(prev => ({ ...prev, pharmacyAddress: e.target.value }))}
+                    className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#6B46C1] focus:border-[#6B46C1] ${
+                      darkMode
+                        ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
+                        : 'bg-white border-[#E5E7EB] text-[#111827]'
+                    }`}
+                    placeholder={market === 'de' ? 'z.B. Hauptstrasse 12.' : 'pl. Kossuth utca 12.'}
+                  />
+                </div>
+
+                <div className="flex gap-3">
+                  <div className="flex-1">
+                    <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-[#374151]'} mb-1`}>
+                      {market === 'de' ? 'PLZ' : 'Irányítószám'}
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.pharmacyZipCode}
+                      onChange={(e) => setFormData(prev => ({ ...prev, pharmacyZipCode: e.target.value }))}
+                      className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#6B46C1] focus:border-[#6B46C1] ${
+                        darkMode
+                          ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
+                          : 'bg-white border-[#E5E7EB] text-[#111827]'
+                      }`}
+                    />
+                  </div>
+                  <div className="flex-[2]">
+                    <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-[#374151]'} mb-1`}>
+                      {market === 'de' ? 'Stadt' : 'Város'}
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.pharmacyCity}
+                      onChange={(e) => setFormData(prev => ({ ...prev, pharmacyCity: e.target.value }))}
+                      className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#6B46C1] focus:border-[#6B46C1] ${
+                        darkMode
+                          ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
+                          : 'bg-white border-[#E5E7EB] text-[#111827]'
+                      }`}
+                    />
+                  </div>
                 </div>
               </>
             )}
