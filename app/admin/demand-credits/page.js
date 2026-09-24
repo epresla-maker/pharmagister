@@ -241,7 +241,7 @@ export default function AdminDemandCreditsPage() {
                     </p>
                     {intent.invoiceSummary && (
                       <p className="text-xs text-gray-600">
-                        {market === 'de' ? 'Rechnungsdaten' : 'Számlaadatok'}: {intent.invoiceSummary.companyName || intent.invoiceSummary.pharmacyName || intent.pharmacyName || '-'} | {intent.invoiceSummary.email || intent.email || '-'} | {intent.invoiceSummary.phone || '-'}
+                        {market === 'de' ? 'Rechnungsdaten' : 'Számlaadatok'}: {intent.invoiceSummary.companyName || intent.invoiceSummary.pharmacyName || intent.pharmacyName || '-'} | {market === 'de' ? 'StNr' : 'Adószám'}: {intent.invoiceSummary.taxNumber || intent.taxNumber || '-'} | {intent.invoiceSummary.pharmacyAddress || intent.pharmacyAddress || '-'} {intent.invoiceSummary.zipCode || intent.pharmacyZipCode || ''} {intent.invoiceSummary.city || intent.pharmacyCity || ''} | {intent.invoiceSummary.email || intent.email || '-'} | {intent.invoiceSummary.phone || '-'}
                       </p>
                     )}
                     <p className="text-xs text-gray-600">

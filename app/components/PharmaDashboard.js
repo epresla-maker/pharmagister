@@ -34,7 +34,8 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
   const [alreadyPendingInfo, setAlreadyPendingInfo] = useState(null);
   const [alreadyPendingModalReady, setAlreadyPendingModalReady] = useState(false);
   const [showBillingModal, setShowBillingModal] = useState(false);
-  const [billingForm, setBillingForm] = useState({ pharmacyName: '', contactName: '', phone: '', pharmacyCity: '', pharmacyZipCode: '' });
+  const [billingForm, setBillingForm] = useState({ pharmacyName: '', taxNumber: '', contactName: '', phone: '', billingEmail: '', pharmacyAddress: '', pharmacyCity: '', pharmacyZipCode: '' });
+  const [billingFormErrors, setBillingFormErrors] = useState({});
   const [savingBillingInfo, setSavingBillingInfo] = useState(false);
   const [billingSavedNotice, setBillingSavedNotice] = useState(false);
 
@@ -645,24 +646,49 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
   const openBillingModal = () => {
     setBillingForm({
       pharmacyName: userData?.pharmacyName || '',
+      taxNumber: userData?.taxNumber || '',
       contactName: userData?.contactName || userData?.displayName || '',
       phone: userData?.phone || userData?.pharmacyPhone || userData?.pharmaPhone || '',
+      billingEmail: userData?.billingEmail || userData?.email || user?.email || '',
+      pharmacyAddress: userData?.pharmacyAddress || [userData?.pharmacyStreet, userData?.pharmacyHouseNumber].filter(Boolean).join(' ') || '',
       pharmacyCity: userData?.pharmacyCity || '',
       pharmacyZipCode: userData?.pharmacyZipCode || '',
     });
+    setBillingFormErrors({});
     setBillingSavedNotice(false);
     setShowServiceTermsModal(false);
     setShowBillingModal(true);
   };
 
+  const validateBillingForm = () => {
+    const errors = {};
+    if (!billingForm.pharmacyName.trim()) errors.pharmacyName = true;
+    if (!billingForm.taxNumber.trim()) errors.taxNumber = true;
+    if (!billingForm.billingEmail.trim()) errors.billingEmail = true;
+    if (!billingForm.pharmacyAddress.trim()) errors.pharmacyAddress = true;
+    if (!billingForm.pharmacyCity.trim()) errors.pharmacyCity = true;
+    if (!billingForm.pharmacyZipCode.trim()) errors.pharmacyZipCode = true;
+    setBillingFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const saveBillingInfo = async () => {
     if (!user) return false;
+    if (!validateBillingForm()) {
+      alert(market === 'de'
+        ? 'Bitte fuelle alle Pflichtfelder aus (Name, Steuernummer, E-Mail, Adresse, PLZ, Stadt) - diese werden fuer eine ordnungsgemaesse Rechnung benoetigt.'
+        : 'Kérjük, tölts ki minden kötelező mezőt (név, adószám, e-mail, cím, irányítószám, város) - ezek szükségesek a szabályos számla kiállításához.');
+      return false;
+    }
     setSavingBillingInfo(true);
     try {
       await updateDoc(doc(db, 'users', user.uid), {
         pharmacyName: billingForm.pharmacyName.trim(),
+        taxNumber: billingForm.taxNumber.trim(),
         contactName: billingForm.contactName.trim(),
         phone: billingForm.phone.trim(),
+        billingEmail: billingForm.billingEmail.trim(),
+        pharmacyAddress: billingForm.pharmacyAddress.trim(),
         pharmacyCity: billingForm.pharmacyCity.trim(),
         pharmacyZipCode: billingForm.pharmacyZipCode.trim(),
       });
@@ -940,14 +966,31 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
                   <div className="p-5 space-y-3 max-h-[60vh] overflow-y-auto">
                     <div>
                       <label className={`block text-xs font-semibold mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                        {market === 'de' ? 'Apothekenname' : 'Gyógyszertár neve'}
+                        {market === 'de' ? 'Apothekenname / Firmenname *' : 'Gyógyszertár / cégnév *'}
                       </label>
                       <input
                         type="text"
                         value={billingForm.pharmacyName}
                         onChange={(e) => setBillingForm(prev => ({ ...prev, pharmacyName: e.target.value }))}
-                        className={`w-full rounded-lg border px-3 py-2 text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
+                        className={`w-full rounded-lg border px-3 py-2 text-sm ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} ${billingFormErrors.pharmacyName ? 'border-red-500' : (darkMode ? 'border-gray-600' : 'border-gray-300')}`}
                       />
+                    </div>
+                    <div>
+                      <label className={`block text-xs font-semibold mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                        {market === 'de' ? 'Steuernummer *' : 'Adószám *'}
+                      </label>
+                      <input
+                        type="text"
+                        value={billingForm.taxNumber}
+                        onChange={(e) => setBillingForm(prev => ({ ...prev, taxNumber: e.target.value }))}
+                        placeholder="12345678-1-42"
+                        className={`w-full rounded-lg border px-3 py-2 text-sm ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} ${billingFormErrors.taxNumber ? 'border-red-500' : (darkMode ? 'border-gray-600' : 'border-gray-300')}`}
+                      />
+                      <p className={`mt-1 text-[11px] ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                        {market === 'de'
+                          ? 'Erforderlich für eine gültige Rechnung.'
+                          : 'A szabályos számla kiállításához kötelező.'}
+                      </p>
                     </div>
                     <div>
                       <label className={`block text-xs font-semibold mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
@@ -962,6 +1005,17 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
                     </div>
                     <div>
                       <label className={`block text-xs font-semibold mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                        {market === 'de' ? 'E-Mail für die Rechnung *' : 'E-mail cím a számlához *'}
+                      </label>
+                      <input
+                        type="email"
+                        value={billingForm.billingEmail}
+                        onChange={(e) => setBillingForm(prev => ({ ...prev, billingEmail: e.target.value }))}
+                        className={`w-full rounded-lg border px-3 py-2 text-sm ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} ${billingFormErrors.billingEmail ? 'border-red-500' : (darkMode ? 'border-gray-600' : 'border-gray-300')}`}
+                      />
+                    </div>
+                    <div>
+                      <label className={`block text-xs font-semibold mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                         {market === 'de' ? 'Telefonnummer' : 'Telefonszám'}
                       </label>
                       <input
@@ -971,27 +1025,39 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
                         className={`w-full rounded-lg border px-3 py-2 text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
                       />
                     </div>
+                    <div>
+                      <label className={`block text-xs font-semibold mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                        {market === 'de' ? 'Straße und Hausnummer *' : 'Utca, házszám *'}
+                      </label>
+                      <input
+                        type="text"
+                        value={billingForm.pharmacyAddress}
+                        onChange={(e) => setBillingForm(prev => ({ ...prev, pharmacyAddress: e.target.value }))}
+                        placeholder={market === 'de' ? 'z.B. Hauptstraße 12.' : 'pl. Kossuth utca 12.'}
+                        className={`w-full rounded-lg border px-3 py-2 text-sm ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} ${billingFormErrors.pharmacyAddress ? 'border-red-500' : (darkMode ? 'border-gray-600' : 'border-gray-300')}`}
+                      />
+                    </div>
                     <div className="flex gap-3">
                       <div className="flex-1">
                         <label className={`block text-xs font-semibold mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                          {market === 'de' ? 'PLZ' : 'Irányítószám'}
+                          {market === 'de' ? 'PLZ *' : 'Irányítószám *'}
                         </label>
                         <input
                           type="text"
                           value={billingForm.pharmacyZipCode}
                           onChange={(e) => setBillingForm(prev => ({ ...prev, pharmacyZipCode: e.target.value }))}
-                          className={`w-full rounded-lg border px-3 py-2 text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
+                          className={`w-full rounded-lg border px-3 py-2 text-sm ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} ${billingFormErrors.pharmacyZipCode ? 'border-red-500' : (darkMode ? 'border-gray-600' : 'border-gray-300')}`}
                         />
                       </div>
                       <div className="flex-[2]">
                         <label className={`block text-xs font-semibold mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                          {market === 'de' ? 'Stadt' : 'Város'}
+                          {market === 'de' ? 'Stadt *' : 'Város *'}
                         </label>
                         <input
                           type="text"
                           value={billingForm.pharmacyCity}
                           onChange={(e) => setBillingForm(prev => ({ ...prev, pharmacyCity: e.target.value }))}
-                          className={`w-full rounded-lg border px-3 py-2 text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
+                          className={`w-full rounded-lg border px-3 py-2 text-sm ${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} ${billingFormErrors.pharmacyCity ? 'border-red-500' : (darkMode ? 'border-gray-600' : 'border-gray-300')}`}
                         />
                       </div>
                     </div>
