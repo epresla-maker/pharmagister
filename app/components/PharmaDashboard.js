@@ -66,38 +66,6 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
     };
   }, [showServiceTermsModal, showBillingModal, alreadyPendingInfo]);
 
-  // Lock background page scroll while a service-frame modal is open, so the
-  // background page can't fight with the modal's own scroll on mobile (this
-  // was causing the modal to "jump back" while scrolling with the keyboard open).
-  useEffect(() => {
-    const anyModalOpen = showServiceTermsModal || showBillingModal || Boolean(alreadyPendingInfo);
-    if (typeof window === 'undefined') return;
-    if (anyModalOpen) {
-      const scrollY = window.scrollY;
-      document.body.style.overflow = 'hidden';
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${scrollY}px`;
-      document.body.style.width = '100%';
-      document.documentElement.style.overflow = 'hidden';
-    } else {
-      const scrollY = document.body.style.top;
-      document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.width = '';
-      document.documentElement.style.overflow = '';
-      if (scrollY) {
-        window.scrollTo(0, parseInt(scrollY || '0') * -1);
-      }
-    }
-    return () => {
-      document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.width = '';
-      document.documentElement.style.overflow = '';
-    };
-  }, [showServiceTermsModal, showBillingModal, alreadyPendingInfo]);
 
   useEffect(() => {
     console.log('🔄 PharmaDashboard useEffect triggered - user:', user?.uid, 'pharmaRole:', pharmaRole);
