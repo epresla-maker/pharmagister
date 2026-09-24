@@ -5,6 +5,7 @@ import { ThemeProvider } from '@/context/ThemeContext';
 import { ToastProvider } from '@/context/ToastContext';
 import { BadgesProvider } from '@/context/BadgesContext';
 import ErrorBoundary from './ErrorBoundary';
+import IntroSplash from './IntroSplash';
 
 // Lazy load non-critical components to reduce initial bundle
 const PWARegister = lazy(() => import('./PWARegister'));
@@ -23,6 +24,7 @@ const EmptyFallback = () => null;
 function ClientProviders({ children }) {
   return (
     <ErrorBoundary>
+    <IntroSplash />
     <AuthProvider>
       {/* Non-critical PWA components - lazy loaded */}
       <Suspense fallback={<EmptyFallback />}>
