@@ -38,6 +38,26 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
   const [billingFormErrors, setBillingFormErrors] = useState({});
   const [savingBillingInfo, setSavingBillingInfo] = useState(false);
   const [billingSavedNotice, setBillingSavedNotice] = useState(false);
+  const [billingModalMaxHeight, setBillingModalMaxHeight] = useState(null);
+
+  // Track the visual viewport height (shrinks when the iOS keyboard opens) so the
+  // billing modal panel can be bounded to what's actually visible. Only the panel's
+  // own inner content scrolls within that bound, instead of the whole fixed overlay
+  // scrolling - this avoids the iOS Safari bug where focusing an input inside a
+  // scrollable position:fixed ancestor makes the browser snap the scroll position
+  // back when the keyboard opens/closes.
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.visualViewport || !showBillingModal) return;
+    const vv = window.visualViewport;
+    const updateHeight = () => setBillingModalMaxHeight(vv.height - 32);
+    updateHeight();
+    vv.addEventListener('resize', updateHeight);
+    vv.addEventListener('scroll', updateHeight);
+    return () => {
+      vv.removeEventListener('resize', updateHeight);
+      vv.removeEventListener('scroll', updateHeight);
+    };
+  }, [showBillingModal]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -952,10 +972,12 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
               </div>
             )}
             {showBillingModal && (
-              <div className="fixed inset-0 z-50 overflow-y-auto overscroll-contain bg-black/40 p-4" style={{ WebkitOverflowScrolling: 'touch' }}>
-                <div className="min-h-full flex items-start sm:items-center justify-center py-8">
-                <div className={`${darkMode ? 'bg-[#111827] border-gray-700 text-white' : 'bg-white border-gray-200 text-gray-900'} w-full max-w-lg rounded-2xl border shadow-2xl`}>
-                  <div className="p-5 border-b border-gray-200 dark:border-gray-700">
+              <div className="fixed inset-0 z-50 bg-black/40 p-4 flex items-start sm:items-center justify-center">
+                <div
+                  className={`${darkMode ? 'bg-[#111827] border-gray-700 text-white' : 'bg-white border-gray-200 text-gray-900'} w-full max-w-lg rounded-2xl border shadow-2xl flex flex-col overflow-hidden`}
+                  style={{ maxHeight: billingModalMaxHeight ? `${billingModalMaxHeight}px` : '90vh' }}
+                >
+                  <div className="p-5 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
                     <h3 className="text-xl font-bold text-center">
                       {market === 'de' ? 'Rechnungsdaten' : 'Számlázási adatok'}
                     </h3>
@@ -965,7 +987,7 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
                         : 'Ezeket az adatokat használjuk a szolgáltatási keret számlázásához. Itt ellenőrizheted és szerkesztheted.'}
                     </p>
                   </div>
-                  <div className="p-5 space-y-3">
+                  <div className="p-5 space-y-3 overflow-y-auto overscroll-contain flex-1 min-h-0" style={{ WebkitOverflowScrolling: 'touch' }}>
                     <div>
                       <label className={`block text-xs font-semibold mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                         {market === 'de' ? 'Apothekenname / Firmenname *' : 'Gyógyszertár / cégnév *'}
@@ -1069,7 +1091,7 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
                       </p>
                     )}
                   </div>
-                  <div className="flex flex-col gap-2 p-4 pb-6 border-t border-gray-200 dark:border-gray-700">
+                  <div className="flex flex-col gap-2 p-4 pb-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
                     <div className="flex gap-3">
                       <button
                         type="button"
@@ -1096,7 +1118,6 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
                       {requestingCredits ? <Loader2 className="mx-auto w-4 h-4 animate-spin" /> : (market === 'de' ? 'Bestellen' : 'Megrendelem')}
                     </button>
                   </div>
-                </div>
                 </div>
               </div>
             )}
