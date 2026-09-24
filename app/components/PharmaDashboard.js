@@ -1192,10 +1192,10 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
                 <h3 className={`text-base font-bold ${darkMode ? 'text-white' : 'text-[#111827]'}`}>
-                  {market === 'de' ? 'Neuen Vertretungsbedarf aufgeben' : 'Új helyettesítési igény feladása'}
+                  {market === 'de' ? 'Vertretung suchen' : 'Helyettes keresése'}
                 </h3>
                 <p className={`text-xs mt-1 ${darkMode ? 'text-violet-200' : 'text-violet-800'}`}>
-                  {market === 'de' ? 'In wenigen Schritten zur neuen Ausschreibung.' : 'Néhány gyors lépésben feladhatod az új igényt.'}
+                  {market === 'de' ? 'In wenigen Klicks findest du die neue Vertretung.' : 'Pár kattintással megtalálhatod az új helyettesítőt.'}
                 </p>
               </div>
               <button
