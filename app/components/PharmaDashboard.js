@@ -48,6 +48,23 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
     setClientPlatform(platform);
   }, []);
 
+  // Hide the global bottom nav while any of the service-frame modals are open,
+  // otherwise it overlaps and hides the modal's action buttons.
+  useEffect(() => {
+    const anyModalOpen = showServiceTermsModal || showBillingModal || Boolean(alreadyPendingInfo);
+    if (typeof window === 'undefined') return;
+    if (anyModalOpen) {
+      window.dispatchEvent(new CustomEvent('calendar-overlay-open'));
+    } else {
+      window.dispatchEvent(new CustomEvent('calendar-overlay-close'));
+    }
+    return () => {
+      if (anyModalOpen) {
+        window.dispatchEvent(new CustomEvent('calendar-overlay-close'));
+      }
+    };
+  }, [showServiceTermsModal, showBillingModal, alreadyPendingInfo]);
+
   useEffect(() => {
     console.log('🔄 PharmaDashboard useEffect triggered - user:', user?.uid, 'pharmaRole:', pharmaRole);
     loadData();
