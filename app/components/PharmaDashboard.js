@@ -33,6 +33,10 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
   const [serviceFrameRequestState, setServiceFrameRequestState] = useState('idle');
   const [alreadyPendingInfo, setAlreadyPendingInfo] = useState(null);
   const [alreadyPendingModalReady, setAlreadyPendingModalReady] = useState(false);
+  const [showBillingModal, setShowBillingModal] = useState(false);
+  const [billingForm, setBillingForm] = useState({ pharmacyName: '', contactName: '', phone: '', pharmacyCity: '', pharmacyZipCode: '' });
+  const [savingBillingInfo, setSavingBillingInfo] = useState(false);
+  const [billingSavedNotice, setBillingSavedNotice] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -621,6 +625,48 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
     setShowServiceTermsModal(true);
   };
 
+  const openBillingModal = () => {
+    setBillingForm({
+      pharmacyName: userData?.pharmacyName || '',
+      contactName: userData?.contactName || userData?.displayName || '',
+      phone: userData?.phone || userData?.pharmacyPhone || userData?.pharmaPhone || '',
+      pharmacyCity: userData?.pharmacyCity || '',
+      pharmacyZipCode: userData?.pharmacyZipCode || '',
+    });
+    setBillingSavedNotice(false);
+    setShowServiceTermsModal(false);
+    setShowBillingModal(true);
+  };
+
+  const saveBillingInfo = async () => {
+    if (!user) return false;
+    setSavingBillingInfo(true);
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        pharmacyName: billingForm.pharmacyName.trim(),
+        contactName: billingForm.contactName.trim(),
+        phone: billingForm.phone.trim(),
+        pharmacyCity: billingForm.pharmacyCity.trim(),
+        pharmacyZipCode: billingForm.pharmacyZipCode.trim(),
+      });
+      setBillingSavedNotice(true);
+      return true;
+    } catch (error) {
+      console.error('Error saving billing info:', error);
+      alert(market === 'de' ? 'Fehler beim Speichern der Rechnungsdaten.' : 'Hiba történt a számlázási adatok mentésekor.');
+      return false;
+    } finally {
+      setSavingBillingInfo(false);
+    }
+  };
+
+  const confirmBillingAndOrder = async () => {
+    const saved = await saveBillingInfo();
+    if (!saved) return;
+    setShowBillingModal(false);
+    await submitServiceFrameRequest();
+  };
+
   const handleCancelApplication = async (applicationId) => {
     if (!confirm(market === 'de' ? 'Moechtest du deine Bewerbung wirklich zurueckziehen?' : 'Biztosan visszavonod a jelentkezésed?')) return;
 
@@ -827,13 +873,7 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
                         <input
                           type="checkbox"
                           checked={serviceTermsAccepted}
-                          onChange={(e) => {
-                            const checked = e.target.checked;
-                            setServiceTermsAccepted(checked);
-                            if (checked) {
-                              submitServiceFrameRequest();
-                            }
-                          }}
+                          onChange={(e) => setServiceTermsAccepted(e.target.checked)}
                           className="mt-1 h-4 w-4 rounded border-gray-300 text-[#6B46C1] focus:ring-[#6B46C1]"
                         />
                         <span className="text-xs">
@@ -852,17 +892,124 @@ export default function PharmaDashboard({ pharmaRole, expandDemandId }) {
                         }}
                         className="flex-1 rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-gray-700 bg-white hover:bg-gray-100"
                       >
-                        {market === 'de' ? 'Abbrechen' : 'Mégse'}
+                        {market === 'de' ? 'Ich möchte nicht' : 'Nem kérem'}
                       </button>
                       <button
                         type="button"
                         disabled={!serviceTermsAccepted || requestingCredits}
-                        onClick={submitServiceFrameRequest}
+                        onClick={openBillingModal}
                         className={`flex-1 rounded-xl px-4 py-3 text-sm font-semibold text-white ${!serviceTermsAccepted || requestingCredits ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#6B46C1] hover:bg-[#5a3aa3]'}`}
                       >
-                        {requestingCredits ? <Loader2 className="mx-auto w-4 h-4 animate-spin" /> : (market === 'de' ? 'Akzeptieren und weiter' : 'Elfogadom és tovább')}
+                        {market === 'de' ? 'Ich möchte' : 'Kérem'}
                       </button>
                     </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            {showBillingModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+                <div className={`${darkMode ? 'bg-[#111827] border-gray-700 text-white' : 'bg-white border-gray-200 text-gray-900'} w-full max-w-lg rounded-2xl border shadow-2xl overflow-hidden`}>
+                  <div className="p-5 border-b border-gray-200 dark:border-gray-700">
+                    <h3 className="text-xl font-bold text-center">
+                      {market === 'de' ? 'Rechnungsdaten' : 'Számlázási adatok'}
+                    </h3>
+                    <p className={`mt-1 text-center text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                      {market === 'de'
+                        ? 'Diese Daten werden auf der Rechnung für den Service-Frame verwendet. Du kannst sie hier prüfen und bearbeiten.'
+                        : 'Ezeket az adatokat használjuk a szolgáltatási keret számlázásához. Itt ellenőrizheted és szerkesztheted.'}
+                    </p>
+                  </div>
+                  <div className="p-5 space-y-3 max-h-[60vh] overflow-y-auto">
+                    <div>
+                      <label className={`block text-xs font-semibold mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                        {market === 'de' ? 'Apothekenname' : 'Gyógyszertár neve'}
+                      </label>
+                      <input
+                        type="text"
+                        value={billingForm.pharmacyName}
+                        onChange={(e) => setBillingForm(prev => ({ ...prev, pharmacyName: e.target.value }))}
+                        className={`w-full rounded-lg border px-3 py-2 text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
+                      />
+                    </div>
+                    <div>
+                      <label className={`block text-xs font-semibold mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                        {market === 'de' ? 'Ansprechpartner' : 'Kapcsolattartó neve'}
+                      </label>
+                      <input
+                        type="text"
+                        value={billingForm.contactName}
+                        onChange={(e) => setBillingForm(prev => ({ ...prev, contactName: e.target.value }))}
+                        className={`w-full rounded-lg border px-3 py-2 text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
+                      />
+                    </div>
+                    <div>
+                      <label className={`block text-xs font-semibold mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                        {market === 'de' ? 'Telefonnummer' : 'Telefonszám'}
+                      </label>
+                      <input
+                        type="text"
+                        value={billingForm.phone}
+                        onChange={(e) => setBillingForm(prev => ({ ...prev, phone: e.target.value }))}
+                        className={`w-full rounded-lg border px-3 py-2 text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
+                      />
+                    </div>
+                    <div className="flex gap-3">
+                      <div className="flex-1">
+                        <label className={`block text-xs font-semibold mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                          {market === 'de' ? 'PLZ' : 'Irányítószám'}
+                        </label>
+                        <input
+                          type="text"
+                          value={billingForm.pharmacyZipCode}
+                          onChange={(e) => setBillingForm(prev => ({ ...prev, pharmacyZipCode: e.target.value }))}
+                          className={`w-full rounded-lg border px-3 py-2 text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
+                        />
+                      </div>
+                      <div className="flex-[2]">
+                        <label className={`block text-xs font-semibold mb-1 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                          {market === 'de' ? 'Stadt' : 'Város'}
+                        </label>
+                        <input
+                          type="text"
+                          value={billingForm.pharmacyCity}
+                          onChange={(e) => setBillingForm(prev => ({ ...prev, pharmacyCity: e.target.value }))}
+                          className={`w-full rounded-lg border px-3 py-2 text-sm ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
+                        />
+                      </div>
+                    </div>
+                    {billingSavedNotice && (
+                      <p className="text-xs font-semibold text-emerald-600">
+                        {market === 'de' ? 'Gespeichert.' : 'Elmentve.'}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-2 p-4 border-t border-gray-200 dark:border-gray-700">
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setShowBillingModal(false)}
+                        className="flex-1 rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-gray-700 bg-white hover:bg-gray-100"
+                      >
+                        {market === 'de' ? 'Abbrechen' : 'Mégse'}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={savingBillingInfo}
+                        onClick={saveBillingInfo}
+                        className={`flex-1 rounded-xl px-4 py-3 text-sm font-semibold text-white ${savingBillingInfo ? 'bg-gray-400 cursor-not-allowed' : 'bg-gray-600 hover:bg-gray-700'}`}
+                      >
+                        {savingBillingInfo ? <Loader2 className="mx-auto w-4 h-4 animate-spin" /> : (market === 'de' ? 'Speichern' : 'Mentés')}
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={savingBillingInfo || requestingCredits}
+                      onClick={confirmBillingAndOrder}
+                      className={`w-full rounded-xl px-4 py-3 text-sm font-semibold text-white ${savingBillingInfo || requestingCredits ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#6B46C1] hover:bg-[#5a3aa3]'}`}
+                    >
+                      {requestingCredits ? <Loader2 className="mx-auto w-4 h-4 animate-spin" /> : (market === 'de' ? 'Bestellen' : 'Megrendelem')}
+                    </button>
                   </div>
                 </div>
               </div>
